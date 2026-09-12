@@ -1,0 +1,20 @@
+# Build output — giai đoạn 2
+bin/
+obj/
+dist/
+node_modules/
+.angular/
+*.user
+.vs/
+
+# Môi trường
+.env
+.env.local
+appsettings.Local.json
+
+# Hệ điều hành
+Thumbs.db
+.DS_Store
+
+# Dau trang thai cua hook — cuc bo, khong commit
+.claude/.state/

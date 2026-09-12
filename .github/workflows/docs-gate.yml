@@ -1,0 +1,74 @@
+name: Cổng tài liệu
+
+# Vì sao repo này có CI trong khi dự án tiền nhiệm cố ý không có:
+# ở đó, một script cổng KHÔNG TỒN TẠI trên đĩa khiến ba mục cổng không chạy suốt
+# một thời gian dài, trong khi tài liệu vẫn ghi là bình thường. Không có máy nào
+# chạy hộ nên không ai phát hiện. Với một bộ khung nhiều dự án cùng dùng, cổng
+# chạy tay là cổng có thể bị bỏ — và bỏ cổng không làm hỏng ngay, nó làm hỏng
+# im lặng. Xem docs/audit/2026-08-23-cong-khong-ton-tai.md và
+# docs/adr/0011-ci-github-actions.md.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check-docs:
+    name: check-docs.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # §5 của cổng dùng `git check-ignore`; §7 đọc file để đếm dòng.
+          # Cần cây làm việc đầy đủ, không cần lịch sử sâu.
+          fetch-depth: 1
+
+      - name: Chạy cổng tài liệu
+        run: bash .claude/check-docs.sh
+
+      # Cổng tự nó phải chạy được. Bài học: một cổng được tài liệu hướng dẫn chạy
+      # mà KHÔNG TỒN TẠI trên đĩa thì lệnh gãy ngay, các lệnh sau vẫn chạy bình
+      # thường, và người chạy tưởng đã qua. Bước dưới bắt đúng trường hợp đó.
+      - name: Cổng phải tồn tại và thực thi được
+        if: always()
+        run: |
+          test -f .claude/check-docs.sh || { echo "::error::.claude/check-docs.sh không tồn tại"; exit 1; }
+          bash -n .claude/check-docs.sh || { echo "::error::check-docs.sh có lỗi cú pháp"; exit 1; }
+
+  # 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG.
+  # Hai job dưới đây được khai sẵn nhưng CỐ Ý chưa bật: repo đang ở giai đoạn 1,
+  # chưa có src/. Khai sẵn để hình dạng pipeline hoàn chỉnh là thấy được, và để
+  # người bật chúng ở giai đoạn 2 không phải thiết kế lại từ đầu.
+  #
+  # Bật bằng cách bỏ dòng `if: false` và điền đường dẫn thật.
+
+  backend-gate:
+    name: dotnet test (gồm ArchTests)
+    runs-on: ubuntu-latest
+    if: false # giai đoạn 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet build --configuration Release
+      - run: dotnet test --configuration Release --no-build
+
+  frontend-gate:
+    name: fe-gate.sh + ng lint/build/test
+    runs-on: ubuntu-latest
+    if: false # giai đoạn 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # ⚠️ Chạy ĐỦ cả bốn lệnh. Chạy mỗi script rồi tuyên bố cổng FE xanh là cách
+      #    hỏng đã xảy ra thật — script chỉ phủ phần kiểm được bằng grep.
+      - run: bash scripts/fe-gate.sh
+      - run: npx ng lint
+      - run: npx ng build
+      - run: npx ng test --watch=false --browsers=ChromeHeadless
