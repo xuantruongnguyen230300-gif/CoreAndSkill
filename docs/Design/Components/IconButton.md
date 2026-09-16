@@ -20,7 +20,7 @@ Kích hoạt một hành động bằng đúng một icon, kèm nhãn chữ mà 
 
 | Dùng | Không dùng |
 | --- | --- |
-| Hành động lặp ở **mỗi hàng bảng**: sửa, xoá, xem chi tiết — nơi nhãn chữ nhân lên hàng chục lần sẽ nuốt mất bề rộng cột | 🛑 Hành động không có icon quy ước (Duyệt, Bàn giao, Kết chuyển) → [`Button.md`](./Button.md). Xem [`../Icons.md`](../Icons.md) §2 bước 3 |
+| Hành động lặp ở **mỗi hàng bảng**: sửa, xoá, mở menu hàng — nơi nhãn chữ nhân lên hàng chục lần sẽ nuốt mất bề rộng cột | 🛑 Hành động không có icon quy ước (Duyệt, Bàn giao, Kết chuyển) → [`Button.md`](./Button.md). Xem [`../Icons.md`](../Icons.md) §2 bước 3. 🛑 Mở chi tiết một hàng → `<a routerLink>` ở ô định danh ([`../Icons.md`](../Icons.md) §2), không phải nút xem |
 | Hành động phụ trong `Toolbar`, `Topbar`, đầu `Dialog` — nơi chỗ trống có hạn | 🛑 Hành động chính của một màn → [`Button.md`](./Button.md) biến thể `primary`, có chữ |
 | Nút đóng của một lớp nổi | 🛑 Xác nhận cuối cùng của thao tác phá huỷ — [`../Icons.md`](../Icons.md) §2 cấm: nút xoá cuối cùng luôn phải có chữ |
 | Nút mở/đóng menu ở màn nhỏ | 🛑 Bật/tắt một tuỳ chọn → [`Check.md`](./Check.md); chuyển giữa vài chế độ xem → [`SegmentedControl.md`](./SegmentedControl.md) |
@@ -67,6 +67,8 @@ Bo góc `--radius-sm` cho mọi cỡ. Không dùng `--radius-full` — nút trò
 | `error` | **Không áp dụng.** Nút không tự mang lỗi. Kết quả hỏng của hành động báo qua `Toast` hoặc [`NoticeBanner.md`](./NoticeBanner.md) | — |
 | `empty` | **Không áp dụng.** Không có icon nghĩa là chưa khai `icon` — lỗi thi công, không phải một trạng thái để thiết kế | — |
 
+Nút bật/tắt (`aria-pressed="true"`, ví dụ ghim cột) không có biến thể riêng: nền `--color-brand-subtle` **cộng** icon `--color-brand-on-subtle` — nền một mình chênh `--color-surface` 1.25:1 nên không được là tín hiệu duy nhất ([`../DESIGN.md`](../DESIGN.md) §2.4).
+
 **Vì sao `loading` vẫn giữ vòng quay dù nút rất bé:** với nút chữ thì [`Button.md`](./Button.md) còn nhãn để người dùng bám vào; ở đây icon là toàn bộ tín hiệu. Bỏ vòng quay thì một nút đang chờ máy chủ trông y hệt nút chưa được bấm, và người dùng bấm lần hai. Cái giá phải trả: khi `prefers-reduced-motion: reduce` bật, vòng quay dừng và thay bằng chỉ báo tĩnh ([`../Icons.md`](../Icons.md) §7), lúc đó chỉ còn trạng thái vô hiệu hoá làm tín hiệu — chấp nhận được, vì nút vẫn không bấm lại được.
 
 ## Token dùng
@@ -83,10 +85,10 @@ Bo góc `--radius-sm` cho mọi cỡ. Không dùng `--radius-full` — nút trò
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-lg` | Nhóm nút trong hàng bảng hiện đủ, xếp ngang, khe `--sp-2` |
-| `--bp-md` … `--bp-lg` | Giữ nguyên; nút trong `Toolbar` dùng cỡ `md` |
-| < `--bp-md` | Cỡ tối thiểu nâng lên `md` ở mọi vị trí — ngón tay không nhắm được 28px một cách thoải mái dù WCAG cho qua |
-| < `--bp-xs` | Cột hành động của bảng gom về một nút mở menu, thay vì ba nút cạnh nhau |
+| ≥ `$bp-lg` | Nhóm nút trong hàng bảng hiện đủ, xếp ngang, khe `--sp-2` — bậc "khe nhỏ nhất cùng nhóm" ở [`../DESIGN.md`](../DESIGN.md) §4, không có token riêng |
+| `$bp-md` … `$bp-lg` | Giữ nguyên; nút trong `Toolbar` dùng cỡ `md` |
+| < `$bp-md` | Cỡ tối thiểu nâng lên `md` ở mọi vị trí — ngón tay không nhắm được 28px một cách thoải mái dù WCAG cho qua |
+| < `$bp-xs` | Cột hành động của bảng gom về một nút `pi-ellipsis-v` mở [`Menu.md`](./Menu.md) ([`../Icons.md`](../Icons.md) §5), thay vì ba nút cạnh nhau |
 
 **Ba nút 28px cạnh nhau trên điện thoại là ba lần bấm nhầm.** 28×28px qua được SC 2.5.8 mức AA nhưng đó là **ngưỡng tối thiểu**, không phải mục tiêu. Cái giá của việc gom về menu: thêm một lần chạm cho mọi hành động ở màn nhỏ — chấp nhận được, vì bấm nhầm "xoá" đắt hơn nhiều.
 
@@ -138,8 +140,4 @@ Bo góc `--radius-sm` cho mọi cỡ. Không dùng `--radius-full` — nút trò
 
 ## Cần chốt
 
-| # | Câu hỏi | Ai trả lời được |
-| --- | --- | --- |
-| 1 | Nút bật/tắt (`pressed`) có cần biến thể hình thức riêng không, hay chỉ đổi nền sang `--color-brand-subtle`? Nền đó chênh `--color-surface` 1.25:1 nên không được là tín hiệu duy nhất, sẽ phải kèm icon đổi sang `--color-brand-on-subtle` | Người dựng component, cùng màn đầu tiên cần ghim cột |
-| 2 | Ở màn < `--bp-xs`, menu gom hành động là component nào? Nó có overlay nên thuộc nhóm "khó" ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 và chưa có dòng nào trong mục lục §3 | Dự án đầu tiên có bảng chạy trên điện thoại |
-| 3 | Có cần token riêng cho khe giữa các `IconButton` trong một cột hành động không? Hôm nay mượn `--sp-2`, chưa được kiểm trên bảng thật | Sau khi có màn danh sách thật |
+Không còn.

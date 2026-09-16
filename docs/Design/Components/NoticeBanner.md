@@ -65,7 +65,7 @@ Bố cục ngang: icon vai — cụm chữ (tiêu đề, thân, hành động) �
 | --- | --- | --- |
 | `default` | Nền, viền và dải theo vai; icon vai tự đặt màu (một trong bốn ca được phá luật kế thừa màu — [`../Icons.md`](../Icons.md) §4); tiêu đề `--fw-semibold`; thân `--color-text`, `--lh-normal` | Có |
 | `hover` | **Không áp dụng cho banner.** Nó không tương tác. Hiệu ứng hover thuộc về nút đóng và về các nút bên trong; banner đổi màu khi rê chuột là một lời hứa bấm được mà nó không giữ | — |
-| `focus-visible` | Áp cho **các phần tử bên trong**: nút đóng và các nút hành động. `outline: var(--border-w-strong) solid var(--color-focus)`, `outline-offset: 2px`. Vòng focus nằm trên nền `*-bg` chứ không trên `--color-surface` — đây là chỗ cần kiểm lại tỉ lệ, xem `Cần chốt` #1 | Có |
+| `focus-visible` | Áp cho **các phần tử bên trong**: nút đóng và các nút hành động. `outline: var(--border-w-strong) solid var(--color-focus)`, `outline-offset: 2px`. Vòng focus nằm trên nền `*-bg` chứ không trên `--color-surface` — số đo ở [`../DESIGN.md`](../DESIGN.md) §2.6: thấp nhất 5.44:1 sáng / 6.68:1 tối, đều qua 3:1 | Có |
 | `active` | **Không áp dụng cho banner.** Cùng lý do với `hover` | — |
 | `disabled` | **Không áp dụng.** Một thông báo không "bị vô hiệu hoá" — không còn đúng nữa thì gỡ nó đi, đừng làm nó mờ. Một banner mờ vẫn chiếm chỗ mà không còn nói gì | — |
 | `loading` | **Không áp dụng cho banner.** Nếu một nút hành động trong banner đang chờ máy chủ thì chính nút đó mang `loading` và `aria-busy` theo [`Button.md`](./Button.md); banner giữ nguyên | — |
@@ -94,9 +94,9 @@ Banner **không animate lúc xuất hiện**. [`../DESIGN.md`](../DESIGN.md) §7
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Icon, chữ và nút đóng trên một hàng; hàng hành động nằm dưới cụm chữ, căn trái |
-| < `--bp-md` | Cỡ hạ xuống `sm`; nút hành động xuống dòng, xếp dọc; nút đóng giữ nguyên góc trên bên phải |
-| < `--bp-xs` | Nút hành động chuyển sang `block` theo [`Button.md`](./Button.md); tiêu đề và thân giữ nguyên, **không** cắt bằng dấu ba chấm |
+| ≥ `$bp-md` | Icon, chữ và nút đóng trên một hàng; hàng hành động nằm dưới cụm chữ, căn trái |
+| < `$bp-md` | Cỡ hạ xuống `sm`; nút hành động xuống dòng, xếp dọc; nút đóng giữ nguyên góc trên bên phải |
+| < `$bp-xs` | Nút hành động chuyển sang `block` theo [`Button.md`](./Button.md); tiêu đề và thân giữ nguyên, **không** cắt bằng dấu ba chấm |
 
 Banner luôn chiếm hết bề rộng vùng chứa, ở mọi ngưỡng. Một thông báo hẹp hơn nội dung nó chú thích trông như một chú thích lề, và người dùng bỏ qua nó.
 
@@ -113,7 +113,7 @@ Banner luôn chiếm hết bề rộng vùng chứa, ở mọi ngưỡng. Một 
 | Nút đóng | [`IconButton.md`](./IconButton.md) với `pi-times`, `aria-label` nói rõ đóng cái gì ("Đóng thông báo lỗi lưu"), không chỉ "Đóng" |
 | Focus sau khi đóng | Focus phải trả về một chỗ hợp lý — phần tử trước banner trong thứ tự đọc. Để focus rơi về `<body>` là ném người dùng bàn phím về đầu trang |
 | Thứ tự đọc | Banner đặt **ngay trước** vùng nội dung nó nói về. Một banner ở cuối DOM nhưng được CSS kéo lên đầu là hai thứ tự khác nhau cho hai nhóm người dùng |
-| Liên kết nhảy trường | Banner tổng kết lỗi form chứa liên kết tới từng trường; bấm vào phải **đặt focus** vào trường đó, không chỉ cuộn tới |
+| Liên kết nhảy trường | Banner tổng kết lỗi form **là** `NoticeBanner` vai `danger`, không phải component riêng: thân qua slot chứa danh sách liên kết tới từng trường; bấm vào phải **đặt focus** vào trường đó, không chỉ cuộn tới |
 | Chữ | Tiêu đề, thân và nhãn nút đi qua tầng i18n — [`../../RULES.md`](../../RULES.md) §7 F8 |
 
 **Vì sao `warning` là `status` chứ không `alert`:** `role="alert"` cắt ngang thứ trình đọc màn hình đang đọc dở. Đó là hành vi đúng khi người dùng cần dừng lại ngay, và là hành vi thô lỗ khi họ chỉ cần biết một điều kiện. Một cảnh báo "kỳ này sẽ khoá sau 3 ngày" không đáng để cắt lời giữa câu. Cái giá: một cảnh báo thật sự gấp sẽ bị đọc muộn hơn — nếu gặp ca đó, câu trả lời là dùng vai `danger`, không phải nâng cấp `role` của `warning`.
@@ -153,6 +153,4 @@ Nội dung thân và hàng hành động vào qua slot, không qua input chuỗi
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | `--color-focus` đặt trên các nền `*-bg` chưa có số đo trong [`../DESIGN.md`](../DESIGN.md) §2 — bảng ở đó tính tương phản của vòng focus trên `--color-surface` và `--color-bg`. Có cần thêm một hàng số đo cho ca này, hay `outline-offset` đã đẩy vòng ra ngoài mép banner nên nó luôn nằm trên `--color-surface`? | Người sở hữu hệ token |
-| 2 | Nhiều banner cùng lúc trên một trang thì xếp thế nào, và có trần số lượng không? Ba banner xếp chồng đẩy nội dung xuống dưới nếp gấp; gom chúng lại thì mất mất vị trí "ngay trước vùng liên quan" | Dự án đầu tiên gặp ca nhiều điều kiện cùng lúc |
-| 3 | Banner tổng kết lỗi form là biến thể của component này hay một thứ riêng? Nó có danh sách liên kết nhảy trường, một cấu trúc không banner nào khác có — cần quyết trước khi có form dài đầu tiên | Người dựng [`FormRow.md`](./FormRow.md) và màn form đầu tiên |
+| 1 | Nhiều banner cùng lúc trên một trang thì xếp thế nào, và có trần số lượng không? Ba banner xếp chồng đẩy nội dung xuống dưới nếp gấp; gom chúng lại thì mất mất vị trí "ngay trước vùng liên quan" | Sau F3 — dự án hạ nguồn đầu tiên gặp ca nhiều điều kiện cùng lúc |

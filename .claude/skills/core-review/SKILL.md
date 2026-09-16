@@ -96,7 +96,7 @@ Chuyển bằng **đường dẫn tới báo cáo và mã finding**, không past
 3. **Chưa có `src/`.** Hỏi người dùng chọn chế độ tài liệu hay chuyển sang skill khác.
 4. **Có thay đổi chưa lưu trong phạm vi sắp review.** Hỏi trước — review một working tree đang dở dang cho ra finding về thứ người dùng đã biết là chưa xong.
 5. **Finding đòi một quyết định kiến trúc mới.** Chuyển cho `architect`, đừng để agent thi công tự quyết.
-6. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1. Nói rõ cần chạy lệnh gì, người dùng tự chạy.
+6. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1.
 
 ## Đầu ra
 

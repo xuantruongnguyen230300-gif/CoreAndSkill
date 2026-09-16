@@ -64,6 +64,8 @@ Handler nghiệp vụ
 
 Bước (4) là nơi **toàn bộ** tri thức về thông báo tập trung. Không có tri thức nào về thông báo nằm ở bước (1).
 
+Việc nền kết thúc (`core.job` sang `succeeded` hoặc `failed`) đi đúng luồng này: một bản ghi outbox, bên tạo thông báo gửi tới người khởi tạo việc — [`../../contracts/jobs.md`](../../contracts/jobs.md) §1.
+
 ---
 
 ## 2. Outbox — chi tiết vận hành
@@ -84,6 +86,7 @@ Làm ở tầng đó có hai cái lợi: handler không phải nhớ ghi Outbox,
 | **Không chứa dữ liệu nhạy cảm** | Bảng Outbox sống lâu, được đọc bởi nhiều thứ. Chứa định danh, đừng chứa mật khẩu hay số giấy tờ |
 | **Có phiên bản hợp đồng** | Hình dạng sự kiện sẽ đổi. Không có số phiên bản thì lúc đổi phải dừng hệ thống để dọn hàng chờ |
 | **Mang mã lần gọi** | Nối việc chạy nền với request đã sinh ra nó — xem [`07-observability.md`](07-observability.md) |
+| **Mang đơn vị và người kích hoạt** | Bộ phát mở lại phạm vi ngữ cảnh thực thi theo **từng dòng**, nên handler ghi dữ liệu đúng đơn vị và nhật ký biết ai gây ra — [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1 |
 
 ### 2.3 Tiến trình phát
 
@@ -93,7 +96,7 @@ Làm ở tầng đó có hai cái lợi: handler không phải nhớ ghi Outbox,
 | Lấy bản ghi | Khoá dòng đang xử lý để hai instance không cùng phát một sự kiện |
 | Kích thước lô | Vừa phải; lô lớn giữ transaction lâu |
 | Thứ tự | **Không hứa hẹn.** Bên nhận cần thứ tự thì tự xử lý bằng số phiên bản trong nội dung |
-| Đánh dấu đã phát | Sau khi bên nhận xử lý xong |
+| Đánh dấu đã phát | Sau khi bên nhận xử lý xong: `status = 'done'`, ghi `processed_at` (cột ở [`../../database/schema-core.md`](../../database/schema-core.md) §8) |
 | Dọn dẹp | Xoá bản ghi đã phát sau một khoảng đã khai; không dọn thì bảng phình và tiến trình chậm dần |
 
 ### 2.4 Thử lại và lùi dần
@@ -111,11 +114,11 @@ Khoảng lùi tăng dần (vài giây → vài chục giây → vài phút) và 
 
 ### 2.5 Thư chết
 
-Sau N lần thử, bản ghi chuyển sang trạng thái cần can thiệp và **phát cảnh báo**. Ba yêu cầu:
+Sau **5** lần thử (khoảng lùi theo cấp số, §2.4), bản ghi chuyển sang **`status = 'dead'`** (cột ở [`../../database/schema-core.md`](../../database/schema-core.md) §8) — `attempt_count` = 5, `next_attempt_at` rỗng vì nó chỉ là lịch của lần thử kế — và bộ phát không tự thử lại. Health check readiness trả `Degraded` khi có bản ghi `dead`, hoặc khi bản ghi `pending` cũ nhất đã quá **15 phút** ([`07-observability.md`](07-observability.md) §8). Ba yêu cầu:
 
 1. **Không im lặng.** Một bản ghi kẹt mà không ai biết là một thông báo không bao giờ tới, và người dùng chỉ phát hiện khi hậu quả đã xảy ra.
 2. **Xem lại được.** Cần một cách liệt kê bản ghi kẹt kèm lỗi cuối, để chẩn đoán.
-3. **Phát lại được.** Sau khi sửa nguyên nhân, phải phát lại được — có kiểm soát, không phát lại hàng loạt một cách mù quáng.
+3. **Phát lại được.** Sau khi sửa nguyên nhân, phải phát lại được — có kiểm soát, không phát lại hàng loạt một cách mù quáng. Lệnh: `core outbox-replay` — [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §3, bảng *Lệnh của runner*; cách chạy: [`../../database/script-runbook.md`](../../database/script-runbook.md) §10.
 
 **Chỉ số cảnh báo tốt nhất cho cả mảng này:** tuổi của bản ghi Outbox chưa phát cũ nhất. Nó tăng đều nghĩa là tiến trình phát đã chết hoặc đang kẹt, và nó báo trước khi người dùng nhận ra.
 
@@ -231,7 +234,7 @@ Dòng thứ hai là quyết định quan trọng nhất của mục này, và n�
 
 ## 6. §Áp dụng
 
-> **Thuộc phạm vi v1** (chốt 2026-09-10) — [`01-core-components.md`](01-core-components.md) §5.1, mục A18.
+> **Thuộc phạm vi v1** (chốt 2026-09-10) — [`01-core-components.md`](01-core-components.md) §5.1, mục CA18.
 > Thi công ở pha **B4** ([`trien-khai/05-b4-tep-nhap-xuat-thong-bao.md`](trien-khai/05-b4-tep-nhap-xuat-thong-bao.md)); hợp đồng endpoint ở [`../../contracts/notifications.md`](../../contracts/notifications.md).
 
 | Hạng mục | Trạng thái | Ghi chú |

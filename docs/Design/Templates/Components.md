@@ -94,6 +94,8 @@ Bỏ trống một dòng nguy hiểm hơn viết sai nó: dòng sai thì có ng�
 - Cột `Mặc định` **luôn có giá trị**. "Không có mặc định" cũng là một quyết định và phải viết ra.
 - Giá trị mặc định phải **sai theo hướng an toàn**. Ví dụ `variant` mặc định là `secondary` chứ không phải `primary`: quên khai thì ra nút phụ, không ra một màn có bốn nút chính.
 
+Component **bọc thư viện** không nhận component tự dựng qua import: phần cấu trúc của chính lớp bọc (nút đóng, chip, badge, thanh tiến trình…) do thư viện vẽ, tạo hình bằng token; nội dung do màn quyết — khối trống, đang tải, lỗi và nút trong các khối đó — vào qua input `<vai>Template`. Khuôn và phép thử ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5.
+
 ---
 
 ## Ví dụ điền

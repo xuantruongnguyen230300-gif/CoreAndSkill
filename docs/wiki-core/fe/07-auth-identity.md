@@ -33,7 +33,7 @@ Với một hệ quản trị nội bộ — FE và BE cùng miền, không có 
 
 - Mọi request phải bật gửi cookie (`withCredentials`), làm một lần trong interceptor.
 - FE **không biết** phiên còn sống hay không nếu chỉ nhìn bộ nhớ của mình. Nguồn sự thật là server; FE giữ một bản sao và bản sao đó có thể sai (§7).
-- Không có logic làm mới token. Bộ đếm duy nhất phía FE là đồng hồ cảnh báo sắp hết phiên (§7.5) — nó **hỏi** người dùng, không tự gia hạn.
+- Không có logic làm mới token, và v1 không có bộ đếm phiên nào phía FE (§7.5).
 
 ---
 
@@ -59,7 +59,7 @@ Với một hệ quản trị nội bộ — FE và BE cùng miền, không có 
 
 Gọi "tôi là ai" ở bước khởi động app, không gọi trong guard. Nếu gọi trong guard, mỗi lần điều hướng là một request nữa, và mỗi lần đó là một cơ hội để giao diện chớp nháy hoặc để hai request đua nhau.
 
-**Bẫy đi kèm:** bước khởi động nhận 401 là **trạng thái bình thường** (chưa đăng nhập), không phải lỗi. Nếu để 401 này chạy qua đường xử lý lỗi chung, người dùng sẽ thấy một thông báo lỗi ngay khi mở app lần đầu. Request này phải tắt thông báo mặc định — xem [`02-http-envelope.md`](02-http-envelope.md) §4.4.
+**Bẫy đi kèm:** bước khởi động nhận 401 là **trạng thái bình thường** (chưa đăng nhập), không phải lỗi. Nếu để 401 này đi vào bộ xử lý hết phiên, người chưa từng đăng nhập bị báo hết phiên ngay khi mở app. Request này mang cờ `BO_QUA_HET_PHIEN` để bỏ qua bộ xử lý đó (§7.3); 401 không toast ở mọi request nên không cần cờ nào khác — xem [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §2.2 và §2.5.
 
 ### 2.2 Đường dẫn quay lại
 
@@ -122,6 +122,8 @@ Thứ tự là ràng buộc, không phải chi tiết:
 
 Đảo bước 2 và 3 thì người buộc đổi mật khẩu sẽ nhận thông báo "không đủ quyền" thay vì được đưa tới màn đổi mật khẩu — một thông báo sai và gây hoang mang.
 
+> 📖 Cờ bật giữa phiên (403 `CORE.AUTH.PASSWORD_CHANGE_REQUIRED`): đọc [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §5.4.
+
 ---
 
 ## 5. Hiển thị theo permission, KHÔNG theo role
@@ -143,11 +145,9 @@ Thứ tự là ràng buộc, không phải chi tiết:
 
 FE nhận **tập permission** của người đang đăng nhập từ endpoint "tôi là ai", và mọi kiểm tra là một câu hỏi *"có permission X không"*. FE **không biết** tập permission nào tồn tại — chuỗi do nơi gọi truyền vào và do dữ liệu quyết định.
 
-```typescript
-// core/auth/permission.service.ts (rút gọn)
-readonly permissions = computed(() => new Set(this.session.user()?.permissions ?? []));
-has(code: string): boolean { return this.permissions().has(code); }
-```
+**Tài khoản mang `has_permission_bypass` đi đúng đường này, không có đường riêng.** Phản hồi phiên của nó trả `permissions` là **toàn bộ danh mục quyền hiện có** ([`../../contracts/auth.md`](../../contracts/auth.md) §3), nên FE **không** có nhánh nào theo cờ đó — ở guard, directive hay menu. Một nhánh riêng là một đường kiểm quyền thứ hai, và hai đường thì sẽ có lúc cho hai câu trả lời khác nhau.
+
+Câu hỏi *"có permission X không"* là một phương thức của **`AuthService`** ở `core/auth`, định nghĩa ở [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §3.3. Guard, directive và menu cùng hỏi đúng chỗ đó; không có service quyền thứ hai.
 
 Ba nơi dùng:
 
@@ -162,6 +162,14 @@ Ba nơi dùng:
 > 🛑 **Kiểm quyền ở FE là trải nghiệm, không phải bảo mật.** Nó tránh cho người dùng bấm vào thứ sẽ bị từ chối. Nó **không** ngăn được ai cả: một người dùng có thể gọi thẳng API. Mọi endpoint phải tự kiểm quyền, độc lập với FE ([`../../RULES.md`](../../RULES.md) S2).
 >
 > Câu hỏi để tự kiểm: *"nếu ai đó xoá đoạn kiểm tra này khỏi FE thì họ làm được gì thêm?"* — trả lời "không gì cả" thì đúng; trả lời "họ xoá được bản ghi" thì BE đang thiếu kiểm tra.
+
+### 5.4 Tập quyền đổi giữa phiên — gặp 403 thì làm mới
+
+Đổi vai trò của một người, hay đổi ma trận quyền, có hiệu lực ở BE **từ request kế tiếp** của người đó ([`../../contracts/users.md`](../../contracts/users.md) §7). Tập quyền FE nạp lúc khởi động (§2.1) thì không tự biết: nút vẫn hiện, bấm vào nhận 403.
+
+FE học được thay đổi đúng lúc đó — **gặp 403 `CORE.AUTH.FORBIDDEN` thì làm mới tập quyền và nạp lại menu trong cùng bước**, không nạp lại theo lịch và không nạp lại mỗi lần đổi route. Directive và guard hỏi cùng `AuthService` nên tự đổi theo; menu do server lọc (§6) nên phải nạp lại mới khớp; người dùng ở lại màn đang làm. 403 mang mã nghiệp vụ không kéo theo việc làm mới — nó nói về dữ liệu của thao tác, không nói tập quyền đã cũ.
+
+> 📖 Hiện thực — nhánh 403 của `errorInterceptor`: [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §2.2; `AuthService.lamMoiQuyen()` và `lamMoiPhien()` (gọi lại `me`; ba nơi gọi khai ở đó): [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §3.3. Tầng nào xử lý 401/403: [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §8.
 
 ---
 
@@ -191,7 +199,7 @@ Hợp đồng: [`../../contracts/meta-menu.md`](../../contracts/meta-menu.md).
 | Phiên hết hạn ở server | Nhận 401 ở một request bất kỳ | Dọn state, điều hướng, giữ đường dẫn để quay lại |
 | Quản trị viên khoá tài khoản | Nhận 401 ở request kế tiếp | Như trên |
 
-Ba đường phải quy về **một** hàm xử lý, ở `core/auth`. Nếu mỗi nơi tự dọn, sẽ có nơi quên dọn một thứ — và thứ bị quên thường là cache.
+Ba đường phải quy về **một** chỗ dọn, ở `core/auth`. Với hai đường nhận 401, chỗ đó là **`SessionExpiryHandler`**, do nhánh 401 của `errorInterceptor` gọi — hành vi chi tiết ở file chủ [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §2.5. Nếu mỗi nơi tự dọn, sẽ có nơi quên dọn một thứ — và thứ bị quên thường là cache.
 
 ### 7.2 Dọn cái gì
 
@@ -205,29 +213,21 @@ Ranh giới: dọn thứ **thuộc về người dùng**, giữ thứ **thuộc 
 
 ### 7.3 Ba bẫy
 
-**(1) Nhiều 401 cùng lúc gây nhiều lần điều hướng.** Một màn gọi bốn API song song, phiên hết hạn, cả bốn trả 401 và cả bốn cùng gọi xử lý hết phiên. Kết quả là bốn lần điều hướng và có thể bốn thông báo. Phải chặn: chỉ xử lý lần đầu, cho tới khi đăng nhập lại.
+**(1) Nhiều 401 cùng lúc gây nhiều lần điều hướng.** Một màn gọi bốn API song song, phiên hết hạn, cả bốn trả 401 và cả bốn cùng gọi xử lý hết phiên. Kết quả là bốn lần điều hướng và có thể bốn thông báo. Phải chặn: `SessionExpiryHandler` chạy **một lần**, cho tới lần đăng nhập kế tiếp.
 
-**(2) 401 của chính lời gọi đăng nhập không phải hết phiên.** Sai mật khẩu trả 401. Nếu đường xử lý hết phiên không loại trừ endpoint đăng nhập, người nhập sai mật khẩu sẽ bị "đăng xuất" và điều hướng lung tung thay vì thấy thông báo sai mật khẩu.
+**(2) Hai request mà 401 là chuyện bình thường.** `me` lúc khởi động (chưa đăng nhập, §2.1) và `logout` (phiên có thể đã hết trước khi bấm). Hai request này mang cờ `HttpContextToken` để nhánh 401 **bỏ qua** `SessionExpiryHandler`. Thiếu cờ thì người chưa từng đăng nhập bị báo "hết phiên" ngay khi mở app.
+
+Sai mật khẩu **không** thuộc nhóm này: đăng nhập sai trả **422** `CORE.AUTH.INVALID_CREDENTIALS` ([`../../contracts/auth.md`](../../contracts/auth.md) §3) và đi đường lỗi của form. Đưa nó vào đường xử lý hết phiên là coi người gõ sai mật khẩu như người hết phiên.
 
 **(3) Đăng xuất ở một tab không tự đóng các tab khác.** Cookie dùng chung, nên tab còn mở trở thành một giao diện chết — trông vẫn đầy dữ liệu nhưng mọi thao tác trả 401. Cách rẻ nhất: khi xử lý hết phiên, ghi một dấu hiệu vào `localStorage`; các tab khác nghe sự kiện thay đổi của `localStorage` và tự dọn theo. Đây là ngoại lệ có lý do của quyết định "không đồng bộ đa tab" ở [`03-state-management.md`](03-state-management.md) §7.
 
-### 7.4 Khoá tài khoản không có hiệu lực tức thì
+### 7.4 Khoá tài khoản chấm dứt phiên ở request kế tiếp
 
-Nếu BE dùng phiên có thời gian sống, một tài khoản bị khoá vẫn dùng được cho tới khi phiên hiện tại được kiểm lại. **Câu chữ trên giao diện phải phản ánh đúng độ trễ đó** — viết "Đã đăng xuất người dùng" khi thực tế là "sẽ chấm dứt trong ít phút" khiến quản trị viên tưởng thao tác hỏng và bấm lại nhiều lần. Độ trễ thật khai ở [`../../contracts/users.md`](../../contracts/users.md).
+Khoá tài khoản và đặt lại mật khẩu hộ đều đổi security stamp; phiên của người bị tác động chấm dứt ở **request kế tiếp của chính họ**, không phải ngay lúc quản trị bấm nút. **Câu chữ trên giao diện phải phản ánh đúng nhịp đó** — viết "Đã đăng xuất người dùng" trong khi người kia vẫn đang nhìn một màn đầy dữ liệu tới lần thao tác sau khiến quản trị viên tưởng thao tác hỏng. Nhịp chấm dứt khai ở [`../../contracts/users.md`](../../contracts/users.md) §8.
 
 ### 7.5 Cảnh báo trước khi hết phiên
 
-Phiên gia hạn theo **request**, không theo thao tác gõ phím. Người dùng nhập một form dài mà không gọi API nào thì phiên vẫn hết, và 401 rơi đúng vào lúc bấm Lưu — mất dữ liệu đang nhập.
-
-| Luật | Chi tiết |
-| --- | --- |
-| FE biết phiên còn bao lâu | `sessionMinutes` trong DTO người dùng ([`../../contracts/auth.md`](../../contracts/auth.md) §3). Đếm từ **request thành công gần nhất**, không từ lúc tải trang |
-| Cảnh báo sớm | Còn **hai phút** thì hiện hộp thoại *"Phiên sắp hết — Tiếp tục làm việc?"* |
-| Gia hạn | Bấm "Tiếp tục" thì gọi `GET /api/v1/core/auth/me`. Không cần endpoint riêng: mọi request đều gia hạn phiên |
-| **Không** tự gia hạn ngầm | Hẹn giờ không được tự gọi API để giữ phiên sống. Làm thế là vô hiệu hoá thời hạn phiên, và một máy bỏ quên ở phòng làm việc sẽ đăng nhập vĩnh viễn |
-| Hết phiên thật thì không xử lý gì thêm | Thao tác kế tiếp trả 401 và đi theo §7.1 — điều hướng về đăng nhập kèm đường dẫn quay lại. Dữ liệu chưa lưu **mất**; đó là đánh đổi đã chốt ở [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §8 |
-
-Hộp thoại này là **một** chỗ trong app, đặt cạnh hàm xử lý hết phiên ở `core/auth` — không phải mỗi màn tự làm một cái.
+**v1 không có cảnh báo sớm** — hàng *Đếm ngược hết phiên trên giao diện* ở §10 (`❌ chưa`). Hết phiên xử lý khi gặp 401, bởi `SessionExpiryHandler` ([`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §2.5); dữ liệu chưa lưu mất — đánh đổi ở [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §8. `sessionMinutes` của DTO phiên ([`../../contracts/auth.md`](../../contracts/auth.md) §3) chưa có nơi tiêu thụ ở FE v1.
 
 ---
 
@@ -243,17 +243,7 @@ FE và API ở **hai origin khác nhau** ở mọi môi trường ([`17-phuc-vu-
 
 ## 9. Kiểm chứng ở pha F2
 
-- [ ] Gọi API cần đăng nhập khi chưa đăng nhập → điều hướng kèm đường dẫn quay lại, không phải màn trắng
-- [ ] Đăng nhập xong quay **đúng** về đường dẫn đó
-- [ ] Đường dẫn quay lại trỏ ra miền ngoài → bị từ chối
-- [ ] Tài khoản buộc đổi mật khẩu: gõ URL bất kỳ đều bị đưa về màn đổi mật khẩu; riêng màn đó không lặp
-- [ ] Đổi mật khẩu xong vào thẳng app, không phải đăng nhập lại
-- [ ] Thao tác ghi đầu tiên **ngay sau** đăng nhập thành công (bẫy XSRF §3.2)
-- [ ] Đăng xuất → gọi lại API → bị chặn ngay, không cần tải lại trang
-- [ ] Bốn request song song cùng nhận 401 → chỉ một lần điều hướng, một thông báo
-- [ ] Nhập sai mật khẩu → thấy thông báo sai mật khẩu, không bị coi là hết phiên
-- [ ] Đăng xuất ở tab A → tab B tự dọn
-- [ ] Người dùng thiếu permission gõ thẳng URL → bị chặn, không thấy nội dung màn dù chỉ chớp nhoáng
+> 📖 Danh sách nghiệm thu F2: đọc [`trien-khai/03-f2-auth-routing.md`](trien-khai/03-f2-auth-routing.md) §7.
 
 ---
 
@@ -267,16 +257,17 @@ FE và API ở **hai origin khác nhau** ở mọi môi trường ([`17-phuc-vu-
 | XSRF token gửi lại qua header | ✅ sẽ có | §3 |
 | Nạp "tôi là ai" một lần lúc khởi động | ✅ sẽ có | §2.1 |
 | Ba guard đúng thứ tự | ✅ sẽ có | §4.3 |
+| Làm mới tập quyền và menu khi gặp 403 thiếu quyền | ✅ sẽ có | §5.4 |
 | Menu do server lọc theo quyền | ✅ sẽ có | §6 — [`../../contracts/meta-menu.md`](../../contracts/meta-menu.md) |
 | Đồng bộ đăng xuất giữa các tab | ✅ sẽ có | §7.3 — ngoại lệ có lý do của [`03-state-management.md`](03-state-management.md) §7 |
-| Ghi nhớ đăng nhập / phiên dài | ❌ chưa | Điều kiện: có yêu cầu thật và BE hỗ trợ trước |
+| Ghi nhớ đăng nhập / phiên dài | ❌ chưa | Điều kiện: có yêu cầu thật và BE hỗ trợ trước. Ở v1 mọi phiên cùng một thời hạn không thao tác ([`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §7); form đăng nhập không có ô ghi nhớ |
 | Đăng nhập một lần (SSO) | ❌ chưa | Điều kiện: tổ chức có nhà cung cấp danh tính dùng chung |
 | Xác thực hai yếu tố phía giao diện | ❌ chưa | Điều kiện: BE hỗ trợ trước; FE chỉ là màn nhập mã |
 | Đếm ngược hết phiên trên giao diện | ❌ chưa | Điều kiện: phiên ngắn tới mức người dùng mất dữ liệu form đang nhập |
 | JWT do FE tự giữ | ❌ loại, không hoãn `K23` | §1.1 — một lỗ XSS là mất token |
 | Kiểm quyền theo tên vai trò | ❌ loại, không hoãn `K24` | §5.1 — [`../../adr/0005-permission-based.md`](../../adr/0005-permission-based.md) |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

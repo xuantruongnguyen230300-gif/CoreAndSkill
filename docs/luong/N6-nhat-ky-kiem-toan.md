@@ -48,13 +48,16 @@ Nhật ký giữ **dài hơn hẳn** dữ liệu nghiệp vụ, vì lý do tuân
 | --- | --- |
 | Quên ghi nhật ký cho một thao tác | **Không ai thấy gì**, và chỉ phát hiện khi cần điều tra một sự việc — tức đúng lúc không còn cứu được |
 | Ghi nhật ký **ngoài** transaction của thao tác | Thao tác rollback mà nhật ký vẫn ghi ⇒ bằng chứng về một việc chưa xảy ra. Cùng lớp lỗi với bước 2 của luồng `N5` |
+| Thao tác xuyên đơn vị chỉ ghi một dòng | Một trong hai đơn vị không thấy việc đã chạm tới nó — xem §5 |
 | Bảng phình quá lớn | Truy vấn danh sách chậm dần. Chỉ mục đã đặt đúng chiều, nhưng không có cơ chế chuyển dữ liệu cũ sang kho lạnh |
 
 ## 5. Quan hệ với đơn vị
 
 **Thuộc đơn vị.** Bản ghi mang `tenant_id`, chỉ mục dẫn đầu bằng `tenant_id`, khoá ngoại tới bảng đơn vị ở dạng `ON DELETE RESTRICT`.
 
-Một câu cần cẩn thận: bản ghi ghi lại **người thao tác** và **đối tượng bị tác động**. Hai thứ đó thuộc cùng một đơn vị trong mọi luồng hiện có — **trừ** luồng `V2` và `V3`, nơi người thao tác là tài khoản vận hành thuộc **đơn vị hệ thống** còn đối tượng là **một đơn vị khác**. Xem §6.
+Một câu cần cẩn thận: bản ghi ghi lại **người thao tác** và **đối tượng bị tác động**. Hai thứ đó thuộc cùng một đơn vị trong mọi luồng hiện có — **trừ** nhóm `V2`, `V3`, `V4`, nơi người thao tác là tài khoản vận hành thuộc **đơn vị hệ thống** còn đối tượng thuộc **một đơn vị khác**.
+
+Với tạo đơn vị (`V2`), ngưng và bật lại đơn vị (`V3`) và khôi phục mật khẩu (`V4`), nhật ký ghi **hai** dòng: một ở đơn vị hệ thống, một ở đơn vị đích — dòng thứ hai mang người thao tác là tài khoản vận hành và được đánh dấu xuyên đơn vị ([`../contracts/tenants.md`](../contracts/tenants.md) §5 · [`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md)). Cột biểu diễn điều đó thuộc [`../database/schema-core.md`](../database/schema-core.md) §9.4.
 
 ## 6. Câu chưa trả lời được
 
@@ -62,8 +65,7 @@ Một câu cần cẩn thận: bản ghi ghi lại **người thao tác** và **
 
 Quét toàn bộ `contracts/`: không có đường dẫn nào dưới `/audit`. Nghĩa là hôm nay nhật ký kiểm toán là thứ **chỉ ghi vào, không đọc ra** trừ khi có người mở database bằng tay. Với một bảng tồn tại vì lý do tuân thủ, đó là một nửa cơ chế.
 
-Ba câu còn lại:
+Các câu còn lại:
 
 1. **Ai được đọc nhật ký?** Chưa có khoá quyền nào cho việc này trong danh mục ở [`../database/schema-core.md`](../database/schema-core.md) §5.
-2. **Thao tác của tài khoản vận hành ghi vào đơn vị nào** — đơn vị hệ thống của người thao tác, hay đơn vị bị tác động? Chọn sai thì việc ngưng hoạt động một đơn vị sẽ **không hiện** trong nhật ký của chính đơn vị đó.
-3. **Danh sách thao tác phải ghi có gồm việc ĐỌC không?** Hiện nó thiên về thao tác ghi. Nhưng xuất dữ liệu (luồng `N3`) và tải tệp (luồng `N2`) là hai thao tác **đọc** mang dữ liệu ra khỏi hệ — và chúng thường là thứ người điều tra cần nhất.
+2. **Danh sách thao tác phải ghi có gồm việc ĐỌC không?** Hiện nó thiên về thao tác ghi. Nhưng xuất dữ liệu (luồng `N3`) và tải tệp (luồng `N2`) là hai thao tác **đọc** mang dữ liệu ra khỏi hệ — và chúng thường là thứ người điều tra cần nhất.

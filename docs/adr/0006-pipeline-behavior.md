@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # ADR-0006 — Đúng hai pipeline behavior ở v1: `Validation` và `Transaction`
 
-> **Trạng thái:** Đã chấp nhận (2026-09-08)
+> **Trạng thái:** Đã chấp nhận (2026-09-08) · Bổ sung bởi ADR-0033 (2026-09-16)
+>
+> Bổ sung bởi [`0033-luong-dang-nhap-outcome-va-claim.md`](0033-luong-dang-nhap-outcome-va-claim.md).
 
 ## Bối cảnh
 

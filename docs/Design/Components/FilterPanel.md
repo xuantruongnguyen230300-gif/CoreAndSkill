@@ -24,7 +24,7 @@ Cho người dùng đặt nhiều điều kiện lọc cùng lúc, rồi áp m�
 | Bộ lọc có trường ngày, trường chọn nhiều, trường cây | 🛑 Tìm theo một chuỗi tự do → ô tìm của `Toolbar` |
 | Bộ lọc của một báo cáo có tham số | 🛑 Form nhập dữ liệu → [`Dialog.md`](./Dialog.md) chứa [`FormRow.md`](./FormRow.md). Lọc **không đổi dữ liệu**, form thì có — hai thứ này không dùng chung nút |
 
-### Ba component, ba vai — đây là chỗ trước đây bỏ trống
+### Ba component, ba vai
 
 | Component | Sở hữu gì |
 | --- | --- |
@@ -87,10 +87,10 @@ Trước khi có file này, vai giữa không thuộc về ai: `Toolbar` đẩy 
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-lg` | `drawer` neo phải, bề rộng cỡ `lg`; danh sách phía sau vẫn nhìn thấy |
-| `--bp-md` … `--bp-lg` | Giữ nguyên; `inline` co từ ba cột xuống hai |
-| < `--bp-md` | `inline` **tự chuyển thành `drawer`** — ba trường một hàng trên màn hẹp thành ba hàng, và lúc đó nó đẩy bảng đi quá xa |
-| < `--bp-sm` | `Drawer` neo **đáy**, cao tối đa 85vh, nút Áp dụng dính đáy panel để ngón cái với tới |
+| ≥ `$bp-lg` | `drawer` neo phải, bề rộng cỡ `lg`; danh sách phía sau vẫn nhìn thấy |
+| `$bp-md` … `$bp-lg` | Giữ nguyên; `inline` co từ ba cột xuống hai |
+| < `$bp-md` | `inline` **tự chuyển thành `drawer`** — ba trường một hàng trên màn hẹp thành ba hàng, và lúc đó nó đẩy bảng đi quá xa |
+| < `$bp-sm` | `Drawer` neo **đáy**, cao tối đa 85vh, nút Áp dụng dính đáy panel để ngón cái với tới |
 
 ## Accessibility
 
@@ -109,7 +109,7 @@ Trước khi có file này, vai giữa không thuộc về ai: `Toolbar` đẩy 
 
 | Tên | Chiều | Kiểu | Mặc định | Ghi chú |
 | --- | --- | --- | --- | --- |
-| `fields` | input | `ReadonlyArray<FilterField>` | `[]` | **Đây là điểm mở rộng chính.** Chữ ký ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 |
+| `fields` | input | `ReadonlyArray<FilterField>` | `[]` | **Đây là điểm mở rộng chính.** Chữ ký ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9. `kind: 'date'` vẽ bằng [`DatePicker.md`](./DatePicker.md) `mode = 'single'`, `kind: 'daterange'` bằng `mode = 'range'` — không có ô ngày riêng cho panel |
 | `value` | input | `Record<string, unknown>` | `{}` | Điều kiện đang áp, khoá theo `key` của trường |
 | `variant` | input | `'drawer' \| 'inline'` | `'drawer'` | Mặc định là dạng không đẩy bảng, sai theo hướng an toàn |
 | `open` | input | `boolean` | `false` | Trang cha giữ nguồn sự thật |
@@ -118,9 +118,9 @@ Trước khi có file này, vai giữa không thuộc về ai: `Toolbar` đẩy 
 | `cleared` | output | `void` | — | Phát khi bấm Xoá hết |
 | `closed` | output | `void` | — | Phát mọi lần panel đóng |
 
-🛑 **Panel áp một lần, không lọc theo từng phím gõ.** Ô tìm của `Toolbar` thì lọc ngay (có debounce); panel thì không. Lý do: người dùng đặt bốn điều kiện sẽ sinh bốn lần gọi máy chủ, ba trong đó là kết quả trung gian không ai muốn thấy — và với dữ liệu lớn thì ba lần đó đủ làm màn hình giật.
+🛑 **Panel áp một lần, không lọc theo từng phím gõ.** Ô tìm của `Toolbar` thì lọc ngay (tầng trạng thái danh sách chờ ngừng gõ rồi mới gọi); panel thì không. Lý do: người dùng đặt bốn điều kiện sẽ sinh bốn lần gọi máy chủ, ba trong đó là kết quả trung gian không ai muốn thấy — và với dữ liệu lớn thì ba lần đó đủ làm màn hình giật.
 
-`FilterPanel` là component **dumb** — nó không tự gọi API lấy danh mục cho các trường; trang cha truyền `options` xuống qua từng `FilterField` ([`../COMPONENTS.md`](../COMPONENTS.md) §5).
+`FilterPanel` là component **dumb** — nó không tự gọi API lấy danh mục cho các trường; trang cha truyền `options` xuống qua từng `FilterField` ([`../COMPONENTS.md`](../COMPONENTS.md) §5). Điều kiện đã áp chỉ sống trên URL ([`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.8) — không lưu theo người dùng cho lần mở màn sau. Mỗi trường mang **một toán tử cố định** do card hợp đồng khai ở bộ lọc của nó ([`../../contracts/README.md`](../../contracts/README.md) §8); panel không có ô chọn toán tử.
 
 ## Do / Don't
 
@@ -137,6 +137,4 @@ Trước khi có file này, vai giữa không thuộc về ai: `Toolbar` đẩy 
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Bộ lọc đã đặt có lưu lại cho lần mở màn sau không? Lưu thì tiện cho người làm cùng một việc mỗi ngày; không lưu thì mỗi lần vào màn là một danh sách đầy đủ, dễ đoán hơn. Liên quan trực tiếp tới việc giữ trạng thái trên URL | Dự án đầu tiên có màn danh sách thật |
-| 2 | Có cần "bộ lọc đã lưu" đặt tên được không? Đây là tính năng người dùng kế toán hay xin, nhưng nó cần một endpoint và một chỗ lưu mà Core chưa có | `architect`, khi có nhu cầu thật |
-| 3 | Toán tử của một trường — bằng, chứa, lớn hơn — có để người dùng chọn không, hay mỗi trường cố định một toán tử? Cho chọn thì mạnh hơn nhiều nhưng panel phức tạp gấp đôi, và phần lớn người dùng không cần | Dự án đầu tiên có màn tra cứu phức tạp |
+| 1 | Có cần "bộ lọc đã lưu" đặt tên được không? Đây là tính năng người dùng kế toán hay xin, nhưng nó cần một endpoint và một chỗ lưu mà Core chưa có | Sau F3 — `architect`, khi dự án hạ nguồn đầu tiên có nhu cầu thật |

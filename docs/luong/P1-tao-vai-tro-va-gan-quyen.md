@@ -22,18 +22,19 @@ Quản trị đơn vị, từ màn **Vai trò**, rồi sang màn **Ma trận ph�
 | --- | --- |
 | Quyền `core.role.write` | Tạo và sửa vai trò |
 | Quyền `core.permission.write` | Ghi ma trận — **khoá riêng**, không gộp với khoá trên |
-| Danh mục quyền đã nạp | Nạp lúc cài đặt (luồng `V1` bước 3), dùng chung toàn hệ |
+| Danh mục quyền đã có trong database | Vào database bằng migration lúc áp lược đồ (luồng `V1` bước 2), dùng chung toàn hệ |
 
 ## 3. Các bước
 
 | # | Ai làm | Hệ thống làm gì | Chi tiết ở |
 | --- | --- | --- | --- |
-| 1 | Quản trị | `POST /roles` với mã và tên vai trò | [`../contracts/roles.md`](../contracts/roles.md) §2 |
+| 1 | Quản trị | `POST /api/v1/core/roles` với tên vai trò | [`../contracts/roles.md`](../contracts/roles.md) §2 |
 | 2 | BE | Tạo vai trò **không có quyền nào** | cùng trên |
-| 3 | Quản trị | Mở màn ma trận: `GET /permissions/matrix` | [`../contracts/permissions.md`](../contracts/permissions.md) |
+| 3 | Quản trị | Mở màn ma trận: `GET /api/v1/core/permissions/matrix` | [`../contracts/permissions.md`](../contracts/permissions.md) |
 | 4 | Quản trị | Tick các ô vai trò × quyền | [`../Design/Components/DataTable.md`](../Design/Components/DataTable.md) |
-| 5 | Quản trị | `PUT /permissions/matrix` | [`../contracts/permissions.md`](../contracts/permissions.md) |
+| 5 | Quản trị | `PUT /api/v1/core/permissions/matrix` | [`../contracts/permissions.md`](../contracts/permissions.md) |
 | 6 | BE | Ghi ánh xạ vai trò→quyền **của đơn vị này** | [`../database/schema-core.md`](../database/schema-core.md) §5 |
+| 7 | BE, rồi FE của người mang vai trò đó | Ma trận mới có hiệu lực từ **request kế tiếp** của họ. Giao diện của họ còn giữ tập quyền cũ; FE làm mới tập quyền khi nhận 403 | [`../contracts/users.md`](../contracts/users.md) §7 |
 
 ### Vì sao tạo vai trò và cấp quyền là hai việc
 
@@ -51,11 +52,14 @@ Hai khoá quyền riêng (`core.role.write` và `core.permission.write`) là cá
 
 ## 4. Hỏng ở đâu — và người dùng thấy gì
 
+> 📖 Loại lỗi và HTTP status của từng mã: [`../contracts/roles.md`](../contracts/roles.md) §2–§3 và [`../contracts/permissions.md`](../contracts/permissions.md) §6. Bảng dưới chỉ giữ `code`.
+
 | Ca | Mã lỗi | Người dùng thấy |
 | --- | --- | --- |
-| Mã vai trò trùng | `CORE.ROLE.CODE_DUPLICATE` (409) | Trùng **trong phạm vi đơn vị này**, không phải toàn hệ |
-| Sửa một vai trò hệ thống | `CORE.ROLE.SYSTEM_IMMUTABLE` (422) | Vai trò hệ thống không đổi tên được |
-| Thiếu `core.permission.write` | `CORE.AUTH.FORBIDDEN` (403) | Người này sửa được tên vai trò nhưng **không** cấp được quyền — đúng thiết kế |
+| Tên vai trò trùng, khi tạo hoặc khi đổi tên | `CORE.ROLE.NAME_DUPLICATE` | Trùng **trong phạm vi đơn vị này**, không phải toàn hệ |
+| Sửa một vai trò hệ thống | `CORE.ROLE.SYSTEM_IMMUTABLE` | Vai trò hệ thống không đổi tên được |
+| Thiếu `core.permission.write` | `CORE.AUTH.FORBIDDEN` | Người này sửa được tên vai trò nhưng **không** cấp được quyền — đúng thiết kế |
+| FE không làm mới tập quyền khi nhận 403 ở bước 7 | `CORE.AUTH.FORBIDDEN` | 🛑 Người vừa bị gỡ quyền thấy nút cũ mãi tới lần đăng nhập sau, bấm lần nào cũng bị từ chối |
 | Tạo vai trò xong, quên bước 5 | không có mã lỗi | 🛑 Vai trò tồn tại, gán được cho người, và **người đó không làm được gì**. Không lỗi nào bắn ra — cùng triệu chứng với ca thiếu cờ đặc quyền ở luồng `V1` bước 7 |
 
 ## 5. Quan hệ với đơn vị
@@ -66,6 +70,4 @@ Hai khoá quyền riêng (`core.role.write` và `core.permission.write`) là cá
 
 ## 6. Câu chưa trả lời được
 
-- **Bỏ một quyền khỏi vai trò thì phiên đang mở của người mang vai trò đó có bị ảnh hưởng ngay không?** Tập quyền được FE lấy ở luồng `D1` bước 7 và dùng để dựng giao diện. Không file nào nói tập đó được làm mới khi nào — nếu nó chỉ lấy lúc đăng nhập thì người bị gỡ quyền vẫn thấy nút cho tới lần đăng nhập sau.
-- **Vai trò hệ thống là vai trò nào, và ai tạo ra chúng?** `CORE.ROLE.SYSTEM_IMMUTABLE` giả định chúng tồn tại; bộ vai trò mặc định do **dự án** seed chứ không phải Core ([`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §11.4), nên Core không biết vai trò nào là vai trò hệ thống.
-- **Xoá một vai trò đang được gán cho người thì sao?** [`../contracts/roles.md`](../contracts/roles.md) §4 có endpoint xoá nhưng không nêu ca này.
+Không còn.

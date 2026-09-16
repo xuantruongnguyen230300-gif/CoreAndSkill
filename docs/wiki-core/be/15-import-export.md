@@ -144,15 +144,7 @@ Và như mọi thông điệp khác: BE trả **mã lỗi + tham số đặt tê
 
 Người dùng **sẽ** nhập lại cùng một tệp — vì mạng rớt, vì họ không chắc lần trước đã xong chưa, hoặc vì họ đã sửa vài dòng lỗi và nhập lại cả tệp.
 
-Phải quyết định tường minh:
-
-| Cách | Ghi chú |
-| --- | --- |
-| Theo khoá nghiệp vụ: có rồi thì cập nhật, chưa có thì thêm | Cách phổ biến và an toàn nhất |
-| Từ chối nếu khoá đã tồn tại | Rõ ràng, nhưng buộc người dùng phải lọc tệp thủ công |
-| Luôn tạo mới | Gần như luôn sai — sinh dữ liệu trùng |
-
-Không quyết định nghĩa là mặc định rơi vào cách thứ ba.
+Đã chốt: dòng trùng khoá tự nhiên **bị bỏ qua**, không ghi đè — [`../../contracts/exports.md`](../../contracts/exports.md) §2.
 
 ---
 
@@ -172,7 +164,7 @@ Kèm theo: đọc dữ liệu theo lô, không nạp toàn bộ kết quả rồ
 
 ### 5.3 Giới hạn
 
-Cần một giới hạn số dòng cho việc xuất đồng bộ. Vượt giới hạn thì chuyển sang chạy nền (§6), chứ **không** để request chạy hàng phút — nó sẽ hết thời gian chờ ở một tầng nào đó giữa đường, và người dùng nhận một lỗi không giải thích được.
+Giới hạn số dòng cho một lần xuất đồng bộ: khoá **`Core:Export:MaxRows`**, mặc định **50.000**, chung cho mọi đơn vị. Đếm trước khi dựng tệp; vượt thì trả `CORE.EXPORT.TOO_MANY_ROWS` ([`../../contracts/exports.md`](../../contracts/exports.md) §1), chứ **không** để request chạy hàng phút — nó sẽ hết thời gian chờ ở một tầng nào đó giữa đường, và người dùng nhận một lỗi không giải thích được. Xuất chạy nền: §8, chưa ở v1.
 
 ### 5.4 ⚠️ Công thức trong tệp bảng tính
 
@@ -192,31 +184,18 @@ Xuất là đường dữ liệu rời khỏi hệ thống. Ba điều cần có
 
 ---
 
-## 6. Tệp lớn chạy nền
+## 6. Nhập chạy nền
 
-Ngưỡng: khi thời gian xử lý vượt mức chấp nhận được cho một request đồng bộ.
+Nhập **luôn** chạy nền sau khi qua trần số dòng: request trả `{ jobId }`, kết quả và tiến độ hỏi qua bản ghi việc. Hợp đồng và hình dạng kết quả: [`../../contracts/exports.md`](../../contracts/exports.md) §2; theo dõi: [`../../contracts/jobs.md`](../../contracts/jobs.md); bảng `core.job`: [`../../database/schema-core.md`](../../database/schema-core.md) §9.8; khuôn handler: [`../../quy-uoc/be-cqrs-handler.md`](../../quy-uoc/be-cqrs-handler.md) §10.3.
 
-Luồng:
+Hai khoá cấu hình, chung cho mọi đơn vị:
 
-```text
-Người dùng gửi yêu cầu ──> tạo bản ghi công việc, trả về ngay
-                                │
-                        job nền xử lý theo lô
-                                │
-                  cập nhật tiến độ vào bản ghi công việc
-                                │
-                    xong ──> lưu tệp kết quả + thông báo
-```
+| Khoá | Mặc định | Nghĩa |
+| --- | --- | --- |
+| `Core:Import:MaxRows` | 50.000 | Trần số dòng của một tệp nhập. Đếm **trước** khi tạo việc; vượt ⇒ `CORE.IMPORT.TOO_MANY_ROWS`, không tạo việc |
+| `Core:Jobs:MaxConcurrent` | 2 | Số việc nền chạy đồng thời; việc thứ ba trở đi đứng ở `queued` |
 
-| Yêu cầu | Chi tiết |
-| --- | --- |
-| Bản ghi công việc có trạng thái và tiến độ | Người dùng cần biết còn bao lâu |
-| Kết quả tải về được, có hạn dùng | Tệp kết quả là file tạm — xem [`14-file-storage.md`](14-file-storage.md) §6 |
-| Thất bại thì báo, kèm lý do | Im lặng là cách hỏng tệ nhất |
-| Thông báo khi xong | Xem [`12-notifications.md`](12-notifications.md) |
-| Một người không chạy được nhiều việc nặng cùng lúc | Nếu không, một người dùng có thể làm cạn tài nguyên |
-
-Với nhập liệu chạy nền, tệp gốc phải được lưu lại tới khi công việc kết thúc — không giữ nó trong bộ nhớ giữa request và job.
+Tệp gốc ghi vào kho tạm (§6 của [`14-file-storage.md`](14-file-storage.md)) **trước** khi tạo việc và giữ tới khi việc kết thúc — không giữ trong bộ nhớ giữa request và job. Tệp kết quả (§4.3) là tệp tạm có hạn dùng, trỏ từ `result_file_id`. Việc kết thúc ⇒ thông báo tới người khởi tạo qua outbox ([`12-notifications.md`](12-notifications.md) §1.2).
 
 ---
 
@@ -224,7 +203,7 @@ Với nhập liệu chạy nền, tệp gốc phải được lưu lại tới k
 
 | Rủi ro | Chặn bằng |
 | --- | --- |
-| Nhiều người cùng nhập tệp lớn | Giới hạn số công việc nặng chạy đồng thời |
+| Nhiều người cùng nhập tệp lớn | `Core:Jobs:MaxConcurrent` (§6) |
 | Một tệp làm cạn bộ nhớ | Đọc và ghi theo luồng; giới hạn kích thước ở tầng máy chủ web |
 | Ghi theo lô quá lớn | Lô vừa phải, và **huỷ theo dõi thay đổi sau mỗi lô** — bộ theo dõi giữ mọi entity đã đi qua nó, nên nó sẽ phình theo số dòng đã xử lý, không theo kích thước lô |
 
@@ -244,7 +223,7 @@ Tệp mẫu nên có: dòng tiêu đề đúng tên cột, một dòng ví dụ,
 
 ## 8. §Áp dụng
 
-> **Thuộc phạm vi v1** (chốt 2026-09-10) — [`01-core-components.md`](01-core-components.md) §5.1, mục A17.
+> **Thuộc phạm vi v1** (chốt 2026-09-10) — [`01-core-components.md`](01-core-components.md) §5.1, mục CA17.
 > Thi công ở pha **B4** ([`trien-khai/05-b4-tep-nhap-xuat-thong-bao.md`](trien-khai/05-b4-tep-nhap-xuat-thong-bao.md)); hợp đồng endpoint ở [`../../contracts/exports.md`](../../contracts/exports.md).
 
 | Hạng mục | Trạng thái | Ghi chú |
@@ -259,5 +238,6 @@ Tệp mẫu nên có: dòng tiêu đề đúng tên cột, một dòng ví dụ,
 | Vô hiệu hoá công thức trong tệp xuất | 📐 **bắt buộc** | §5.4 |
 | Tệp mẫu sinh từ định nghĩa cột | ✅ sẽ có | Không dùng tệp tĩnh chép tay |
 | Quyền xuất là quyền riêng + ghi nhật ký kiểm toán | ✅ sẽ có | |
-| **Nhập/xuất chạy nền** | ❌ chưa ở v1 | Đặt sẵn giới hạn số dòng cho đường đồng bộ; vượt thì báo lỗi rõ ràng thay vì treo |
+| **Nhập luôn chạy nền** sau khi qua trần `Core:Import:MaxRows` | ✅ sẽ có | §6; theo dõi qua [`../../contracts/jobs.md`](../../contracts/jobs.md); chống trùng theo khoá tự nhiên ([`../../contracts/exports.md`](../../contracts/exports.md) §2) |
+| **Xuất chạy nền** | ❌ chưa ở v1 | Giới hạn số dòng ở §5.3; vượt thì báo lỗi rõ ràng thay vì treo |
 | **Nhập từ nguồn khác tệp** (API, hệ ngoài) | ❌ chưa | Bài toán khác, không dùng chung thiết kế này |

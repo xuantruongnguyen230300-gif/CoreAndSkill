@@ -30,7 +30,7 @@ Chọn một hoặc nhiều mục từ một danh mục lớn bằng cách gõ v
 | Biến thể | Kết quả | Dùng khi |
 | --- | --- | --- |
 | `single` | Một mục; chọn xong ô hiện nhãn của mục đó | **Mặc định.** Chọn người, chọn khách hàng |
-| `multiple` | Nhiều mục, mỗi mục thành một [`FilterChip.md`](./FilterChip.md) nằm trong ô | Gán nhiều vai trò, chọn nhiều người nhận |
+| `multiple` | Nhiều mục, mỗi mục thành một chip nằm trong ô. Chip là phần cấu trúc của lớp bọc: thư viện vẽ, tạo hình bằng token theo hình thức của [`FilterChip.md`](./FilterChip.md) — [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5 | Gán nhiều vai trò, chọn nhiều người nhận |
 
 Một công tắc, dùng được với cả hai:
 
@@ -44,13 +44,15 @@ Một công tắc, dùng được với cả hai:
 
 | Cỡ | Chiều cao ô | Cỡ chữ | Dùng khi |
 | --- | --- | --- | --- |
-| `sm` | `--size-control-sm` | `--fs-xs` | Ô lọc trong `Toolbar`, ô sửa tại chỗ trong lưới |
+| `sm` | `--size-control-sm` | `--fs-xs` | Ô sửa tại chỗ trong lưới; ô lọc trong một `Toolbar` cỡ `sm` |
 | `md` | `--size-control-md` | `--fs-sm` | **Mặc định.** Form, dialog |
 | `lg` | `--size-control-lg` | `--fs-md` | Chỉ khi ô là hành động chính của cả màn |
 
+**Ô đặt trong [`Toolbar.md`](./Toolbar.md) lấy cỡ theo cỡ control con của `Toolbar`, và `Toolbar` là chủ của con số đó** ([`Toolbar.md`](./Toolbar.md) §Kích thước): `Toolbar` cỡ `md` → `Autocomplete` cỡ `md`; `Toolbar` cỡ `sm` → cỡ `sm`. Một ô lọc thấp hơn ô tìm nằm cạnh nó làm gãy đường chân của cả dải điều khiển, và đường chân đó là thứ duy nhất giữ cho một hàng nhiều control trông như một hàng.
+
 Ở biến thể `multiple`, chiều cao ô **giãn theo số chip** và không còn bám thang trên. Trần cứng: quá **năm chip** thì hiện bốn chip đầu cộng một chip "và N mục khác" bấm để bung — một ô nhập cao năm dòng làm vỡ nhịp dọc của cả form.
 
-Lớp nổi kết quả: bề rộng bằng ô, chiều cao tối đa 280px rồi cuộn. Mỗi dòng kết quả cao `--size-control-md`, gồm nhãn chính và một dòng phụ `--fs-2xs` màu `--color-text-muted` — dòng phụ là thứ phân biệt hai người trùng tên.
+Lớp nổi kết quả: bề rộng bằng ô, chiều cao tối đa `--layout-popover-h-max` rồi cuộn — token dùng chung với [`TreeSelect.md`](./TreeSelect.md), khai ở [`../DESIGN.md`](../DESIGN.md) §6.1. Mỗi dòng kết quả cao `--size-control-md`, gồm nhãn chính và một dòng phụ `--fs-2xs` màu `--color-text-muted` — dòng phụ là thứ phân biệt hai người trùng tên.
 
 ## Trạng thái
 
@@ -62,18 +64,18 @@ Lớp nổi kết quả: bề rộng bằng ô, chiều cao tối đa 280px rồ
 | `active` | Lớp nổi đang mở; ô giữ vòng focus | Có |
 | `disabled` | Nền `--color-surface-3`, chữ `--color-text-disabled`, con trỏ `not-allowed`, thuộc tính `disabled` thật. Chip ở `multiple` mất nút gỡ | Có |
 | `loading` | Vòng quay `pi-spinner` ở **đuôi ô**, không phủ lớp nổi. 🛑 **Không khoá ô** — khoá sẽ nuốt ký tự người dùng đang gõ, lỗi tệ hơn nhiều so với một request thừa. `aria-busy` đặt trên hộp kết quả | Có |
-| `error` | Gọi máy chủ hỏng: lớp nổi hiện một dòng lỗi `--color-danger` kèm nút "Thử lại", giữ nguyên chuỗi đang gõ. Lỗi **xác thực** của trường thì viền ô đổi `--color-danger` và dòng lỗi hiện dưới ô qua [`FormRow.md`](./FormRow.md) | Có |
+| `error` | Gọi máy chủ hỏng: lớp nổi hiện `errorTemplate` — màn ghép dòng lỗi `--color-danger` kèm nút "Thử lại" — và ô giữ nguyên chuỗi đang gõ. Lỗi **xác thực** của trường thì viền ô đổi `--color-danger-border` và dòng lỗi hiện dưới ô qua [`FormRow.md`](./FormRow.md) | Có |
 | `empty` | **Ba ca phải phân biệt.** *Chưa đủ ký tự tối thiểu:* "Gõ ít nhất 2 ký tự" — **không** hiện danh sách rỗng. *Không có kết quả:* "Không tìm thấy '…'", kèm dòng tạo mới nếu `allowCreate`. *Danh mục rỗng hoàn toàn:* câu khác hẳn, nói danh mục chưa có dữ liệu | Có |
 
 ## Token dùng
 
 | Nhóm | Token |
 | --- | --- |
-| Màu | `--color-surface`, `--color-surface-2`, `--color-surface-3`, `--color-text`, `--color-text-muted`, `--color-text-disabled`, `--color-border`, `--color-border-strong`, `--color-brand`, `--color-brand-subtle`, `--color-brand-on-subtle`, `--color-danger`, `--color-focus` |
+| Màu | `--color-surface`, `--color-surface-2`, `--color-surface-3`, `--color-text`, `--color-text-muted`, `--color-text-disabled`, `--color-border`, `--color-border-strong`, `--color-brand`, `--color-brand-subtle`, `--color-brand-on-subtle`, `--color-danger`, `--color-focus`, `--color-danger-border` |
 | Chữ | `--fs-2xs`, `--fs-xs`, `--fs-sm`, `--fs-md`, `--fw-medium`, `--fw-semibold`, `--lh-snug` |
 | Khoảng cách | `--sp-2`, `--sp-3`, `--sp-4`, `--sp-5` |
 | Hình dạng | `--radius-sm`, `--radius-md`, `--radius-pill`, `--border-w`, `--border-w-strong` |
-| Kích thước | `--size-control-sm`, `--size-control-md`, `--size-control-lg`, `--icon-sm`, `--icon-md` |
+| Kích thước | `--size-control-sm`, `--size-control-md`, `--size-control-lg`, `--icon-sm`, `--icon-md`, `--layout-popover-h-max` |
 | Bóng, lớp | `--shadow-3`, `--z-popover` |
 | Icon | `pi-search`, `pi-times` để xoá, `pi-spinner` khi tải — [`../Icons.md`](../Icons.md) §5 |
 
@@ -81,9 +83,9 @@ Lớp nổi kết quả: bề rộng bằng ô, chiều cao tối đa 280px rồ
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Lớp nổi neo dưới ô, lật lên trên khi không đủ chỗ |
-| `--bp-sm` … `--bp-md` | Giữ nguyên. Ở `multiple`, ngưỡng gom chip giảm từ năm xuống ba |
-| < `--bp-sm` | Lớp nổi chuyển thành [`Drawer.md`](./Drawer.md) neo đáy với ô gõ dính đỉnh. Mỗi dòng cao tối thiểu `--size-control-lg` |
+| ≥ `$bp-md` | Lớp nổi neo dưới ô, lật lên trên khi không đủ chỗ |
+| `$bp-sm` … `$bp-md` | Giữ nguyên. Ở `multiple`, ngưỡng gom chip giảm từ năm xuống ba |
+| < `$bp-sm` | Lớp nổi chuyển thành [`Drawer.md`](./Drawer.md) neo đáy với ô gõ dính đỉnh. Mỗi dòng cao tối thiểu `--size-control-lg` |
 
 **Vì sao đổi hẳn hình dạng ở màn nhỏ:** bàn phím ảo chiếm nửa dưới màn hình, nên một lớp nổi neo dưới ô gần như luôn bị bàn phím che. Drawer neo đáy đặt ô gõ ngay trên bàn phím và danh sách phía trên nó — đó là chỗ duy nhất còn nhìn thấy được.
 
@@ -112,6 +114,7 @@ Lớp nổi kết quả: bề rộng bằng ô, chiều cao tối đa 280px rồ
 | `debounceMs` | input | `number` | `300` | Chờ người dùng ngừng gõ rồi mới phát `search` |
 | `allowCreate` | input | `boolean` | `false` | |
 | `loading` | input | `boolean` | `false` | |
+| `errorTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Khối lỗi trong lớp nổi, gồm nút "Thử lại". Màn chỉ truyền khi gọi máy chủ hỏng — [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5 |
 | `disabled` | input | `boolean` | `false` | |
 | `placeholder` | input | `string` | — | **Bắt buộc** |
 | `search` | output | `string` | — | Phát chuỗi cần tìm sau khi đã chờ `debounceMs` |
@@ -140,6 +143,6 @@ Lớp nổi kết quả: bề rộng bằng ô, chiều cao tối đa 280px rồ
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Có hiện vài mục gợi ý **trước khi gõ** không (mục dùng gần đây)? Nó rút ngắn thao tác lặp lại rất nhiều, nhưng cần một chỗ lưu lịch sử theo người dùng mà Core chưa có | Sau khi có màn thật đo được thao tác lặp |
-| 2 | `minChars` = 2 có đúng cho tiếng Việt không? Nhiều họ tên bắt đầu bằng hai ký tự rất phổ biến ("Ng", "Tr"), nên hai ký tự vẫn trả về hàng trăm dòng | Sau khi có danh mục thật để đo |
-| 3 | Ngưỡng gom chip là năm — đúng chưa? Cao hơn thì ô phình, thấp hơn thì phải bung ra liên tục | Dự án đầu tiên có màn gán nhiều vai trò |
+| 1 | Có hiện vài mục gợi ý **trước khi gõ** không (mục dùng gần đây)? Nó rút ngắn thao tác lặp lại rất nhiều, nhưng cần một chỗ lưu lịch sử theo người dùng mà Core chưa có | Sau F3 — dự án hạ nguồn đầu tiên đo được thao tác lặp |
+| 2 | `minChars` = 2 có đúng cho tiếng Việt không? Nhiều họ tên bắt đầu bằng hai ký tự rất phổ biến ("Ng", "Tr"), nên hai ký tự vẫn trả về hàng trăm dòng | F3 — khi dựng màn `10-nguoi-dung` trên danh mục thật |
+| 3 | Ngưỡng gom chip là năm — đúng chưa? Cao hơn thì ô phình, thấp hơn thì phải bung ra liên tục | F3 — khi dựng màn `10-nguoi-dung` (ô gán nhiều vai trò) |

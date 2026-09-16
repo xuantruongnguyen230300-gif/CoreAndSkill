@@ -4,15 +4,15 @@ scope: core
 verified: chua-doi-chieu
 ---
 
-# F3 — Hai màn quản trị Core
+# F3 — Màn quản trị Core: người dùng, vai trò, phân quyền
 
 > 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**
 >
-> **Phạm vi F3 gồm bốn màn**: quản trị người dùng, phân quyền, **quản trị vai trò** ([`../../../contracts/roles.md`](../../../contracts/roles.md)) và **hồ sơ cá nhân** ([`../../../contracts/profile.md`](../../../contracts/profile.md)). Hai màn sau nhỏ hơn nhiều và dùng lại đúng khuôn lưới/form của hai màn đầu.
+> **Phạm vi F3:** quản trị người dùng, **quản trị vai trò** ([`../../../contracts/roles.md`](../../../contracts/roles.md)) và phân quyền. Màn vai trò nhỏ hơn và dùng lại đúng khuôn lưới/form của màn người dùng. Hồ sơ cá nhân thuộc F2 ([`03-f2-auth-routing.md`](03-f2-auth-routing.md)); khu quản trị đơn vị đi sau F3 và đóng khi B3 xong ([`00-lo-trinh-tong-the.md`](00-lo-trinh-tong-the.md) §1).
 >
-> **Định nghĩa hoàn thành:** màn quản trị người dùng chạy đủ tạo / sửa / khoá / mở khoá / phân trang / tìm kiếm qua HTTP thật; màn phân quyền đọc và lưu được ma trận quyền; tài khoản **thiếu permission quản trị quyền** bị chặn khỏi màn phân quyền kể cả khi gõ thẳng URL; mọi lỗi validation từ BE bind **đúng từng ô nhập**.
+> **Định nghĩa hoàn thành:** màn quản trị người dùng chạy đủ tạo / sửa / khoá / mở khoá / phân trang / tìm kiếm qua HTTP thật; màn quản trị vai trò chạy đủ vòng đời theo card của nó; màn phân quyền đọc và lưu được ma trận quyền; tài khoản **thiếu permission quản trị quyền** bị chặn khỏi màn phân quyền kể cả khi gõ thẳng URL; mọi lỗi validation từ BE bind **đúng từng ô nhập**.
 
-Đây là hai màn Core cuối cùng. Xong F3 là `platform/` đủ bộ màn Core, và nền tảng dùng lại được cho sản phẩm khác.
+Xong F3 là mọi màn Core của tài khoản nghiệp vụ trong phạm vi F0–F3 đã chạy. Phần còn lại của `platform/` nằm ở các mục "Sau F3" của [`00-lo-trinh-tong-the.md`](00-lo-trinh-tong-the.md) §1.
 
 ---
 
@@ -21,18 +21,19 @@ verified: chua-doi-chieu
 | Màn | Quyền yêu cầu | Hợp đồng |
 | --- | --- | --- |
 | Quản trị người dùng | Permission quản trị người dùng | [`../../../contracts/users.md`](../../../contracts/users.md) |
+| Quản trị vai trò | Theo dòng **Quyền** của từng endpoint trong card | [`../../../contracts/roles.md`](../../../contracts/roles.md) |
 | Phân quyền | Permission quản trị **quyền** — chặt hơn | [`../../../contracts/permissions.md`](../../../contracts/permissions.md) |
 
 > 📖 **Bố cục bắt buộc của màn danh sách**: [`../../../Design/Templates/ListScreen.md`](../../../Design/Templates/ListScreen.md) · Component ghép nên màn: [`../../../Design/COMPONENTS.md`](../../../Design/COMPONENTS.md) · Giá trị token: [`../../../Design/DESIGN.md`](../../../Design/DESIGN.md).
 
-**Hai màn này là nơi bốn hạ tầng dùng chung ra đời**, sinh ra từ nhu cầu thật thay vì từ suy đoán: bảng dữ liệu server-side, hộp thoại form, xác nhận thao tác, và hạ tầng bind lỗi theo ô.
+**Các màn của F3 là nơi bốn hạ tầng dùng chung ra đời**, sinh ra từ nhu cầu thật thay vì từ suy đoán: bảng dữ liệu server-side, hộp thoại form, xác nhận thao tác, và hạ tầng bind lỗi theo ô.
 
 ---
 
 ## 2. Thứ tự viết
 
 ```
-1. Data grid dùng chung (shared/components/data-grid)
+1. DataTable dùng chung (shared/ui/data-table — thư mục theo cột Nền, 05-component-library.md §3)
         │
         ▼
 2. Màn danh sách người dùng — chỉ đọc trước: phân trang, sắp xếp, tìm kiếm, state trên URL
@@ -44,10 +45,13 @@ verified: chua-doi-chieu
 4. Tạo / sửa / khoá / mở khoá
         │
         ▼
-5. Màn phân quyền (ma trận)
+5. Màn quản trị vai trò — dùng lại khuôn của bước 2–4
         │
         ▼
-6. Bật ngân sách bundle theo số đo thật
+6. Màn phân quyền (ma trận)
+        │
+        ▼
+7. Bật ngân sách bundle theo số đo thật
 ```
 
 **Bước 1 và 2 làm phần đọc trước phần ghi.** Phân trang, sắp xếp, lọc và trạng thái trên URL là phần dễ sai nhất và ảnh hưởng tới mọi màn danh sách sau này; làm xong và kiểm kỹ trước khi thêm phần ghi thì lỗi không lẫn vào nhau.
@@ -64,11 +68,9 @@ verified: chua-doi-chieu
 
 Ba lớp này bổ sung nhau, không thay thế nhau. Bỏ lớp nào cũng để lại một đường đi.
 
-### 3.2 Khoá tài khoản không có hiệu lực tức thì
+### 3.2 Câu chữ thao tác khoá tài khoản
 
-Nếu phiên có thời gian sống, tài khoản bị khoá vẫn dùng được tới khi phiên được kiểm lại. **Câu chữ phải phản ánh đúng độ trễ đó.**
-
-Viết "Đã đăng xuất người dùng" khi thực tế là "sẽ chấm dứt trong ít phút" khiến quản trị viên tưởng thao tác hỏng và bấm lại nhiều lần. Độ trễ thật khai ở hợp đồng người dùng.
+Phiên của người bị khoá chấm dứt ở request kế tiếp của chính họ, không phải ngay lúc bấm. Câu chữ theo đúng nhịp đó — lý do và nguồn ở [`../07-auth-identity.md`](../07-auth-identity.md) §7.4.
 
 ### 3.3 Chờ một trường không tồn tại trong kết quả phân trang
 
@@ -115,12 +117,7 @@ Quy trình bắt buộc ([`../13-performance.md`](../13-performance.md) §4.2): 
 
 **Danh sách**
 
-- [ ] Sang trang 2 rồi đổi bộ lọc → **về trang 1**
-- [ ] Đổi trang, sắp xếp, lọc → URL đổi; mở URL đó ở tab khác cho **đúng** màn hình đó
-- [ ] Bấm Quay lại của trình duyệt → về đúng trạng thái trước, không mất bộ lọc
-- [ ] Gõ nhanh vào ô tìm kiếm → chỉ kết quả cuối cùng có hiệu lực (không về sai thứ tự)
-- [ ] Trạng thái rỗng do chưa có dữ liệu và rỗng do bộ lọc dùng **hai câu khác nhau**
-- [ ] Đổi trang → dữ liệu cũ mờ đi, bảng **không nhảy**
+- [ ] Chạy trọn danh sách kiểm chứng lưới ở [`../11-grid-and-metadata.md`](../11-grid-and-metadata.md) §10 — không chép lại ở đây
 
 **Form**
 
@@ -132,9 +129,10 @@ Quy trình bắt buộc ([`../13-performance.md`](../13-performance.md) §4.2): 
 
 **Thao tác và câu chữ**
 
-- [ ] Câu chữ thao tác khoá tài khoản **không** hứa hiệu lực tức thì
+- [ ] Câu chữ thao tác khoá tài khoản khớp nhịp chấm dứt phiên ở request kế tiếp của người bị khoá
 - [ ] Thao tác hàng loạt hỏi xác nhận có **số lượng** trong câu
 - [ ] Lưu ma trận quyền → tải lại trang → giá trị đúng như vừa lưu
+- [ ] Quản trị vai trò chạy đủ vòng đời theo [`../../../contracts/roles.md`](../../../contracts/roles.md); mỗi mã lỗi của card hiện đúng ô nhập hoặc đúng thông báo chung
 
 **Cổng**
 
@@ -151,6 +149,6 @@ Quy trình bắt buộc ([`../13-performance.md`](../13-performance.md) §4.2): 
 | Bảng dữ liệu server-side | [`../11-grid-and-metadata.md`](../11-grid-and-metadata.md) |
 | Form và bind lỗi theo ô | [`../09-forms-validation.md`](../09-forms-validation.md) |
 | Component dùng chung | [`../05-component-library.md`](../05-component-library.md) |
-| Hợp đồng endpoint | [`../../../contracts/users.md`](../../../contracts/users.md) · [`../../../contracts/permissions.md`](../../../contracts/permissions.md) |
+| Hợp đồng endpoint | [`../../../contracts/users.md`](../../../contracts/users.md) · [`../../../contracts/roles.md`](../../../contracts/roles.md) · [`../../../contracts/permissions.md`](../../../contracts/permissions.md) |
 | Ngân sách bundle | [`../13-performance.md`](../13-performance.md) §4 |
 | Toàn bộ cổng | [`05-gate.md`](05-gate.md) |

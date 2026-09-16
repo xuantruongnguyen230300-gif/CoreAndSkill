@@ -104,6 +104,7 @@ CSP là lớp phòng thủ **thứ hai**: khi có một lỗ XSS, CSP hạn ch�
 | **Bật ở chế độ chỉ báo cáo trước** | Bật thẳng chế độ chặn trên môi trường thật là cách làm trắng ứng dụng cho toàn bộ người dùng cùng lúc |
 | **Chính sách phải kiểm được** | Một chính sách cho phép mọi nguồn là một chính sách không bảo vệ gì; nó chỉ tạo cảm giác an toàn |
 | **Phải khai origin của API** | FE và API ở **hai origin khác nhau** ([`../../adr/0015-fe-va-api-khac-nguon.md`](../../adr/0015-fe-va-api-khac-nguon.md)), nên chỉ thị điều khiển đích kết nối phải liệt kê origin của API. Quên nó thì **mọi lời gọi API bị trình duyệt chặn** ngay khi CSP chuyển sang chế độ chặn — và triệu chứng là app trắng, không phải một lỗi mạng dễ đọc |
+| **Script nội tuyến duy nhất được phép là script theme** | `index.html` có đúng một script nội tuyến — đặt `data-theme` trước paint; `script-src` cho phép nó qua **hash** `'sha256-…'`, **không** `'unsafe-inline'`. Nội dung script và luật đi kèm: [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §3.5 |
 
 ### 4.3 Ba header đi kèm
 
@@ -222,7 +223,7 @@ Khi bản vá đòi nâng major mà thư viện UI chưa sẵn sàng: xử lý b
 | Tải dữ liệu đầy đủ rồi lọc theo quyền ở client | ❌ loại, không hoãn `K41` | §2 — dữ liệu đã ở trong trình duyệt là đã lộ |
 | Coi kiểm quyền ở FE là lớp bảo vệ | ❌ loại, không hoãn `K42` | §1 — phép thử ở cuối §1 |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

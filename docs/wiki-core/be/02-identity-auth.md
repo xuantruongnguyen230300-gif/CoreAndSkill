@@ -98,7 +98,7 @@ Identity giải quyết một nhóm việc mà **sai một chi tiết là lỗ h
 | Sinh và kiểm token (đặt lại mật khẩu, xác nhận email) | ✅ | |
 | Chuẩn hoá tên đăng nhập / email, ràng buộc duy nhất | ✅ | |
 | Dấu đồng thời trên bản ghi người dùng | ✅ | Dùng làm token chống ghi đè cho chính bảng người dùng — xem [`06-concurrency-control.md`](06-concurrency-control.md) |
-| Phiên cookie qua Identity | ✅ | |
+| Phiên cookie | ✅ | Identity lõi ở `Core.Infrastructure`; cookie scheme và đăng nhập/đăng xuất ở `Core.Web` — [`../../adr/0026-ranh-gioi-identity-va-cookie.md`](../../adr/0026-ranh-gioi-identity-va-cookie.md) |
 | **Vai trò của Identity dùng làm cơ chế phân quyền** | ❌ | Bảng vai trò của Identity được dùng như **kho dữ liệu vai trò**, nhưng việc kiểm quyền **không** kiểm tên vai trò — xem §3 |
 | Giao diện dựng sẵn của Identity | ❌ | FE tự làm màn hình, xem [`../fe/07-auth-identity.md`](../fe/07-auth-identity.md) |
 | Đăng nhập qua nhà cung cấp ngoài | ❌ ở v1 | Thêm khi có yêu cầu thật |
@@ -113,19 +113,11 @@ Identity giải quyết một nhóm việc mà **sai một chi tiết là lỗ h
 - Bỏ hẳn = tự viết lại §2.1. Không.
 - Không khoanh vùng = tầng Application phụ thuộc một thư viện hạ tầng. Từ đó handler không unit-test được nếu không dựng cả bộ Identity, và luật A2 ở [`../../RULES.md`](../../RULES.md) bị vi phạm.
 
-**Hình dạng seam.** Application chỉ thấy interface, ví dụ một dịch vụ danh tính với các thao tác nghiệp vụ cần dùng:
+**Hình dạng seam.** Application chỉ thấy interface — một dịch vụ danh tính với các thao tác nghiệp vụ cần dùng.
 
-```csharp
-// Core.Application — chỉ interface, không biết Identity tồn tại
-public interface IIdentityService
-{
-    Task<Result<Guid>> CreateUserAsync(string userName, string email, string password, CancellationToken ct);
-    Task<Result> ChangePasswordAsync(Guid userId, string current, string next, CancellationToken ct);
-    Task<Result> SetLockoutAsync(Guid userId, bool locked, CancellationToken ct);
-}
-```
+> 📖 Chữ ký seam danh tính: đọc [`../../quy-uoc/be-entity-domain.md`](../../quy-uoc/be-entity-domain.md) §7. Ranh giới giữa Identity lõi và cookie: [`../../adr/0026-ranh-gioi-identity-va-cookie.md`](../../adr/0026-ranh-gioi-identity-va-cookie.md).
 
-Điểm cần chú ý: các thao tác này trả `Result`, **không** ném exception và **không** trả kiểu kết quả của Identity. Nếu kiểu kết quả của Identity đi ra tới Application thì seam đã thủng — đúng loại vi phạm mà nhìn code thì thấy vẫn "có interface".
+Điểm cần chú ý: thao tác của seam trả `Result`, **không** ném exception và **không** trả kiểu kết quả của Identity. Nếu kiểu kết quả của Identity đi ra tới Application thì seam đã thủng — đúng loại vi phạm mà nhìn code thì thấy vẫn "có interface".
 
 Mã lỗi do Identity sinh (mật khẩu yếu, email trùng) phải được **dịch sang mã lỗi của catalog** trước khi rời `Core.Infrastructure`, và những lỗi thuộc về một ô nhập cụ thể thì đi ra dưới dạng lỗi-theo-ô. Xem [`16-i18n-va-ma-loi.md`](16-i18n-va-ma-loi.md).
 
@@ -192,7 +184,7 @@ Chia đôi trách nhiệm:
 
 | Ai | Seed gì |
 | --- | --- |
-| **Core** | Danh mục quyền của chính Core (quản trị người dùng, vai trò, phân quyền, menu). Đây là dữ liệu tham chiếu, đi cùng migration của schema `core` |
+| **Core** | Danh mục quyền của chính Core (quản trị người dùng, vai trò, phân quyền, menu). Khoá khai trong code qua `IPermissionCatalogSource`; dòng vào DB bằng migration của schema `core`. Tiến trình ứng dụng **không** ghi danh mục — [`13-core-data-migration.md`](13-core-data-migration.md) §5.1 |
 | **Dự án** | Bộ vai trò mặc định của dự án đó và ánh xạ vai trò → quyền. Đây là dữ liệu **của dự án**, không thuộc Core |
 
 Nguyên tắc cho việc seed danh mục quyền: **thêm được, không xoá tự động**. Một khoá quyền biến mất khỏi danh mục thì mọi dòng phân quyền trỏ tới nó thành rác âm thầm. Khi cần bỏ một quyền, đánh dấu ngừng dùng và dọn bằng một bước có chủ đích. Chi tiết ở [`13-core-data-migration.md`](13-core-data-migration.md).
@@ -211,20 +203,21 @@ Ba phương án, và vì sao chọn phương án thứ ba:
 
 **Hình dạng phương án đã chọn:**
 
-- Bảng người dùng của Core có một cột cờ. Bộ kiểm quyền có đúng **một** nhánh: cờ bật thì mọi câu hỏi quyền trả lời có.
+- Bảng người dùng của Core có một cột cờ. Bộ kiểm quyền có đúng **một** nhánh: cờ bật thì **tập quyền hiệu lực** là toàn bộ danh mục quyền hiện có, nên mọi câu hỏi quyền trả lời có.
 - Cột mang cờ là `core.app_user.has_permission_bypass` ([`../../database/schema-core.md`](../../database/schema-core.md) §4.1). Nó **không phải** `is_system_operator` — hai cột đó là hai vai ngược nhau và loại trừ nhau bằng ràng buộc ở database (luật M11).
-- **Không đường nào đặt cờ lên một tài khoản ĐÃ TỒN TẠI.** Cờ chỉ sinh ra **cùng lúc** với chính tài khoản mang nó — bởi lệnh bootstrap lúc cài đặt, hoặc bởi `POST /tenants` khi tạo một đơn vị mới ([`../../contracts/tenants.md`](../../contracts/tenants.md)). Luật **M12**.
-- Lệnh bootstrap tạo tài khoản đầu tiên, đặt cờ, **bắt buộc đổi mật khẩu ở lần đăng nhập đầu**, và ghi lại việc đó vào nhật ký kiểm toán.
-- Sau khi dựng xong bộ vai trò thật, tài khoản bootstrap **nên** bị tắt cờ hoặc vô hiệu hoá. Đây là khuyến nghị vận hành, không phải thứ ép được bằng code.
+- **Không đường nào đặt cờ lên một tài khoản ĐÃ TỒN TẠI.** Cờ chỉ sinh ra **cùng lúc** với chính tài khoản mang nó — bởi lệnh bootstrap lúc cài đặt, bởi `POST /system/tenants` khi tạo một đơn vị mới, hoặc bởi `POST /system/tenants/{id}/admins` khi tạo thêm tài khoản quản trị ([`../../contracts/tenants.md`](../../contracts/tenants.md) §2, §6); cả ba đi qua service tạo đơn vị dùng chung ([`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md)). Luật **M12**.
+- Lệnh bootstrap tạo đơn vị hệ thống, đơn vị nghiệp vụ đầu tiên và hai tài khoản: `superadmin` mang `is_system_operator` **và** cờ bắt buộc đổi mật khẩu ở đơn vị hệ thống; `admin` mang cờ này cùng cờ **bắt buộc đổi mật khẩu ở lần đăng nhập đầu** ở đơn vị nghiệp vụ đầu tiên ([`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md)). Việc tạo được ghi vào nhật ký kiểm toán. Máy dev và bản thật dùng cùng lệnh đó — [`17-multi-tenant.md`](17-multi-tenant.md) §10.
+- Phản hồi phiên lấy `permissions` từ tập quyền hiệu lực mà **chính bộ kiểm quyền** cấp — nên tài khoản mang cờ nhận toàn bộ danh mục mà handler phiên không đọc cờ, và luật *"một chỗ"* ở bảng rủi ro dưới vẫn giữ; FE không có nhánh riêng cho cờ — [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §4.3 · [`../../contracts/auth.md`](../../contracts/auth.md) §5.
+- Sau khi dựng xong bộ vai trò thật, tài khoản mang cờ **tự từ bỏ** cờ qua endpoint từ bỏ ở [`../../contracts/profile.md`](../../contracts/profile.md): một chiều, và bị từ chối khi đơn vị chưa có tài khoản nào khác giữ `core.permission.write` qua vai trò — chống tự khoá khỏi màn phân quyền. Luật M12 cấm **bật** cờ trên tài khoản đã tồn tại, không cấm tắt.
 
 **Rủi ro của phương án này và cách canh:**
 
 | Rủi ro | Cách canh |
 | --- | --- |
-| Cờ trở thành cửa sau ai cũng dùng | Không có endpoint đặt cờ. Mọi lần cờ được đặt đều vào nhật ký kiểm toán |
+| Cờ trở thành cửa sau ai cũng dùng | Không có endpoint đặt cờ lên tài khoản đã có. Mọi lần cờ được đặt đều vào nhật ký kiểm toán |
 | Cờ bị nhân bản thành nhiều điều kiện `if` rải rác | Chỉ được đọc ở **đúng một chỗ** trong bộ kiểm quyền. Ngoài chỗ đó, việc đọc cờ là finding |
 | Cờ trên thực tế là "vai trò trá hình" | Phép thử: nó có mang **tên** không? Có phải dữ liệu người dùng tạo được không? Không và không → nó là thuộc tính của cơ chế phân quyền, không phải vai trò |
-| Quên tắt cờ sau khi cài xong | Health check ở môi trường thật cảnh báo khi số tài khoản mang cờ vượt ngưỡng đã khai |
+| Quên tắt cờ sau khi cài xong | Màn hồ sơ hiện `NoticeBanner` nhắc từ bỏ cờ chừng nào tài khoản còn mang nó ([`../../Design/Screens/03-ho-so-ca-nhan.md`](../../Design/Screens/03-ho-so-ca-nhan.md)) |
 
 ---
 
@@ -243,9 +236,48 @@ Chính sách phải nằm ở **cấu hình**, không rải trong code — vì m
 
 **Quan trọng:** BE trả về **mã lỗi**, không trả câu tiếng Việt. Câu chữ do FE ghép. Xem [`16-i18n-va-ma-loi.md`](16-i18n-va-ma-loi.md) — luật R8 ở [`../../RULES.md`](../../RULES.md) canh việc này.
 
-### 4.2 Khoá tài khoản
+**Chính sách giống nhau ở mọi môi trường — luật S9.** Section cấu hình `Core:Identity:Password` chỉ nằm ở `appsettings.json`. Một test quét mọi tệp `appsettings.*.json` và đỏ khi section đó xuất hiện ở tệp theo môi trường; tên test ở cột *Ép bằng gì* của [`../../RULES.md`](../../RULES.md).
 
-Khoá sau N lần sai liên tiếp, mở lại sau một khoảng thời gian. Ba điểm dễ sai:
+### 4.2 Khoá tài khoản — định nghĩa gốc
+
+Khoá sau một số lần sai mật khẩu **liên tiếp**, tự mở sau một khoảng thời gian.
+
+| Tham số | Mặc định | Khoá cấu hình |
+| --- | --- | --- |
+| Số lần sai mật khẩu liên tiếp thì khoá | **5** | `Core:Identity:Lockout:MaxFailedAttempts` |
+| Thời gian khoá | **15 phút** | `Core:Identity:Lockout:DurationMinutes` |
+
+Hai khoá nạp vào tuỳ chọn khoá tài khoản của Identity (`LockoutOptions.MaxFailedAccessAttempts`,
+`LockoutOptions.DefaultLockoutTimeSpan`). File khác cần hai giá trị này thì trỏ về đây, không chép.
+
+**Thứ tự kiểm khi đăng nhập.** Chạy sau khi đơn vị đã nạp (§6.2) và lượt thử đã tính vào hạn mức theo
+tài khoản ([`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §6.5):
+
+| # | Tình huống | Làm gì | Trả |
+| --- | --- | --- | --- |
+| 1 | Sai mật khẩu, tài khoản **không** đang khoá | Tính một lần sai (`UserManager.AccessFailedAsync`); đủ ngưỡng thì Identity đặt mốc khoá | `CORE.AUTH.INVALID_CREDENTIALS` |
+| 2 | Sai mật khẩu, tài khoản **đang** khoá | **Không** tính lần sai | `CORE.AUTH.INVALID_CREDENTIALS` — cùng mã với ca 1 |
+| 3 | Đúng mật khẩu, tài khoản đang khoá | — | `CORE.AUTH.LOCKED_OUT` |
+| 4 | Đúng mật khẩu, không khoá | Xoá bộ đếm lần sai (`UserManager.ResetAccessFailedCountAsync`) | Đi tiếp — seam trả `CredentialCheck` ([`../../quy-uoc/be-entity-domain.md`](../../quy-uoc/be-entity-domain.md) §7.1); cờ đổi mật khẩu ở §4.3 |
+
+Ba điểm của bảng không đổi được:
+
+1. **Sai mật khẩu luôn ra `CORE.AUTH.INVALID_CREDENTIALS`, kể cả khi đang khoá.** `CORE.AUTH.LOCKED_OUT`
+   chỉ trả cho người đã gõ **đúng** mật khẩu — người không biết mật khẩu không phân biệt được tài khoản
+   bị khoá với tài khoản không tồn tại.
+2. **Ca 2 không tính lần sai.** Đủ ngưỡng thì `AccessFailedAsync` **ghi đè** mốc khoá bằng *thời điểm
+   hiện tại + thời gian khoá*. Tài khoản do quản trị khoá mang mốc khoá ở xa trong tương lai
+   ([`../../database/schema-core.md`](../../database/schema-core.md) §4.1); tính lần sai trên nó thì vài lần gõ
+   sai của bất kỳ ai **rút lệnh khoá của quản trị xuống bằng thời gian khoá tự động**.
+3. **Ca 4 phải xoá bộ đếm.** Thiếu bước này thì "liên tiếp" thành "cộng dồn": người gõ sai lác đác qua
+   nhiều ngày vẫn bị khoá.
+
+**Cái giá của điểm 1, ghi thẳng:** trong lúc khoá, phản hồi vẫn cho biết mật khẩu vừa thử đúng hay sai.
+Khoá tài khoản vì vậy **không** làm chậm việc dò mật khẩu — nó chỉ chặn việc **dùng** mật khẩu dò được
+cho tới khi hết khoá. Việc làm chậm dò thuộc hạn mức theo tài khoản và các hàng rào theo IP
+([`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §6.1).
+
+Ba điểm dễ sai ở tầng thiết kế:
 
 1. **Khoá theo tài khoản là chưa đủ.** Kẻ tấn công thử một mật khẩu phổ biến trên hàng nghìn tài khoản thì không tài khoản nào chạm ngưỡng. Cần thêm giới hạn tần suất theo IP — xem [`09-security-beyond-auth.md`](09-security-beyond-auth.md).
 2. **Khoá theo tài khoản mở đường cho tấn công từ chối dịch vụ nhắm vào một người.** Biết tên đăng nhập là khoá được người đó. Giảm nhẹ bằng cách mở khoá tự động sau một khoảng, không khoá vĩnh viễn.
@@ -256,10 +288,21 @@ Khoá sau N lần sai liên tiếp, mở lại sau một khoảng thời gian. B
 Tài khoản do quản trị viên tạo mang mật khẩu tạm. Cần một cờ *"phải đổi mật khẩu"*:
 
 - Đăng nhập vẫn thành công (nếu không thì người dùng không đổi được).
-- Nhưng **mọi endpoint khác** trả về lỗi có mã riêng cho tới khi mật khẩu được đổi. Danh sách endpoint được phép gọi trong trạng thái này là một allowlist ngắn: đổi mật khẩu, lấy thông tin bản thân, đăng xuất.
+- Nhưng **mọi endpoint khác** trả về lỗi có mã riêng cho tới khi mật khẩu được đổi.
+
+> 📖 Allowlist đường đi qua được trong trạng thái này: đọc [`../../contracts/auth.md`](../../contracts/auth.md) §1.2
 - FE nhận mã đó thì điều hướng sang màn đổi mật khẩu và không cho thoát ra.
 
 **Bẫy:** làm việc này chỉ bằng cách điều hướng ở FE. Người dùng gọi thẳng endpoint là bỏ qua được. Cờ phải được kiểm ở server.
+
+### 4.4 Quên mật khẩu, đặt lại hộ, khôi phục
+
+| Tình huống | Đường | Nguồn |
+| --- | --- | --- |
+| Người dùng quên mật khẩu | **Không có luồng tự phục vụ ở v1.** Người dùng liên hệ quản trị đơn vị của mình | [`../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md) |
+| Quản trị đơn vị đặt lại hộ | Chỉ cho người trong đơn vị mình; quản trị tự gõ mật khẩu tạm | [`../../contracts/users.md`](../../contracts/users.md) |
+| Quản trị của một đơn vị mất quyền truy cập | Tài khoản vận hành khôi phục mật khẩu, **chỉ** cho tài khoản mang cờ bypass hoặc đang giữ một vai trò `is_system` của đơn vị đó, không trả dữ liệu nào | [`../../contracts/tenants.md`](../../contracts/tenants.md) · ADR-0029 |
+| Chính tài khoản vận hành mất quyền truy cập | Lệnh chạy tay trên máy chủ | [`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md) |
 
 ---
 
@@ -269,10 +312,13 @@ Tài khoản do quản trị viên tạo mang mật khẩu tạm. Cần một c�
 | --- | --- |
 | Người dùng bấm đăng xuất | Xoá cookie phiên; **và** làm mất hiệu lực phiếu ở server nếu có kho phiếu |
 | Quản trị viên khoá một tài khoản | Phiên đang mở của tài khoản đó phải trượt ở request kế tiếp, không đợi hết hạn |
+| Quản trị đặt lại mật khẩu hộ, hoặc tài khoản vận hành khôi phục mật khẩu quản trị đơn vị | Phiên đang mở của tài khoản đích phải trượt ở request kế tiếp, không đợi hết hạn |
 | Người dùng đổi mật khẩu | Mọi phiên khác của chính người đó nên bị đẩy ra |
 | Quyền của một vai trò thay đổi | Quyền phải có hiệu lực ở request kế tiếp |
 
-**Cách đạt được ba dòng cuối mà không cần kho phiếu:** phiếu mang theo một dấu đồng thời của bản ghi người dùng; mỗi request kiểm dấu đó còn khớp DB không. Đây là một lần đọc thêm mỗi request — chi phí thật, nhưng nó là cái giá của "thu hồi tức thì", tức là chính lý do chọn cookie ở §1.3.
+**Khoá, đặt lại mật khẩu và đổi mật khẩu đạt được mà không cần kho phiếu:** phiếu mang theo một dấu đồng thời của bản ghi người dùng — security stamp; mỗi thao tác trên đổi dấu đó, và mỗi request kiểm dấu còn khớp DB không. Đây là một lần đọc thêm mỗi request — chi phí thật, nhưng nó là cái giá của "thu hồi tức thì", tức là chính lý do chọn cookie ở §1.3. Thao tác nào đổi dấu và cách đổi: [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §7.4.
+
+**Dòng về quyền không đi qua dấu đó:** kiểm quyền đọc tập quyền hiệu lực từ DB ở mỗi request, không từ phiếu — [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §4.3.
 
 Nếu lần đọc đó trở thành điểm nghẽn (đã **đo**, không phải đoán), đó là ca dùng cache đầu tiên đáng cân nhắc — xem [`11-performance-caching.md`](11-performance-caching.md).
 
@@ -287,8 +333,9 @@ Nếu lần đọc đó trở thành điểm nghẽn (đã **đo**, không phả
 ### 6.1 `TenantId` vào phiếu xác thực lúc đăng nhập
 
 Đăng nhập thành công → phiếu mang thêm một claim `TenantId`, cạnh danh tính người dùng. Từ đó
-`ICurrentUser.TenantId` đọc được ở mọi request, và bộ lọc truy vấn toàn cục dùng chính giá trị
-đó. **Không** có đường nào khác: `TenantId` không bao giờ đến từ route, query, body hay header —
+`ITenantContext.TenantId` đọc được ở mọi request, và bộ lọc truy vấn toàn cục dùng chính giá trị
+đó. Chữ ký hai seam `ICurrentUser` và `ITenantContext`:
+[`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1. **Không** có đường nào khác: `TenantId` không bao giờ đến từ route, query, body hay header —
 client tự khai tenant là client tự cấp quyền (luật M2, [`../../RULES.md`](../../RULES.md) §9).
 
 Vì tenant nằm trong phiếu và **một tài khoản thuộc đúng một tenant**, mô hình này không có màn
@@ -314,13 +361,8 @@ khi xác thực. Hai phương án khác (tên đăng nhập duy nhất toàn h�
 | 1 | Nhận `(mã đơn vị, tên đăng nhập, mật khẩu)` | — |
 | 2 | Tra tenant theo mã đơn vị | — |
 | 3 | **Nạp `TenantId` vừa tra được vào ngữ cảnh của request này** | Bỏ qua bước này thì `UserManager` chạy khi ngữ cảnh tenant còn rỗng: hoặc mọi người đều "sai mật khẩu", hoặc — tệ hơn nhiều — truy vấn chạy như thể không có bộ lọc |
-| 4 | Gọi `UserManager`, kiểm mật khẩu, khoá tài khoản, cờ đổi mật khẩu lần đầu (§4) | — |
+| 4 | Gọi `UserManager`: kiểm mật khẩu rồi khoá tài khoản theo thứ tự ở §4.2, rồi cờ đổi mật khẩu lần đầu (§4.3) | Đảo mật khẩu và khoá thì tài khoản bị khoá lộ ra với người không biết mật khẩu |
 | 5 | Phát phiếu mang claim `TenantId` | — |
-
-**Luồng quên mật khẩu hỏi đúng bộ ô đó** — mã đơn vị cộng email — vì một địa chỉ email có thể
-ứng với nhiều tài khoản ở nhiều đơn vị, và không có câu trả lời đúng cho *"đặt lại mật khẩu cho
-tài khoản nào"* nếu chỉ có email. Token đặt lại vẫn gắn với đúng một tài khoản, như Identity đã
-làm sẵn. Đánh đổi của các phương án khác: [`17-multi-tenant.md`](17-multi-tenant.md) §11.
 
 ### 6.3 Đơn vị ngưng hoạt động thì chặn ở bước nào
 
@@ -344,9 +386,10 @@ không thêm một lần đọc mới — nó thêm một điều kiện vào l�
 Cờ ở §3.6 giữ nguyên cơ chế nhưng phạm vi hẹp hơn trực giác: nó cho qua mọi câu hỏi **quyền**,
 nó **không** gỡ bộ lọc tenant. Một tài khoản mang cờ vẫn chỉ thấy dữ liệu của đơn vị mình.
 
-Trong mô hình này **không tồn tại** tài khoản nhìn được mọi đơn vị. Việc quản trị các tenant —
-tạo, ngưng hoạt động — đi qua đường vận hành có allowlist, không qua một tài khoản đặc biệt:
-[`17-multi-tenant.md`](17-multi-tenant.md) §7.
+Trong mô hình này **không tồn tại** tài khoản nhìn được dữ liệu của mọi đơn vị. Việc quản trị các
+tenant — tạo, ngưng hoạt động — đi qua khu quản trị hệ thống, bằng tài khoản vận hành thuộc đơn vị
+hệ thống: nó thấy danh sách đơn vị, không thấy dữ liệu bên trong đơn vị nào —
+[`17-multi-tenant.md`](17-multi-tenant.md) §11.3.
 
 ---
 
@@ -361,7 +404,10 @@ tạo, ngưng hoạt động — đi qua đường vận hành có allowlist, kh
 | Cờ bootstrap | ✅ sẽ có | §3.6. **Không** gỡ bộ lọc tenant — §6.4 |
 | Bắt đổi mật khẩu lần đầu | ✅ sẽ có | Kiểm ở server |
 | Claim `TenantId` trong phiếu xác thực | ✅ sẽ có | §6.1. Nguồn duy nhất của tenant ở mọi request |
-| Ô mã đơn vị trên form đăng nhập và form quên mật khẩu | ✅ sẽ có | §6.2. **Không** phải màn chọn tenant |
+| Ô mã đơn vị trên form đăng nhập | ✅ sẽ có | §6.2. **Không** phải màn chọn tenant |
+| Đặt lại mật khẩu hộ trong đơn vị; khôi phục quản trị đơn vị qua khu hệ thống | ✅ sẽ có | §4.4 |
+| Từ bỏ cờ bypass, một chiều, chống tự khoá | ✅ sẽ có | §3.6 |
+| **Quên mật khẩu tự phục vụ** | ❌ chưa | §4.4. Ngoài v1 — [`../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md) |
 | Tên đăng nhập / email duy nhất theo cặp với tenant | ✅ sẽ có | §6.2 · [`../../database/schema-core.md`](../../database/schema-core.md) §4.1 |
 | Chặn đơn vị ngưng hoạt động ở **hai** chỗ | ✅ sẽ có | §6.3 |
 | **Kho phiếu phía server** | ❌ chưa | Thu hồi đạt được qua dấu đồng thời; kho phiếu chỉ cần khi muốn quản lý phiên theo từng thiết bị |

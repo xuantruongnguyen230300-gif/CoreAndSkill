@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 11. Bảng dữ liệu server-side
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`; đây là component `shared/components/data-grid` phải dựng ở pha F3.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`; đây là component `DataTable` ở `shared/ui/data-table` phải dựng ở pha F3 — thư mục theo cột "Nền" ([`05-component-library.md`](05-component-library.md) §3).
 >
 > Hợp đồng phân trang phía BE: [`../../contracts/README.md`](../../contracts/README.md). Truy vấn và chỉ mục: [`../../quy-uoc/be-performance.md`](../../quy-uoc/be-performance.md).
 
@@ -41,7 +41,9 @@ Kết quả trả về **không** khai lại ở đây: bảng dữ liệu tiêu
 
 > 📖 **Kiểu `PagedList<T>` phía FE: [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §5.1 · hợp đồng phân trang trên dây (tên tham số, khoảng hợp lệ, mặc định): [`../../contracts/README.md`](../../contracts/README.md) §8.**
 
-`GridQuery` ở trên là **trạng thái của bảng trên màn hình**, không phải kiểu gửi lên dây: nó mang thêm `filters` và dùng tên theo ngôn ngữ của giao diện. Bước chuyển sang tham số truy vấn thật là một bước **tường minh**, khai ở đúng một chỗ ([`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §7.2). Đưa thẳng một object trạng thái vào hàm dựng query string là cách một tham số sai tên đi ra khỏi trình duyệt mà không ai thấy — BE không nhận ra tham số, **áp mặc định**, và người dùng bấm trang 7 nhận về trang 1.
+`GridQuery` là **trạng thái của bảng trên màn hình**, và tên trường của nó **trùng đúng** tên tham số trên dây ở [`../../contracts/README.md`](../../contracts/README.md) §8 — cùng tên đó dùng nguyên cho query param trên URL; ngoài ra nó chỉ mang thêm `filters`. Không có tên thứ hai theo ngôn ngữ giao diện và không có hàm ánh xạ tên nào. Mỗi tầng đổi tên là một chỗ để một tham số sai tên đi ra khỏi trình duyệt mà không ai thấy — BE không nhận ra tham số, **áp mặc định**, và người dùng bấm trang 7 nhận về trang 1.
+
+`DataTable` phát chiều sắp xếp theo đúng tên trên dây; dạng số của thư viện bảng chỉ tồn tại **bên trong** lớp bọc ([`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §2.1).
 
 ### 2.1 Trang bắt đầu từ 1
 
@@ -168,7 +170,7 @@ Ngoại lệ hợp lý duy nhất: xuất **đúng thứ đang hiển thị** (�
 
 ### 8.3 Ba điều hay quên
 
-1. **Xuất là thao tác chậm.** Phải có phản hồi ngay (trạng thái đang xử lý), và với tập lớn thì nên là tác vụ nền có thông báo khi xong — xem [`../be/15-import-export.md`](../be/15-import-export.md).
+1. **Xuất là thao tác chậm.** Phải có phản hồi ngay (trạng thái đang xử lý). Ở v1 xuất stream thẳng và bị trần số dòng — không có xuất chạy nền; trần và mã lỗi ở [`../../contracts/exports.md`](../../contracts/exports.md).
 2. **Xuất phải kiểm quyền như đọc dữ liệu.** Một endpoint xuất không kiểm quyền là một đường vòng qua mọi kiểm tra của màn danh sách.
 3. **Tên tệp nên mang bộ lọc và thời điểm.** Ba tệp cùng tên trong thư mục tải về là ba tệp không phân biệt được.
 
@@ -211,7 +213,7 @@ Chi tiết: [`15-accessibility.md`](15-accessibility.md).
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| Data grid server-side dùng chung | ✅ sẽ có | §1 — mặc định cho mọi bảng, kể cả bảng ít dữ liệu |
+| `DataTable` server-side dùng chung, ở `shared/ui/data-table` | ✅ sẽ có | §1 — mặc định cho mọi bảng, kể cả bảng ít dữ liệu |
 | Trang bắt đầu từ 1; không gửi số trang qua dây | ✅ sẽ có | §2.1, §2.2 |
 | Trạng thái bảng đặt trên URL | ✅ sẽ có | §3 |
 | Ba cơ chế chống gọi dồn dập khi tìm kiếm | ✅ sẽ có | §4 — cơ chế huỷ request cũ là cái hay quên nhất |
@@ -224,7 +226,7 @@ Chi tiết: [`15-accessibility.md`](15-accessibility.md).
 | Bảng chỉnh sửa tại chỗ | ✅ sẽ có | Component riêng [`../../Design/Components/EditableGrid.md`](../../Design/Components/EditableGrid.md), **không** phải một chế độ của lưới đọc — hai thứ có nguồn sự thật ngược nhau. Điều kiện cấp bởi [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md). Bài toán lưu từng ô và xung đột vẫn để ngỏ, ghi ở `Cần chốt` của chính spec đó |
 | Lọc và phân trang ở client | ❌ loại, không hoãn `K32` | §1 — chạy hoàn hảo với dữ liệu thử, hỏng với dữ liệu thật |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

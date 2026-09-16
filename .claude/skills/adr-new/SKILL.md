@@ -111,7 +111,7 @@ Gọi `architect` qua `Agent` để soát lập luận trước khi coi là ch�
 3. **Quyết định thuộc khu khác** theo bảng "Khi nào KHÔNG viết" ở bước 1 — quy ước đặt tên, kể lại sự cố, kế hoạch.
 4. **Không rõ ADR này có lật một ADR cũ hay không.** Lật nhầm tạo ra hai quyết định sống song song nói ngược nhau.
 5. **Trạng thái của một ADR cũ cần đổi.** Nói rõ dòng nào cần đổi thành gì, rồi hỏi trước khi sửa — file cũ là bản ghi lịch sử.
-6. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1. Nói rõ cần chạy lệnh gì, người dùng tự chạy.
+6. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1.
 
 ## Đầu ra
 

@@ -14,7 +14,7 @@ verified: chua-doi-chieu
 
 ## 1. Bộ icon: PrimeIcons
 
-**Bộ chuẩn duy nhất của Core là PrimeIcons** (đi kèm PrimeNG 20 — xem stack ở [`../README.md`](../README.md)).
+**Bộ chuẩn duy nhất của Core là PrimeIcons** (đi kèm PrimeNG — phiên bản khoá ở [`../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md)).
 
 Ba lý do chọn, và một cái giá:
 
@@ -51,6 +51,12 @@ Ba điều cấm:
 - 🛑 **Một nghĩa không có hai icon.** Xoá ở màn này là thùng rác thì xoá ở màn kia cũng phải là thùng rác.
 - 🛑 **Icon không thay được chữ ở hành động phá huỷ.** Nút xoá cuối cùng trong `ConfirmDialog` luôn có chữ.
 
+Ba ghi chú áp luật trên:
+
+- "Xem / hiện" là **một** nghĩa của `pi-eye` (hôm nay: hiện mật khẩu, §5). Cần "xem" ở chỗ khác thì dùng nó, không đẻ icon thứ hai.
+- **Đi vào bản ghi từ danh sách không có icon.** Lối vào chi tiết là `<a routerLink>` ở ô định danh của hàng ([`Components/Button.md`](./Components/Button.md) §Khi nào dùng) — không có nút "xem chi tiết".
+- `pi-check` là dấu **bước / mục đã xong** trong một luồng (`Stepper`, `Timeline`); `pi-check-circle` là icon vai **thông báo kết quả thành công** (`Toast`, `NoticeBanner`). Hai nghĩa tách bạch, không thay nhau.
+
 ---
 
 ## 3. Kích thước
@@ -66,7 +72,7 @@ Bốn luật hình học:
 3. **Khe giữa icon và chữ là `--sp-2`** (4px) ở cỡ `sm`, `--sp-3` (6px) ở `md` và `lg`.
 4. **Căn giữa theo trục dọc bằng flex, không bằng `vertical-align`.** `display: inline-flex; align-items: center` trên phần tử bao. `vertical-align` phụ thuộc đường cơ sở của font và sẽ lệch mỗi khi cỡ chữ đổi.
 
-`EmptyState` là ca duy nhất cần icon lớn hơn `--icon-xl`. Nó **không** phóng to icon font — chữ phóng lên 48px sẽ vỡ nét. Thay vào đó nó dùng một hình minh hoạ hoặc một icon đặt trong vòng tròn nền `--color-surface-2` đường kính 56px, với icon bên trong giữ `--icon-xl`. Xem [`Components/EmptyState.md`](./Components/EmptyState.md).
+`EmptyState` là ca duy nhất cần icon lớn hơn `--icon-xl`. Nó **không** phóng to icon font — chữ phóng lên 48px sẽ vỡ nét. Thay vào đó nó dùng một hình minh hoạ hoặc một icon đặt trong vòng tròn nền `--color-surface-2`, với icon bên trong giữ `--icon-xl`. Đường kính vòng tròn theo từng cỡ khai ở [`Components/EmptyState.md`](./Components/EmptyState.md) §Kích thước — file này không giữ bản sao của con số đó.
 
 ---
 
@@ -102,10 +108,10 @@ Ba luật màu:
 | Thêm mới | `pi-plus` | `Toolbar`, `PageHeader` |
 | Sửa | `pi-pencil` | `IconButton` trong hàng bảng |
 | Xoá | `pi-trash` | `IconButton` trong hàng bảng, `ConfirmDialog` |
-| Xem chi tiết | `pi-eye` | `IconButton` trong hàng bảng |
 | Nhân bản | `pi-copy` | Menu hành động của hàng |
+| Mở menu hành động của hàng | `pi-ellipsis-v` | `IconButton` trong hàng bảng, mở `Menu` |
 | Lưu | `pi-save` | Chân `Dialog`, `Toolbar` |
-| Huỷ / đóng | `pi-times` | Đầu `Dialog`, `Toast`, chip lọc |
+| Huỷ / đóng — **chỉ** nghĩa này | `pi-times` | Đầu `Dialog`, `Toast`, nút gỡ chip lọc. Bước lỗi, mục trả lại → dòng Lỗi |
 | Tải lại | `pi-refresh` | `Toolbar`, `EmptyState` khi lỗi |
 
 ### Tìm, lọc, sắp xếp
@@ -115,6 +121,7 @@ Ba luật màu:
 | Tìm kiếm | `pi-search` | Ô tìm trong `Toolbar` |
 | Mở bộ lọc | `pi-filter` | `Toolbar` |
 | Xoá bộ lọc | `pi-filter-slash` | `Toolbar` |
+| Mở lịch chọn ngày | `pi-calendar` | Nút `suffix` của [`Components/DatePicker.md`](./Components/DatePicker.md) |
 | Sắp xếp — chưa chọn | `pi-sort-alt` | `th` trong `DataTable` |
 | Sắp xếp tăng | `pi-sort-amount-up-alt` | `th` trong `DataTable` |
 | Sắp xếp giảm | `pi-sort-amount-down` | `th` trong `DataTable` |
@@ -137,10 +144,12 @@ Ba luật màu:
 | --- | --- | --- |
 | Thành công | `pi-check-circle` | `Toast`, `NoticeBanner` |
 | Cảnh báo | `pi-exclamation-triangle` | `Toast`, `NoticeBanner`, `ConfirmDialog` mức nguy hiểm |
-| Lỗi | `pi-times-circle` | `Toast`, `NoticeBanner`, `FormRow` khi lỗi |
+| Lỗi | `pi-times-circle` | `Toast`, `NoticeBanner`, `FormRow` khi lỗi; chấm bước `error` của [`Components/Stepper.md`](./Components/Stepper.md); chấm mục `rejected` (trả lại) ở biến thể `approval` của [`Components/Timeline.md`](./Components/Timeline.md) |
 | Thông tin | `pi-info-circle` | `Toast`, `NoticeBanner`, gợi ý bên trường |
 | Đang xử lý | `pi-spinner` (quay) | `Button` khi `loading`, `DataTable` khi tải |
 | Hỏi xác nhận | `pi-question-circle` | `ConfirmDialog` mức thường |
+| Bước · mục đã xong, đã duyệt | `pi-check` | Chấm bước `done` của [`Components/Stepper.md`](./Components/Stepper.md); chấm mục `done` ở biến thể `approval` và sự việc "duyệt" ở biến thể `history` của [`Components/Timeline.md`](./Components/Timeline.md). Khác `pi-check-circle` (dòng Thành công) — đây là dấu trên một chấm tiến trình, không phải icon vai của thông báo |
+| Bước · mục chưa tới lượt | `pi-circle` | Chấm mục `upcoming` ở biến thể `approval` của [`Components/Timeline.md`](./Components/Timeline.md). `Stepper` không dùng icon ở bước chưa tới — chấm mang số thứ tự |
 
 ### Tài khoản, tệp, hệ thống
 
@@ -148,13 +157,21 @@ Ba luật màu:
 | --- | --- | --- |
 | Người dùng | `pi-user` | `Avatar` khi không có ảnh, `Topbar` |
 | Đăng xuất | `pi-sign-out` | Menu người dùng ở `Topbar` |
-| Đổi mật khẩu | `pi-key` | Menu người dùng |
-| Đổi ngôn ngữ | `pi-globe` | `LanguageSwitcher` |
-| Đổi theme | `pi-sun` · `pi-moon` | `Topbar` |
+| Đổi mật khẩu · đặt lại mật khẩu hộ | `pi-key` | Menu người dùng; menu hành động của hàng |
+| Hiện mật khẩu | `pi-eye` | Nút hiện/ẩn của [`Components/Input.md`](./Components/Input.md) biến thể `password` khi `revealable` bật, và của [`Components/AuthField.md`](./Components/AuthField.md) biến thể `password` |
+| Ẩn mật khẩu | `pi-eye-slash` | Cùng nút, khi mật khẩu đang hiện |
+| Khoá · không có quyền (403) — **chỉ** nghĩa này | `pi-lock` | Menu hành động của hàng; `EmptyState` biến thể `no-permission`; sự việc "khoá" ở biến thể `history` của `Timeline`. Chip lọc không gỡ được **không có icon** |
+| Mở khoá | `pi-lock-open` | Menu hành động của hàng |
+| Ngưng · bật lại hoạt động của đơn vị | `pi-power-off` | Menu hành động của hàng |
+| Đơn vị | `pi-building` | `AuthField` biến thể `tenantCode` |
+| Đổi ngôn ngữ | `pi-globe` | `LanguageSwitcher`; mục "Ngôn ngữ" trong menu người dùng của `Topbar` |
+| Đổi theme | `pi-sun` · `pi-moon` · `pi-desktop` | `Topbar` — icon hiện giá trị **đang áp**: sáng · tối · theo hệ điều hành |
 | Tải tệp lên | `pi-upload` | `FileUpload` |
 | Tải tệp xuống | `pi-download` | `Toolbar` |
 | Tệp đính kèm | `pi-file` | Danh sách tệp của `FileUpload` |
 | Không có dữ liệu | `pi-inbox` | `EmptyState` |
+| Cần cấu hình trước | `pi-cog` | `EmptyState` biến thể `not-configured` |
+| Không tìm thấy đích — đường dẫn không khớp trang nào (404), hoặc bản ghi không còn trong khi tuyến vẫn đúng | `pi-compass` | `EmptyState` biến thể `not-found` và `record-not-found` — một nghĩa ("thứ được trỏ tới không có ở đây"), hai chỗ dùng |
 
 Cần một hành động chưa có trong bảng → thêm dòng vào đây **trước**, rồi mới dùng.
 

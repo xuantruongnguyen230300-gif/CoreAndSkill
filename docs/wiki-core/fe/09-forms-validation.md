@@ -102,10 +102,11 @@ export function applyFieldErrors(
 }
 ```
 
-Bốn chi tiết bắt buộc:
+Chi tiết bắt buộc:
 
 | Chi tiết | Vì sao |
 | --- | --- |
+| Giữ **thứ tự** mã như BE trả — không sắp xếp, không lọc trùng | Ô chỉ hiện câu của mã đầu tiên ([`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.5). Đổi thứ tự là đổi lỗi người dùng thấy |
 | Chuyển khoá BE → tên control, **trong hàm này** | Khoá trên dây giữ PascalCase ([`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §2.3), tên control là camelCase. Tra thẳng thì không khớp ô nào và **không có gì báo** |
 | **Dịch từng `code`**, không gắn thẳng giá trị vào control | Giá trị là mảng object `{code, messageParams}`. Bind thẳng cho ra `[object Object]`; ép về chuỗi thì vứt mất mã và lỗi từng ô không dịch được |
 | Gộp vào `errors` sẵn có, không ghi đè | Ghi đè xoá mất lỗi client đang hiển thị trên cùng ô |
@@ -143,6 +144,8 @@ Nếu payload có đối tượng con, BE trả khoá dạng `diaChi.tinh` và `
 | Bấm Lưu trên form không hợp lệ → hiện hết lỗi **và** đưa focus về ô sai đầu tiên | Trên form dài, lỗi có thể nằm ngoài màn hình. Không cuộn tới thì trông như nút Lưu bị hỏng |
 | Câu lỗi nói **cách sửa**, không chỉ nói sai | "Mật khẩu tối thiểu 8 ký tự" hơn hẳn "Giá trị không hợp lệ" |
 | Ô lỗi phải liên kết với thông báo bằng thuộc tính ARIA | Trình đọc màn hình không "thấy" chữ đỏ bên dưới — [`15-accessibility.md`](15-accessibility.md) §5 |
+
+> 📖 Hàm quyết định thời điểm hiện lỗi và chọn câu lỗi cho một ô (`fieldErrorText`): đọc [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.5.
 
 **Chống bấm Lưu nhiều lần:** vô hiệu hoá nút trong lúc đang gửi. Không làm thì một lần bấm đúp tạo hai bản ghi — và ở form tạo mới, đó là lỗi người dùng nhìn thấy ngay.
 
@@ -209,6 +212,7 @@ Ba dòng đầu là ba dòng đáng viết nhất — chúng bắt đúng nhữn
 - [ ] Mỗi khoá trong `fieldErrors` gắn được vào đúng một control sau bước chuyển khoá, và mã lỗi từng ô **được dịch** (kiểm bằng tab Network)
 - [ ] Một khoá lỗi không khớp control → vẫn hiện ở thông báo chung, không biến mất
 - [ ] Sửa ô đang lỗi → lỗi server biến mất, lỗi client còn nguyên nếu vẫn sai
+- [ ] BE trả hai mã cho cùng một ô → ô hiện câu của mã đầu tiên; sửa rồi gửi lại mà giá trị vẫn vi phạm mã sau → câu của mã sau hiện ra
 - [ ] Bấm Lưu trên form dài không hợp lệ → cuộn và đưa focus tới ô sai đầu tiên
 - [ ] Bấm Lưu hai lần nhanh → chỉ một bản ghi được tạo
 - [ ] Sửa form rồi bấm menu khác → có hỏi; sau khi lưu rồi rời đi → không hỏi
@@ -235,7 +239,7 @@ Ba dòng đầu là ba dòng đáng viết nhất — chúng bắt đúng nhữn
 | Kiểm luật nghiệp vụ ở client | ❌ loại, không hoãn `K28` | §3.1 — nhân đôi luật thì hai bản sẽ lệch |
 | Metadata chứa biểu thức chạy được | ❌ loại, không hoãn `K29` | §6 — đó là thực thi mã từ dữ liệu |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

@@ -109,7 +109,9 @@ Cái giá là một tầng gián tiếp nữa. Nó đáng trả vì đúng một
 }
 ```
 
-Ba trạng thái, không phải hai: **sáng**, **tối**, và **theo hệ điều hành** (mặc định). Chỉ làm hai trạng thái là bỏ qua đúng trạng thái mà phần lớn người dùng đang ở.
+Ba trạng thái, không phải hai: **sáng**, **tối**, và **theo hệ điều hành** — người dùng chọn được cả ba.
+
+**Mặc định là sáng.** Người mở ứng dụng lần đầu mà chưa từng chọn gì nhận theme sáng; ứng dụng **không** đọc cờ tối của hệ điều hành để quyết hộ. Lý do và cái giá: [`../../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md`](../../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md), [`../../Design/DESIGN.md`](../../Design/DESIGN.md) §8.
 
 `:root:not([data-theme='light'])` trong khối media là chi tiết bắt buộc: thiếu nó thì người dùng chọn "sáng" trên một máy đang để chế độ tối vẫn nhận giao diện tối, và lựa chọn của họ trông như bị lờ đi.
 
@@ -124,6 +126,8 @@ Ba trạng thái, không phải hai: **sáng**, **tối**, và **theo hệ đi�
 Lựa chọn chế độ là **tuỳ chọn hiển thị của một máy**, không phải dữ liệu tài khoản. Lưu ở `localStorage` là đúng chỗ, và là một trong số ít thứ được phép lưu ở đó ([`14-security.md`](14-security.md) §6).
 
 Bẫy khi thi công: đọc `localStorage` và đặt thuộc tính `data-theme` phải xảy ra **trước khi khung hình đầu tiên vẽ**, nếu không người dùng thấy một nháy trắng rồi mới sang tối. Đặt ở `app.config.ts` sau khi Angular khởi động đã là quá muộn — việc này thuộc về một đoạn script nhỏ chạy sớm trong tài liệu HTML gốc.
+
+Hệ quả của mặc định sáng (§4.1): khi chưa có lựa chọn nào được lưu, thuộc tính phải mang giá trị **sáng**. **Vắng** thuộc tính nghĩa là theo hệ điều hành — đúng thứ mặc định không được làm. Cách áp: [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §3.5.
 
 ---
 
@@ -173,11 +177,19 @@ Phải **gỡ dạng được phép ra khỏi dòng trước, rồi mới hỏi 
 
 PrimeNG có hệ theming riêng. Để nó chạy song song với token của mình là có hai hệ màu cùng tồn tại và không ai biết chỗ nào thắng — triệu chứng là "sửa token mà nút không đổi màu".
 
-Cách đúng: dựng một **preset** ánh xạ token của mình vào hệ theming của thư viện, đăng ký một lần lúc cấu hình app, và **không** để theme mặc định của thư viện chạy kèm.
+Cách đúng: một **preset styled** ở `core/theme/`, dựng từ preset Aura bằng `definePreset`, đăng ký một lần lúc cấu hình app, và **không** để theme mặc định của thư viện chạy kèm. Preset **không giữ mã màu nào** — nó chỉ trỏ tên biến CSS của mình:
 
-Hệ quả phải chấp nhận: giá trị màu tồn tại ở **hai** nơi phía code — stylesheet toàn cục (cho CSS của mình) và preset (cho thư viện). Đổi bảng màu phải chạm cả hai; sửa một nơi thì CSS và component thư viện hiển thị hai màu khác nhau mà không có gì báo lỗi.
+| Việc | Cơ chế |
+| --- | --- |
+| Tầng được ghi đè | Tầng **semantic** `colorScheme`: primary, highlight, formField, content, overlay, text, focusRing — mỗi giá trị trỏ một `var(--color-*)` |
+| Thang màu 50–950 của preset | **Không** dựng. Tầng semantic đã trỏ token của mình thì không còn chỗ nào cần thang đó |
+| Component token còn trỏ thẳng palette | Đè riêng từng chỗ, cũng bằng `var(--color-*)` |
+| Chế độ tối của thư viện | Tắt: `providePrimeNG` đặt `darkModeSelector: false`. Biến `--color-*` đã đổi theo `data-theme` (§4.1), nên component thư viện đổi theo mà không cần cơ chế tối thứ hai |
+| Thứ tự lớp CSS | Bật `cssLayer`; lớp của thư viện xếp **trước** style của app, để style của mình thắng mà không cần `!important` |
 
-**Cách rẻ nhất để chống lệch:** preset đọc giá trị từ đúng một hằng số, và hằng số đó được sinh hoặc kiểm ngược lại theo `Design/`. Đừng gõ tay hai lần cùng một mã màu.
+> ⚠️ **Cú pháp API PrimeNG của phiên bản đã chốt chưa được xác minh trong repo.** Bảng trên mô tả cơ chế, không phải chữ ký hàm. Cú pháp chốt khi thi công F1, theo tài liệu PrimeNG chính thức — không chép chữ ký từ trí nhớ hay từ dự án khác.
+
+**Hệ quả:** literal màu chỉ còn ở tệp khai token (`_tokens.scss`, [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §3.3). Đổi bảng màu là sửa một nơi; CSS của mình và component thư viện không thể vẽ hai màu khác nhau cho cùng một token, vì cả hai đọc cùng một biến.
 
 Nếu chỉ nhớ một câu từ mục này: **hai nơi giữ cùng một giá trị thì chúng sẽ lệch nhau; việc phải làm là chọn một nơi làm nguồn, không phải cẩn thận hơn.**
 
@@ -197,15 +209,7 @@ Kiểm bằng công cụ dev: giá trị `font-family` đã tính toán phải *
 
 ## 9. Kiểm chứng ở pha F1
 
-- [ ] Mọi token trong [`../../Design/DESIGN.md`](../../Design/DESIGN.md) có mặt trong stylesheet toàn cục, đúng tên
-- [ ] Không token nào được thêm mà chưa có tên trong `Design/`
-- [ ] Tìm hex trong SCSS của `src/app` → không kết quả (luật F6)
-- [ ] Tìm `rgb(`/`rgba(` trong SCSS của `core/`, `shared/`, `platform/` → chỉ còn dạng `rgb(var(--x) / a)` (luật F7)
-- [ ] Đổi một token màu thương hiệu → cả CSS của mình lẫn component thư viện đều đổi theo
-- [ ] Bật chế độ tối bằng thiết lập hệ điều hành → không mảng nào còn nền sáng
-- [ ] Chọn "sáng" tường minh khi hệ điều hành đang tối → giao diện sáng thật
-- [ ] Tải lại trang ở chế độ tối → không có nháy trắng trước khi vẽ
-- [ ] Font đã tính toán phân giải ra đúng font đã khai
+> 📖 Danh sách nghiệm thu F1: đọc [`trien-khai/02-f1-design-token.md`](trien-khai/02-f1-design-token.md) §7.
 
 ---
 
@@ -217,8 +221,8 @@ Kiểm bằng công cụ dev: giá trị `font-family` đã tính toán phải *
 | --- | --- | --- |
 | Hai tầng token gốc và ngữ nghĩa | ✅ sẽ có | §3.2 |
 | Bốn họ token: màu, chữ, khoảng cách, bóng và bo góc | ✅ sẽ có | Pha F1 |
-| Ba trạng thái sáng / tối / theo hệ điều hành | ✅ sẽ có | §4.1 |
-| Preset ánh xạ token vào thư viện UI | ✅ sẽ có | §7 — giá trị phải đọc từ đúng một hằng số |
+| Ba trạng thái sáng / tối / theo hệ điều hành, mặc định sáng | ✅ sẽ có | §4.1 — [`../../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md`](../../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md) |
+| Preset ánh xạ token vào thư viện UI | ✅ sẽ có | §7 — preset trỏ `var(--color-*)`, không giữ mã màu |
 | Cổng F6 và F7 | ✅ sẽ có | Bật ngay khi token vừa có, ở pha F1 |
 | Sinh token tự động từ nguồn Design | ❌ chưa | Điều kiện: số token vượt mức chép tay còn tin cậy được |
 | Nhiều bộ thương hiệu trên cùng một bản build | ❌ chưa | Điều kiện: có sản phẩm thứ hai chạy chung một lần triển khai |
@@ -227,7 +231,7 @@ Kiểm bằng công cụ dev: giá trị `font-family` đã tính toán phải *
 | `@media prefers-color-scheme` trong SCSS của component | ❌ loại, không hoãn `K17` | §4.2 — chế độ tối xử lý trọn vẹn ở tầng token |
 | Đặt tên token theo giá trị màu | ❌ loại, không hoãn `K18` | §3.1 |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

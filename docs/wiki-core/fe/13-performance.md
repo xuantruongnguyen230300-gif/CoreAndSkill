@@ -31,7 +31,7 @@ Ba thứ ở nhóm đầu có chung tính chất: chúng là **quyết định k
 
 ### 2.1 Bật zoneless ngay từ đầu
 
-Angular 20 chạy được không cần thư viện vá bất đồng bộ. Bật ngay ở lần cấu hình đầu tiên, **không** để mặc định rồi gỡ sau.
+Phiên bản Angular đã chốt ([`../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md)) chạy được không cần thư viện vá bất đồng bộ. Bật ngay ở lần cấu hình đầu tiên, **không** để mặc định rồi gỡ sau.
 
 Vì sao không gỡ sau: mọi component viết trong lúc còn chạy chế độ cũ đều **chưa được kiểm chứng** dưới chế độ mới. Khi gỡ, lỗi lộ ra rải rác ở nhiều màn cùng lúc thay vì tập trung — và mỗi lỗi trông như một lỗi riêng biệt.
 
@@ -212,7 +212,7 @@ Bốn công cụ, mỗi cái trả lời một câu hỏi khác nhau. Dùng nh�
 | Tệp gom xuất cho `shared/` | ❌ loại, không hoãn `K38` | §3.4 — kéo cả nhóm vào bundle khởi động |
 | SSR để cải thiện thời gian tải | ❌ loại, không hoãn `K39` | [`01-core-components.md`](01-core-components.md) §4.2 — muốn lật thì viết ADR |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

@@ -20,6 +20,16 @@ Lệnh cấm này **được cưỡng chế bằng máy**, không phải bằng 
 >
 > Dòng trên là **đầu vào của cổng**, không phải văn xuôi: §1 đọc chính nó rồi đối chiếu từng lệnh với `deny`.
 
+Mỗi mục cấm **lệnh** trong `deny` có mặt ở **ba dạng**: `Bash(<lệnh>:*)`, `Bash(rtk <lệnh>:*)` và `PowerShell(<lệnh>:*)`. Dạng `Bash` không khớp lệnh chạy qua công cụ PowerShell hay lệnh mang tiền tố `rtk` — thiếu một dạng là lệnh lọt qua đúng đường đó. Cổng §1 kiểm đủ ba dạng cho mọi mục cấm lệnh.
+
+> `deny` còn một loại mục **không** phải cấm lệnh: mục chặn **công cụ ghi tệp** nhắm vào thư mục trạng thái của harness (§8). Loại đó khai theo tên từng công cụ ghi tệp, không theo ba dạng trên — nó không nhận một chuỗi lệnh nào. Đường qua lệnh shell vào thư mục đó vẫn hở, và hở đó là một dòng nợ C4 ở `docs/RULES.md` §10.
+
+**Lớp chặn thứ hai là hook `PreToolUse`** (gắn cho công cụ Bash và PowerShell, xem §8). `permissions.deny` chỉ so tiền tố của cả chuỗi lệnh; hook đọc danh sách tiền tố cấm từ chính `permissions.deny` — không giữ danh sách riêng — rồi tách chuỗi lệnh thành từng đoạn, bóc tiền tố bọc và khớp từng đoạn. Lệnh cấm đứng sau `&&`, mang tiền tố `rtk`, hay chạy qua PowerShell đều bị chặn; lệnh chỉ *nhắc tới* chuỗi cấm, như tìm chữ trong file, thì được cho qua. Hook không phân tích được một lệnh thì không chặn vì lỗi đó và ghi lý do vào tệp `pretool-error.log` trong thư mục trạng thái của harness (xem §8).
+
+Bị hook chặn thì **đừng viết lại lệnh cho lọt qua** — làm theo đoạn "dừng lại và nói rõ" bên dưới.
+
+> 📖 Đường vòng mà cả hai lớp chặn không bắt được: các dòng nợ C4 ở `docs/RULES.md` §10
+
 Áp dụng cho **mọi** skill và subagent, không có ngoại lệ.
 
 Nếu một việc cần lệnh git ghi để đi tiếp: **dừng lại và nói rõ cần chạy lệnh gì** — người dùng tự chạy rồi bảo agent tiếp tục. Không "xin phép rồi tự chạy".
@@ -92,7 +102,7 @@ Dạng trỏ đường chuẩn trong `.claude/`: một dòng, không tóm tắt 
 > 📖 Envelope & error → HTTP: đọc `docs/quy-uoc/be-api-controller.md`
 ```
 
-Giới hạn của ô "thêm file chủ mới": **một dòng đường dẫn, vào đúng agent thật sự cần nó**. Không thêm vào mọi agent cho đủ bộ, không kèm tóm tắt nội dung. Nếu chủ đề mới đã tới được agent qua một mục lục (`docs/README.md`, `docs/wiki-core/README.md`) thì **không thêm gì cả**.
+Giới hạn của ô "thêm file chủ mới": **một dòng đường dẫn, vào đúng agent thật sự cần nó, vào đúng phần** — *Bộ luật* nếu agent phải tuân nó ở mọi việc, *Tra cứu* nếu chỉ mở khi chủ đề chạm tới (luật D36, cổng §23 canh ngưỡng cỡ của phần Bộ luật). Không thêm vào mọi agent cho đủ bộ, không kèm tóm tắt nội dung. Nếu chủ đề mới đã tới được agent qua một mục lục (`docs/README.md`, `docs/wiki-core/README.md`) thì **không thêm gì cả**.
 
 ### Vì sao — bốn lý do đã trả giá thật ở dự án tiền nhiệm
 
@@ -115,6 +125,8 @@ Mọi tuyên bố về hiện trạng trong `docs/` phải mang **một** trong 
 
 **Giai đoạn 1 của repo này chưa có `src/`.** Vì vậy gần như mọi mô tả kiến trúc đều mang `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG`. Đó là trạng thái đúng, không phải thiếu sót — đừng dán `✅ CÓ THẬT` cho thứ chưa ai viết.
 
+> 📖 Điều kiện chuyển sang giai đoạn 2, ai lật nhãn trạng thái, chỗ nào phải lật: đọc `docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md`
+
 **Cấm tuyệt đối:** đóng một việc bằng cách sửa mô tả cho khớp mong muốn rồi đánh dấu là xong. Ở dự án tiền nhiệm, một đợt rà soát tìm ra **7 ca** cùng khuôn này — `"FIXED"` khi giá trị chưa hề vào code, `"Đã bật"` cho một hằng số chỉ tồn tại trong đúng câu nói nó tồn tại, `"✅ Xong"` cho năm mục chưa làm.
 
 Đây là dạng sai đắt nhất: nó không gây lỗi biên dịch, không bị test bắt, và nhãn "đã xong" được thiết kế để **không ai kiểm lại**.
@@ -129,7 +141,7 @@ Khi phát hiện hai file cùng mô tả một thứ: chọn một làm chủ, f
 
 > 🛑 **Sửa bằng cách gỡ một bản, KHÔNG bằng cách đồng bộ hai bản.** Hai bản đã đồng bộ sẽ lệch lại — người sửa chỉ sửa một, và không có gì báo. Đồng bộ là hoãn vấn đề; gỡ một bản mới là giải nó.
 
-**Luật này nay có cổng.** Sổ đăng ký chủ quyền ở `docs/OWNERSHIP.md` khai *nội dung nào thuộc file nào*, và `check-docs.sh` §15 đọc chính sổ đó để kiểm. Sổ là **đầu vào của cổng**, nên nó không lệch khỏi thứ nó ép được.
+**Luật này nay có cổng.** Sổ đăng ký chủ quyền ở `docs/OWNERSHIP.md` khai *nội dung nào thuộc file nào*, và `check-docs.sh` §15 đọc chính sổ đó để kiểm. Sổ là **đầu vào của cổng**, nên nó không lệch khỏi thứ nó ép được. Câu văn xuôi chép nguyên văn sang file khác thì §24 bắt (luật D37) — không cần đăng ký.
 
 Trước khi viết một định nghĩa mới — một catalog, một bảng ánh xạ, một chữ ký kiểu — mở sổ đó xem đã có chủ chưa. Có rồi thì trỏ đường; chưa có thì viết, rồi **thêm một dòng vào sổ**.
 
@@ -158,32 +170,53 @@ Quy tắc riêng của khu Design nằm ở [`../docs/Design/CLAUDE.md`](../docs
 
 ## 8. Trước khi coi một việc là xong
 
-**Giai đoạn 1 (hiện tại) có đúng MỘT cổng:**
+**Giai đoạn 1 (hiện tại) — cổng theo thứ vừa sửa:**
 
-| Vừa sửa gì | Cổng |
-| --- | --- |
-| bất kỳ `.md` nào trong `docs/`, `.claude/` hoặc `spec/` | `bash .claude/check-docs.sh` |
+| Vừa sửa gì | Cổng | Ai chạy |
+| --- | --- | --- |
+| bất kỳ `.md` nào trong `docs/`, `.claude/` hoặc `spec/` | `bash .claude/check-docs.sh` | Hook `Stop` tự chạy; CI chạy lại |
+| script trong `.claude/hooks/` hoặc khối `hooks` của `settings.json` | `bash .claude/hooks/tests/run-tests.sh` | **Người sửa chạy tay** — không hook nào chạy nó; CI có job chạy |
 
-Giai đoạn 2 (khi có `src/`) sẽ thêm hai cổng nữa — cổng FE và cổng BE. Chúng **chưa tồn tại**; đừng nhắc tới chúng như thể đã có.
+Cả hai cổng chạy qua **công cụ Bash** (Git Bash). Trên máy Windows, `bash` gọi từ công cụ PowerShell có thể trỏ vào WSL và không chạy được, nên `permissions.allow` chỉ khai lệnh cổng ở dạng `Bash(…)`.
+
+Giai đoạn 2 (khi có `src/`) thêm cổng BE và cổng FE. Job CI của hai cổng đó khai trong `.github/workflows/docs-gate.yml` và chỉ chạy khi có `src/BE` / `src/FE` — ở giai đoạn 1 chúng không chạy gì, nên đừng nhắc tới chúng như thể đang canh. Điều kiện chuyển giai đoạn: `docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md`.
 
 ### Cổng chạy tự động — không phụ thuộc ai nhớ
 
-Hai hook trong [`settings.json`](settings.json) cưỡng chế việc này, do harness chạy:
+Hook trong [`settings.json`](settings.json) cưỡng chế việc này, do harness chạy:
 
 | Hook | Khi nào | Làm gì |
 | --- | --- | --- |
-| `PostToolUse` | Sau mỗi lần ghi file, **và sau mỗi lệnh Bash** | Ghi dấu nếu file thuộc `docs/`, `.claude/`, `spec/` hoặc `src/`. Với lệnh Bash thì ghi dấu **không điều kiện** — kể cả lệnh chỉ đọc: phân biệt đọc với ghi cần phân tích dòng lệnh, và phân tích sai theo chiều "không phải lệnh ghi" làm cổng biến mất im lặng. **Không** chạy cổng ở đây |
-| `Stop` | Khi agent kết thúc lượt | Có dấu thì chạy cổng. Cổng đỏ → **chặn lượt**. Chạm Core → chặn một lần kèm yêu cầu gọi `core-reviewer` — **chỉ từ giai đoạn 2**, xem ghi chú dưới |
+| `PreToolUse` | Trước mỗi lệnh Bash hoặc PowerShell | Chặn lệnh khớp mục cấm của `permissions.deny` sau khi tách đoạn và bóc tiền tố bọc — xem §1. Không ghi dấu, không chạy cổng |
+| `PostToolUse` | Sau mỗi lần ghi file bằng Edit / Write / NotebookEdit, **và sau mỗi lệnh Bash hoặc PowerShell** | Ghi dấu nếu file thuộc `docs/`, `.claude/`, `spec/` hoặc `src/` và không bị gitignore. Với lệnh shell thì ghi dấu **không điều kiện** — kể cả lệnh chỉ đọc: phân biệt đọc với ghi cần phân tích dòng lệnh, và phân tích sai theo chiều "không phải lệnh ghi" làm cổng biến mất im lặng. Khi có `src/`: ghi thêm dấu "đã sửa `src/`" và danh sách file chạm Core. **Không** chạy cổng ở đây |
+| `SubagentStop` | Khi một lượt `core-reviewer` kết thúc | Ghi dấu thời điểm review `core-reviewed`. Không chặn gì. Payload không khai tên agent thì **không** ghi dấu, ghi lý do vào `subagent-stop-error.log` |
+| `Stop` | Khi agent kết thúc lượt | Có dấu thì chạy cổng tài liệu; cổng đỏ → **chặn lượt**, lặp tới khi xanh. Cổng **không chạy được** (mã thoát 2 — sai thư mục, cây repo thiếu) → chặn **một lần** để nói ra rồi thả: đó không phải vi phạm tài liệu, và chặn lặp thì thành vòng không đáy. **Chỉ khi có `src/`**: Core đã đổi mà chưa có lượt review mới hơn → **chặn mỗi lần kết thúc lượt** (xem dưới); không đọc được khối `core-paths` → chặn một lần để nói ra; sửa `src/` → nhắc chạy cổng build/test, **không chặn** — CI là nơi chặn |
 
-Nghĩa là: **bạn không thể kết thúc một lượt với cổng đang đỏ**, và **việc gọi `core-reviewer` sau khi chạm Core không còn phụ thuộc vào việc bạn nhớ**.
+Mọi dấu và log hook ghi ra nằm trong thư mục trạng thái của harness — thư mục `.state` bên trong `.claude`, bị gitignore. Đó là trạng thái chạy, không phải bằng chứng để trích dẫn.
 
-> 🛑 **Lời nhắc `core-reviewer` chỉ bật khi `src/` tồn tại.** Vai của agent đó là *đối chiếu code thật với quy tắc*; giai đoạn 1 chưa có code nên một lượt sửa tài liệu không cho nó thứ gì để đối chiếu. Bật sớm thì lời nhắc bắn ra sau **mỗi** lần chạm `docs/quy-uoc/`, và việc chạy agent liên tục để đáp ứng nó sinh ra đúng sự phình to mà §5 và §6 tồn tại để ngăn.
+> 📖 Đường dẫn nào tính là chạm Core: khối `core-paths` trong `docs/kien-truc-core-module.md` — hook đọc thẳng khối đó, không giữ bản sao.
+
+Nghĩa là: **bạn không thể kết thúc một lượt với cổng đang đỏ**, và khi đã có `src/` thì **không thể kết thúc lượt khi Core đã đổi mà chưa có lượt `core-reviewer` nào mới hơn**.
+
+### `core-reviewer` sau khi chạm Core — ba lớp
+
+| Lớp | Ai | Làm gì |
+| --- | --- | --- |
+| 1. Báo và gọi | Agent thi công → phiên chính hoặc `/feature-kickoff` | Agent thi công chạm Core thì kết thúc báo cáo bằng dòng `CẦN CORE-REVIEW: BE` và/hoặc `CẦN CORE-REVIEW: FE`, không tự gọi. Phiên chính hoặc `/feature-kickoff` đọc dòng đó rồi gọi `core-reviewer` — mỗi lượt một phạm vi, chỉ truyền phạm vi |
+| 2. Ghi dấu | Hook `SubagentStop` | Lượt `core-reviewer` kết thúc → ghi dấu `core-reviewed` |
+| 3. Chặn | Hook `Stop` | Có `src/`, lượt đã chạm Core, và có file Core đã sửa không cũ hơn hẳn dấu review (hoặc chưa có dấu) → chặn, **lặp mỗi lần kết thúc lượt**. Hook tự nhìn file đã sửa, không đọc báo cáo — nên lớp 1 quên dòng `CẦN CORE-REVIEW` vẫn bị bắt |
+
+Chặn cứng ở lớp 3 chỉ bật khi khối `hooks` của [`settings.json`](settings.json) có gắn `SubagentStop` — không có gì ghi dấu review thì không lượt nào thoát được, nên thiếu hook đó `on-stop.sh` chỉ nhắc một lần.
+
+**Lối thoát của agent** chỉ có một: một lượt `core-reviewer` mới hơn các file đã sửa. Bỏ qua review là quyết định của **người dùng**: người dùng tự xoá dấu `core-touched`. Agent không tự tạo, sửa hay xoá file nào trong thư mục trạng thái — `permissions.deny` chặn công cụ ghi file vào đó; đường qua lệnh shell là một dòng nợ C4 ở `docs/RULES.md` §10.
+
+> 🛑 **Lớp chặn `core-reviewer` chỉ bật khi `src/` tồn tại.** Vai của agent đó là *đối chiếu code thật với quy tắc*; giai đoạn 1 chưa có code nên một lượt sửa tài liệu không cho nó thứ gì để đối chiếu. Bật sớm thì lệnh chặn bắn ra sau **mỗi** lần chạm `docs/quy-uoc/`, và việc chạy agent liên tục để đáp ứng nó sinh ra đúng sự phình to mà §5 và §6 tồn tại để ngăn.
 >
 > Cổng tài liệu thì **không** phụ thuộc giai đoạn — nó chạy sau mọi lần sửa, kể cả bây giờ.
 
 Cổng bị chặn thì đừng tìm cách đi vòng. Nếu một vi phạm là báo sai, **sửa phép dò bằng một dấu hiệu máy đọc được** rồi ghi lý do — đừng nới luật cho cổng xanh. Nới luật để qua cổng là đúng hành vi §4 tồn tại để ngăn.
 
-> Hai script hook nằm ở `.claude/hooks/`. Chúng cố ý **không dùng `grep -P`** và tự ép locale: trên Git Bash với `LANG` rỗng, `grep -P` thoát lỗi mà **bên trong một hook thì lỗi đó không hiện ra đâu cả** — dấu đơn giản không được ghi và cổng không bao giờ chạy.
+> Script hook nằm ở `.claude/hooks/`. Chúng cố ý **không dùng `grep -P`** và tự ép locale: trên Git Bash với `LANG` rỗng, `grep -P` thoát lỗi mà **bên trong một hook thì lỗi đó không hiện ra đâu cả** — dấu đơn giản không được ghi và cổng không bao giờ chạy.
 
 Đừng chép số mục của cổng vào đây (§6) — đếm bằng lệnh:
 

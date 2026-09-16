@@ -8,7 +8,9 @@ verified: chua-doi-chieu
 
 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
 
-**Nền:** **hỗn hợp, và ranh giới là một quyết định đã cân nhắc.** Đúng **một** biến thể — `line` — bọc thư viện, vì nó cần thang đo, nội suy và lớp tương tác theo con trỏ, đúng nhóm "khó" ở [`../COMPONENTS.md`](../COMPONENTS.md) §4. **Bốn biến thể còn lại tự dựng bằng HTML/CSS**, vì chúng chỉ là những khối có kích thước tính theo phần trăm. Lý do chọn tự dựng ở mục Do / Don't.
+**Nền:** **bọc PrimeNG.** Biến thể `line` dùng component biểu đồ của PrimeNG, vì nó cần thang đo, nội suy và lớp tương tác theo con trỏ, đúng nhóm "khó" ở [`../COMPONENTS.md`](../COMPONENTS.md) §4. **Bốn biến thể còn lại vẽ bằng HTML/CSS bên trong cùng lớp bọc**, vì chúng chỉ là những khối có kích thước tính theo phần trăm — lý do ở mục Do / Don't. Vì cả component là một lớp bọc, nó nằm ở tầng bọc theo quy tắc ánh xạ cột "Nền" ở [`../../wiki-core/fe/05-component-library.md`](../../wiki-core/fe/05-component-library.md).
+
+Cái giá của `line`, nói thẳng: PrimeNG vẽ biểu đồ bằng canvas, nên dạng này **không để lại gì cho trình đọc màn hình** và không tự kế thừa token CSS — màu phải nạp bằng script. Bù bằng bảng số liệu tương đương bắt buộc ở mục dưới.
 
 Tỉ lệ bốn trên năm này là điều làm [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md) ràng buộc 1 khả thi: thư viện chỉ nạp khi màn đầu tiên dùng `line`, nên dự án không vẽ đường **không tải một byte nào** của nó.
 
@@ -29,19 +31,19 @@ Vẽ một tập số liệu thành hình để người đọc so sánh đượ
 | Cho thấy một xu hướng theo thời gian | 🛑 Tiến trình một việc đang chạy → [`ProgressBar.md`](./ProgressBar.md) |
 | Cho thấy cơ cấu của một tổng | 🛑 Dữ liệu chỉ có hai ba dòng → bảng đọc nhanh hơn |
 
-🛑 **Mỗi biểu đồ phải có một bảng số liệu tương đương xem được.** Đây vừa là kênh cho trình đọc màn hình, vừa là kênh bù bắt buộc cho ba màu dưới ngưỡng tương phản ở theme sáng ([`../DESIGN.md`](../DESIGN.md) §2.8 ràng buộc 2).
+🛑 **Mỗi biểu đồ có một bảng số liệu tương đương.** `Chart` tự vẽ một `<table>` từ chính dữ liệu đang vẽ. Từ `$bp-xs` trở lên bảng **ẩn trực quan**: trình đọc màn hình đọc được, mắt không thấy. Dưới `$bp-xs` bảng **hiện thay cho vùng vẽ** — mục Responsive. Bảng này không phải một định nghĩa bảng thứ hai theo [`../COMPONENTS.md`](../COMPONENTS.md) §1: khi hiện, nó mượn hình thức của [`Table.md`](./Table.md) chứ không khai hình thức riêng. Ở các ngưỡng còn vẽ biểu đồ, bảng ẩn trực quan nên **không** là kênh bù thị giác cho ba màu dưới ngưỡng tương phản ở theme sáng ([`../DESIGN.md`](../DESIGN.md) §2.8 ràng buộc 2); kênh đó ở mục Accessibility.
 
 ## Biến thể
 
 **Năm** biến thể, loại trừ nhau — mỗi cái trả lời một câu hỏi khác nhau về dữ liệu:
 
-| Biến thể | Câu hỏi nó trả lời | Nền |
+| Biến thể | Câu hỏi nó trả lời | Vẽ bằng |
 | --- | --- | --- |
-| `column` | So sánh nhiều giá trị rời rạc | tự dựng |
-| `line` | Xu hướng liên tục, nhiều chuỗi cùng đơn vị | bọc thư viện |
-| `donut` | Cơ cấu của một tổng, **tối đa ba bốn phần** | tự dựng |
-| `diverging` | Chênh lệch hai chiều quanh một mốc | tự dựng |
-| `heatmap` | Mức độ theo hai chiều | tự dựng |
+| `column` | So sánh nhiều giá trị rời rạc | HTML/CSS |
+| `line` | Xu hướng liên tục, nhiều chuỗi cùng đơn vị | component biểu đồ của PrimeNG |
+| `donut` | Cơ cấu của một tổng, **tối đa ba bốn phần** | HTML/CSS |
+| `diverging` | Chênh lệch hai chiều quanh một mốc | HTML/CSS |
+| `heatmap` | Mức độ theo hai chiều | HTML/CSS |
 
 Một **công tắc**, chỉ áp cho `column`:
 
@@ -63,11 +65,11 @@ Một **công tắc**, chỉ áp cho `column`:
 
 | Cỡ | Chiều cao vùng vẽ | Dùng khi |
 | --- | --- | --- |
-| `sm` | 120px | Trong một ô số liệu, trong [`Drawer.md`](./Drawer.md) |
-| `md` | 200px | **Mặc định.** Trong [`Card.md`](./Card.md) |
-| `lg` | 320px | Biểu đồ là nội dung chính của cả vùng |
+| `sm` | `--chart-h-sm` | Trong một ô số liệu, trong [`Drawer.md`](./Drawer.md) |
+| `md` | `--chart-h-md` | **Mặc định.** Trong [`Card.md`](./Card.md) |
+| `lg` | `--chart-h-lg` | Biểu đồ là nội dung chính của cả vùng |
 
-Bề rộng luôn theo vùng chứa. Biểu đồ **không** tự đặt `width`.
+Ba chiều cao là token tầng 3 của component này; số thật khai ở [`../DESIGN.md`](../DESIGN.md) §6.5. Bề rộng luôn theo vùng chứa. Biểu đồ **không** tự đặt `width`.
 
 Quy cách mark — cố định cho mọi biến thể:
 
@@ -91,9 +93,9 @@ Khe 2px màu nền là thứ tách hai đoạn chồng nhau, **không phải m�
 | `focus-visible` | Biểu đồ là **một** điểm dừng Tab; vào rồi thì `←` `→` đi giữa các điểm, hiện đúng hộp giá trị như khi rê chuột. `outline` `--color-focus` quanh vùng vẽ | Có |
 | `active` | Chỉ khi mark bấm được để lọc: mark đang bị nhấn đậm thêm một bậc | Có |
 | `disabled` | Cả biểu đồ chỉ đọc: bỏ lớp tương tác, giữ nguyên hình. **Không** giảm opacity — dữ liệu vẫn phải đọc được | Có |
-| `loading` | [`SkeletonLoader.md`](./SkeletonLoader.md) đúng hình dạng biểu đồ sắp tới (vài cột xám cho `column`, một dải cho `line`), `aria-busy="true"`. 🛑 **Không vẽ biểu đồ rỗng rồi cho dữ liệu nhảy vào** — người dùng đọc mất một khung hình sai | Có |
-| `error` | Thay vùng vẽ bằng [`EmptyState.md`](./EmptyState.md) biến thể `error` kèm nút "Thử lại". **Giữ nguyên tiêu đề và chú giải** — chúng cho biết đây là biểu đồ gì | Có |
-| `empty` | **Hai ca phải phân biệt.** *Chưa có dữ liệu kỳ này:* câu nói rõ là chưa phát sinh. *Bộ lọc không ra kết quả:* câu khác kèm nút xoá lọc. Trộn hai ca là lỗi hay gặp nhất ở màn báo cáo | Có |
+| `loading` | Vùng vẽ hiện **slot đang tải** (`loadingTemplate`); màn ghép [`SkeletonLoader.md`](./SkeletonLoader.md) đúng hình dạng biểu đồ sắp tới (vài cột xám cho `column`, một dải cho `line`). `aria-busy="true"`. 🛑 **Không vẽ biểu đồ rỗng rồi cho dữ liệu nhảy vào** — người dùng đọc mất một khung hình sai | Có |
+| `error` | Vùng vẽ hiện **slot lỗi** (`errorTemplate`); màn ghép [`EmptyState.md`](./EmptyState.md) biến thể `error` kèm nút "Thử lại". **Giữ nguyên tiêu đề và chú giải** — chúng cho biết đây là biểu đồ gì | Có |
+| `empty` | **Hai ca phải phân biệt**, và vùng vẽ hiện **slot trống** (`emptyTemplate`) cho cả hai; màn chọn nội dung. *Chưa có dữ liệu kỳ này:* câu nói rõ là chưa phát sinh. *Bộ lọc không ra kết quả:* câu khác kèm nút xoá lọc. Trộn hai ca là lỗi hay gặp nhất ở màn báo cáo. Tiêu đề và chú giải giữ nguyên | Có |
 
 ## Token dùng
 
@@ -107,6 +109,7 @@ Khe 2px màu nền là thứ tách hai đoạn chồng nhau, **không phải m�
 | Chữ | `--fs-2xs`, `--fs-xs`, `--fs-sm`, `--fs-3xl`, `--fw-medium`, `--fw-semibold` |
 | Khoảng cách | `--sp-2`, `--sp-3`, `--sp-4`, `--sp-5`, `--sp-6` |
 | Hình dạng | `--radius-xs`, `--radius-sm`, `--radius-pill`, `--border-w` |
+| Kích thước | `--chart-h-sm`, `--chart-h-md`, `--chart-h-lg` |
 | Bóng, lớp | `--shadow-2`, `--z-popover` — cho hộp giá trị |
 
 🛑 **Chữ không bao giờ mặc màu dữ liệu.** Nhãn, số, chú giải, chữ trên trục đều dùng token màu chữ. Vàng và ngọc đọc không ra khi làm màu chữ trên nền sáng. Danh tính đến từ **chấm màu bên cạnh** chữ, không từ việc tô màu chính chữ đó. Ngoại lệ duy nhất: nhãn đặt **bên trong** một mảng màu đặc, lúc đó chọn trắng hoặc mực theo độ sáng của mảng.
@@ -115,23 +118,23 @@ Khe 2px màu nền là thứ tách hai đoạn chồng nhau, **không phải m�
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-lg` | Đầy đủ: tiêu đề, chú giải, nhãn trục, nhãn trực tiếp trên mark |
-| `--bp-md` … `--bp-lg` | Bỏ nhãn trực tiếp, giữ chú giải và nhãn trục. `heatmap` bắt đầu cuộn ngang |
-| < `--bp-md` | Nhãn trục thưa đi — chỉ hiện mốc đầu, giữa, cuối. Chú giải xuống dòng dưới vùng vẽ |
-| < `--bp-xs` | `column` quá tám cột và `heatmap` chuyển sang **bảng số liệu**, không cố vẽ tiếp |
+| ≥ `$bp-lg` | Đầy đủ: tiêu đề, chú giải, nhãn trục, nhãn trực tiếp trên mark |
+| `$bp-md` … `$bp-lg` | Bỏ nhãn trực tiếp, giữ chú giải và nhãn trục. `heatmap` bắt đầu cuộn ngang |
+| < `$bp-md` | Nhãn trục thưa đi — chỉ hiện mốc đầu, giữa, cuối. Chú giải xuống dòng dưới vùng vẽ |
+| < `$bp-xs` | **Mọi biến thể: không vẽ biểu đồ; bảng tương đương thoát trạng thái ẩn trực quan và hiện thay cho vùng vẽ.** Tiêu đề giữ nguyên; chú giải không vẽ — tên cột của bảng đã làm việc đó. Mười hai cột trên một màn điện thoại là mười hai vạch không so được gì, còn bảng thì đọc được số chính xác. Hình thức bảng khi hiện: theo [`Table.md`](./Table.md) §Kích thước cỡ `sm`, biến thể `default` — file này không khai lại token nào |
 
-Chuyển sang bảng ở màn rất nhỏ không phải là thua cuộc: mười hai cột trên màn 390px là mười hai vạch rộng hai pixel, không so được gì. Bảng số liệu vốn đã phải có sẵn, nên đây chỉ là hiện cái đã có.
+**Cái giá của việc hiện bảng, nói thẳng:** `Chart` ở tầng bọc nên **không import** `Table` ([`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.2). Phần SCSS cho `<table>` này là một bản áp lại các token mà [`Table.md`](./Table.md) đã khai — đổi hình thức `Table` cỡ `sm` thì phải đổi cả đây. Chấp nhận, vì hai hướng kia tệ hơn: tự bật `horizontal` và cuộn ngang vẫn là một biểu đồ không đọc được số; bắt màn tự đặt `Table` thay biểu đồ ở khổ này là bắt mọi màn có biểu đồ phải nhớ.
 
 ## Accessibility
 
 | Khoản | Yêu cầu |
 | --- | --- |
 | Vai trò | Vùng vẽ mang `role="img"` với `aria-label` **tóm tắt kết luận**, không mô tả hình: "Thực hiện luỹ kế 2.152 triệu, thấp hơn dự toán 2.625 triệu tại tháng 9" |
-| Bảng tương đương | Bắt buộc. Hoặc hiện ngay dưới biểu đồ, hoặc sau một nút "Xem số liệu". Không được chỉ tồn tại trong hộp giá trị khi rê chuột |
+| Bảng tương đương | Bắt buộc, luôn có. `<table>` dựng từ `series` và `categories`. Từ `$bp-xs` trở lên ẩn trực quan bằng kỹ thuật **vẫn giữ trong cây truy cập** — 🛑 không `display: none`, không `aria-hidden`; dưới `$bp-xs` hiện thay vùng vẽ (mục Responsive). `<caption>` là `title`; `<th scope>` cho cả hàng lẫn cột; số theo `valueFormat`; `null` đọc thành "không có dữ liệu", khác `0`. Không được chỉ tồn tại trong hộp giá trị khi rê chuột |
 | Bàn phím | Biểu đồ là một điểm dừng Tab; `←` `→` đi giữa các điểm; `Escape` thoát khỏi chế độ đọc điểm |
 | Chú giải | Từ **hai chuỗi trở lên luôn có chú giải**; một chuỗi thì không — tiêu đề đã nói đang vẽ gì, và một ô chú giải cho một chuỗi chỉ lặp lại tiêu đề |
 | Màu | Không bao giờ là kênh duy nhất. Chuỗi phải phân biệt được bằng chú giải, nhãn trực tiếp, hoặc thứ tự trong bảng |
-| Ba màu dưới 3:1 ở theme sáng | Biểu đồ dùng ngọc, vàng hoặc hồng **bắt buộc** kèm nhãn số hiện rõ hoặc bảng số liệu. Ràng buộc, không phải khuyến nghị |
+| Ba màu dưới 3:1 ở theme sáng | Biểu đồ dùng ngọc, vàng hoặc hồng **bắt buộc** kèm nhãn số hiện rõ, hoặc màn đặt [`Table.md`](./Table.md) xem được ngay cạnh biểu đồ. Ở các ngưỡng còn vẽ biểu đồ, bảng tương đương của `Chart` ẩn trực quan nên không tính vào kênh này. Ràng buộc, không phải khuyến nghị |
 | Chuyển động | Hoạt ảnh vào khi vẽ lần đầu tối đa `--dur-slow`, và **tắt hẳn** khi `prefers-reduced-motion: reduce`. Không bao giờ hoạt ảnh khi dữ liệu đổi do lọc — mark nhảy làm mắt mất chỗ đang đọc |
 | Chữ | Đi qua tầng i18n; số theo định dạng Việt Nam, phân cách nghìn bằng dấu chấm — [`../../RULES.md`](../../RULES.md) §7 F8 |
 
@@ -147,14 +150,18 @@ Chuyển sang bảng ở màn rất nhỏ không phải là thua cuộc: mười
 | `title` | input | `string` | — | **Bắt buộc** |
 | `summary` | input | `string` | — | **Bắt buộc.** Nội dung `aria-label`; phải là một kết luận, không phải mô tả hình |
 | `valueFormat` | input | `'number' \| 'currency' \| 'percent'` | `'number'` | |
-| `showTable` | input | `boolean` | `true` | Mặc định **hiện** bảng số liệu. Sai theo hướng an toàn: quên khai thì kênh bù vẫn còn |
 | `statusSeries` | input | `boolean` | `false` | `true` thì dùng bảng màu trạng thái thay bảng màu chuỗi |
 | `loading` | input | `boolean` | `false` | |
+| `loadingTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Nội dung slot đang tải |
+| `emptyTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Nội dung slot trống. Màn biết ca rỗng nào đang xảy ra, nên context không mang ca |
+| `errorTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Nội dung slot lỗi, gồm nút "Thử lại". Màn chỉ truyền khi đang lỗi; khác `null` thì thắng hai slot kia |
 | `pointSelected` | output | `{series, index}` | — | Chỉ phát khi màn hình khai biểu đồ bấm được để lọc |
 
 🛑 **`series` không nhận màu từ ngoài.** Màu gán theo **thứ tự slot** trong [`../DESIGN.md`](../DESIGN.md) §2.8, và gán theo **đối tượng chứ không theo thứ hạng** — lọc bỏ một chuỗi thì các chuỗi còn lại **không đổi màu**. Cho phép truyền màu vào là mở đường cho mỗi màn một bảng màu, và đó là lúc hệ màu chết.
 
 `Chart` là component **dumb** ([`../COMPONENTS.md`](../COMPONENTS.md) §5).
+
+**Ba slot nội dung trạng thái**, theo khuôn ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5: `loadingTemplate` hiện khi `loading` là `true`, `emptyTemplate` hiện ở trạng thái `empty`, `errorTemplate` hiện khi màn truyền nó khác `null`. `Chart` quyết khi nào hiện slot nào và giữ tiêu đề, chú giải quanh nó; màn quyết hiện gì trong slot. Lý do: `Chart` nằm ở tầng bọc nên không được import `SkeletonLoader`, `EmptyState` hay `Button` — luật ở [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.2.
 
 ## Do / Don't
 
@@ -173,7 +180,6 @@ Chuyển sang bảng ở màn rất nhỏ không phải là thua cuộc: mười
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Dạng `line` bọc thư viện nào? PrimeNG đi kèm Chart.js, nhưng nó vẽ bằng canvas — không có gì cho trình đọc màn hình và không kế thừa token CSS. Đánh đổi và ngưỡng quyết định ghi ở [`../DESIGN.md`](../DESIGN.md) §10 | `architect`, khi có màn biểu đồ thật |
-| 2 | Bảng số liệu tương đương hiện sẵn hay giấu sau một nút? Hiện sẵn thì luôn có mặt nhưng chiếm chỗ gấp đôi; giấu thì gọn nhưng thêm một lần bấm cho người cần con số | Dự án đầu tiên có màn báo cáo |
-| 3 | Có cần dạng biểu đồ phân tán không? Hôm nay **không khai** vì chưa có màn nào cần, và nó kéo theo giới hạn ba chuỗi ở §2.8 | Dự án đầu tiên có nhu cầu thật |
-| 4 | Số liệu tiền tệ rút gọn ở mức nào — "2.152 tr" hay "2.152.000.000"? Rút gọn thì trục đọc được; đầy đủ thì đối chiếu sổ được. Có thể phải khác nhau giữa nhãn trục và hộp giá trị | `ba-analyst` của màn báo cáo đầu tiên |
+| 1 | Có cần dạng biểu đồ phân tán không? Hôm nay **không khai** vì chưa có màn nào cần, và nó kéo theo giới hạn ba chuỗi ở §2.8 | Sau F3 — dự án hạ nguồn đầu tiên có nhu cầu thật |
+| 2 | Số liệu tiền tệ rút gọn ở mức nào — "2.152 tr" hay "2.152.000.000"? Rút gọn thì trục đọc được; đầy đủ thì đối chiếu sổ được. Có thể phải khác nhau giữa nhãn trục và hộp giá trị | Sau F3 — `ba-analyst` của màn báo cáo đầu tiên |
+| 3 | Cả `Chart` nằm ở tầng bọc, nhưng [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md) ràng buộc 1 đòi phần thư viện của `line` chỉ nạp khi màn đầu tiên dùng `line` được mở. Lớp bọc tách phần `line` thành khối tải trễ bên trong nó bằng cách nào — phải chốt trước khi dựng, vì import thẳng là kéo thư viện vào mọi màn có biểu đồ cột | F1 — khi dựng `Chart` |

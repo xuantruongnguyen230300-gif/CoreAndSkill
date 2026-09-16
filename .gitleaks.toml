@@ -1,0 +1,38 @@
+# .gitleaks.toml — cấu hình gitleaks cho CoreAndSkill (luật S6 ở docs/RULES.md).
+#
+# Dùng NGUYÊN bộ luật mặc định của gitleaks. File này chỉ thêm một allowlist HẸP
+# cho placeholder rõ ràng trong tài liệu, với HAI điều kiện cùng lúc (AND):
+#   1. file là .md dưới docs/ hoặc spec/  — không miễn trừ cả thư mục: một bí mật
+#      thật dán nhầm vào tài liệu vẫn bị bắt;
+#   2. CHÍNH chuỗi bị nghi là bí mật trông rõ ràng là placeholder.
+#
+# Không thêm mục nào vào đây để "cho CI xanh" khi gitleaks bắt được một chuỗi
+# thật. Chuỗi thật trong lịch sử git thì phải thu hồi và thay bí mật — gỡ khỏi
+# nhánh không gỡ được khỏi lịch sử.
+#
+# Cú pháp [[allowlists]] kèm `condition` cần gitleaks >= 8.25.
+
+title = "CoreAndSkill"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Placeholder rõ ràng trong tài liệu docs/ và spec/ — không phải bí mật"
+condition = "AND"
+paths = [
+  '''^(docs|spec)/.+\.md$''',
+]
+regexTarget = "secret"
+regexes = [
+  # giữ chỗ trong ngoặc nhọn: <mat-khau>, <token-cua-ban>
+  '''^<[^<>]{1,80}>$''',
+  # chuỗi bị cắt hoặc bị che: CfDJ8…, ****, xxxxxx
+  '''…''',
+  '''^\*{3,}$''',
+  '''(?i)^x{6,}$''',
+  # từ khoá giữ chỗ
+  '''(?i)(change[_-]?me|placeholder|your[_-]|example|dummy|redacted)''',
+  # giữ chỗ tiếng Việt không dấu: dung-mat-khau, mat-khau-tam, bi-mat-mau
+  '''(?i)(^|[-_])(mat[-_]?khau|bi[-_]?mat|vi[-_]?du|gia[-_]?lap)([-_]|$)''',
+]

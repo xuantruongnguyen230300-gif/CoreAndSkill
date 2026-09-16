@@ -8,7 +8,7 @@ verified: chua-doi-chieu
 
 > 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`. File này là quy ước thi công cho tầng điều hướng của `src/FE`.
 >
-> Phân quyền phía FE **chỉ để dựng giao diện đúng**, không phải để bảo vệ dữ liệu. Bảo vệ thật nằm ở BE ([`be-api-controller.md`](be-api-controller.md)). Một guard bị vượt qua chỉ được phép dẫn tới một màn hình rỗng và một lỗi 403 từ server — không bao giờ dẫn tới dữ liệu.
+> Phân quyền phía FE **chỉ để dựng giao diện đúng**; bảo vệ thật nằm ở BE ([`be-api-controller.md`](be-api-controller.md)). Guard bị vượt qua chỉ được dẫn tới màn hình rỗng và 403 từ server — không bao giờ tới dữ liệu.
 
 ---
 
@@ -17,31 +17,32 @@ verified: chua-doi-chieu
 ```
 /                          → chuyển hướng theo trạng thái phiên
 /dang-nhap                 → không có khung app (noShell)
-/quen-mat-khau             → noShell
-/doi-mat-khau-bat-buoc     → noShell, chỉ vào được khi BE yêu cầu
+/doi-mat-khau-bat-buoc     → noShell, authGuard + mustChangePasswordGuard — chỉ vào được khi BE yêu cầu
 │
-└── (trong khung app, sau authGuard)
+└── (trong khung app platform/shell, sau authGuard)
     /trang-chu
     /ho-so
     /quan-tri
     │   ├── nguoi-dung          permission: 'core.user.read'
     │   ├── vai-tro             permission: 'core.role.read'
-    │   ├── phan-quyen          permission: 'core.permission.read'
-    │   └── menu                permission: 'core.menu.read'
-    └── /<ten-module>/...       route nghiệp vụ, lazy theo module
-    /khong-co-quyen             → 403 hiển thị được
-    /**                          → 404
+    │   └── phan-quyen          permission: 'core.permission.read'
+    /he-thong
+    │   └── don-vi              systemOperatorGuard — cờ isSystemOperator, không phải permission
+    /<ten-module>/...           route nghiệp vụ, lazy theo module
+    /khong-co-quyen             403 — trong khung app
+    └── /**                     404 — trong khung app, luôn là route cuối
 ```
 
-> 🚨 **Đoạn URL viết tiếng Việt không dấu; khoá phân quyền thì KHÔNG.** Hai thứ này
-> trông giống nhau ở sơ đồ trên nhưng thuộc hai hệ khác nhau: đoạn URL là chuỗi người dùng
-> nhìn thấy, còn khoá phân quyền là **dữ liệu trong database** mà BE so khớp từng ký tự. Bản
-> trước của sơ đồ này dùng `core.nguoi-dung.xem`, `core.vai-tro.xem` … — một bộ khoá **không
-> tồn tại** ở phía BE. Guard theo bộ đó thì FE ẩn sạch mọi mục menu, kể cả với tài khoản đủ
-> quyền, và không có lỗi nào bật ra.
+Khu `/he-thong` (quản trị đơn vị của tài khoản vận hành) gác bằng **cờ**, không bằng ma trận quyền — thứ tự guard ở §4, hợp đồng ở [`../contracts/tenants.md`](../contracts/tenants.md).
+
+**Trang 403 và 404 nằm TRONG khung app.** Chưa đăng nhập thì `authGuard` của nhánh khung đưa về màn đăng nhập kèm `returnUrl` — kể cả khi URL gõ sai.
+
+> 🚨 **Đoạn URL viết tiếng Việt không dấu; khoá phân quyền thì KHÔNG.**
 >
 > 📖 Danh mục khoá đầy đủ, và là nguồn duy nhất:
 > [`../database/schema-core.md`](../database/schema-core.md) §5.2. FE **không** tự đặt khoá mới.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §1
 
 ### 1.1 Quy ước đặt tên đoạn URL
 
@@ -53,7 +54,7 @@ verified: chua-doi-chieu
 | Không lồng sâu quá ba cấp | `/quan-tri/nguoi-dung/:id` là giới hạn |
 | Đoạn URL là **tiếng Việt không dấu**, khớp ngôn ngữ của miền nghiệp vụ | nhất quán với tên thư mục feature |
 
-URL là thứ người dùng nhìn thấy, gửi cho nhau, và đánh dấu lại. Đổi URL là breaking change với người dùng — cân nhắc như đổi hợp đồng API.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §1.1
 
 ---
 
@@ -64,39 +65,45 @@ URL là thứ người dùng nhìn thấy, gửi cho nhau, và đánh dấu lạ
 ```typescript
 // app.routes.ts
 export const APP_ROUTES: Routes = [
+  // Nhánh xác thực khai TRƯỚC nhánh khung app; xac-thuc.routes.ts KHÔNG khai path '' hay '**'.
+  {
+    path: '',
+    loadChildren: () => import('./platform/xac-thuc/xac-thuc.routes').then((m) => m.XAC_THUC_ROUTES),
+  },
   {
     path: '',
     canActivate: [authGuard, mustChangePasswordGuard],
-    loadComponent: () => import('./shared/layout/khung-app.component').then((m) => m.KhungAppComponent),
+    // Cho AuthService chạy lại guard của URL hiện tại khi cờ buộc đổi mật khẩu bật giữa phiên (§5.4).
+    runGuardsAndResolvers: 'always',
+    loadComponent: () => import('./platform/shell/shell.component').then((m) => m.ShellComponent),
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'trang-chu' },
       {
         path: 'trang-chu',
         loadChildren: () => import('./platform/trang-chu/trang-chu.routes').then((m) => m.TRANG_CHU_ROUTES),
       },
-      {
-        path: 'quan-tri',
-        loadChildren: () => import('./platform/quan-tri/quan-tri.routes').then((m) => m.QUAN_TRI_ROUTES),
-      },
+      // 'quan-tri', 'he-thong': cùng khuôn loadChildren — ly-do §2.1
       // Route nghiệp vụ — mỗi module một dòng, không import component trực tiếp.
       // Thêm module mới còn phải thêm tên vào BUSINESS_MODULES: fe-architecture.md §4.4.
+
+      // Trang lỗi nằm TRONG khung (§1). '**' là dòng cuối.
+      { path: 'khong-co-quyen', title: 'trangLoi.khongCoQuyen.tieuDe', loadComponent: () => import('./platform/loi/khong-co-quyen.page').then((m) => m.KhongCoQuyenPage) },
+      { path: '**', title: 'trangLoi.khongTimThay.tieuDe', loadComponent: () => import('./platform/loi/khong-tim-thay.page').then((m) => m.KhongTimThayPage) },
     ],
   },
-  {
-    path: '',
-    loadChildren: () => import('./platform/xac-thuc/xac-thuc.routes').then((m) => m.XAC_THUC_ROUTES),
-  },
-  { path: 'khong-co-quyen', loadComponent: () => import('./platform/loi/khong-co-quyen.page').then((m) => m.KhongCoQuyenPage) },
-  { path: '**', loadComponent: () => import('./platform/loi/khong-tim-thay.page').then((m) => m.KhongTimThayPage) },
 ];
 ```
 
-**`app.routes.ts` không được import component của feature trực tiếp.** Một `import` tĩnh kéo cả feature vào bundle khởi động, và triệu chứng duy nhất là bundle to dần — không lỗi, không cảnh báo, không ai để ý cho tới lúc ngân sách bundle (luật F14) đỏ.
+**`app.routes.ts` không được import component của feature trực tiếp.**
 
 ```bash
+# Luật F20 — app.routes.ts không import tĩnh component của feature.
 # PASS khi không in ra dòng nào ngoài loadComponent/loadChildren.
+[ -f src/FE/src/app/app.routes.ts ] || { echo "F20: không có src/FE/src/app/app.routes.ts để quét"; exit 1; }
 grep -nE "^import .* from '\./(platform|modules)/" src/FE/src/app/app.routes.ts
 ```
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §2.1
 
 ### 2.2 Mỗi feature một `<feature>.routes.ts`
 
@@ -110,25 +117,43 @@ export const QUAN_TRI_ROUTES: Routes = [
       import('./nguoi-dung/pages/danh-sach/danh-sach-nguoi-dung.page').then((m) => m.DanhSachNguoiDungPage),
     title: 'nguoiDung.tieuDe',
   },
+  // 'nguoi-dung/:id' cùng khuôn — ly-do §2.2
+];
+```
+
+**Guard đặt trong route của feature, không rải ở `app.routes.ts`.**
+
+**`title` giữ KHOÁ i18n, không giữ câu.** `core/i18n/core-title.strategy.ts` — `CoreTitleStrategy extends TitleStrategy` — dịch khoá đó rồi nối hậu tố ` · ` + `CORE_BRANDING.name` ([`fe-architecture.md`](fe-architecture.md) §2.5); khoá vắng ⇒ chỉ `CORE_BRANDING.name`. Đăng ký ở `app.config.ts`: `{ provide: TitleStrategy, useClass: CoreTitleStrategy }`. Ngôn ngữ đổi lúc chạy ([`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §7) thì `CoreTitleStrategy` dịch lại tiêu đề của route hiện tại.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §2.2
+
+### 2.3 Route con và `noShell`
+
+Hai màn xác thực không có khung app; chúng nằm ở nhánh route **đầu tiên** của `app.routes.ts` (§2.1), không bọc trong component khung.
+
+**Không khung app KHÔNG có nghĩa là không guard.** Hai màn ở nhánh này gác khác nhau (§1):
+
+```typescript
+// platform/xac-thuc/xac-thuc.routes.ts
+export const XAC_THUC_ROUTES: Routes = [
   {
-    path: 'nguoi-dung/:id',
-    canActivate: [permissionGuard('core.user.read')],
+    // Màn đăng nhập KHÔNG có authGuard: nơi duy nhất người chưa đăng nhập được vào.
+    path: 'dang-nhap',
+    loadComponent: () => import('./pages/dang-nhap/dang-nhap.page').then((m) => m.DangNhapPage),
+    title: 'xacThuc.dangNhap.tieuDe',
+  },
+  {
+    // authGuard: chưa đăng nhập thì chưa có cờ để đọc. mustChangePasswordGuard: cờ tắt thì đẩy về đích sau đăng nhập (§5.2).
+    path: 'doi-mat-khau-bat-buoc',
+    canActivate: [authGuard, mustChangePasswordGuard],
     loadComponent: () =>
-      import('./nguoi-dung/pages/chi-tiet/chi-tiet-nguoi-dung.page').then((m) => m.ChiTietNguoiDungPage),
-    title: 'nguoiDung.chiTiet',
+      import('./pages/doi-mat-khau-bat-buoc/doi-mat-khau-bat-buoc.page').then((m) => m.DoiMatKhauBatBuocPage),
+    title: 'xacThuc.doiMatKhauBatBuoc.tieuDe',
   },
 ];
 ```
 
-**Guard đặt trong route của feature, không rải ở `app.routes.ts`.** Lý do là câu hỏi *"màn này ai vào được"* phải trả lời được bằng cách mở đúng một file — file của feature. Đặt guard ở cấp cha thì thêm một màn hình mới sẽ thừa hưởng guard mà người viết không hề biết, và tệ hơn là thừa hưởng **thiếu** guard.
-
-**`title` giữ KHOÁ i18n, không giữ câu.** Chiến lược đặt tiêu đề trang trong `core/` dịch khoá đó — nếu để câu thẳng ở đây thì tiêu đề tab là chỗ duy nhất trong app không đổi theo ngôn ngữ, và luật F8 không quét file `.ts` nên không có gì bắt.
-
-### 2.3 Route con và `noShell`
-
-Hai màn xác thực không có khung app: không sidebar, không thanh trên, không menu. Chúng nằm ở nhánh route **thứ hai** của `app.routes.ts` (§2.1) — nhánh không bọc trong component khung.
-
-Cách làm sai thường gặp là để chúng trong khung rồi ẩn sidebar bằng CSS. Sai vì: khung vẫn dựng, vẫn gọi API menu, và người chưa đăng nhập vẫn phát sinh một request 401 mỗi lần mở màn đăng nhập.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §2.3
 
 ---
 
@@ -138,9 +163,7 @@ Cách làm sai thường gặp là để chúng trong khung rồi ẩn sidebar b
 
 > **Không có hằng số role nào trong code — cả BE lẫn FE.** Role là dữ liệu trong cơ sở dữ liệu; phân quyền kiểm bằng **permission**. Xem [`../adr/0005-permission-based.md`](../adr/0005-permission-based.md).
 
-Vì sao, nói bằng hệ quả cụ thể: kiểm theo tên role nghĩa là mỗi lần khách hàng muốn "cho nhóm trưởng phòng xem được màn này", đội phải sửa code, build lại và triển khai lại. Kiểm theo permission thì đó là một thao tác cấu hình trong màn phân quyền. Chi phí ban đầu cao hơn — phải khai một danh mục permission và một màn gán quyền — và đó là toàn bộ cái giá.
-
-Ở dự án tiền nhiệm có ba tên role khai cứng trong mã nguồn. Hệ quả không phải là code xấu, mà là **Core không mang đi được**: sản phẩm tiếp theo có cơ cấu tổ chức khác sẽ thừa kế ba cái tên vô nghĩa với nó, và mọi câu lệnh kiểm tra dựa trên chúng.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §3.1
 
 ### 3.2 `authGuard`
 
@@ -155,16 +178,18 @@ export const authGuard: CanActivateFn = (_route, state) => {
     return true;
   }
 
-  // Giữ đường quay lại: sau khi đăng nhập, người dùng về đúng chỗ họ định tới.
+  // Giữ đường quay lại sau đăng nhập.
   return router.createUrlTree([routes.dangNhap], {
     queryParams: { returnUrl: state.url },
   });
 };
 ```
 
-**Trả `UrlTree` chứ không gọi `router.navigate()` rồi `return false`.** `UrlTree` để router hủy điều hướng cũ và chuyển sang cái mới trong **một** chu kỳ; cách kia tạo hai lần điều hướng chồng nhau, và trong vài trường hợp lịch sử trình duyệt còn giữ lại trang bị chặn — bấm Back là quay về đúng chỗ vừa bị cấm.
+**Trả `UrlTree` chứ không gọi `router.navigate()` rồi `return false`.**
 
-`returnUrl` phải được kiểm khi dùng lại: chỉ chấp nhận đường dẫn nội bộ bắt đầu bằng `/` và không bắt đầu bằng `//`. Không kiểm thì đó là một lỗ chuyển hướng ra ngoài — kẻ tấn công gửi một liên kết đăng nhập kèm `returnUrl` trỏ sang site của họ.
+`returnUrl` phải được kiểm khi dùng lại: chỉ chấp nhận đường dẫn nội bộ bắt đầu bằng `/` và không bắt đầu bằng `//`.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §3.2
 
 ### 3.3 `permissionGuard`
 
@@ -186,25 +211,90 @@ export function permissionGuard(...quyenCanCo: string[]): CanActivateFn {
 ```
 
 ```typescript
-// core/auth/auth.service.ts — phần liên quan
+// core/auth/auth.service.ts — phần liên quan; khối import ở ly-do §3.3
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
+  /** MenuStore KHÔNG inject AuthService — vòng DI (NG0200). */
+  private readonly menu = inject(MenuStore);
   private readonly _nguoiDung = signal<NguoiDungHienTai | null>(null);
+  private goiMe: Subscription | null = null;
+  private canNapLaiMenu = false;
 
   readonly nguoiDung = this._nguoiDung.asReadonly();
   readonly daDangNhap = computed(() => this._nguoiDung() !== null);
+  readonly phaiDoiMatKhau = computed(() => this._nguoiDung()?.mustChangePassword ?? false);
+  /** Cờ vận hành hệ thống — ĐƯỜNG GÁC RIÊNG, không nằm trong tập quyền (contracts/auth.md §3, §5). */
+  readonly laVanHanhHeThong = computed(() => this._nguoiDung()?.isSystemOperator ?? false);
 
   private readonly tapQuyen = computed(() => new Set(this._nguoiDung()?.quyen ?? []));
 
   coQuyen(ma: string): boolean {
     return this.tapQuyen().has(ma);
   }
+
+  /** errorInterceptor gọi khi gặp 403 FORBIDDEN (fe-api-client.md §2.2). */
+  lamMoiQuyen(): void {
+    this.canNapLaiMenu = true;
+    if (this.goiMe === null) {
+      void this.goiLaiMe();
+    }
+  }
+
+  /** Bốn nơi gọi: màn hồ sơ sau khi lưu; errorInterceptor khi 403 PASSWORD_CHANGE_REQUIRED (§5.4); màn đổi mật khẩu bắt buộc (§5.3); khung ứng dụng sau khi đổi ngôn ngữ (Design/Screens/00). Huỷ lời gọi đang chạy rồi gửi lại. */
+  lamMoiPhien(): Promise<void> {
+    return this.goiLaiMe();
+  }
+
+  /** SessionExpiryHandler gọi (fe-api-client.md §2.5). Dọn gì, giữ gì: wiki-core/fe/07-auth-identity.md §7.2. */
+  donPhien(): void {
+    this.goiMe?.unsubscribe();
+    this.canNapLaiMenu = false;
+    this._nguoiDung.set(null);
+  }
+
+  /** Thay TOÀN BỘ người dùng hiện tại bằng `me`. Promise xong khi lời gọi kết thúc — về, lỗi, hay bị huỷ. */
+  private goiLaiMe(): Promise<void> {
+    if (!this.daDangNhap()) {
+      return Promise.resolve();
+    }
+    this.goiMe?.unsubscribe();
+    return new Promise((xong) => {
+      this.goiMe = this.http
+        .get<ApiResult<PhienDto>>('/core/auth/me')
+        .pipe(map(unwrapData), finalize(() => { this.goiMe = null; xong(); }))
+        .subscribe({
+          next: (d) => {
+            const nguoiDung = sangNguoiDungHienTai(d);
+            this._nguoiDung.set(nguoiDung);
+            if (this.canNapLaiMenu) {
+              this.canNapLaiMenu = false;
+              this.menu.lamMoi(d.id);
+            }
+            if (nguoiDung.mustChangePassword) {
+              // Chạy lại guard của URL hiện tại — mustChangePasswordGuard trả đích (§5.4). Không tự chọn đường dẫn.
+              void this.router.navigateByUrl(this.router.url, { onSameUrlNavigation: 'reload' });
+            }
+          },
+          error: () => undefined,
+        });
+    });
+  }
 }
 ```
 
-**Dùng `Set` chứ không `Array.includes`.** Một màn hình danh sách có thể hỏi quyền cho từng dòng; với mảng thì đó là phép quét tuyến tính nhân với số dòng, chạy lại mỗi lần đổi phát hiện.
+**Lưu hồ sơ xong thì gọi `lamMoiPhien()`.** Topbar đọc tên từ phiên (`nguoiDung()`), không từ response của `PUT` hồ sơ ([`../contracts/profile.md`](../contracts/profile.md) §2). Nơi gọi mà điều hướng ngay sau đó thì `await` nó — màn đổi mật khẩu bắt buộc (§5.3); nơi không điều hướng thì `void` nó — interceptor (§5.4).
 
-**Chuyển hướng tới màn 403 chứ không tới trang chủ.** Đưa về trang chủ khiến người dùng nghĩ mình bấm nhầm, thử lại, rồi lại bị đưa về — vòng lặp không có thông tin. Màn 403 nói rõ "không có quyền" và cho một đường đi tiếp.
+**Phiên mang cả đơn vị, ngôn ngữ ưa thích và cờ vận hành hệ thống.** `nguoiDung()` giữ `tenantCode`, `tenantName`, `preferredLanguage`, `isSystemOperator` của DTO phiên ([`../contracts/auth.md`](../contracts/auth.md) §3, §5); mapper `sangNguoiDungHienTai` chép sang model. Khung đọc `tenantName` ở đây; ngôn ngữ sau đăng nhập đọc `preferredLanguage` ([`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §7); `systemOperatorGuard` đọc `isSystemOperator` (§3.5). Không màn nào gọi hồ sơ chỉ để lấy các giá trị này.
+
+**`lamMoiQuyen()` nạp lại menu trong cùng bước với tập quyền.** Cờ `canNapLaiMenu` sống qua lời gọi bị huỷ.
+
+**Dùng `Set` chứ không `Array.includes`.**
+
+**Chuyển hướng tới màn 403 chứ không tới trang chủ.**
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §3.3
 
 ### 3.4 Directive `appHasPermission`
 
@@ -239,20 +329,64 @@ export class HasPermissionDirective {
 ```
 
 ```html
-<app-nut
-  *appHasPermission="'core.user.write'"
-  [nhan]="'chung.them' | translate"
-  (bam)="moFormTao()"
-/>
+<app-button *appHasPermission="'core.user.write'" variant="primary" (clicked)="moFormTao()">{{ 'chung.them' | translate }}</app-button>
 ```
 
-Chuỗi truyền vào phải là một khoá **có thật** trong danh mục quyền ([`../database/schema-core.md`](../database/schema-core.md) §5.2). Khoá tự chế không gây lỗi: `coQuyen()` trả `false` và nút biến mất với **mọi** người, kể cả tài khoản đủ quyền — deny-by-default làm chuỗi sai trông y hệt chuỗi đúng của một người thiếu quyền.
+Chuỗi truyền vào phải là khoá **có thật** trong danh mục quyền ([`../database/schema-core.md`](../database/schema-core.md) §5.2).
 
-> Cú pháp `*` ở đây là **directive cấu trúc tự viết**, không phải chỉ thị cũ của Angular. Luật F9 cấm `*ngIf`/`*ngFor`, không cấm directive cấu trúc của app — cổng quét đúng tên ba chỉ thị cũ nên không báo nhầm.
+**Ẩn nút KHÔNG phải là phân quyền.** Bảo vệ thật ở BE, và guard phía FE cũng chỉ là lớp trải nghiệm.
 
-**Ẩn nút KHÔNG phải là phân quyền.** Nó là phép lịch sự với người dùng — đừng bày ra thứ họ bấm vào sẽ nhận lỗi. Người biết dùng công cụ phát triển vẫn gọi được API. Bảo vệ thật ở BE, và guard phía FE cũng chỉ là lớp trải nghiệm.
+**Không được dùng directive này để giấu dữ liệu nhạy cảm đã tải về** — trường không được phép xem thì BE không gửi.
 
-Hệ quả thực tế: **không được dùng directive này để giấu dữ liệu nhạy cảm đã tải về.** Nếu một trường không được phép xem, BE không gửi trường đó — không phải FE ẩn nó đi.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §3.4
+
+### 3.5 `systemOperatorGuard` — gác bằng CỜ, không bằng ma trận quyền
+
+Khu `/he-thong` (§1) là đường gác duy nhất **không** đi qua ma trận quyền: nó đọc cờ `isSystemOperator` của phiên ([`../adr/0017-khu-quan-tri-he-thong.md`](../adr/0017-khu-quan-tri-he-thong.md), [`../contracts/auth.md`](../contracts/auth.md) §3, §5). Cờ **không** nằm trong `permissions`, nên `permissionGuard` không thay được.
+
+```typescript
+// core/guards/system-operator.guard.ts
+export const systemOperatorGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  const routes = inject(CORE_ROUTES);
+
+  return auth.laVanHanhHeThong() ? true : router.createUrlTree([routes.khongCoQuyen]);
+};
+```
+
+**Không có directive song song cho cờ này.** Khu `/he-thong` không phân quyền theo từng nút; mọi endpoint của khu gác bằng cùng một cờ ([`../contracts/tenants.md`](../contracts/tenants.md)).
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §3.5
+
+### 3.6 `AuthService` — khởi động và thiết lập phiên — định nghĩa gốc
+
+Hai đường thiết lập phiên, mỗi đường một hàng; không có đường thứ ba.
+
+| Lúc | Làm gì |
+| --- | --- |
+| **Khởi động app** — `provideAppInitializer` ở `app.config.ts` ([`fe-architecture.md`](fe-architecture.md) §2.6) | `forkJoin` hai `GET` **song song**: `XsrfTokenStore.lamMoi()` ([`fe-api-client.md`](fe-api-client.md) §2.1) và `/core/auth/me` mang `BO_QUA_HET_PHIEN` ([`fe-api-client.md`](fe-api-client.md) §2.5). App render sau khi **cả hai** về |
+| `me` trả 200 | `_nguoiDung.set(sangNguoiDungHienTai(d))` |
+| `me` trả 401 | Chưa đăng nhập: giữ `null`, không toast, không điều hướng — `authGuard` lo phần còn lại (§3.2) |
+| Một nhánh lỗi | `catchError` **trong từng nhánh** của `forkJoin`, trả `null`; app vẫn render. Lỗi khác 401 đã đi qua `errorInterceptor` |
+| **Đăng nhập trả 200** | Hai việc **không phụ thuộc thứ tự**, cả hai xong trước khi điều hướng: `_nguoiDung.set(...)` từ **DTO phiên trong response `login`** — cùng kiểu với `me` ([`../contracts/auth.md`](../contracts/auth.md) §5), **không gọi `me`**; và `XsrfTokenStore.lamMoi()` ([`../luong/D1-dang-nhap.md`](../luong/D1-dang-nhap.md) bước 7–8) |
+| Phiên vừa thiết lập (cả hai đường) | Áp `preferredLanguage` theo [`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §7 |
+
+```typescript
+// app.config.ts — phần khởi động
+provideAppInitializer(() => {
+  const xsrf = inject(XsrfTokenStore);
+  const auth = inject(AuthService);
+  return forkJoin([
+    xsrf.lamMoi().pipe(catchError(() => of(null))),
+    auth.napPhienKhoiDong().pipe(catchError(() => of(null))),
+  ]);
+}),
+```
+
+`napPhienKhoiDong()` là lời gọi `me` duy nhất chạy khi `daDangNhap()` còn `false`; `goiLaiMe()` (§3.3) không dùng cho khởi động.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §3.6
 
 ---
 
@@ -267,16 +401,16 @@ canActivate: [authGuard, mustChangePasswordGuard, permissionGuard('core.user.rea
 | 1 | `authGuard` | Chưa đăng nhập thì mọi câu hỏi sau đều vô nghĩa, và hỏi quyền của một người dùng null là lỗi |
 | 2 | `mustChangePasswordGuard` | Người đang bị buộc đổi mật khẩu chưa được coi là dùng hệ thống bình thường |
 | 3 | `permissionGuard` | Cuối cùng mới hỏi quyền cho màn hình cụ thể |
-| 3' | `systemOperatorGuard` | **Thay cho** `permissionGuard` ở khu quản trị hệ thống, không cộng thêm vào: khu đó gác bằng **cờ** `isSystemOperator`, không bằng ma trận quyền ([`../adr/0017-khu-quan-tri-he-thong.md`](../adr/0017-khu-quan-tri-he-thong.md)). Hai đường gác không bao giờ chạy chung một route |
+| 3' | `systemOperatorGuard` | **Thay cho** `permissionGuard` ở khu quản trị hệ thống, không cộng thêm vào: khu đó gác bằng **cờ** `isSystemOperator`, không bằng ma trận quyền (§3.5, [`../adr/0017-khu-quan-tri-he-thong.md`](../adr/0017-khu-quan-tri-he-thong.md)). Hai đường gác không bao giờ chạy chung một route |
 | 4 | `unsavedChangesGuard` | Chạy lúc **rời** route, không phải lúc vào. Hỏi trước khi bỏ thay đổi chưa lưu — §4.1 |
 
-Angular chạy `canActivate` theo thứ tự khai và dừng ở guard đầu tiên từ chối. Đảo thứ tự 1 và 3 thì người chưa đăng nhập bị đưa tới màn 403 thay vì màn đăng nhập — một thông điệp sai và một đường cụt.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §4
 
 ---
 
 ### 4.1 `unsavedChangesGuard` — hỏi trước khi mất dữ liệu
 
-Một guard **dùng chung ở Core**, không phải mỗi màn tự làm. Màn hình chỉ khai *"tôi đang có thay đổi chưa lưu"*; phần hỏi và phần chặn nằm ở một chỗ.
+Một guard **dùng chung ở Core**; màn chỉ khai *"tôi đang có thay đổi chưa lưu"*, phần hỏi và chặn nằm ở một chỗ.
 
 | Luật | Vì sao |
 | --- | --- |
@@ -285,12 +419,24 @@ Một guard **dùng chung ở Core**, không phải mỗi màn tự làm. Màn h
 | Câu hỏi nói rõ **mất gì**, không hỏi chung chung | *"Rời trang? Thay đổi chưa lưu sẽ mất"* — không phải *"Bạn có chắc không?"* |
 | Áp cho cả điều hướng trong app lẫn đóng tab | Hai đường khác nhau về kỹ thuật; thiếu một đường là thủng một nửa |
 
-Đây là thứ dự án tiền nhiệm đã có và làm đúng — giữ lại.
+#### Khoá i18n của hộp hỏi
 
+Ba spec màn trỏ về đây ([`../Design/Screens/00-khung-ung-dung.md`](../Design/Screens/00-khung-ung-dung.md), [`../Design/Screens/03-ho-so-ca-nhan.md`](../Design/Screens/03-ho-so-ca-nhan.md), [`../Design/Screens/12-ma-tran-phan-quyen.md`](../Design/Screens/12-ma-tran-phan-quyen.md)). Khoá theo [`fe-ui-conventions.md`](fe-ui-conventions.md) §5.3, miền `chung.`.
+
+| Chỗ dùng | Input của [`../Design/Components/ConfirmDialog.md`](../Design/Components/ConfirmDialog.md) | Khoá |
+| --- | --- | --- |
+| Tiêu đề — "Rời trang?" | `title` | `chung.roiTrang.tieuDe` |
+| Mô tả — nói rõ mất gì | `message` | `chung.roiTrang.moTa` |
+| Nút xác nhận rời đi | `confirmLabel` | `chung.roiTrang.xacNhan` |
+| Nút ở lại | `cancelLabel` để `null` → hộp dùng nhãn huỷ chung | `chung.huy` |
+
+`severity` là `ask`. Câu hiển thị thuộc bảng dịch; mục này chỉ khai **khoá**.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §4.1
 
 ## 5. Luồng bắt buộc đổi mật khẩu lần đầu
 
-Đây là guard dễ quên nhất, và quên nó là một lỗ hổng thật: tài khoản do quản trị viên tạo có mật khẩu tạm, và nếu người dùng vào thẳng được màn hình khác thì mật khẩu tạm đó sống mãi.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §5
 
 ### 5.1 Luồng
 
@@ -315,33 +461,54 @@ export const mustChangePasswordGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
   const routes = inject(CORE_ROUTES);
 
+  const dangVaoManDoiMatKhau = state.url.startsWith(routes.doiMatKhauBatBuoc);
+
   if (!auth.phaiDoiMatKhau()) {
-    return true;
+    // Không bị ép đổi mà vẫn gõ thẳng URL màn đó → đẩy về đích sau đăng nhập.
+    return dangVaoManDoiMatKhau ? router.createUrlTree([routes.sauDangNhap]) : true;
   }
 
-  // Đang ở chính màn đổi mật khẩu thì cho qua — nếu không sẽ lặp vô hạn.
-  if (state.url.startsWith(routes.doiMatKhauBatBuoc)) {
-    return true;
-  }
-
-  return router.createUrlTree([routes.doiMatKhauBatBuoc]);
+  // Đang ở chính màn đổi mật khẩu thì cho qua.
+  return dangVaoManDoiMatKhau ? true : router.createUrlTree([routes.doiMatKhauBatBuoc]);
 };
 ```
 
+Guard này gác **hai chiều** nên có mặt ở cả hai nhánh route: nhánh khung app (§2.1) đẩy người bị ép vào màn đổi mật khẩu; nhánh xác thực (§2.3) đẩy người **không** bị ép ra khỏi màn đó.
+
 ### 5.3 Bốn điều phải đúng, thiếu một là hỏng
 
-1. **Cờ đến từ BE, không từ trạng thái phía FE.** FE tự nhớ "đã đổi rồi" thì tải lại trang là mất, hoặc tệ hơn: người dùng tự đặt lại được.
-2. **Guard áp cho toàn bộ nhánh trong khung app**, không chỉ vài màn. Áp lẻ tẻ thì màn quên áp chính là đường vòng.
-3. **Chính màn đổi mật khẩu phải được loại trừ**, nếu không guard tự đẩy về chính nó và trình duyệt treo ở vòng lặp điều hướng.
-4. **Sau khi đổi xong, cờ phải được làm mới từ BE** trước khi điều hướng tiếp. Điều hướng trước khi làm mới thì guard đọc cờ cũ và đẩy người dùng quay lại màn vừa hoàn thành.
+1. **Cờ đến từ BE, không từ trạng thái phía FE.**
+2. **Guard áp cho toàn bộ nhánh trong khung app**, không chỉ vài màn.
+3. **Chính màn đổi mật khẩu phải được loại trừ khi cờ BẬT, và phải bị chặn khi cờ TẮT** — cùng một guard, nhánh ngược lại (§5.2).
+4. **Sau khi đổi xong, cờ phải được làm mới từ BE** trước khi điều hướng tiếp: màn `await auth.lamMoiPhien()` (§3.3) rồi mới điều hướng.
 
-Luồng nghiệp vụ đầy đủ (hạn mật khẩu tạm, số lần sai, khoá tài khoản) ở [`../contracts/auth.md`](../contracts/auth.md) và [`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md).
+Ngôn ngữ người dùng chọn trên màn đổi mật khẩu bắt buộc được ghi vào hồ sơ sau khi đổi xong: [`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §7.
+
+Luồng nghiệp vụ đầy đủ: [`../contracts/auth.md`](../contracts/auth.md), [`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md).
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §5.3
+
+### 5.4 Cờ bật giữa phiên
+
+Cờ bật **sau** khi phiên đã nạp: BE chặn bằng 403 `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` ([`../contracts/auth.md`](../contracts/auth.md) §1.2), FE đi đúng một đường:
+
+| Bước | Ai | Làm gì |
+| --- | --- | --- |
+| 1 | `errorInterceptor` | Gặp mã đó → gọi `AuthService.lamMoiPhien()`. Không toast, không điều hướng ([`fe-api-client.md`](fe-api-client.md) §2.2) |
+| 2 | `AuthService` | `me` về mang `mustChangePassword: true` → yêu cầu router chạy lại guard của **chính URL hiện tại** (`onSameUrlNavigation: 'reload'`). Không chọn đích (§3.3) |
+| 3 | `mustChangePasswordGuard` | Đọc `phaiDoiMatKhau()` mới, trả `UrlTree` sang màn đổi mật khẩu bắt buộc (§5.2) |
+
+Bước 3 chỉ chạy khi nhánh khung app khai `runGuardsAndResolvers: 'always'` (§2.1).
+
+**Đích do guard trả, không do interceptor hay `AuthService` tự chọn** (§5.3 điều 3).
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §5.4
 
 ---
 
 ## 6. `CORE_ROUTES` — `core/` giữ luật, app cấp đường dẫn
 
-Guard nằm trong `core/`, mà `core/` mang đi được sang dự án khác. Vì vậy nó **không được khai cứng** đường dẫn của dự án này.
+Guard nằm trong `core/`, mang đi được sang dự án khác, nên **không được khai cứng** đường dẫn của dự án này.
 
 ```typescript
 // core/config/core-routes.ts
@@ -359,12 +526,15 @@ export function provideCoreRoutes(routes: CoreRoutes): EnvironmentProviders {
 }
 ```
 
-Token **không có giá trị mặc định**, cùng lý do đã nói ở [`fe-architecture.md`](fe-architecture.md) §2.5: một đường dẫn mặc định biến "app quên khai" thành một điều hướng tới route không tồn tại, và triệu chứng là màn hình trắng lúc hết phiên — thời điểm khó chẩn đoán nhất.
+Token **không có giá trị mặc định** (lý do: [`fe-architecture.md`](fe-architecture.md) §2.5).
 
 ```bash
-# core/ không được biết đường dẫn route của dự án. PASS khi không in ra dòng nào.
+# Luật F21 — core/ không được biết đường dẫn route của dự án. PASS khi không in ra dòng nào.
+[ -d src/FE/src/app/core ] || { echo "F21: không có src/FE/src/app/core để quét"; exit 1; }
 grep -rnE "navigate\(\s*\[\s*'/" src/FE/src/app/core --include='*.ts' | grep -v '\.spec\.ts'
 ```
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §6
 
 ---
 
@@ -374,94 +544,15 @@ grep -rnE "navigate\(\s*\[\s*'/" src/FE/src/app/core --include='*.ts' | grep -v 
 
 > **Bộ lọc, phân trang và sắp xếp của một trang danh sách phải nằm trên query param.**
 
-Ba việc hỏng ngay khi trạng thái chỉ sống trong `signal()`:
-
-| Người dùng làm gì | Trạng thái trong signal | Trạng thái trên URL |
-| --- | --- | --- |
-| Tải lại trang (F5) | Mất hết bộ lọc | Giữ nguyên |
-| Gửi link cho đồng nghiệp | Người kia thấy màn hình khác | Thấy đúng cái đang thấy |
-| Bấm Back sau khi mở chi tiết | Về danh sách đã reset | Về đúng trang, đúng bộ lọc |
-
-Việc thứ hai là việc quan trọng nhất và ít được nghĩ tới nhất: "gửi cho tôi cái link đang lọc như thế" là thao tác người dùng làm hằng ngày, và không có nó thì họ mô tả bằng lời rồi người nhận dựng lại sai.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §7.1
 
 ### 7.2 Khuôn
 
-```typescript
-export class DanhSachNguoiDungPage {
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly service = inject(NguoiDungService);
+> 📖 Một mẫu duy nhất cho mọi màn danh sách — `ListStateStore` ở `core/list/`: [`fe-architecture.md`](fe-architecture.md) §2.8. Query param mang đúng tên tham số trên dây (`page`, `pageSize`, `sortBy`, `sortDescending`, `searchText`, bộ lọc theo card) — không có hàm đổi tên.
 
-  // URL là NGUỒN. Signal chỉ là bản đọc của URL, không phải bản thứ hai.
-  private readonly query = toSignal(
-    this.route.queryParamMap.pipe(map(docQuery)),
-    { initialValue: QUERY_MAC_DINH },
-  );
+### 7.3 Luật của mẫu này
 
-  protected readonly items = signal<NguoiDung[]>([]);
-
-  constructor() {
-    effect(() => {
-      // Bước ánh xạ TƯỜNG MINH: trạng thái đọc từ URL -> tham số truy vấn của hợp đồng.
-      this.service.danhSach(sangPageQuery(this.query())).subscribe((trang) => this.items.set(trang.items));
-    });
-  }
-
-  /** Mọi thay đổi bộ lọc đi qua URL, không set thẳng vào signal. */
-  protected doiLoc(thayDoi: Partial<NguoiDungUrlState>): void {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { ...thayDoi, trang: 1 }, // đổi bộ lọc thì về trang 1
-      queryParamsHandling: 'merge',
-      replaceUrl: true, // không nhồi lịch sử: mỗi ký tự gõ vào ô tìm kiếm không phải một bước Back
-    });
-  }
-}
-
-/** Trạng thái ĐỌC TỪ URL. Tên field = tên query param trên thanh địa chỉ. */
-interface NguoiDungUrlState {
-  trang: number;
-  coMoiTrang: number;
-  sapXep: string;
-  giamDan: boolean;
-  tuKhoa?: string;
-}
-
-const QUERY_MAC_DINH: NguoiDungUrlState = { trang: 1, coMoiTrang: 20, sapXep: 'hoTen', giamDan: false };
-
-function docQuery(p: ParamMap): NguoiDungUrlState {
-  return {
-    trang: soDuong(p.get('trang'), QUERY_MAC_DINH.trang),
-    coMoiTrang: soDuong(p.get('coMoiTrang'), QUERY_MAC_DINH.coMoiTrang),
-    sapXep: p.get('sapXep') ?? QUERY_MAC_DINH.sapXep,
-    giamDan: p.get('giamDan') === 'true',
-    tuKhoa: p.get('tuKhoa') ?? undefined,
-  };
-}
-
-/** Chỗ DUY NHẤT đổi trạng thái URL thành tham số truy vấn của hợp đồng API. */
-function sangPageQuery(s: NguoiDungUrlState): PageQuery {
-  return {
-    page: s.trang,
-    pageSize: s.coMoiTrang,
-    sortBy: s.sapXep,
-    sortDescending: s.giamDan,
-    keyword: s.tuKhoa,
-  };
-}
-```
-
-🛑 **Kiểu đọc-từ-URL KHÔNG được đưa thẳng vào hàm dựng query string.** Tên field ở đây là tên **query param trên thanh địa chỉ**, đặt theo ngôn ngữ giao diện; tên tham số API là thứ khác, do [`../contracts/README.md`](../contracts/README.md) §8 quyết. Bỏ bước ánh xạ thì request đi ra mang tên tham số của URL, BE **không nhận ra chúng, áp mặc định**, và người dùng đang ở trang 7 luôn nhận về trang 1 — không lỗi, không cảnh báo, không có gì trên màn hình nói rằng có chuyện gì đó vừa xảy ra. Đặt tên kiểu khác nhau cho hai vai trò là thứ khiến sai lầm đó **không viết ra được**.
-
-Kiểu `PageQuery`: [`fe-api-client.md`](fe-api-client.md) §5.1.
-
-### 7.3 Năm luật của mẫu này
-
-1. **URL là nguồn duy nhất; signal là bản đọc.** Giữ cả hai làm nguồn ghi thì chúng lệch nhau, và triệu chứng là bấm Back xong màn hình hiện dữ liệu của bộ lọc mới với thanh lọc của bộ lọc cũ.
-2. **Mọi tham số đọc từ URL phải được kiểm và có giá trị lùi.** Query param là dữ liệu người dùng gõ được — `?trang=-5` hoặc `?coMoiTrang=999999` sẽ tới. Hàm đọc phải chặn, không phải BE chặn hộ.
-3. **Đổi bộ lọc thì đưa về trang 1.** Không làm thì người dùng đang ở trang 7, gõ từ khoá mới, và nhận về một trang rỗng — trông hệt như "không có kết quả".
-4. **Dùng `replaceUrl: true` cho thay đổi liên tục** (gõ vào ô tìm kiếm), và không dùng nó cho thay đổi rời rạc (đổi trang, đổi cột sắp xếp). Sai chiều nào cũng khó chịu: một bên là bấm Back mười lần mới thoát khỏi ô tìm kiếm, bên kia là mất khả năng quay lại trang trước.
-5. **Ánh xạ URL → tham số API nằm ở đúng một hàm.** Rải nó ra nhiều màn thì mỗi màn đặt tên tham số theo trí nhớ, và chỗ sai không bao giờ báo lỗi.
+> 📖 URL là nguồn, kiểm tham số đọc từ URL, đổi lọc thì về trang 1, `replaceUrl` cho thay đổi liên tục, chống gọi dồn dập: luật của tầng ở [`fe-architecture.md`](fe-architecture.md) §2.8.
 
 ### 7.4 Cái gì KHÔNG lên URL
 
@@ -476,24 +567,25 @@ Kiểu `PageQuery`: [`fe-api-client.md`](fe-api-client.md) §5.1.
 
 ## 8. 401 và 403 — xử lý ở tầng nào
 
-Đây là chỗ dễ làm hai lần hoặc không lần nào. Ranh giới dứt khoát:
+Ranh giới dứt khoát:
 
 | Tình huống | Ai xử lý | Làm gì | Ai **không** xử lý |
 | --- | --- | --- | --- |
-| **401 từ một request API** (phiên hết hạn giữa chừng) | `errorInterceptor` | Điều hướng về màn đăng nhập kèm `returnUrl`. Không toast — điều hướng đã là thông điệp | Guard: nó chỉ chạy lúc chuyển route, không thấy request nào |
+| **401 từ một request API** (phiên hết hạn giữa chừng) | `errorInterceptor` → `SessionExpiryHandler` | Dọn trạng thái người dùng, báo tab khác, điều hướng về màn đăng nhập kèm `returnUrl` — một lần tới lần đăng nhập kế ([`fe-api-client.md`](fe-api-client.md) §2.5). Không toast — điều hướng đã là thông điệp | Guard: nó chỉ chạy lúc chuyển route, không thấy request nào |
 | **Chưa đăng nhập, gõ thẳng URL** | `authGuard` | Trả `UrlTree` về màn đăng nhập kèm `returnUrl` | Interceptor: chưa có request nào phát sinh |
-| **403 từ một request API** | `errorInterceptor` | Toast "không có quyền" kèm `traceId`. **Không** điều hướng | Guard |
-| **Không có permission cho màn hình** | `permissionGuard` | Trả `UrlTree` về màn 403 | Interceptor |
+| **403 `CORE.AUTH.FORBIDDEN` từ một request API** | `errorInterceptor` | Toast "không có quyền" kèm `traceId`, rồi làm mới tập quyền và nạp lại menu qua `AuthService.lamMoiQuyen()` (§3.3, [`fe-api-client.md`](fe-api-client.md) §2.2). **Không** điều hướng | Guard |
+| **403 `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` từ một request API** | `errorInterceptor` → `AuthService` → `mustChangePasswordGuard` | Interceptor gọi `lamMoiPhien()`, không toast; `me` về mang cờ thì router chạy lại guard của URL hiện tại và guard trả `UrlTree` sang màn đổi mật khẩu bắt buộc (§5.4) | Màn; interceptor không điều hướng |
+| **403 `CORE.AUTH.ORIGIN_REJECTED` từ một request API** | `errorInterceptor` | Toast chung kèm `traceId`. Không gửi lại, không làm mới quyền ([`fe-api-client.md`](fe-api-client.md) §2.2) | Guard, màn |
+| **403 mang mã nghiệp vụ từ một request API** | Màn gọi endpoint | Hiển thị theo mã khai ở card của endpoint. Interceptor không toast, không làm mới quyền ([`fe-api-client.md`](fe-api-client.md) §2.2) | Interceptor, guard |
+| **Không có permission cho màn hình** | `permissionGuard` | Trả `UrlTree` về màn 403 — trong khung app (§1) | Interceptor |
 
-**Vì sao 403 không điều hướng còn 401 thì có:** 401 nghĩa là *toàn bộ phiên* không dùng được nữa — ở lại màn hình hiện tại là vô nghĩa vì mọi request sau đều hỏng. 403 nghĩa là *một thao tác cụ thể* bị từ chối; phần còn lại của màn hình vẫn dùng được, và đá người dùng đi chỗ khác sẽ làm mất dữ liệu họ đang nhập.
-
-**Chống toast trùng:** 401 do interceptor xử lý, nên guard không bao giờ được bắn toast cho 401 — và ngược lại, interceptor không được điều hướng cho 403. Mỗi ô trong bảng trên có đúng một chủ.
+**Chống toast trùng:** guard không bao giờ bắn toast cho 401; interceptor không điều hướng cho 403. Mỗi ô trong bảng có đúng một chủ.
 
 **Chốt (2026-09-10): 401 luôn điều hướng về màn đăng nhập, kể cả khi form đang nhập dở** — dữ liệu chưa lưu mất.
 
-Vì sao không làm hộp thoại đăng nhập lại tại chỗ để giữ form: nó phải xử lý ca **người đăng nhập lại là tài khoản khác**, và một form do người A nhập bị gửi đi dưới danh tính người B là lỗi nặng hơn nhiều so với việc phải nhập lại. Giữ một đường xử lý duy nhất cho 401 cũng là thứ làm bảng trên còn đúng.
+Cảnh báo sớm trước khi hết phiên: v1 **chưa có** — [`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md) §7.5.
 
-Lớp giảm thiệt hại nằm **trước** đó, không nằm ở đây: cảnh báo sắp hết phiên — [`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md) §7.5.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §8
 
 ---
 
@@ -506,7 +598,8 @@ Lớp giảm thiệt hại nằm **trước** đó, không nằm ở đây: cả
 - [ ] Guard đủ và đúng thứ tự (§4): `authGuard` → `mustChangePasswordGuard` → `permissionGuard`.
 - [ ] Permission dùng trong guard đã tồn tại trong danh mục quyền phía BE ([`../contracts/permissions.md`](../contracts/permissions.md)).
 - [ ] Nút/thao tác cần quyền đã bọc directive `appHasPermission`.
-- [ ] Nếu là trang danh sách: bộ lọc, phân trang, sắp xếp nằm trên query param (§7).
+- [ ] Endpoint mà card khai 403 mang mã nghiệp vụ → màn hiển thị được mã đó; interceptor không toast cho nó (§8).
+- [ ] Nếu là trang danh sách: dùng `ListStateStore` — bộ lọc, phân trang, sắp xếp nằm trên query param mang tên dây (§7).
 - [ ] Có đường ra khi không có dữ liệu và khi tải thất bại — hai trạng thái khác nhau.
 - [ ] Nếu là module mới: đã thêm tên vào `BUSINESS_MODULES` ([`fe-architecture.md`](fe-architecture.md) §4.4).
 
@@ -518,5 +611,7 @@ Lớp giảm thiệt hại nằm **trước** đó, không nằm ở đây: cả
 | --- | --- | --- |
 | S2 | Phân quyền kiểm bằng permission, không bằng tên role | §3.1 |
 | F14 | Bundle không vượt ngân sách | §2.1 |
+| F20 | `app.routes.ts` không import tĩnh component của feature | §2.1 |
+| F21 | `core/` không khai cứng đường dẫn route của dự án | §6 |
 
 Bảng đầy đủ: [`../RULES.md`](../RULES.md). Quyết định gốc: [`../adr/0005-permission-based.md`](../adr/0005-permission-based.md). Nền: [`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md) · [`../wiki-core/fe/14-security.md`](../wiki-core/fe/14-security.md).

@@ -8,7 +8,7 @@ verified: chua-doi-chieu
 
 > 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**
 >
-> **Định nghĩa hoàn thành:** stylesheet toàn cục chứa đủ bộ token lấy từ [`../../../Design/DESIGN.md`](../../../Design/DESIGN.md); tìm màu literal trong SCSS của `src/app` **không còn kết quả nào**; thư viện UI render đúng màu token trên ít nhất một nút và một bảng mẫu; font khai trong `Design/` **thật sự được nạp**; chế độ tối chạy đúng ở cả ba trạng thái.
+> **Định nghĩa hoàn thành:** stylesheet toàn cục chứa đủ bộ token lấy từ [`../../../Design/DESIGN.md`](../../../Design/DESIGN.md); tìm màu literal trong SCSS của `src/app` **không còn kết quả nào**; thư viện UI render đúng màu token trên ít nhất một nút và một bảng mẫu; font khai trong `Design/` **thật sự được nạp**; chế độ tối chạy đúng ở cả ba trạng thái, và mặc định là sáng.
 
 ---
 
@@ -18,11 +18,11 @@ verified: chua-doi-chieu
 
 | Nguồn | Đích |
 | --- | --- |
-| [`../../../Design/DESIGN.md`](../../../Design/DESIGN.md) và các tệp token đi kèm | Stylesheet toàn cục **và** preset của thư viện UI |
+| [`../../../Design/DESIGN.md`](../../../Design/DESIGN.md) và các tệp token đi kèm | Tệp khai token của stylesheet toàn cục |
 
 > 📖 Cơ chế đầy đủ, hai tầng token, quy tắc đặt tên: [`../04-design-token-system.md`](../04-design-token-system.md).
 
-**Hệ quả phải nhớ:** giá trị màu tồn tại ở **hai** nơi phía code. Đổi bảng màu phải chạm cả hai; sửa một nơi thì CSS của mình và component của thư viện render hai màu khác nhau **mà không có gì báo lỗi**. Cách chống là để preset đọc từ đúng một hằng số, không gõ tay hai lần cùng một mã màu.
+**Hệ quả phải nhớ:** giá trị màu tồn tại ở **đúng một** nơi phía code — tệp khai token. Preset của thư viện UI trỏ tên biến `var(--color-*)`, không chép mã màu ([`../04-design-token-system.md`](../04-design-token-system.md) §7). Một mã màu gõ tay vào preset là bản sao thứ hai, và từ lúc đó CSS của mình với component của thư viện có thể render hai màu khác nhau **mà không có gì báo lỗi**.
 
 **Không lấy giá trị từ một dự án khác.** Bảng màu của dự án tiền nhiệm mang những nợ đã biết — trong đó có cặp màu cảnh báo và màu lỗi từng đo được **dưới ngưỡng tương phản AA**. Lấy từ `Design/` là món nợ đó không bao giờ tồn tại; lấy từ code cũ là chép nguyên nó sang.
 
@@ -38,12 +38,13 @@ Thấy trong code một giá trị chưa có tên trong `Design/` thì **dừng 
 
 ### 2.2 Khai chế độ tối
 
-Ba trạng thái, không phải hai: sáng, tối, và **theo hệ điều hành** (mặc định). Cơ chế và bẫy: [`../04-design-token-system.md`](../04-design-token-system.md) §4.
+Ba trạng thái, không phải hai: sáng, tối, và theo hệ điều hành. **Mặc định là sáng** ([`../../../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md`](../../../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md)). Cơ chế và bẫy: [`../04-design-token-system.md`](../04-design-token-system.md) §4.
 
-Hai thứ dễ quên:
+Ba thứ dễ quên:
 
 | Quên gì | Triệu chứng |
 | --- | --- |
+| Áp giá trị sáng khi chưa có lựa chọn nào được lưu | Người mở lần đầu trên máy đang để chế độ tối nhận giao diện tối — trái mặc định đã chốt |
 | Điều kiện loại trừ khi người dùng đã chọn "sáng" | Người chọn sáng trên máy đang để chế độ tối vẫn nhận giao diện tối |
 | Đặt thuộc tính chế độ **trước khi khung hình đầu vẽ** | Một nháy trắng trước khi chuyển sang tối, ở mỗi lần tải trang |
 
@@ -63,7 +64,7 @@ Mỗi component trong `shared/` phải có `:hover`, `:focus-visible` và trạn
 
 ### 2.5 Preset cho thư viện UI
 
-Dựng preset ánh xạ token của mình vào hệ theming của thư viện, đăng ký một lần lúc cấu hình app, và **không** để theme mặc định của thư viện chạy song song.
+Dựng preset ánh xạ token của mình vào hệ theming của thư viện, đăng ký một lần lúc cấu hình app, và **không** để theme mặc định của thư viện chạy song song. Cơ chế — tầng nào ghi đè, tắt chế độ tối riêng của thư viện, thứ tự lớp CSS — và giới hạn "cú pháp chốt khi thi công theo tài liệu PrimeNG chính thức": [`../04-design-token-system.md`](../04-design-token-system.md) §7.
 
 Để hai hệ màu cùng tồn tại thì không ai biết chỗ nào thắng — triệu chứng là "sửa token mà nút không đổi màu", và người ta sẽ đi tìm lỗi ở chỗ khác rất lâu.
 
@@ -128,7 +129,9 @@ Quy tắc đặt tên cho cả bốn họ giống nhau: **theo vai trò, không 
 - [ ] Tìm hex trong SCSS của `src/app` → **không kết quả** (luật F6)
 - [ ] Tìm `rgb(`/`rgba(` trong SCSS của `core/`, `shared/`, `platform/` → chỉ còn dạng đọc token pha alpha (luật F7)
 - [ ] Đổi một token màu thương hiệu → **cả** CSS của mình lẫn component thư viện đổi theo
-- [ ] Bật chế độ tối theo hệ điều hành → không mảng nào còn nền sáng
+- [ ] Mở lần đầu, chưa từng chọn theme, trên máy đang để chế độ tối → giao diện **sáng**
+- [ ] Chọn "theo hệ điều hành" trên máy đang để chế độ tối → không mảng nào còn nền sáng
+- [ ] Tìm mã màu trong `core/theme/` → không kết quả; preset chỉ trỏ `var(--color-*)`
 - [ ] Chọn "sáng" tường minh khi hệ điều hành đang tối → giao diện sáng thật
 - [ ] Tải lại trang ở chế độ tối → **không có nháy trắng**
 - [ ] `font-family` đã tính toán phân giải ra đúng font đã khai

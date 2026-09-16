@@ -52,8 +52,8 @@ Tách đôi sẽ cho hai component có 90% CSS trùng nhau, và ngày đổi kho
 
 | Khoản | Giá trị |
 | --- | --- |
-| Đường kính chấm | 24px, dùng lại `--step-dot` mà [`Stepper.md`](./Stepper.md) khai |
-| Độ dày vạch nối | 2px |
+| Đường kính chấm | `--timeline-dot`; dưới `$bp-sm` là `--timeline-dot-sm` — số thật ở [`../DESIGN.md`](../DESIGN.md) §6.5 |
+| Độ dày vạch nối | `--timeline-line-w` |
 | Khe chấm → nội dung | `--sp-5` |
 | Khe dọc giữa hai mục | `--sp-6` |
 | Cỡ chữ tiêu đề mục | `--fs-sm`, `--fw-semibold` |
@@ -86,8 +86,8 @@ Hai mật độ:
 | --- | --- | --- | --- |
 | `done` | Nền `--color-success`, icon `pi-check` | `--color-success` | Đã duyệt, đã qua |
 | `current` | Viền `--color-brand`, icon `pi-spinner`, nền `--color-surface` | `--color-border-subtle` | Đang chờ người này |
-| `rejected` | Nền `--color-danger`, icon `pi-times` | `--color-border-subtle` | Đã trả lại — hồ sơ quay về người lập |
-| `upcoming` | Viền `--color-border`, icon `pi-lock`, chữ `--color-text-muted` | `--color-border-subtle` | Chưa tới lượt |
+| `rejected` | Nền `--color-danger`, icon `pi-times-circle` | `--color-border-subtle` | Đã trả lại — hồ sơ quay về người lập |
+| `upcoming` | Viền `--color-border`, icon `pi-circle`, chữ `--color-text-muted` | `--color-border-subtle` | Chưa tới lượt |
 
 Bốn trạng thái khác nhau bằng **icon**, không chỉ bằng màu — [`../DESIGN.md`](../DESIGN.md) §2.7.
 
@@ -101,16 +101,16 @@ Bốn trạng thái khác nhau bằng **icon**, không chỉ bằng màu — [`.
 | Chữ | `--fs-2xs`, `--fs-xs`, `--fs-sm`, `--fw-medium`, `--fw-semibold`, `--lh-snug`, `--lh-normal` |
 | Khoảng cách | `--sp-2`, `--sp-3`, `--sp-4`, `--sp-5`, `--sp-6` |
 | Hình dạng | `--radius-sm`, `--radius-full`, `--border-w`, `--border-w-strong` |
-| Kích thước | `--icon-sm`, `--step-dot` |
-| Icon | `pi-check`, `pi-times`, `pi-spinner`, `pi-lock`, `pi-pencil`, `pi-plus` — [`../Icons.md`](../Icons.md) §5 |
+| Kích thước | `--icon-sm`, `--timeline-dot`, `--timeline-dot-sm`, `--timeline-line-w` |
+| Icon | `pi-check`, `pi-times-circle`, `pi-spinner`, `pi-circle`, `pi-lock`, `pi-pencil`, `pi-plus` — [`../Icons.md`](../Icons.md) §5 |
 
 ## Responsive
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Cột chấm bên trái, nội dung bên phải. Dòng siêu dữ liệu nằm cùng hàng với tiêu đề nếu đủ chỗ |
-| `--bp-sm` … `--bp-md` | Dòng siêu dữ liệu xuống dòng riêng dưới tiêu đề |
-| < `--bp-sm` | Cột chấm **thu hẹp**: chấm giảm còn 16px, khe còn `--sp-4`. Khối trích dẫn trải hết bề rộng còn lại |
+| ≥ `$bp-md` | Cột chấm bên trái, nội dung bên phải. Dòng siêu dữ liệu nằm cùng hàng với tiêu đề nếu đủ chỗ |
+| `$bp-sm` … `$bp-md` | Dòng siêu dữ liệu xuống dòng riêng dưới tiêu đề |
+| < `$bp-sm` | Cột chấm **thu hẹp**: chấm giảm còn `--timeline-dot-sm`, khe còn `--sp-4`. Khối trích dẫn trải hết bề rộng còn lại |
 
 Cột chấm không bao giờ bị bỏ hẳn. Nó là thứ duy nhất nói rằng đây là một chuỗi chứ không phải một danh sách rời rạc.
 
@@ -158,6 +158,6 @@ Nút hành động của bước hiện hành ở biến thể `approval` (Duy�
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Nhật ký dài tải thêm bằng nút hay tự tải khi cuộn tới đáy? Nút thì kiểm soát được và thân thiện với bàn phím; tự tải thì mượt hơn nhưng dễ làm người dùng mất chỗ đang đọc | Dự án đầu tiên có màn nhật ký thật |
-| 2 | Một lượt sửa đổi nhiều trường cùng lúc hiện thành **một** mục hay nhiều mục? Một mục thì dải gọn nhưng phải gấp/mở; nhiều mục thì dải dài ra rất nhanh với những thao tác sửa hàng loạt | `ba-analyst`, vì nó phụ thuộc cách ghi vết ở tầng dữ liệu |
-| 3 | Ở `approval`, luồng có nhánh (hai người duyệt song song) thì vẽ thế nào? Hôm nay spec chỉ mô tả luồng **tuyến tính**. Luồng nhánh cần một hình thức khác hẳn và chưa có ở đây | Dự án đầu tiên có quy trình duyệt song song |
+| 1 | Nhật ký dài tải thêm bằng nút hay tự tải khi cuộn tới đáy? Nút thì kiểm soát được và thân thiện với bàn phím; tự tải thì mượt hơn nhưng dễ làm người dùng mất chỗ đang đọc | Sau F3 — dự án hạ nguồn đầu tiên có màn nhật ký |
+| 2 | Một lượt sửa đổi nhiều trường cùng lúc hiện thành **một** mục hay nhiều mục? Một mục thì dải gọn nhưng phải gấp/mở; nhiều mục thì dải dài ra rất nhanh với những thao tác sửa hàng loạt | Sau F3 — `ba-analyst` của màn nhật ký đầu tiên, theo cách ghi vết ở `core.audit_log` |
+| 3 | Ở `approval`, luồng có nhánh (hai người duyệt song song) thì vẽ thế nào? Hôm nay spec chỉ mô tả luồng **tuyến tính**. Luồng nhánh cần một hình thức khác hẳn và chưa có ở đây | Sau F3 — dự án hạ nguồn đầu tiên có quy trình duyệt song song |

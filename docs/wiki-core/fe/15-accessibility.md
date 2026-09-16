@@ -218,7 +218,7 @@ Cả ba đều **không** ảnh hưởng gì tới người dùng chuột, nên 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
 | Nhắm mức WCAG 2.2 AA | ✅ sẽ có | §1 |
-| Bộ quy tắc tiếp cận trong lint | ✅ sẽ có | Pha F0. **Chưa có mã luật** ở [`../../RULES.md`](../../RULES.md) §7 — nợ ghi ở [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §3.2 |
+| Bộ quy tắc tiếp cận trong lint | ✅ sẽ có | Pha F0. **Luật F17**, còn nợ cổng — [`../../RULES.md`](../../RULES.md) §10 và [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §3.3 |
 | Quản lý focus: route, hộp thoại, nội dung động | ✅ sẽ có | §3 |
 | Kiểm tương phản ở tầng token, cả hai chế độ | ✅ sẽ có | §4.2, §4.3 — làm ở pha F1 |
 | Checklist §2 cho mỗi màn mới | ✅ sẽ có | Dán vào mô tả PR |
@@ -228,7 +228,7 @@ Cả ba đều **không** ảnh hưởng gì tới người dùng chuột, nên 
 | Xoá viền focus mà không thay bằng thứ rõ hơn | ❌ loại, không hoãn `K44` | §3.4 — thay đổi CSS phá khả năng dùng bàn phím nhiều nhất |
 | Dùng ARIA thay cho phần tử HTML gốc đã có sẵn | ❌ loại, không hoãn `K45` | §5 — ARIA sai tệ hơn không có ARIA |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

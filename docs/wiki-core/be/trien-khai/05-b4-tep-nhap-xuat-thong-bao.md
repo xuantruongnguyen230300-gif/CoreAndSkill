@@ -18,6 +18,7 @@ verified: chua-doi-chieu
 | --- | --- | --- |
 | Lưu trữ tệp, vòng đời tệp, phục vụ có kiểm quyền | [`../14-file-storage.md`](../14-file-storage.md) | [`../../../contracts/files.md`](../../../contracts/files.md) |
 | Nhập và xuất dữ liệu | [`../15-import-export.md`](../15-import-export.md) | [`../../../contracts/exports.md`](../../../contracts/exports.md) |
+| Việc chạy nền — bảng `core.job`, theo dõi qua `jobId` | [`../../../database/schema-core.md`](../../../database/schema-core.md) §9.8 | [`../../../contracts/jobs.md`](../../../contracts/jobs.md) |
 | Sự kiện, Outbox, thông báo trong ứng dụng và email | [`../12-notifications.md`](../12-notifications.md) | [`../../../contracts/notifications.md`](../../../contracts/notifications.md) |
 | Bảo mật khi nhận tệp | [`../09-security-beyond-auth.md`](../09-security-beyond-auth.md) §9 | |
 
@@ -48,7 +49,9 @@ verified: chua-doi-chieu
 - [ ] Tải một tệp lên, tải lại được; tài khoản không có quyền → **không** tải được, kể cả khi có đường dẫn.
 - [ ] Tệp vượt giới hạn dung lượng hoặc sai kiểu → bị từ chối kèm mã lỗi trong card.
 - [ ] Xuất một danh sách đang lọc → tệp chứa **đúng** tập dòng của bộ lọc đó, và có dòng nhật ký kiểm toán.
-- [ ] Nhập một tệp có một dòng sai ở giữa → báo đúng số dòng, các dòng hợp lệ khác không bị dở dang.
+- [ ] Nhập một tệp có một dòng sai ở giữa → request trả `jobId`; `GET /api/v1/core/jobs/{id}` báo đúng số dòng, các dòng hợp lệ khác không bị dở dang.
+- [ ] Tệp vượt `Core:Import:MaxRows` → 422 ngay, không có bản ghi `core.job` nào được tạo.
+- [ ] Một dòng outbox `dead` → `/health/ready` trả `Degraded`; `core outbox-replay --id` đưa nó về `pending` và có dòng nhật ký kiểm toán.
 - [ ] Một sự kiện nghiệp vụ → có bản ghi Outbox trong **cùng** giao dịch; tắt tiến trình phát thì bản ghi vẫn nằm đó chờ.
 - [ ] Thông báo hiện đúng ngôn ngữ của người nhận, không phải ngôn ngữ của người gây ra sự kiện.
 
@@ -56,4 +59,4 @@ verified: chua-doi-chieu
 
 ## 5. Sau B4
 
-Core đã đủ cho một module nghiệp vụ đầu tiên. Thủ tục thêm thành phần vào Core: [`../01-core-components.md`](../01-core-components.md) §6.
+Core đã đủ cho một module nghiệp vụ đầu tiên. Module mẫu dựng ở dự án hạ nguồn đầu tiên, không ở repo Core — [`00-lo-trinh-tong-the.md`](00-lo-trinh-tong-the.md) §5. Thủ tục thêm thành phần vào Core: [`../01-core-components.md`](../01-core-components.md) §6.

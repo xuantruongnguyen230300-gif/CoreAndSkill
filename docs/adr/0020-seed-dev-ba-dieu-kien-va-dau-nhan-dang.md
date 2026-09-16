@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # ADR-0020 — Seed dev đi bằng lệnh riêng, chạy sau ba điều kiện đồng thời, và để lại dấu nhận dạng cố định
 
-> **Trạng thái:** Đã chấp nhận (2026-09-12)
+> **Trạng thái:** Đã thay thế bởi ADR-0022 (2026-09-12)
+>
+> Thay thế bởi [`0022-seed-dev-khong-co-duong-code-rieng.md`](0022-seed-dev-khong-co-duong-code-rieng.md).
 
 ## Bối cảnh
 

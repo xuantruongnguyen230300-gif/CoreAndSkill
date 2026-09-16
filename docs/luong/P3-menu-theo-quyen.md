@@ -14,21 +14,21 @@ verified: chua-doi-chieu
 
 ## 1. Ai bắt đầu, ở đâu
 
-FE, ngay sau khi đăng nhập thành công (luồng `D1` bước 7).
+FE, ngay sau khi đăng nhập thành công (luồng `D1` bước 8).
 
 ## 2. Điều kiện trước
 
 | Cần có | Ghi chú |
 | --- | --- |
 | Phiên hợp lệ | |
-| Bản ghi menu của đơn vị đã seed | Luồng `V1` bước 4 hoặc `V2` |
+| Bản ghi menu của đơn vị đã seed | Luồng `V1` bước 5 hoặc `V2` bước 4 — menu lấy từ các nguồn seed đã đăng ký |
 
 ## 3. Các bước
 
 | # | Ai làm | Hệ thống làm gì | Chi tiết ở |
 | --- | --- | --- | --- |
-| 1 | FE | `GET /meta/menu` | [`../contracts/meta-menu.md`](../contracts/meta-menu.md) §1 |
-| 2 | BE | Lấy cây menu **của đơn vị này** | [`../database/schema-core.md`](../database/schema-core.md) §7 |
+| 1 | FE | `GET /api/v1/core/meta/menu` | [`../contracts/meta-menu.md`](../contracts/meta-menu.md) §1 |
+| 2 | BE | Lấy cây menu **của đơn vị này** | [`../database/schema-core.md`](../database/schema-core.md) §6.3 |
 | 3 | BE | Lọc từng mục theo hai cơ chế — xem bảng dưới | cùng trên |
 | 4 | FE | Dựng thanh điều hướng từ cây đã lọc | [`../Design/Components/Sidebar.md`](../Design/Components/Sidebar.md) |
 
@@ -36,7 +36,7 @@ FE, ngay sau khi đăng nhập thành công (luồng `D1` bước 7).
 
 | Mục menu | Cách quyết định | Ghi chú |
 | --- | --- | --- |
-| Có khai quyền bắt buộc | Hiện ⇔ người dùng có **đúng quyền đó**. **Bỏ qua hoàn toàn** bảng gán menu theo vai trò | [`../database/schema-core.md`](../database/schema-core.md) §7 |
+| Có khai quyền bắt buộc | Hiện ⇔ người dùng có **đúng quyền đó**. **Bỏ qua hoàn toàn** bảng gán menu theo vai trò | [`../database/schema-core.md`](../database/schema-core.md) §6.3 |
 | Không khai quyền bắt buộc | Theo bảng gán menu theo vai trò | |
 
 Cơ chế thứ nhất **thắng tuyệt đối** khi có mặt. Đó là chủ đích: nếu cả hai cùng áp thì một mục có thể vừa hiện theo vai trò vừa ẩn theo quyền, và không ai giải thích được kết quả.
@@ -45,7 +45,7 @@ Cơ chế thứ nhất **thắng tuyệt đối** khi có mặt. Đó là chủ 
 
 | Ca | Biểu hiện |
 | --- | --- |
-| Mục menu trỏ tới màn mà người dùng không có quyền | Bấm vào nhận 403. Khó chịu nhưng **không phải lỗ hổng** |
+| Mục menu trỏ tới màn mà người dùng không có quyền | Bấm vào nhận `CORE.AUTH.FORBIDDEN` ([`../contracts/auth.md`](../contracts/auth.md) §11). Khó chịu nhưng **không phải lỗ hổng** |
 | Màn được bảo vệ **chỉ bằng** việc ẩn mục menu | 🛑 **Là lỗ hổng.** Người dùng gõ thẳng đường dẫn là vào được. Menu là gợi ý điều hướng, không phải hàng rào — hàng rào nằm ở kiểm quyền phía server |
 | Menu rỗng sau khi đăng nhập | Người dùng thấy một ứng dụng trống và không hiểu vì sao. Thường là vai trò rỗng quyền (`P1` bước 5) hoặc chưa gán vai trò (`P2`) |
 
@@ -58,5 +58,7 @@ Danh mục quyền thì **dùng chung toàn hệ**, nên mục menu của đơn 
 ## 6. Câu chưa trả lời được
 
 - **Chưa có endpoint quản trị menu.** [`../contracts/meta-menu.md`](../contracts/meta-menu.md) §2 khai rõ điều này. Nghĩa là hôm nay menu chỉ đổi được bằng cách seed hoặc sửa database — và mục "Sửa cấu hình menu" trong danh mục quyền chưa có đường nào dùng tới.
-- **Mục menu của module lắp thêm vào lúc nào?** Bản ghi menu mang mã module, nhưng không file nào mô tả luồng "module lắp vào Host thì menu của nó xuất hiện thế nào".
-- **Người dùng mang cờ `has_permission_bypass` thấy menu gì?** Nếu bộ kiểm quyền trả lời "có" cho mọi câu hỏi thì họ thấy **mọi** mục — kể cả mục của module chưa lắp, nếu bản ghi menu còn sót lại.
+
+Menu của module lắp thêm vào bản cài đã có đơn vị: lệnh `core seed-tenant-defaults` ([`../contracts/meta-menu.md`](../contracts/meta-menu.md) §2); mục trỏ tới module chưa lắp bị lọc lúc chạy (cùng file, §1.6).
+
+> Câu *"người dùng mang cờ `has_permission_bypass` thấy menu gì"* **đã có lời đáp**: cờ đó chỉ làm bộ kiểm quyền trả lời "có" cho mọi câu hỏi quyền ([`../adr/0021-hai-co-dac-quyen-la-hai-cot-loai-tru.md`](../adr/0021-hai-co-dac-quyen-la-hai-cot-loai-tru.md)), nên nó chỉ tác động lên bước 1 của thứ tự quyết định ở [`../database/schema-core.md`](../database/schema-core.md) §6.3. Hai bước còn lại không đọc cờ.

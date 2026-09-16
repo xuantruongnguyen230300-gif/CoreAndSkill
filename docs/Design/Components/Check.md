@@ -20,7 +20,7 @@ Bật/tắt một tuỳ chọn (ô đánh dấu) hoặc chọn đúng một tron
 
 | Dùng | Không dùng |
 | --- | --- |
-| Bật/tắt một tuỳ chọn độc lập — "Ghi nhớ đăng nhập", "Gửi email thông báo" | 🛑 Chuyển giữa vài **chế độ xem** loại trừ nhau → [`SegmentedControl.md`](./SegmentedControl.md); radio là để chọn **giá trị**, không phải để đổi cái đang nhìn |
+| Bật/tắt một tuỳ chọn độc lập — "Gửi email thông báo" | 🛑 Chuyển giữa vài **chế độ xem** loại trừ nhau → [`SegmentedControl.md`](./SegmentedControl.md); radio là để chọn **giá trị**, không phải để đổi cái đang nhìn |
 | Chọn nhiều mục trong một danh sách các lựa chọn | 🛑 Hơn khoảng bảy lựa chọn radio → dùng ô chọn (`select`) theo [`Input.md`](./Input.md); một cột hai chục nút radio không đọc được |
 | Chọn một trong hai đến bảy lựa chọn loại trừ (radio) | 🛑 Ô chọn tất cả ở đầu cột bảng có phân trang máy chủ → [`DataTable.md`](./DataTable.md) sở hữu ngữ nghĩa "tất cả" ở đó, vì "tất cả" là trang này hay toàn bộ kết quả là một quyết định nghiệp vụ |
 | Ô chọn hàng trong [`Table.md`](./Table.md) tĩnh, và ô "chọn tất cả" ở `th` | 🛑 Thực thi một hành động ngay khi bấm → [`Button.md`](./Button.md); một ô đánh dấu gây tác dụng phụ tức thì là bẫy cho người dùng bàn phím đang lướt qua |
@@ -45,7 +45,9 @@ Nhãn đặt **bên phải** ô, khe `--sp-4`. Không đặt nhãn bên trái: n
 | `sm` | `--icon-sm` (14px) | `--fs-xs` | `--size-control-sm` (28px) | Trong hàng bảng, trong chip lọc |
 | `md` | `--icon-md` (16px) | `--fs-sm` | `--size-control-md` (34px) | **Mặc định.** Form, dialog, danh sách tuỳ chọn |
 
-**Không có cỡ `lg`, có chủ đích.** Ba cỡ ở [`../COMPONENTS.md`](../COMPONENTS.md) §2.2 là ba **chiều cao control**; một ô đánh dấu 42px đứng cạnh nhãn cỡ `--fs-md` trông như một ô nhập bị hỏng chứ không như một tuỳ chọn. Cái giá: màn xác thực dùng `md` thay vì `lg` như các control khác trên [`AuthCard.md`](./AuthCard.md), nên hàng "Ghi nhớ đăng nhập" thấp hơn ô nhập phía trên — chấp nhận được vì nó vốn là một dòng phụ.
+**Không có cỡ `lg`, có chủ đích.** Ba cỡ ở [`../COMPONENTS.md`](../COMPONENTS.md) §2.2 là ba **chiều cao control**; một ô đánh dấu 42px đứng cạnh nhãn cỡ `--fs-md` trông như một ô nhập bị hỏng chứ không như một tuỳ chọn. Cạnh ô mượn `--icon-sm`/`--icon-md` là quyết định, không khai bậc `--size-check-*` riêng — ô đứng cạnh icon cùng hàng và phải bằng nó.
+
+Ô "chọn tất cả" trong `th` **thuộc [`DataTable.md`](./DataTable.md)**: là phần cấu trúc của lớp bọc, thư viện vẽ, mượn hình thức của `Check` ([`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5); phạm vi "tất cả" khai ở file đó. Cái giá: trong một form mà các control khác dùng cỡ `lg`, hàng ô đánh dấu vẫn ở `md` nên thấp hơn ô nhập phía trên — chấp nhận được vì nó vốn là một dòng phụ.
 
 Vùng bấm nới bằng `padding` của `<label>`, không bằng `margin` — `margin` không nhận sự kiện chuột ([`../COMPONENTS.md`](../COMPONENTS.md) §2.2).
 
@@ -58,8 +60,8 @@ Vùng bấm nới bằng `padding` của `<label>`, không bằng `margin` — `
 | `focus-visible` | `outline: var(--border-w-strong) solid var(--color-focus)`, `outline-offset: 2px` **trên chính cái ô**, không trên cả dòng. Vòng focus ôm cả dòng làm người dùng bàn phím mất dấu ô nào đang được chọn trong một cột dài | Có |
 | `active` | Viền `--color-brand-active`; không dịch chuyển hình — một ô nhỏ cỡ `--icon-md` mà nhích 1px thì trông như lỗi vẽ chứ không như phản hồi | Có |
 | `disabled` | Nền `--color-surface-3`; viền `--color-border`; nhãn `--color-text-disabled`; `cursor: not-allowed`. Thuộc tính `disabled` thật trên input | Có |
-| `loading` | **Không áp dụng cho chính ô.** Ô đánh dấu đổi giá trị tức thì; nếu việc lưu cần thời gian thì trạng thái chờ thuộc về nút Lưu ở [`Button.md`](./Button.md) hoặc về cả cụm form. Ca lưu-ngay (autosave) xem `Cần chốt` #2 | — |
-| `error` | Viền `--color-danger-border`; dòng lỗi chữ `--color-danger` đặt dưới **cả nhóm**, không dưới từng ô. Kênh thứ hai là chữ, viền đỏ một mình không đủ — [`../DESIGN.md`](../DESIGN.md) §2.7 | Có |
+| `loading` | **Không áp dụng cho chính ô.** Ô đánh dấu đổi giá trị tức thì; nếu việc lưu cần thời gian thì trạng thái chờ thuộc về nút Lưu ở [`Button.md`](./Button.md) hoặc về cả cụm form. Ca lưu-ngay (autosave) xem `Cần chốt` #1 | — |
+| `error` | Bật khi control `invalid && touched` (§API dự kiến), cùng khuôn `error` của [`Input.md`](./Input.md). Viền `--color-danger-border`; dòng lỗi chữ `--color-danger` đặt dưới **cả nhóm**, không dưới từng ô. Kênh thứ hai là chữ, viền đỏ một mình không đủ — [`../DESIGN.md`](../DESIGN.md) §2.7 | Có |
 | `empty` | **Không áp dụng.** Một nhóm radio không có lựa chọn nào là lỗi dữ liệu ở tầng gọi, không phải trạng thái của control. Nơi gọi phải hiện [`EmptyState.md`](./EmptyState.md) thay cho cả nhóm | — |
 
 **Vì sao nửa chọn dùng gạch ngang chứ không dùng ô mờ:** nửa chọn nghĩa là "một số con đã chọn", và người dùng phải phân biệt nó với `disabled`. Ô mờ đã là ngôn ngữ của `disabled` rồi; dùng lại nó ở đây tạo ra hai nghĩa cho một hình thức. Gạch ngang là hình dạng khác hẳn, nên nó phân biệt được cả với người mù màu — đúng luật [`../Icons.md`](../Icons.md) §7 về hai trạng thái cùng hình dạng khác màu.
@@ -81,9 +83,9 @@ Vùng bấm nới bằng `padding` của `<label>`, không bằng `margin` — `
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Nhóm radio ít lựa chọn xếp ngang được, khe `--sp-6` giữa các lựa chọn |
-| < `--bp-md` | Mọi nhóm xếp dọc một cột, khe `--sp-5`; nhãn xuống dòng thay vì cắt bằng dấu ba chấm |
-| < `--bp-xs` | Cỡ tối thiểu là `md`; vùng bấm của `<label>` kéo hết bề rộng cụm để ngón tay chạm đâu cũng trúng |
+| ≥ `$bp-md` | Nhóm radio ít lựa chọn xếp ngang được, khe `--sp-6` giữa các lựa chọn |
+| < `$bp-md` | Mọi nhóm xếp dọc một cột, khe `--sp-5`; nhãn xuống dòng thay vì cắt bằng dấu ba chấm |
+| < `$bp-xs` | Cỡ tối thiểu là `md`; vùng bấm của `<label>` kéo hết bề rộng cụm để ngón tay chạm đâu cũng trúng |
 
 Nhãn của ô đánh dấu **được phép xuống dòng**, khác hẳn nhãn nút ở [`Button.md`](./Button.md). Nhãn ở đây thường là một câu điều kiện dài, và cắt nó bằng dấu ba chấm sẽ giấu mất chính thứ người dùng đang đồng ý.
 
@@ -99,7 +101,7 @@ Nhãn của ô đánh dấu **được phép xuống dòng**, khác hẳn nhãn 
 | `name` | Mọi radio trong một nhóm phải dùng **chung một `name`**. Thiếu, chúng thành các ô đánh dấu tròn chọn được nhiều cái — lỗi trông không thấy được |
 | Focus | `:focus-visible` trên ô, `outline-offset` ≥ 2px |
 | Nhãn | `<label for>` trỏ đúng `id`, hoặc `<label>` bọc input. `id` phải duy nhất trong cả trang |
-| Lỗi | Dòng lỗi nối vào nhóm bằng `aria-describedby`; nhóm mang `aria-invalid="true"` |
+| Lỗi | `aria-invalid="true"` trên `<input>` suy từ control: `invalid && touched` (§API dự kiến) — radio cùng nhóm gắn cùng một control nên bật cùng lúc; `aria-describedby` = `describedBy` trang truyền, trỏ tới id của dòng lỗi do `FormRow` vẽ dưới cả nhóm — cùng khuôn [`Input.md`](./Input.md) §Accessibility |
 | Vùng bấm | ≥ 28×28px tính cả `<label>`, nới bằng `padding` (WCAG 2.2 SC 2.5.8) |
 | Chữ | Nhãn đi qua tầng i18n — [`../../RULES.md`](../../RULES.md) §7 F8 |
 
@@ -108,15 +110,17 @@ Nhãn của ô đánh dấu **được phép xuống dòng**, khác hẳn nhãn 
 | Tên | Chiều | Kiểu | Mặc định | Ghi chú |
 | --- | --- | --- | --- | --- |
 | `type` | input | `'checkbox' \| 'radio'` | `'checkbox'` | |
-| `checked` | input | `boolean` | `false` | Với `radio`, do nhóm cha quyết định |
-| `indeterminate` | input | `boolean` | `false` | Chỉ có nghĩa với `checkbox`. Đặt cùng `checked = true` là mâu thuẫn — component ưu tiên `indeterminate` và ghi cảnh báo lúc phát triển |
+| `checked` | input | `boolean` | `false` | Chỉ khi ô **không** gắn control — ô chọn hàng trong [`Table.md`](./Table.md); gắn control thì giá trị đến qua `writeValue` |
+| `indeterminate` | input | `boolean` | `false` | Chỉ có nghĩa với `checkbox`. Không đi qua control — là cách hiển thị do máy suy (§Trạng thái). Đặt cùng giá trị `true` là mâu thuẫn — component ưu tiên `indeterminate` và ghi cảnh báo lúc phát triển |
 | `size` | input | `'sm' \| 'md'` | `'md'` | |
-| `disabled` | input | `boolean` | `false` | |
-| `invalid` | input | `boolean` | `false` | Chỉ đổi hình thức và `aria-invalid`; **không** giữ câu chữ lỗi — câu chữ thuộc [`FormRow.md`](./FormRow.md) |
+| `disabled` | input | `boolean` | `false` | Chỉ khi ô **không** gắn control; gắn control thì vô hiệu hoá đến qua `setDisabledState` |
+| `describedBy` | input | `string \| null` | `null` | Id của dòng lỗi hoặc dòng gợi ý mà `FormRow` vẽ (`<controlId>-error` / `<controlId>-hint`), trang truyền tường minh — cùng luật với [`Input.md`](./Input.md) §API. Gắn thành `aria-describedby` trên `<input>` |
 | `name` | input | `string \| null` | `null` | Bắt buộc với `radio` |
-| `value` | input | `string \| number \| null` | `null` | Giá trị phát ra khi `radio` được chọn |
+| `value` | input | `string \| number \| null` | `null` | Giá trị của lựa chọn `radio`: ghi vào control khi được chọn; `writeValue` so giá trị control với nó để đặt `checked` |
 | `ariaLabel` | input | `string \| null` | `null` | Chỉ dùng khi không có nhãn nhìn thấy được — ca hiếm, ví dụ ô chọn hàng trong bảng |
-| `checkedChange` | output | `boolean` | — | Không phát khi `disabled` |
+| `checkedChange` | output | `boolean` | — | Chỉ khi ô **không** gắn control — ô chọn hàng trong [`Table.md`](./Table.md). Không phát khi `disabled` |
+
+**Form control chuẩn Angular.** `Check` cài `ControlValueAccessor` cùng khuôn [`Input.md`](./Input.md) §API: nhận `[formControl]` / `formControlName`; giá trị, `touched` (lúc rời ô) và vô hiệu hoá đi qua control. `checkbox` mang giá trị `boolean`. `radio`: mọi lựa chọn trong một nhóm gắn **cùng một** control và cùng `name` — mỗi lựa chọn là một accessor của control đó, cùng cơ chế với radio gốc của Angular. Trạng thái `error` — viền, `aria-invalid` — suy từ control: `invalid && touched`; câu lỗi do trang lấy từ `fieldErrorText` ([`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.5) và truyền cho `error` của `FormRow` biến thể `group`. Ca không gắn control chỉ còn ô chọn hàng và ô "chọn tất cả" trong [`Table.md`](./Table.md): `checked`, `disabled`, `checkedChange` dành cho ca đó.
 
 Nhãn nhìn thấy được vào qua slot mặc định (`<ng-content>`), không qua input chuỗi — nhãn hay chứa một liên kết ("Tôi đồng ý với **điều khoản**") và một input chuỗi sẽ chặn điều đó.
 
@@ -127,7 +131,8 @@ Nhãn nhìn thấy được vào qua slot mặc định (`<ng-content>`), không
 ## Do / Don't
 
 - ✅ Luôn gắn `<label>` với input; cả dòng phải bấm được.
-- ✅ Dùng chung một `name` cho mọi radio trong một nhóm.
+- ✅ Trong form, gắn qua `[formControl]` / `formControlName`; `checked` / `checkedChange` chỉ cho ô chọn hàng trong `Table`.
+- ✅ Dùng chung một `name` và một control cho mọi radio trong một nhóm.
 - ✅ Đặt `aria-checked="mixed"` cùng lúc với property `indeterminate`.
 - ✅ Bọc nhóm trong `<fieldset>` + `<legend>` khi các lựa chọn thuộc cùng một câu hỏi.
 - ❌ Không dùng radio để đổi chế độ xem — đó là việc của [`SegmentedControl.md`](./SegmentedControl.md).
@@ -140,6 +145,4 @@ Nhãn nhìn thấy được vào qua slot mặc định (`<ng-content>`), không
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Cạnh ô đang mượn `--icon-sm`/`--icon-md`, vốn là token **cỡ icon** chứ không phải cỡ ô control. Có khai một token riêng (ví dụ một bậc `--size-check-*`) trong [`../DESIGN.md`](../DESIGN.md) §6.2 không, hay chấp nhận mượn? | Người sở hữu hệ token |
-| 2 | Ca lưu-ngay: khi bật một ô là gọi máy chủ luôn, phản hồi chờ hiện ở đâu — trên chính ô, hay bằng `Toast`? Hôm nay spec đóng cửa `loading` trên ô, nhưng chưa có màn thật để kiểm | Dự án đầu tiên có màn cấu hình lưu-ngay |
-| 3 | Ô "chọn tất cả" trong `th` có thuộc `Check` hay thuộc [`DataTable.md`](./DataTable.md)? Hình thức thì thuộc đây, nhưng ngữ nghĩa "tất cả" (trang này hay toàn bộ kết quả) thì không | Khi dựng `DataTable` |
+| 1 | Ca lưu-ngay: khi bật một ô là gọi máy chủ luôn, phản hồi chờ hiện ở đâu — trên chính ô, hay bằng `Toast`? Hôm nay spec đóng cửa `loading` trên ô, nhưng chưa có màn thật để kiểm | Sau F3 — dự án hạ nguồn đầu tiên có màn cấu hình lưu-ngay |

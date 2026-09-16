@@ -36,7 +36,8 @@ Cụ thể:
 
 | Được viết | Không được viết |
 | --- | --- |
-| Bước 1, 2, 3… ai làm, làm gì | Chữ ký kiểu, tên cột, giá trị token, mã lỗi |
+| Bước 1, 2, 3… ai làm, làm gì | Chữ ký kiểu, tên cột, giá trị token |
+| `code` của một lỗi, **kèm link tới card hợp đồng chủ** | HTTP status hay `ErrorType` của mã đó — card giữ ánh xạ, luồng chỉ trỏ tới |
 | *"Bước này hỏng thì thấy gì"* | Bảng đặc tả một bảng dữ liệu |
 | Chỗ hai file phải khớp nhau, và khớp ở điểm nào | Luật mới — luật vào [`../RULES.md`](../RULES.md) |
 | Câu hỏi chưa ai trả lời | Câu trả lời tự nghĩ ra |
@@ -69,6 +70,7 @@ Trạng thái: ✅ đã viết · 🚧 đang viết · ⬜ chưa viết. **Hiệ
 | `V1` | [Cài đặt lần đầu — từ database trống tới hai tài khoản đăng nhập được](V1-cai-dat-lan-dau.md) | ✅ |
 | `V2` | [Tạo một đơn vị mới](V2-tao-don-vi-moi.md) | ✅ |
 | `V3` | [Ngưng và bật lại hoạt động của một đơn vị](V3-ngung-va-bat-lai-don-vi.md) | ✅ |
+| `V4` | [Khôi phục quản trị đơn vị — vận hành đặt lại mật khẩu cho người giữ cửa quản trị của đơn vị](V4-khoi-phuc-quan-tri-don-vi.md) | ✅ |
 
 ### Danh tính
 
@@ -76,7 +78,7 @@ Trạng thái: ✅ đã viết · 🚧 đang viết · ⬜ chưa viết. **Hiệ
 | --- | --- | --- |
 | `D1` | [Đăng nhập](D1-dang-nhap.md) | ✅ |
 | `D2` | [Đổi mật khẩu bắt buộc ở lần đăng nhập đầu](D2-doi-mat-khau-lan-dau.md) | ✅ |
-| `D3` | [Quên mật khẩu và tự đặt lại](D3-quen-mat-khau.md) | ✅ |
+| `D3` | [Quên mật khẩu và tự đặt lại](D3-quen-mat-khau.md) · **ngoài phạm vi v1** | ✅ |
 | `D4` | [Quản trị đặt lại mật khẩu cho người khác](D4-quan-tri-dat-lai-mat-khau.md) | ✅ |
 | `D5` | [Khoá và mở khoá một tài khoản](D5-khoa-va-mo-khoa-tai-khoan.md) | ✅ |
 | `D6` | [Đăng xuất](D6-dang-xuat.md) | ✅ |
@@ -99,7 +101,7 @@ Trạng thái: ✅ đã viết · 🚧 đang viết · ⬜ chưa viết. **Hiệ
 | `N4` | [Nhập dữ liệu từ tệp](N4-nhap-du-lieu-tu-tep.md) | ✅ |
 | `N5` | [Thông báo đi qua Outbox tới đúng người nhận](N5-thong-bao-outbox.md) | ✅ |
 | `N6` | [Ghi nhật ký kiểm toán](N6-nhat-ky-kiem-toan.md) | ✅ |
-| `N7` | [Màn hình sinh từ metadata](N7-man-hinh-tu-metadata.md) | ✅ |
+| `N7` | [Màn hình sinh từ metadata](N7-man-hinh-tu-metadata.md) · **ngoài phạm vi v1** | ✅ |
 | `N8` | [FE báo lỗi về server](N8-fe-bao-loi-ve-server.md) | ✅ |
 | `N9` | [Người dùng sửa hồ sơ của chính mình](N9-sua-ho-so-ca-nhan.md) | ✅ |
 
@@ -119,11 +121,11 @@ Tên pha theo [`../wiki-core/be/trien-khai/00-lo-trinh-tong-the.md`](../wiki-cor
 | Pha | Xong thì có gì chạy được | Luồng phải giải xong mục §6 |
 | --- | --- | --- |
 | **B0** Nền móng | Project đúng chiều tham chiếu · envelope cả hai nhánh · thiếu cấu hình thì không khởi động · ArchTest đã từng đỏ | **Không luồng nào.** Bốn thứ này không chạm đơn vị, không chạm phân quyền |
-| **B1** Dữ liệu, đơn vị, danh tính | Database dựng từ runbook · đăng nhập cookie chạy thật · mọi bảng mang cột đơn vị và bộ lọc đã bật | `V1` · `D1` · `D2` · `D3` · `D6` · `N9` |
-| **B2** Phân quyền, menu, bảo mật biên | Bốn card hợp đồng chạy đúng · 403 bắn đúng chỗ · CSRF và rate limit chặn thật | `P1` · `P2` · `P3` · `N1` · `D4` · `D5` |
-| **B3** Vận hành | Nhật ký kiểm toán ghi được · chỉ số và health check đúng · tạo một đơn vị mới chạy lại được nhiều lần | `V2` · `V3` · `N6` · `N8` |
-| **B4** Tệp, nhập/xuất, thông báo | Đính kèm và tải lại có kiểm quyền · xuất theo bộ lọc đang xem · sự kiện sinh thông báo qua Outbox | `N2` · `N3` · `N4` · `N5` |
-| — | ngoài phạm vi v1 | `N7` |
+| **B1** Dữ liệu, đơn vị, danh tính | Database dựng từ runbook · lệnh bootstrap dựng hai đơn vị và hai tài khoản qua service tạo đơn vị · card `auth.md` (trừ §10) và `profile.md` chạy đúng · mọi bảng mang cột đơn vị và bộ lọc đã bật | `V1` · `D1` · `D2` · `D6` · `N9` |
+| **B2** Phân quyền, menu, bảo mật biên | Card `users.md` · `roles.md` · `permissions.md` · `meta-menu.md` · `auth.md` §10 chạy đúng · 403 bắn đúng chỗ · CSRF và rate limit chặn thật | `P1` · `P2` · `P3` · `N1` · `D4` · `D5` |
+| **B3** Vận hành | Card `tenants.md` (gồm endpoint khôi phục quản trị đơn vị) · `client-errors.md` chạy đúng · nhật ký kiểm toán ghi được · chỉ số và health check đúng · tạo một đơn vị mới chạy lại được nhiều lần | `V2` · `V3` · `V4` · `N6` · `N8` |
+| **B4** Tệp, nhập/xuất, thông báo | Card `files.md` · `exports.md` · `jobs.md` · `notifications.md` · đính kèm và tải lại có kiểm quyền · xuất theo bộ lọc đang xem · sự kiện sinh thông báo qua Outbox | `N2` · `N3` · `N4` · `N5` |
+| — | ngoài phạm vi v1 | `D3` · `N7` |
 
 🛑 **B0 không bị luồng nào chặn.** Đó là kết luận đáng giá nhất của bảng này: phần lớn câu hỏi mở là **quyết định mà ràng buộc thật mới ép ra được**, và chúng rơi vào B1 trở đi. Trả lời chúng trên giấy trước khi có code là lặp lại khuôn đã làm [`../adr/0020-seed-dev-ba-dieu-kien-va-dau-nhan-dang.md`](../adr/0020-seed-dev-ba-dieu-kien-va-dau-nhan-dang.md) bị lật trong vài giờ.
 

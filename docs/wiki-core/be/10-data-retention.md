@@ -165,6 +165,8 @@ Không phải mọi thứ. Ghi hết thì bảng phình và không ai đọc n�
 
 - Thay đổi phân quyền và vai trò.
 - Tạo, khoá, mở khoá tài khoản; đổi mật khẩu.
+- Xuất dữ liệu: ai xuất, bộ lọc nào, bao nhiêu dòng ([`15-import-export.md`](15-import-export.md) §5.5).
+- Phát lại bản ghi outbox chết bằng lệnh `core outbox-replay` — mỗi dòng phát lại một dòng nhật ký ([`../../database/script-runbook.md`](../../database/script-runbook.md) §10).
 - Xoá bản ghi nghiệp vụ (mềm hoặc cứng).
 - Thay đổi cấu hình hệ thống.
 - Truy cập dữ liệu nhạy cảm, nếu có yêu cầu tuân thủ.

@@ -29,7 +29,7 @@ Nhận một báo cáo lỗi runtime xảy ra trên trình duyệt người dùn
   "message": "Cannot read properties of undefined (reading 'ten')",
   "stack": "at PhieuListPage.hienThi (main-A7F2.js:1:2481)",
   "duongDan": "/phieu/danh-sach",
-  "traceId": "0HNO9S8JAP586:00000012",
+  "traceId": "c1807b11710f43c1964ec2988f532e56",
   "phienBanApp": "2026.09.10-a1b2c3d"
 }
 ```
@@ -52,17 +52,20 @@ Server tự đọc `User-Agent` và IP từ header — **không** nhận chúng 
   "success": true,
   "data": null,
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000013"
+  "traceId": "0c032e3ef835ea31065ab495b7671685"
 }
 ```
 
 ### Lỗi
 
-| `code` | `type` | HTTP | Khi nào |
-| --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | Thiếu field bắt buộc, hoặc vượt giới hạn độ dài |
-| `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu hoặc sai `X-XSRF-TOKEN` |
-| `CORE.RATE_LIMIT.EXCEEDED` | — | 429 | Vượt giới hạn tần suất. Kèm header `Retry-After` |
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11. Endpoint này `[AllowAnonymous]` nên **không** có nhánh 401:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | Thiếu field bắt buộc, hoặc vượt giới hạn độ dài |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.RATE_LIMIT.EXCEEDED` | Vượt giới hạn tần suất. Kèm header `Retry-After` |
 
 ### Ghi chú
 
@@ -72,6 +75,6 @@ Server tự đọc `User-Agent` và IP từ header — **không** nhận chúng 
 
 **Không gửi dữ liệu cá nhân hay nội dung form.** Ràng buộc này thuộc FE và nằm ở [`../wiki-core/fe/10-observability.md`](../wiki-core/fe/10-observability.md) §4.1. Phía server: nếu một field vượt giới hạn độ dài thì **từ chối**, không cắt bớt rồi lưu — cắt bớt là cách một chuỗi chứa dữ liệu nhạy cảm vẫn vào log dưới dạng đã cụt.
 
-**Server ghi ra log, không dựng bảng riêng ở v1.** Một dòng log mức `Error` với nguồn là client, theo khuôn ở [`../wiki-core/be/07-observability.md`](../wiki-core/be/07-observability.md) §2.2, kèm `traceId` nhận được. Bảng trong database chỉ cần khi phải truy vấn và thống kê — chưa có nhu cầu đó.
+**Server ghi ra log, không dựng bảng riêng ở v1.** Một dòng log mức `Error` với nguồn là client, theo khuôn ở [`../wiki-core/be/07-observability.md`](../wiki-core/be/07-observability.md) §2.2, kèm `traceId` nhận được. Trước khi ghi: `stack` chỉ giữ **20 dòng đầu**; mọi field đi qua bộ lọc trường nhạy cảm theo danh sách ở [`../wiki-core/be/07-observability.md`](../wiki-core/be/07-observability.md) §5 — nội dung do trình duyệt soạn nên danh sách đó không tự áp. Chỉ người vận hành đọc, ở log; **không có màn nào đọc lại ở v1**. Bảng trong database chỉ cần khi phải truy vấn và thống kê — chưa có nhu cầu đó.
 
 **Giới hạn tần suất là bắt buộc, không phải tuỳ chọn**: policy riêng theo IP, khai ở [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §6.

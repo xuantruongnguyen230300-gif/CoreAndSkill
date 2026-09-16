@@ -170,7 +170,7 @@ Phân ba mức. Mỗi mục neo bằng đường dẫn; không neo được thì
 2. **Một file mồ côi có nội dung dày.** Có thể là file bị bỏ quên, cũng có thể là file cố ý chưa nối vào. Hỏi trước khi đề xuất xoá hay đề xuất nối.
 3. **Cổng ở bước 0 đỏ.** Dừng hẳn, không chạy tiếp.
 4. **Người dùng yêu cầu skill tự sửa các finding.** Nói rõ skill này chỉ báo cáo; việc sửa `docs/` thuộc `tech-writer` hoặc chính người dùng.
-5. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1. Nói rõ cần chạy lệnh gì, người dùng tự chạy.
+5. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1.
 
 ## Đầu ra
 

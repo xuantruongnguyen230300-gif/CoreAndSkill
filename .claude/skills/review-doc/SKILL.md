@@ -128,7 +128,7 @@ Theo khuôn ở mục Đầu ra. Mỗi finding neo bằng **đường dẫn kèm
 2. **Diff chạm cả `docs/` lẫn `.claude/` với nội dung tương tự nhau ở hai bên.** Đây là dấu hiệu bản sao đang sinh ra — hỏi, đừng tự kết luận bên nào là bản gốc.
 3. **Một finding đòi phải chọn file chủ giữa hai file.** Đó là quyết định của người dùng, chuyển sang skill `doc-sync`.
 4. **Người dùng yêu cầu sửa các finding ngay trong lượt này.** Nói rõ lượt review không sửa; việc sửa thuộc `tech-writer` hoặc chính người dùng.
-5. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1. Nói rõ cần chạy lệnh gì.
+5. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1.
 
 ## Đầu ra
 

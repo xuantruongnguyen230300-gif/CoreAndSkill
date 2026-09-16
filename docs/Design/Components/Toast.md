@@ -39,7 +39,7 @@ Báo kết quả một thao tác **vừa xảy ra**, không chặn người dùn
 
 **Toast lỗi không tự tắt.** Người dùng có thể đang nhìn chỗ khác đúng lúc nó hiện. Với một thông báo thành công thì bỏ lỡ không sao — kết quả đã thấy trên màn hình. Với một lỗi thì bỏ lỡ nghĩa là họ tin thao tác đã thành công.
 
-**Thời gian tăng dần theo mức nghiêm trọng** vì mức nghiêm trọng tỉ lệ với lượng chữ cần đọc, và với xác suất người dùng muốn đọc lại.
+**Thời gian tăng dần theo mức nghiêm trọng** vì mức nghiêm trọng tỉ lệ với lượng chữ cần đọc, và với xác suất người dùng muốn đọc lại. Thời gian cố định theo vai, không tính theo độ dài chữ — nội dung đã bị chặn ở hai dòng nên không có gì để đo.
 
 Nền `Toast` luôn là `--color-surface` với viền `--color-border`; **chỉ icon mang màu vai**. Tô cả nền theo vai làm bốn loại toast trông như bốn component khác nhau, và làm chữ trên nền màu khó đọc ở theme tối.
 
@@ -47,7 +47,7 @@ Nền `Toast` luôn là `--color-surface` với viền `--color-border`; **chỉ
 
 | Khoản | Giá trị |
 | --- | --- |
-| Bề rộng | Tối thiểu 280px, tối đa 420px |
+| Bề rộng | `--layout-toast-w`, **cố định** — bí danh bậc `sm` của thang bề rộng ([`../DESIGN.md`](../DESIGN.md) §6.1), để các toast trong ngăn xếp thẳng mép; ở khổ hẹp co theo §Responsive |
 | Đệm | `--sp-5` |
 | Khe icon → nội dung | `--sp-4` |
 | Khe tiêu đề → nội dung | `--sp-2` |
@@ -87,7 +87,7 @@ Vào: trượt vào từ mép + mờ dần (`--dur-slow`, `--ease-decelerate`). 
 | Chữ | `--fs-sm`, `--fw-semibold`, `--fw-regular`, `--lh-snug`, `--lh-normal` |
 | Khoảng cách | `--sp-2`, `--sp-4`, `--sp-5`, `--sp-8` |
 | Hình dạng | `--radius-md`, `--border-w` |
-| Kích thước | `--icon-lg` |
+| Kích thước | `--icon-lg`, `--layout-toast-w` |
 | Bóng | `--shadow-4` |
 | Lớp | `--z-toast` |
 | Chuyển động | `--dur-base`, `--dur-slow`, `--ease-decelerate`, `--ease-accelerate` |
@@ -96,9 +96,9 @@ Vào: trượt vào từ mép + mờ dần (`--dur-slow`, `--ease-decelerate`). 
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Ngăn xếp ở góc **phải dưới**, cách mép `--sp-8`. Toast mới ở dưới cùng |
-| `--bp-sm` … `--bp-md` | Vẫn phải dưới, bề rộng co lại, cách mép `--sp-5` |
-| < `--bp-sm` | Ngăn xếp lên **trên cùng**, chiếm gần hết bề rộng, cách mép `--sp-4`. Toast mới ở trên cùng |
+| ≥ `$bp-md` | Ngăn xếp ở góc **phải dưới**, cách mép `--sp-8`. Toast mới ở dưới cùng |
+| `$bp-sm` … `$bp-md` | Vẫn phải dưới, bề rộng co lại, cách mép `--sp-5` |
+| < `$bp-sm` | Ngăn xếp lên **trên cùng**, chiếm gần hết bề rộng, cách mép `--sp-4`. Toast mới ở trên cùng |
 
 **Vì sao đảo lên trên ở màn nhỏ:** phần dưới màn hình điện thoại là chỗ ngón tay cái nằm và là chỗ bàn phím ảo chiếm. Toast ở dưới sẽ bị ngón tay che hoặc bị bàn phím đẩy khuất.
 
@@ -110,7 +110,7 @@ Vào: trượt vào từ mép + mờ dần (`--dur-slow`, `--ease-decelerate`). 
 | `role` | `role="status"` cho `polite`, `role="alert"` cho `assertive` |
 | Ngăn chứa tồn tại sẵn | Vùng `aria-live` phải **có mặt trong DOM từ đầu**, rỗng. Chèn cả vùng `aria-live` cùng lúc với nội dung thì nhiều trình đọc màn hình **không đọc gì cả** — chúng chỉ theo dõi thay đổi bên trong một vùng đã tồn tại. Đây là bẫy phổ biến nhất của mọi thông báo động |
 | `pointer-events` | Ngăn chứa `none`; từng toast `auto` |
-| Nút đóng | [`IconButton.md`](./IconButton.md) có `aria-label` |
+| Nút đóng | Icon `pi-times` ([`../Icons.md`](../Icons.md) §5), có `aria-label`. Phần cấu trúc của lớp bọc: thư viện vẽ, tạo hình bằng token theo hình thức của [`IconButton.md`](./IconButton.md) — [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5 |
 | Icon | `aria-hidden="true"` — vai đã có trong chữ ([`../Icons.md`](../Icons.md) §7) |
 | Thời gian đọc | Toast tự tắt sau vài giây có thể vi phạm WCAG 2.2 SC 2.2.1 nếu nội dung cần thời gian đọc. Giảm nhẹ bằng: dừng đồng hồ khi hover/focus, luôn có nút đóng, và **lỗi thì không tự tắt** |
 | Bàn phím | Toast **không** tự cướp focus. Người dùng đang gõ dở mà bị nhảy focus ra chỗ khác là mất chỗ. Toast có nút hành động thì nút đó nằm trong thứ tự Tab bình thường |
@@ -127,7 +127,9 @@ Vào: trượt vào từ mép + mờ dần (`--dur-slow`, `--ease-decelerate`). 
 | Hàng đợi | Giữ danh sách thông báo, hẹn giờ, giới hạn ba cái | Một service ở tầng `core/` — **smart** |
 | Component | Vẽ danh sách nhận qua `input()` | Tầng dùng chung — **dumb** |
 
-Không tách thì component phải là smart (nó tự giữ trạng thái toàn cục), và cổng [`../../RULES.md`](../../RULES.md) §7 F11 sẽ chặn. Đây đúng ca thứ hai trong bảng "dễ nhầm" ở [`../COMPONENTS.md`](../COMPONENTS.md) §5.
+Không tách thì component phải là smart (nó tự giữ trạng thái toàn cục), và luật dumb ở [`../COMPONENTS.md`](../COMPONENTS.md) §5 cấm — đây đúng ca thứ hai trong bảng "dễ nhầm" của mục đó.
+
+🛑 **Không cổng nào bắt được ca này.** [`../../RULES.md`](../../RULES.md) §7 F11 chỉ quét `shared/components/`; `Toast` là lớp bọc thư viện nên nó nằm ở `shared/ui/` ([`../COMPONENTS.md`](../COMPONENTS.md) §5, cột "Ở đâu"). Ràng buộc thật sự ép được ở tầng này là chiều import giữa hai tầng — [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.2, ép bằng [`../../RULES.md`](../../RULES.md) §7 F24. Việc component không tự giữ hàng đợi thì **giữ bằng review**, không bằng lệnh: người dựng phải biết điều đó trước khi viết dòng đầu tiên.
 
 **Component:**
 
@@ -136,7 +138,7 @@ Không tách thì component phải là smart (nó tự giữ trạng thái toàn
 | `items` | input | `ReadonlyArray<ToastItem>` | `[]` | Tối đa ba; cắt bớt là việc của service |
 | `position` | input | `'bottom-right' \| 'top-center'` | `'bottom-right'` | Tự đổi theo điểm ngắt; input chỉ để ghi đè |
 | `dismissed` | output | `string` | — | Id của toast bị đóng |
-| `actionClicked` | output | `string` | — | Id của toast có nút hành động được bấm |
+| `actionClicked` | output | `string` | — | Id của toast vừa được bấm nút hành động. Nút ("Hoàn tác") chỉ có khi item mang `actionLabel`; nó là phần cấu trúc của lớp bọc — thư viện vẽ, tạo hình bằng token theo hình thức của [`Button.md`](./Button.md) ([`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5). Tầng khung chuyển id cho hàng đợi. Chưa card nào trong [`../../contracts/README.md`](../../contracts/README.md) khai endpoint hoàn tác — nút này chỉ dùng khi card của thao tác đó có, và cửa sổ hoàn tác chốt cùng lúc với endpoint |
 
 **`ToastItem`:** chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9. `duration` bỏ trống thì lấy mặc định theo vai.
 
@@ -158,6 +160,4 @@ Không tách thì component phải là smart (nó tự giữ trạng thái toàn
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Có giữ lịch sử thông báo để xem lại không? Nó cứu được ca bỏ lỡ toast, nhưng thêm một chỗ chứa trạng thái và một biểu tượng chuông trên `Topbar` | Dự án đầu tiên có thao tác nền chạy lâu |
-| 2 | Nút "Hoàn tác" cần khoảng thời gian bao lâu, và hạ tầng nào ở máy chủ đỡ được nó? | Người thiết kế tầng dữ liệu |
-| 3 | Thời gian tự tắt có nên tính theo độ dài chữ thay vì cố định theo vai không? Tính theo chữ công bằng hơn nhưng khó đoán trước khi test | Người dựng component |
+| 1 | Có giữ lịch sử thông báo để xem lại không? Nó cứu được ca bỏ lỡ toast, nhưng thêm một chỗ chứa trạng thái và một biểu tượng chuông trên `Topbar` | Sau F3 — khu thông báo trong ứng dụng |

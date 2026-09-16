@@ -51,18 +51,26 @@ Glob trả về nhiều hơn một kết quả hoặc không kết quả nào �
 
 File này mô tả **quy trình**. Giá trị token, tên class, danh sách component, bảng trạng thái, quy ước khu Design — tất cả nằm ở `docs/`. Mở đúng file của chủ đề — **không đọc cả thư mục**.
 
+## Bộ luật — đọc theo việc đang làm
+
 | Đang làm | Đọc |
 | --- | --- |
 | Luật riêng khu Design, chiều cập nhật spec ↔ code, fidelity policy | `docs/Design/CLAUDE.md` |
 | Token màu, typography, spacing, chế độ sáng-tối | `docs/Design/DESIGN.md` |
 | Danh sách component và trạng thái từng cái | `docs/Design/COMPONENTS.md` |
 | Bộ icon, quy ước đặt tên icon | `docs/Design/Icons.md` |
+| Bọc thư viện UI, style theo token, cấm hardcode giá trị, đặt khoá dịch | `docs/quy-uoc/fe-ui-conventions.md` |
+
+## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
+
+| Đang làm | Đọc |
+| --- | --- |
 | Khuôn mẫu mọi artifact thiết kế | `docs/Design/Templates/` |
 | Spec một component cụ thể | `docs/Design/Components/` |
+| Spec một màn hình cụ thể | `docs/Design/Screens/` |
 | Hệ token thiết kế: tầng token, cách đặt tên, chiều cập nhật | `docs/wiki-core/fe/04-design-token-system.md` |
 | Thư viện component, dumb vs smart, ngưỡng tách | `docs/wiki-core/fe/05-component-library.md` |
 | Accessibility: tương phản, focus, ARIA, bàn phím | `docs/wiki-core/fe/15-accessibility.md` |
-| Bọc thư viện UI, style theo token, cấm hardcode giá trị | `docs/quy-uoc/fe-ui-conventions.md` |
 | Đa ngôn ngữ — trước khi điền cột khoá dịch | `docs/wiki-core/fe/08-i18n.md` |
 | Ranh giới Core ↔ Module | `docs/kien-truc-core-module.md` |
 | Luật nào ép bằng cổng nào | `docs/RULES.md` |

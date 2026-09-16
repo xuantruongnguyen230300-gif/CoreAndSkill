@@ -35,6 +35,8 @@ Mở một tấm trượt từ cạnh màn hình để xem hoặc sửa nhanh m�
 
 Hệ quả: `Drawer` **không dùng cho thao tác phá huỷ**. Xác nhận xoá cần cắt đứt ngữ cảnh để người dùng dừng lại và đọc — đó đúng là việc của [`ConfirmDialog.md`](./ConfirmDialog.md).
 
+`Drawer` là component riêng, không phải biến thể của `Dialog`: `inspect` không bẫy focus và không mang `aria-modal`, ngược hẳn định nghĩa `Dialog`; mục lục [`../COMPONENTS.md`](../COMPONENTS.md) §3 giữ hai dòng.
+
 ## Biến thể
 
 | Biến thể | Nền phía sau | Dùng khi |
@@ -42,15 +44,15 @@ Hệ quả: `Drawer` **không dùng cho thao tác phá huỷ**. Xác nhận xoá
 | `inspect` | **Không có lớp phủ.** Danh sách phía sau vẫn bấm được, chọn hàng khác thì drawer đổi nội dung theo | **Mặc định.** Xem chi tiết, duyệt qua nhiều bản ghi liên tiếp |
 | `edit` | Có lớp phủ `--color-overlay`, nền phía sau khoá lại | Khi drawer chứa form đang sửa — tránh mất dữ liệu đang gõ vì một cú bấm nhầm ra ngoài |
 
-**Biến thể `inspect` là lý do component này tồn tại.** Nó cho phép bấm hàng này xem, bấm hàng kia xem tiếp, không phải đóng mở liên tục. Đó là thao tác thật của người kiểm tra dữ liệu, và `Dialog` không làm được vì nó chặn.
+**Biến thể `inspect` là lý do component này tồn tại.** Nó cho phép bấm hàng này xem, bấm hàng kia xem tiếp, không phải đóng mở liên tục. Đó là thao tác thật của người kiểm tra dữ liệu, và `Dialog` không làm được vì nó chặn. Chọn hàng khác thì nội dung **đổi tại chỗ**, không đóng rồi mở lại; đang tải dở mà chọn tiếp thì màn bỏ kết quả của request cũ — luật ở [`Autocomplete.md`](./Autocomplete.md) §API.
 
-Cái giá của `inspect`, phải nói rõ: nó **không** bẫy focus (nền sau vẫn thao tác được thì bẫy focus là mâu thuẫn), nên nó cũng **không** mang `aria-modal`. Hai biến thể vì vậy khác nhau cả về ngữ nghĩa ARIA — xem mục Accessibility.
+Cái giá của `inspect`, phải nói rõ: nó **không** bẫy focus (nền sau vẫn thao tác được thì bẫy focus là mâu thuẫn), nên nó cũng **không** mang `aria-modal`. Hai biến thể vì vậy khác nhau cả về ngữ nghĩa ARIA — xem mục Accessibility. Việc `p-drawer` có cho tắt hai thứ đó không **chưa được xác minh** — §Cần chốt 2.
 
 | Vị trí neo | Dùng khi |
 | --- | --- |
 | `right` | **Mặc định.** Chi tiết bản ghi, panel lọc — hướng đọc tự nhiên đi từ danh sách bên trái sang |
 | `left` | Chỉ cho dạng drawer của `Sidebar` ở màn nhỏ, để khớp vị trí nó vốn đứng |
-| `bottom` | Chỉ ở màn < `--bp-sm`, nơi tấm trượt ngang không đủ bề rộng |
+| `bottom` | Chỉ ở màn < `$bp-sm`, nơi tấm trượt ngang không đủ bề rộng |
 
 ## Kích thước
 
@@ -58,9 +60,11 @@ Cái giá của `inspect`, phải nói rõ: nó **không** bẫy focus (nền sa
 
 | Cỡ | Bề rộng | Dùng khi |
 | --- | --- | --- |
-| `sm` | 320px | Xem nhanh vài trường |
-| `md` | 400px | **Mặc định.** Chi tiết bản ghi, form ngắn |
-| `lg` | 560px | Panel lọc nhiều trường, nội dung có bảng con |
+| `sm` | `--layout-drawer-w-sm` | Xem nhanh vài trường |
+| `md` | `--layout-drawer-w-md` | **Mặc định.** Chi tiết bản ghi, form ngắn |
+| `lg` | `--layout-drawer-w-lg` | Panel lọc nhiều trường, nội dung có bảng con |
+
+Ba bậc là bí danh của thang `--layout-dialog-w-*` ([`../DESIGN.md`](../DESIGN.md) §6.1) — cùng họ lớp nổi có đầu–thân–chân, một thang, không đẻ bậc mới.
 
 Trần cứng: `min(<bề rộng cỡ>, 92vw)`. Một drawer rộng hơn 92% màn hình đã là một `Dialog` toàn màn, và lúc đó nên dùng đúng component đó.
 
@@ -77,9 +81,9 @@ Bo góc: `--radius-0` ở cạnh dính mép màn hình, `--radius-lg` ở hai g�
 | `focus-visible` | **Không áp dụng cho chính tấm drawer** — nó không nhận focus. Nhưng thứ tự Tab bên trong là bắt buộc: nút đóng → nội dung theo thứ tự đọc → nhóm hành động ở chân | — |
 | `active` | **Không áp dụng.** Không có gì để nhấn xuống | — |
 | `disabled` | **Không áp dụng cho chính tấm drawer.** Từng control con nhận `disabled` thật. 🛑 Không phủ một lớp `pointer-events: none` lên cả drawer — control biến mất khỏi thứ tự Tab mà trình đọc màn hình không biết vì sao | — |
-| `loading` | Nội dung chưa về: thân drawer hiện [`SkeletonLoader.md`](./SkeletonLoader.md) theo đúng hình dạng nội dung sắp tới, `aria-busy="true"` trên thân. **Đầu và chân dựng ngay** — tiêu đề và nút đóng phải có mặt từ khung hình đầu tiên, nếu không người dùng mở nhầm thì không có đường thoát | Có |
-| `error` | Tải nội dung hỏng: thân thay bằng [`EmptyState.md`](./EmptyState.md) biến thể `error` kèm nút "Thử lại". **Drawer không tự đóng** — đóng đi thì người dùng không biết vừa có chuyện gì | Có |
-| `empty` | Bản ghi không còn tồn tại (vừa bị người khác xoá): thân hiện `EmptyState` nói rõ điều đó và chỉ có nút "Đóng". Phân biệt hẳn với `error` — một cái là hỏng, một cái là mất | Có |
+| `loading` | Nội dung chưa về: màn đặt [`SkeletonLoader.md`](./SkeletonLoader.md) theo đúng hình dạng nội dung sắp tới vào slot thân; `Drawer` đặt `aria-busy="true"` trên thân. **Đầu và chân dựng ngay** — tiêu đề và nút đóng phải có mặt từ khung hình đầu tiên, nếu không người dùng mở nhầm thì không có đường thoát | Có |
+| `error` | Tải nội dung hỏng: màn đặt [`EmptyState.md`](./EmptyState.md) biến thể `error` kèm nút "Thử lại" vào slot thân. **Drawer không tự đóng** — đóng đi thì người dùng không biết vừa có chuyện gì | Có |
+| `empty` | Bản ghi không còn tồn tại (vừa bị người khác xoá): màn đặt `EmptyState` nói rõ điều đó vào slot thân, chỉ có nút "Đóng". Phân biệt hẳn với `error` — một cái là hỏng, một cái là mất | Có |
 
 ## Token dùng
 
@@ -88,7 +92,8 @@ Bo góc: `--radius-0` ở cạnh dính mép màn hình, `--radius-lg` ở hai g�
 | Màu | `--color-surface`, `--color-surface-2`, `--color-border`, `--color-border-subtle`, `--color-text`, `--color-text-muted`, `--color-overlay`, `--color-focus` |
 | Chữ | `--fs-xs`, `--fs-sm`, `--fs-lg`, `--fw-semibold`, `--lh-snug` |
 | Khoảng cách | `--sp-4`, `--sp-5`, `--sp-6` |
-| Hình dạng | `--radius-lg`, `--border-w`, `--border-w-strong` |
+| Hình dạng | `--radius-0`, `--radius-lg`, `--border-w`, `--border-w-strong` |
+| Kích thước | `--layout-drawer-w-sm`, `--layout-drawer-w-md`, `--layout-drawer-w-lg` |
 | Bóng, lớp | `--shadow-4`, `--z-dialog`, `--z-backdrop` |
 | Chuyển động | `--dur-base`, `--ease-decelerate`, `--ease-accelerate` |
 
@@ -96,10 +101,10 @@ Bo góc: `--radius-0` ở cạnh dính mép màn hình, `--radius-lg` ở hai g�
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-lg` | Neo phải, bề rộng theo cỡ. Biến thể `inspect` không có lớp phủ |
-| `--bp-md` … `--bp-lg` | Giữ nguyên; cỡ `lg` co xuống 92vw nếu cần |
-| < `--bp-md` | **Biến thể `inspect` chuyển thành `edit`** — có lớp phủ, có bẫy focus. Ở màn hẹp drawer che gần hết danh sách rồi, nên lời hứa "vẫn thấy phía sau" không còn đúng, và giữ nó là nói dối |
-| < `--bp-sm` | Neo **đáy**, cao tối đa 85vh, có vạch kéo ở đầu. Trượt từ đáy đặt nút hành động vào vùng ngón cái với tới |
+| ≥ `$bp-lg` | Neo phải, bề rộng theo cỡ. Biến thể `inspect` không có lớp phủ |
+| `$bp-md` … `$bp-lg` | Giữ nguyên; cỡ `lg` co xuống 92vw nếu cần |
+| < `$bp-md` | **Biến thể `inspect` chuyển thành `edit`** — có lớp phủ, có bẫy focus. Ở màn hẹp drawer che gần hết danh sách rồi, nên lời hứa "vẫn thấy phía sau" không còn đúng, và giữ nó là nói dối |
+| < `$bp-sm` | Neo **đáy**, cao tối đa 85vh, có vạch kéo ở đầu. Trượt từ đáy đặt nút hành động vào vùng ngón cái với tới. **Miễn trừ:** `position: left` giữ neo trái ở mọi ngưỡng — drawer điều hướng của [`Sidebar.md`](./Sidebar.md) trượt từ trái, không đổi sang `bottom` |
 
 ## Accessibility
 
@@ -129,7 +134,7 @@ Bo góc: `--radius-0` ở cạnh dính mép màn hình, `--radius-lg` ở hai g�
 | `closed` | output | `void` | — | Phát mọi lần drawer đóng: nút đóng, `Escape`, bấm lớp phủ |
 | `confirmDiscard` | output | `void` | — | Phát khi người dùng chọn bỏ thay đổi ở bước hỏi xác nhận |
 
-Nội dung vào qua ba slot: đầu, thân, chân. Khác [`Menu.md`](./Menu.md) — ở đó nội dung phải vào qua mảng vì component cần biết danh sách mục để làm phím mũi tên; ở đây không có hành vi nào phụ thuộc nội dung, nên slot là đúng.
+Nội dung vào qua ba slot: đầu, thân, chân. Khác [`Menu.md`](./Menu.md) — ở đó nội dung phải vào qua mảng vì component cần biết danh sách mục để làm phím mũi tên; ở đây không có hành vi nào phụ thuộc nội dung, nên slot là đúng. Nội dung tự dựng của `loading`, `error`, `empty` cũng vào qua slot thân — `Drawer` ở tầng bọc nên không import chúng ([`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5).
 
 `Drawer` là component **dumb** — nó không tự tải bản ghi ([`../COMPONENTS.md`](../COMPONENTS.md) §5).
 
@@ -148,6 +153,5 @@ Nội dung vào qua ba slot: đầu, thân, chân. Khác [`Menu.md`](./Menu.md) 
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Đáng lẽ đây nên là **một biến thể của `Dialog`** thay vì một component riêng? [`../COMPONENTS.md`](../COMPONENTS.md) §1 ưu tiên mở rộng hơn đẻ mới. Lập luận giữ riêng: `inspect` không bẫy focus và không mang `aria-modal` — ngược hẳn định nghĩa của `Dialog`. Lập luận gộp: cả hai dùng chung bẫy focus, khôi phục focus, khoá cuộn, và `Dialog` sẽ có bốn biến thể, vẫn dưới ngưỡng năm | Người dựng hai component này, trước khi viết dòng code đầu |
-| 2 | Ở `inspect`, chọn hàng khác thì drawer đổi nội dung tại chỗ hay đóng rồi mở lại? Đổi tại chỗ mượt hơn nhưng phải xử lý ca đang tải dở thì người dùng bấm tiếp hàng thứ ba | Người dựng màn danh sách đầu tiên |
-| 3 | Có cho kéo đổi bề rộng không? Người dùng bảng nhiều cột hay muốn drawer hẹp lại. Đổi lại là một thao tác chuột nữa phải có đường đi bằng bàn phím | Sau khi có màn thật |
+| 1 | Có cho kéo đổi bề rộng không? Người dùng bảng nhiều cột hay muốn drawer hẹp lại. Đổi lại là một thao tác chuột nữa phải có đường đi bằng bàn phím | Sau F3 — dự án hạ nguồn đầu tiên có bảng nhiều cột kèm drawer |
+| 2 | Cần xác minh `p-drawer` của PrimeNG 20 cho phép tắt bẫy focus và bỏ `aria-modal` cho `inspect`. Không cho phép thì `inspect` **tự dựng** phần khung, `edit` vẫn bọc — chưa kiểm, không ghi trước | `frontend-expert` ở F1, khi có `src/` |

@@ -26,18 +26,20 @@ Một lớp nổi **chặn** buộc người dùng xử lý xong rồi mới qua
 | | 🛑 Form dài nhiều bước → dùng một trang riêng. Dialog cuộn nội bộ ở màn nhỏ là trải nghiệm tệ |
 | | 🛑 Menu hoặc chọn nhanh → lớp nổi không chặn, không thuộc component này |
 
-**Ngưỡng quyết định giữa dialog và trang riêng:** nếu form có trên khoảng bảy trường, hoặc cần cuộn ở màn desktop, hoặc người dùng cần tra cứu thông tin ở trang nền để điền — thì đó là một trang, không phải một dialog.
+**Ngưỡng quyết định giữa dialog và trang riêng:** nếu form có trên khoảng bảy trường, hoặc cần cuộn ở màn desktop, hoặc người dùng cần tra cứu thông tin ở trang nền để điền — thì đó là một trang, không phải một dialog. Ba dấu hiệu này là ngưỡng, bất kỳ cái nào đúng là đủ; không có con số nào khác. Xem chi tiết mà vẫn cần thấy danh sách phía sau là [`Drawer.md`](./Drawer.md), không phải một biến thể của `Dialog`.
 
 ## Biến thể
 
 | Biến thể | Bề rộng | Dùng khi |
 | --- | --- | --- |
-| `sm` | 420px | Form một tới ba trường; thông báo cần xác nhận có nội dung |
-| `md` | 640px | **Mặc định.** Form thông thường |
-| `lg` | 880px | Form hai cột; nội dung có bảng |
+| `sm` | `--layout-dialog-w-sm` | Form một tới ba trường; thông báo cần xác nhận có nội dung |
+| `md` | `--layout-dialog-w-md` | **Mặc định.** Form thông thường |
+| `lg` | `--layout-dialog-w-lg` | Form hai cột; nội dung có bảng |
 | `full` | Gần hết viewport, chừa `--sp-8` mỗi bên | Chỉ khi nội dung thật sự cần — xem trước tài liệu, biên tập nội dung dài |
 
 Bề rộng là **tối đa**. Ở màn hẹp hơn, dialog co lại và giữ khoảng hở `--sp-5` mỗi bên.
+
+Bậc `sm` và `md` còn là bề rộng của [`AuthCard.md`](./AuthCard.md), và bậc `md` là bề rộng tối đa của khối form trong trang (`--layout-form-w`) — [`../DESIGN.md`](../DESIGN.md) §6.1. Đổi giá trị hai bậc này là đổi theo cả những chỗ đó.
 
 Không có biến thể "không đóng được". Mọi dialog phải đóng được bằng Escape — xem §Accessibility.
 
@@ -65,7 +67,7 @@ Không có biến thể "không đóng được". Mọi dialog phải đóng đ�
 | `active` | **Không áp dụng.** Dialog không phải control | — |
 | `disabled` | **Không áp dụng.** Dialog không có trạng thái vô hiệu hoá; muốn chặn thao tác thì khoá từng control bên trong | — |
 | `loading` | Phần thân phủ `--color-scrim` + spinner; các nút ở chân vào trạng thái `loading`; **Escape vẫn đóng được** trừ khi đang gửi dữ liệu — xem dưới. `aria-busy="true"` | Có |
-| `error` | [`NoticeBanner.md`](./NoticeBanner.md) vai `danger` chèn ngay đầu phần thân, **trên** nội dung form; phần thân cuộn lên đầu để người dùng thấy nó | Có |
+| `error` | Phần thân hiện `errorTemplate` ở đầu, **trên** nội dung form; màn ghép [`NoticeBanner.md`](./NoticeBanner.md) vai `danger` vào đó. Khi template chuyển từ `null` sang khác `null`, phần thân cuộn lên đầu để người dùng thấy nó | Có |
 | `empty` | **Không áp dụng.** Một dialog không có nội dung thì không nên mở | — |
 
 **Escape trong lúc đang gửi dữ liệu:** đóng dialog lúc request đang bay khiến người dùng không biết thao tác thành công hay không. Luật: trong lúc `loading` **do một thao tác ghi**, Escape **không** đóng; thay vào đó không làm gì và giữ nguyên. Trong lúc `loading` do đang tải dữ liệu để hiển thị, Escape **đóng bình thường** — chưa có gì để mất.
@@ -80,6 +82,7 @@ Không có biến thể "không đóng được". Mọi dialog phải đóng đ�
 | Chữ | `--fs-lg`, `--fs-sm`, `--fw-bold`, `--fw-regular`, `--lh-tight`, `--lh-normal` |
 | Khoảng cách | `--sp-3`, `--sp-4`, `--sp-5`, `--sp-6`, `--sp-8`, `--sp-9` |
 | Hình dạng | `--radius-lg`, `--border-w` |
+| Kích thước | `--layout-dialog-w-sm`, `--layout-dialog-w-md`, `--layout-dialog-w-lg` |
 | Bóng | `--shadow-4` |
 | Lớp | `--z-dialog`, `--z-backdrop` |
 | Chuyển động | `--dur-fast`, `--dur-base`, `--ease-decelerate`, `--ease-accelerate` |
@@ -88,9 +91,9 @@ Không có biến thể "không đóng được". Mọi dialog phải đóng đ�
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Dialog căn giữa cả hai chiều; bề rộng theo biến thể |
-| `--bp-sm` … `--bp-md` | Bề rộng co theo viewport, chừa `--sp-5` mỗi bên; căn giữa dọc |
-| < `--bp-sm` | Dialog **dính đáy** và chiếm hết bề rộng, bo góc chỉ ở hai góc trên; nhóm nút ở chân xếp dọc, nút chính lên trên |
+| ≥ `$bp-md` | Dialog căn giữa cả hai chiều; bề rộng theo biến thể |
+| `$bp-sm` … `$bp-md` | Bề rộng co theo viewport, chừa `--sp-5` mỗi bên; căn giữa dọc |
+| < `$bp-sm` | Dialog **dính đáy** và chiếm hết bề rộng, bo góc chỉ ở hai góc trên; nhóm nút ở chân xếp dọc, nút chính lên trên |
 
 **Vì sao ở màn nhỏ dialog dính đáy chứ không căn giữa:** bàn phím ảo mở lên chiếm nửa dưới màn hình. Một dialog căn giữa sẽ bị đẩy lên và cắt mất phần đầu. Dính đáy thì dialog trượt lên cùng bàn phím và giữ được ô đang gõ trong tầm nhìn.
 
@@ -107,10 +110,10 @@ Không có biến thể "không đóng được". Mọi dialog phải đóng đ�
 | **Focus lúc mở** | Đặt vào phần tử tương tác **đầu tiên có ý nghĩa** — thường là ô nhập đầu, hoặc chính hộp dialog nếu chỉ có chữ. 🛑 **Không** đặt vào nút đóng: người dùng bàn phím sẽ vô tình bấm Enter và đóng ngay |
 | **Focus lúc đóng** | Trả về **đúng phần tử đã mở dialog**. Không trả về là người dùng bàn phím bị ném về đầu trang |
 | Escape | Đóng dialog (trừ ca đang gửi dữ liệu ở §Trạng thái) |
-| Bấm ra ngoài | Đóng — **trừ khi form đã có thay đổi chưa lưu**. Lúc đó hỏi xác nhận. Mất mười phút gõ vì một cú bấm hụt là lỗi không tha thứ được |
+| Bấm ra ngoài | Đóng — **trừ khi form đã có thay đổi chưa lưu**. Lúc đó `Dialog` phát `dismissAttempted` và trang cha hỏi xác nhận. Mất mười phút gõ vì một cú bấm hụt là lỗi không tha thứ được |
 | Khoá cuộn nền | Nền không cuộn khi dialog mở. 🛑 Nhưng **phải giữ vị trí cuộn** — nhiều cách khoá cuộn làm trang nhảy về đầu khi đóng |
 | Nội dung nền | Nội dung phía sau mang `inert` hoặc `aria-hidden="true"` để trình đọc màn hình không đọc xuyên qua |
-| Nút đóng | Là một [`IconButton.md`](./IconButton.md) có `aria-label`, ở góc phải phần đầu |
+| Nút đóng | Ở góc phải phần đầu, icon `pi-times` ([`../Icons.md`](../Icons.md) §5), có `aria-label`. Là phần cấu trúc của lớp bọc: thư viện vẽ, tạo hình bằng token theo hình thức của [`IconButton.md`](./IconButton.md) — [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5 |
 | Chữ | Tiêu đề, mô tả, nhãn nút qua i18n — [`../../RULES.md`](../../RULES.md) §7 F8 |
 
 **Không lồng dialog trong dialog.** Tầng lồng nhau ở [`../COMPONENTS.md`](../COMPONENTS.md) §2.4 đặt `Dialog` ở tầng cao nhất, nên nó không được chứa một `Dialog` khác. Ngoại lệ duy nhất là [`ConfirmDialog.md`](./ConfirmDialog.md) hỏi xác nhận cho một thao tác phát sinh từ dialog đang mở — và ngay cả khi đó, hai lớp là tối đa tuyệt đối. Bẫy focus lồng ba tầng gần như luôn hỏng.
@@ -125,12 +128,12 @@ Không có biến thể "không đóng được". Mọi dialog phải đóng đ�
 | `description` | input | `string \| null` | `null` | |
 | `closable` | input | `boolean` | `true` | `false` chỉ ẩn nút đóng và chặn bấm-ra-ngoài; **Escape vẫn hoạt động** |
 | `dismissOnBackdrop` | input | `boolean` | `true` | Tự động thành `false` khi `dirty` là `true` |
-| `dirty` | input | `boolean` | `false` | Form đã có thay đổi chưa lưu. Bật cờ này thì bấm ra ngoài và Escape sẽ hỏi xác nhận |
+| `dirty` | input | `boolean` | `false` | Form đã có thay đổi chưa lưu. Bật cờ này thì bấm ra ngoài và Escape **không đóng** mà phát `dismissAttempted` |
 | `loading` | input | `boolean` | `false` | |
 | `loadingBlocksClose` | input | `boolean` | `false` | Bật khi `loading` là do một thao tác ghi |
-| `error` | input | `string \| null` | `null` | |
+| `errorTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Khối lỗi ở đầu phần thân. Màn chỉ truyền khi đang lỗi — [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5 |
 | `closed` | output | `void` | — | Phát sau khi đã trả focus về nơi mở |
-| `dismissAttempted` | output | `void` | — | Phát khi người dùng cố đóng lúc `dirty` — trang cha quyết định hỏi gì |
+| `dismissAttempted` | output | `void` | — | Phát khi người dùng cố đóng lúc `dirty`. Trang cha mở [`ConfirmDialog.md`](./ConfirmDialog.md) — `Dialog` ở tầng bọc nên không tự dựng hộp hỏi |
 
 Nội dung vào qua ba slot: phần đầu (mặc định là tiêu đề + mô tả), phần thân, phần chân. Slot chân **không có nút mặc định** — mỗi dialog tự khai nút của mình, vì thứ tự và nhãn nút là quyết định của từng ca.
 
@@ -151,8 +154,4 @@ Nội dung vào qua ba slot: phần đầu (mặc định là tiêu đề + mô 
 
 ## Cần chốt
 
-| # | Câu hỏi | Ai trả lời được |
-| --- | --- | --- |
-| 1 | Hộp hỏi "bạn có thay đổi chưa lưu" khi `dirty` do `Dialog` tự dựng hay do trang cha dựng? Tự dựng thì nhất quán nhưng ghép cứng `Dialog` vào `ConfirmDialog`; để trang cha thì mỗi màn có thể quên | Người dựng component |
-| 2 | Ngưỡng "form dài quá thì dùng trang" đặt bằng số trường hay bằng chiều cao? Số trường dễ kiểm hơn nhưng thô | Sau khi có vài màn form thật |
-| 3 | Có cần biến thể trượt từ mép phải (drawer) không? Nó hợp với xem chi tiết mà vẫn thấy danh sách. Rủi ro: thêm một cách hiển thị nữa và mỗi màn tự chọn khác nhau | Dự án đầu tiên có nhu cầu |
+Không còn.

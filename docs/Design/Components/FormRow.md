@@ -14,7 +14,7 @@ verified: chua-doi-chieu
 
 ## Mục đích
 
-Gói một ô nhập cùng nhãn, dấu bắt buộc, gợi ý và chỗ hiện lỗi — và là **nơi duy nhất** trong hệ quyết định lỗi hiện lúc nào, ở đâu.
+Gói một ô nhập cùng nhãn, dấu bắt buộc, gợi ý và chỗ hiện lỗi — và là **nơi duy nhất** trong hệ quyết định lỗi hiện **ở đâu**. Lỗi hiện **lúc nào** là luật ở mục Trạng thái, và cơ chế form thi công luật đó trước khi chuỗi lỗi tới component này.
 
 ## Khi nào dùng / khi nào KHÔNG dùng
 
@@ -78,6 +78,10 @@ Gói một ô nhập cùng nhãn, dấu bắt buộc, gợi ý và chỗ hiện 
 
 Nhánh thứ tư là nhánh hay bị bỏ quên và là nhánh làm form dễ chịu hẳn.
 
+**`FormRow` không tự áp bảng này.** Nó vẽ đúng chuỗi `error` nhận vào. Bảng được thi công ở hàm `fieldErrorText` của cơ chế form: hàm trả `null` cho tới khi control đã chạm (`touched` — người dùng đã rời ô) hoặc form đã gửi một lần, và từ đó trả câu lỗi đã dịch mỗi khi giá trị đổi — [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.5.
+
+**Một ô nhận nhiều mã lỗi cùng lúc** — BE trả hơn một mã cho cùng một trường trong `fieldErrors` — thì dòng lỗi hiện câu của **mã đầu tiên theo thứ tự BE trả**. Người dùng sửa xong lỗi đó, hoặc gửi lại, thì mã kế tiếp còn lại hiện ra. Không gộp nhiều câu vào một dòng: dòng lỗi thay chỗ gợi ý và phải giữ chiều cao ổn định (quyết định 1). `error` vẫn là **một** chuỗi; chọn mã nào là việc của `fieldErrorText` ở cùng mục §6.5.
+
 ## Token dùng
 
 | Nhóm | Token |
@@ -86,16 +90,18 @@ Nhánh thứ tư là nhánh hay bị bỏ quên và là nhánh làm form dễ ch
 | Chữ | `--fs-xs`, `--fs-sm`, `--fw-medium`, `--fw-regular`, `--lh-snug`, `--lh-normal` |
 | Khoảng cách | `--sp-3`, `--sp-5`, `--sp-6`, `--sp-7` |
 | Kích thước | `--icon-sm` |
-| Điểm ngắt | `--bp-md`, `--bp-xs` |
+| Điểm ngắt | `$bp-md`, `$bp-xs` |
 
 ## Responsive
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-lg` | Lưới form tối đa hai cột; trường dài (mô tả, địa chỉ) chiếm cả hai cột |
-| `--bp-md` … `--bp-lg` | Hai cột giữ nguyên nếu `Dialog` đủ rộng, ngược lại về một cột |
-| < `--bp-md` | Một cột; biến thể `inline` **tự chuyển thành `stacked`** — nhãn ngang ở màn hẹp đẩy ô nhập còn vài chục pixel |
-| < `--bp-xs` | Khe giữa hai `FormRow` giảm từ `--sp-6` xuống `--sp-5` |
+| ≥ `$bp-lg` | Lưới form tối đa hai cột; trường dài (mô tả, địa chỉ) chiếm cả hai cột |
+| `$bp-md` … `$bp-lg` | Hai cột giữ nguyên nếu `Dialog` đủ rộng, ngược lại về một cột |
+| < `$bp-md` | Một cột; biến thể `inline` **tự chuyển thành `stacked`** — nhãn ngang ở màn hẹp đẩy ô nhập còn vài chục pixel |
+| < `$bp-xs` | Khe giữa hai `FormRow` giảm từ `--sp-6` xuống `--sp-5` |
+
+Lưới ở bảng trên là lớp tiện ích `form-grid`, khai một lần ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §4.3 — không phải component. Bảng này là **giá trị** của lớp đó: số cột theo ngưỡng, khe cột và khe hàng bằng khe giữa hai `FormRow` ở §Kích thước; `span` ở §API chiếm cột trong lưới này.
 
 ## Accessibility
 
@@ -104,13 +110,13 @@ Nhánh thứ tư là nhánh hay bị bỏ quên và là nhánh làm form dễ ch
 | Nhãn | `<label for="<id ô>">`. 🛑 Không dùng `<div>` hay `<span>` làm nhãn — bấm vào nhãn phải đặt focus vào ô, và đó là hành vi chỉ `<label>` có |
 | Nhóm | Biến thể `group` dùng `<fieldset>` + `<legend>` |
 | Bắt buộc | `required` trên ô **và** dấu hiệu nhìn thấy ở nhãn. Dấu sao phải có `aria-hidden="true"` và nghĩa của nó nói ở đầu form ("Trường có dấu * là bắt buộc") — trình đọc màn hình đọc "sao" là vô nghĩa |
-| Gợi ý | Có `id`, và ô trỏ tới nó qua `aria-describedby` |
-| Lỗi | Có `id`, ô trỏ tới qua `aria-describedby` **và** mang `aria-invalid="true"` |
+| Gợi ý | `id` là `<controlId>-hint`; ô trỏ tới nó qua `aria-describedby` |
+| Lỗi | `id` là `<controlId>-error`; ô trỏ tới qua `aria-describedby` **và** mang `aria-invalid="true"` |
 | Thông báo lỗi động | Vùng lỗi mang `role="alert"` để trình đọc màn hình đọc lên ngay khi nó xuất hiện. 🛑 Không đặt `role="alert"` sẵn trên một vùng rỗng luôn tồn tại — nhiều trình đọc sẽ đọc lại mọi thay đổi trong đó, kể cả khi chỉ là xoá chữ |
 | Submit lỗi | Đặt focus vào trường lỗi **đầu tiên**, và có một tóm tắt lỗi ở đầu form khi có từ hai lỗi trở lên |
 | Chữ | Nhãn, gợi ý, thông báo lỗi qua i18n — [`../../RULES.md`](../../RULES.md) §7 F8 |
 
-**Tóm tắt lỗi ở đầu form không phải trang trí.** Người dùng trình đọc màn hình bấm submit và không thấy gì thay đổi — họ không "nhìn thấy" năm ô viền đỏ. Một khối tóm tắt có `role="alert"`, liệt kê từng lỗi kèm liên kết nhảy tới trường, là cách duy nhất họ biết chuyện gì vừa xảy ra.
+**Tóm tắt lỗi ở đầu form không phải trang trí.** Người dùng trình đọc màn hình bấm submit và không thấy gì thay đổi — họ không "nhìn thấy" năm ô viền đỏ. Một khối tóm tắt có `role="alert"`, liệt kê từng lỗi kèm liên kết nhảy tới trường, là cách duy nhất họ biết chuyện gì vừa xảy ra. Khối đó là [`NoticeBanner.md`](./NoticeBanner.md) vai `danger` — thân qua slot chứa danh sách liên kết, hành vi đặt focus vào trường đã khai ở §Accessibility của file đó; không có component riêng.
 
 ## API dự kiến
 
@@ -122,8 +128,8 @@ Nhánh thứ tư là nhánh hay bị bỏ quên và là nhánh làm form dễ ch
 | `hint` | input | `string \| null` | `null` | |
 | `error` | input | `string \| null` | `null` | `null` = không lỗi. Chuỗi rỗng **cũng** coi là không lỗi — tránh ca "có lỗi nhưng không có chữ", vốn tạo ra một dòng đỏ trống |
 | `disabled` | input | `boolean` | `false` | Truyền xuống ô |
-| `controlId` | input | `string` | tự sinh | Id để `<label for>` gắn vào; tự sinh nếu không truyền |
-| `span` | input | `1 \| 2` | `1` | Số cột chiếm trong lưới form |
+| `controlId` | input | `string` | tự sinh | Id để `<label for>` gắn vào, và là gốc của hai id dòng phụ: `<controlId>-hint`, `<controlId>-error`. Tự sinh nếu không truyền — nhưng trang truyền `describedBy` cho [`Input.md`](./Input.md) thì phải truyền `controlId` tường minh, vì trang không biết id tự sinh |
+| `span` | input | `1 \| 2` | `1` | Số cột chiếm trong lưới `form-grid` của vùng chứa form — §Responsive |
 
 Ô nhập vào qua slot mặc định, không qua input. Như vậy `FormRow` bọc được cả `Input`, cả nhóm `Check`, cả `SegmentedControl` — nếu nhận ô qua một input kiểu chuỗi thì nó chỉ bọc được đúng một loại.
 
@@ -143,8 +149,4 @@ Nhánh thứ tư là nhánh hay bị bỏ quên và là nhánh làm form dễ ch
 
 ## Cần chốt
 
-| # | Câu hỏi | Ai trả lời được |
-| --- | --- | --- |
-| 1 | Tóm tắt lỗi đầu form là một biến thể của [`NoticeBanner.md`](./NoticeBanner.md) hay một component riêng? Nghiêng về `NoticeBanner` vai `danger` chứa danh sách liên kết — nhưng nó cần hành vi nhảy tới trường, mà `NoticeBanner` hiện không có | Người dựng component |
-| 2 | Có hỗ trợ nhiều lỗi trên cùng một trường không? Hôm nay `error` là một chuỗi. Hiện hết mọi lỗi thì đầy đủ hơn nhưng làm form nhảy | Dự án đầu tiên có luật kiểm tra phức tạp |
-| 3 | Lưới form hai cột đặt ở `FormRow` hay ở một component `FormGrid` riêng? Hôm nay `span` giả định có một lưới bên ngoài mà chưa spec | Khi dựng màn form đầu tiên |
+Không còn.

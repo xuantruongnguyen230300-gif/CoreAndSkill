@@ -12,6 +12,10 @@ verified: chua-doi-chieu
 
 **Đây là nơi DUY NHẤT trong toàn ứng dụng được import lưới dữ liệu của PrimeNG.** Một màn nghiệp vụ import thẳng là vi phạm [`../../RULES.md`](../../RULES.md) §7 F5, và quan trọng hơn: nó phá luôn khả năng đổi thư viện sau này.
 
+**`DataTable` là chủ hợp đồng phân trang của màn danh sách.** Ở biến thể `paged`, dải phân trang là **phần cấu trúc của lớp bọc** ([`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5): `DataTable` dùng [`Pagination.md`](./Pagination.md) bên trong và vẽ nó ngay dưới khung bảng — màn **không** tự đặt thêm một `Pagination` nào. Vì vậy `page`, `pageSize`, `totalRecords` và sự kiện đổi trang vào ra qua API của `DataTable` ở mục API; [`Pagination.md`](./Pagination.md) giữ hình thức, trạng thái và accessibility của chính dải đó, không giữ hợp đồng của màn. Hai nơi cùng khai một hợp đồng là cách chúng lệch nhau ([`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §5).
+
+**Lớp bọc không import component tự dựng** — luật chiều import giữa hai tầng ở [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.2. Vì vậy nội dung do màn quyết — khối **trống**, khung **đang tải lần đầu**, khối **lỗi** kèm nút "Thử lại" — vào qua input `TemplateRef`: màn ghép [`EmptyState.md`](./EmptyState.md) và [`SkeletonLoader.md`](./SkeletonLoader.md) vào đó. Hợp đồng slot ở mục API. Phần cấu trúc của chính bảng — như nút "Đóng hết" của công tắc `expandable` — do thư viện vẽ, tạo hình bằng token ([`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5).
+
 ---
 
 ## Mục đích
@@ -34,7 +38,7 @@ Hai **biến thể** loại trừ nhau — chúng quyết định dữ liệu v�
 | Biến thể | Khác gì | Dùng khi |
 | --- | --- | --- |
 | `paged` | Phân trang phía máy chủ, [`Pagination.md`](./Pagination.md) ở chân | **Mặc định.** Mọi danh sách bản ghi |
-| `scroll` | Cuộn vô hạn, tải thêm khi tới đáy | Chỉ khi thứ tự đọc là tuần tự (nhật ký, dòng sự kiện). 🛑 Không dùng cho danh sách người ta cần quay lại một mục cụ thể — cuộn vô hạn làm mất chỗ |
+| `scroll` | Cuộn vô hạn, tải thêm khi tới đáy | Chỉ khi thứ tự đọc là tuần tự (nhật ký, dòng sự kiện). 🛑 Không dùng cho danh sách người ta cần quay lại một mục cụ thể — cuộn vô hạn làm mất chỗ. Không có ngưỡng số dòng nào để đổi sang `scroll`: chọn theo bản chất dữ liệu, mặc định luôn là `paged` |
 
 Sáu **công tắc** cộng thêm vào, kết hợp được với cả hai biến thể:
 
@@ -104,7 +108,7 @@ Khi bộ lọc đổi mà tổng là tổng toàn bộ kết quả, con số ph�
 
 ### Công tắc `expandable` — mở nhiều dòng cùng lúc
 
-Khối chi tiết có dải trái `--border-w-accent` màu `--color-brand` để mắt nối nó với dòng cha. **Cho mở nhiều dòng cùng lúc**, kèm nút "Đóng hết" — cho mở một dòng thì bảng gọn hơn nhưng mất khả năng đối chiếu hai bản ghi, và đối chiếu đúng là lý do người ta mở chi tiết.
+Khối chi tiết có dải trái `--border-w-accent` màu `--color-brand` để mắt nối nó với dòng cha. **Cho mở nhiều dòng cùng lúc**, kèm nút "Đóng hết" do `DataTable` vẽ trong một dải ngay trên hàng tiêu đề cột. Dải có mặt suốt lúc bật công tắc; nút chỉ bấm được khi có ít nhất một dòng đang mở — dải không hiện ra rồi biến mất theo số dòng mở, để khung bảng không nhảy. Nút mượn hình thức của [`Button.md`](./Button.md) theo [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5. Cho mở một dòng thì bảng gọn hơn nhưng mất khả năng đối chiếu hai bản ghi, và đối chiếu đúng là lý do người ta mở chi tiết.
 
 ## Kích thước
 
@@ -131,9 +135,9 @@ Khối chi tiết có dải trái `--border-w-accent` màu `--color-brand` để
 | `focus-visible` | Dòng nhận focus có `outline` `--color-focus` **bên trong** (`outline-offset: -2px`) — vòng ngoài sẽ bị cắt bởi vùng cuộn. `th` sắp xếp được nhận vòng focus như một nút | Có |
 | `active` | Dòng đang được chọn: nền `--color-brand-subtle`, dải `--border-w-accent` `--color-brand` ở mép trái. **Cần cả hai** — nền chênh `--color-surface` chỉ 1.25:1 nên không đủ làm tín hiệu duy nhất ([`../DESIGN.md`](../DESIGN.md) §2.4) | Có |
 | `disabled` | Dòng không thao tác được: chữ `--color-text-disabled`, không hover, ô đánh dấu bị khoá. **Vẫn đọc được** — không giảm opacity cả dòng | Có |
-| `loading` | **Hai ca khác nhau.** *Lần đầu:* [`SkeletonLoader.md`](./SkeletonLoader.md) dạng hàng, đúng số dòng của trang. *Đổi trang / sắp xếp lại:* giữ nguyên dữ liệu cũ, phủ `--color-scrim` + spinner, khoá thao tác. `aria-busy="true"` cả hai ca | Có |
-| `error` | Thay thân bảng bằng khối lỗi: icon, câu lỗi, nút "Thử lại". Tiêu đề cột **giữ nguyên** — chúng cho biết đây là bảng gì | Có |
-| `empty` | **Hai ca phải phân biệt.** *Chưa có bản ghi nào:* [`EmptyState.md`](./EmptyState.md) mời tạo mới. *Lọc không ra kết quả:* câu khác hẳn + nút "Xoá bộ lọc", **không** mời tạo mới | Có |
+| `loading` | **Hai ca khác nhau.** *Lần đầu* — chưa có dòng nào để giữ lại: thân bảng hiện **slot đang tải** (`loadingTemplate`), màn ghép [`SkeletonLoader.md`](./SkeletonLoader.md) dạng hàng, đúng số dòng của trang. *Đổi trang / sắp xếp lại:* `DataTable` tự giữ nguyên dữ liệu cũ, phủ `--color-scrim` + spinner, khoá thao tác. `aria-busy="true"` cả hai ca | Có |
+| `error` | Thân bảng hiện **slot lỗi** (`errorTemplate`): màn ghép [`EmptyState.md`](./EmptyState.md) biến thể `error` kèm nút "Thử lại" gọi thẳng việc tải lại của màn. Tiêu đề cột **giữ nguyên** — chúng cho biết đây là bảng gì | Có |
+| `empty` | **Hai ca phải phân biệt**, và thân bảng hiện **slot trống** (`emptyTemplate`) cho cả hai. Màn chọn nội dung theo `state`: *Chưa có bản ghi nào* (`'empty'`) → [`EmptyState.md`](./EmptyState.md) biến thể `first-use`, mời tạo mới. *Lọc không ra kết quả* (`'empty-filtered'`) → biến thể `no-results`, nút "Xoá bộ lọc", **không** mời tạo mới. Tiêu đề cột giữ nguyên | Có |
 
 **Ca `loading` khi đổi trang là chỗ hay làm sai nhất.** Thay dữ liệu cũ bằng skeleton mỗi lần bấm sang trang làm bảng nhấp nháy và cao thấp thất thường. Giữ dữ liệu cũ + phủ mờ giữ cho khung ổn định, và người dùng vẫn thấy mình đang ở đâu.
 
@@ -155,10 +159,10 @@ Khối chi tiết có dải trái `--border-w-accent` màu `--color-brand` để
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-lg` | Mọi cột hiện; cột hành động ghim mép phải |
-| `--bp-md` … `--bp-lg` | Ẩn các cột đánh dấu `priority: low`; bảng bắt đầu cuộn ngang |
-| < `--bp-md` | Chỉ giữ cột định danh + một cột trạng thái + cột hành động; ghim cột đầu |
-| < `--bp-xs` | Chuyển sang dạng thẻ: mỗi bản ghi một khối, nhãn cột thành nhãn trường |
+| ≥ `$bp-lg` | Mọi cột hiện; cột hành động ghim mép phải |
+| `$bp-md` … `$bp-lg` | Ẩn các cột đánh dấu `priority: low`; bảng bắt đầu cuộn ngang |
+| < `$bp-md` | Chỉ giữ cột định danh + một cột trạng thái + cột hành động; ghim cột đầu |
+| < `$bp-xs` | Chuyển sang dạng thẻ: mỗi bản ghi một khối, nhãn cột thành nhãn trường. Dạng thẻ là hành vi responsive của chính `DataTable`, không phải component riêng ([`../COMPONENTS.md`](../COMPONENTS.md) §1 — mở rộng, không đẻ mới); ngữ nghĩa bảng giữ như [`Table.md`](./Table.md) §Accessibility dòng dạng thẻ |
 
 🛑 **Cột bị ẩn phải nói rõ đi đâu.** Thông tin không được biến mất — hoặc nó có ở màn chi tiết, hoặc nó hiện khi mở rộng dòng. Ẩn mà không nói đi đâu là mất dữ liệu ở màn nhỏ.
 
@@ -172,7 +176,7 @@ Khối chi tiết có dải trái `--border-w-accent` màu `--color-brand` để
 | Tiêu đề bảng | `<caption>`, ẩn về mặt hình ảnh nếu tiêu đề đã hiện ở `PageHeader` — nhưng **phải có** |
 | Sắp xếp | `th` sắp xếp được chứa một `<button>`; `aria-sort` nhận `ascending` / `descending` / `none` |
 | Chọn dòng | Ô đánh dấu có `aria-label` nêu **bản ghi nào** ("Chọn người dùng Nguyễn Văn A"), không phải "Chọn" |
-| Chọn tất cả | Ô đánh dấu ở `th` dùng trạng thái `indeterminate` khi chỉ chọn một phần. Nói rõ nó chọn **trang hiện tại** hay **toàn bộ kết quả** — hai thứ này khác nhau và người dùng luôn hiểu nhầm |
+| Chọn tất cả | Ô đánh dấu ở `th` dùng trạng thái `indeterminate` khi chỉ chọn một phần. Phạm vi là **trang hiện tại** — `rows` và `selection` chỉ chứa dòng đã tải (§API); nhãn nói rõ điều đó, vì người dùng luôn hiểu nhầm thành toàn bộ kết quả. Chọn toàn bộ kết quả sau lọc cần hợp đồng phía máy chủ, không có ở v1 |
 | Vùng cuộn | Vùng cuộn ngang phải nhận focus (`tabindex="0"` + `role="region"` + `aria-label`). Không có nó, người dùng bàn phím **không cuộn ngang được** |
 | Bàn phím | Tab đi qua các control trong bảng theo thứ tự đọc. Không bẫy focus trong vùng cuộn |
 | Thay đổi dữ liệu | Đổi trang hoặc đổi sắp xếp thì thông báo qua vùng `aria-live="polite"`: "Đang hiện 21 đến 40 trên 137 bản ghi" |
@@ -182,7 +186,7 @@ Khối chi tiết có dải trái `--border-w-accent` màu `--color-brand` để
 | Công tắc `grouped` | Dòng tiêu đề nhóm là `role="row"` với một ô `colspan`, mang `aria-expanded` |
 | Công tắc `summary` | Dải tổng là một `<table>` riêng nên nó **mất quan hệ hàng–cột** với bảng chính. Bù lại bằng hai thứ: mỗi ô của dải mang `headers` trỏ tới `id` của `<th>` tương ứng, và cả dải mang `aria-label` nói rõ phạm vi ("Tổng cộng 137 bản ghi"). Không bù thì trình đọc màn hình đọc ra một dãy số không biết của cột nào |
 | Công tắc `summary` — lớp | Dải tổng nằm ngoài vùng cuộn nên **không cần** `--z-sticky`; nó không chồng lên gì cả. Chỉ ô đầu khi bật kèm `frozen` mới cần lớp, và dùng cùng lớp với cột ghim của thân bảng |
-| Công tắc `expandable` | Nút bung là `<button>` thật với `aria-expanded` và `aria-controls` trỏ tới `id` của khối chi tiết. Khối chi tiết là một dòng `<tr>` thật với ô `colspan`, không phải một khối tuyệt đối chèn ngoài bảng |
+| Công tắc `expandable` | Nút bung là `<button>` thật với `aria-expanded` và `aria-controls` trỏ tới `id` của khối chi tiết. Khối chi tiết là một dòng `<tr>` thật với ô `colspan`, không phải một khối tuyệt đối chèn ngoài bảng. Nút "Đóng hết" là `<button>` thật, mang `disabled` khi không dòng nào đang mở |
 | Chữ | Tiêu đề cột, nhãn, thông báo qua i18n — [`../../RULES.md`](../../RULES.md) §7 F8 |
 
 **Vùng cuộn không nhận được focus là lỗi accessibility bị bỏ sót nhiều nhất ở bảng.** Chuột có thanh cuộn, cảm ứng có ngón tay, bàn phím thì **không có gì cả** trừ khi vùng đó nhận được focus.
@@ -193,27 +197,42 @@ Khối chi tiết có dải trái `--border-w-accent` màu `--color-brand` để
 | --- | --- | --- | --- | --- |
 | `rows` | input | `ReadonlyArray<T>` | `[]` | Dữ liệu của **trang hiện tại**, không phải toàn bộ |
 | `columns` | input | `ReadonlyArray<DataColumnDef<T>>` | `[]` | Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9. **Đây là điểm mở rộng chính**: dự án hạ nguồn thêm hoặc đổi cột qua đây, không sửa file Core |
+| `variant` | input | `'paged' \| 'scroll'` | `'paged'` | Hai biến thể loại trừ nhau ở mục Biến thể. `paged` vẽ dải [`Pagination.md`](./Pagination.md) ở chân khung và nhận `page` / `pageSize` / `totalRecords`; `scroll` không vẽ dải nào và tải thêm khi tới đáy vùng cuộn |
 | `switches` | input | `DataTableSwitches` | `{}` | Sáu công tắc ở mục Biến thể, khai bằng **một** object có tên. Chữ ký ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 — `frozen` nhận cả `'first' \| 'both'`, không chỉ boolean |
 | `groupBy` | input | `string \| null` | `null` | Khoá cột để gộp nhóm. Bắt buộc khác `null` khi bật công tắc `grouped` |
 | `rowDetail` | input | `TemplateRef<{ $implicit: T }> \| null` | `null` | Nội dung khối bung ra. Bắt buộc khác `null` khi bật công tắc `expandable` |
+| `emptyTemplate` | input | `TemplateRef<{ $implicit: 'empty' \| 'empty-filtered' }> \| null` | `null` | Nội dung slot trống; context mang ca rỗng để màn chọn biến thể `EmptyState`. Màn danh sách luôn truyền — thiếu thì thân bảng trống trơn |
+| `loadingTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Nội dung slot đang tải lần đầu. Màn danh sách luôn truyền |
+| `errorTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Nội dung slot lỗi, **gồm cả nút "Thử lại"**. Màn danh sách luôn truyền |
 | `nodeExpanded` | output | `string` | — | Chỉ ở công tắc `tree`: phát khoá nhánh vừa xoè, để trang cha tải con nếu `hasChildren` là `true` mà `children` rỗng |
-| `totalRecords` | input | `number` | `0` | Tổng số bản ghi phía máy chủ |
-| `page` / `pageSize` | input | `number` | `1` / `20` | |
-| `sortBy` / `sortDir` | input | `string \| null` / `'asc' \| 'desc' \| null` | `null` | Tên theo [`../../contracts/README.md`](../../contracts/README.md) §8. Quy đổi sang dạng `1 \| -1` của PrimeNG nằm **trong** lớp bọc |
+| `totalRecords` | input | `number` | `0` | Tổng số bản ghi phía máy chủ. Chỉ có nghĩa ở `variant = 'paged'` |
+| `page` / `pageSize` | input | `number` | `1` / `20` | Chỉ có nghĩa ở `variant = 'paged'`. Danh sách số dòng mỗi trang cho dải phân trang: [`Pagination.md`](./Pagination.md) §API (`pageSizeOptions`) |
+| `sortBy` / `sortDescending` | input | `string \| null` / `boolean` | `null` / `false` | Đúng tên tham số trên dây ở [`../../contracts/README.md`](../../contracts/README.md) §8. Quy đổi sang dạng `1 \| -1` của PrimeNG nằm **trong** lớp bọc |
 | `selection` | input | `ReadonlyArray<T>` | `[]` | |
 | `state` | input | `'idle' \| 'loading' \| 'error' \| 'empty' \| 'empty-filtered'` | `'idle'` | **Một biến duy nhất**, không phải bốn cờ boolean rời — xem dưới |
 | `rowKey` | input | `string` | — | Bắt buộc. Khoá định danh dòng, dùng cho `track` ([`../../RULES.md`](../../RULES.md) §7 F13) |
 | `summary` | input | `SummaryRow \| null` | `null` | Dữ liệu dòng tổng **do máy chủ tính**. `null` = không bật công tắc `summary`. Gồm: nhãn (đã kèm phạm vi), và giá trị đã định dạng theo từng khoá cột |
 | `summaryScope` | input | `'page' \| 'filtered'` | `'filtered'` | Phạm vi của số tổng. Mặc định là **toàn bộ kết quả sau lọc** — sai theo hướng an toàn: người đối chiếu sổ cần con số đó, còn tổng một trang hiếm khi là thứ ai muốn |
-| `pageChange` | output | `{ page: number; pageSize: number }` | — | |
-| `sortChange` | output | `{ field: string; order: 1 \| -1 }` | — | |
+| `pageChange` | output | `{ page: number; pageSize: number }` | — | Đổi trang **và** đổi số dòng mỗi trang đều ra bằng sự kiện này. Đổi số dòng thì `page` đã được đưa về `1` bên trong lớp bọc — luật và lý do ở [`Pagination.md`](./Pagination.md) §API. Chỉ phát ở `variant = 'paged'` |
+| `sortChange` | output | `{ sortBy: string; sortDescending: boolean }` | — | Phát đúng tên trên dây; dạng `1 \| -1` của PrimeNG không lọt ra ngoài |
 | `selectionChange` | output | `ReadonlyArray<T>` | — | |
 | `rowClick` | output | `T` | — | Không phát khi bấm trúng một control bên trong dòng |
-| `retry` | output | `void` | — | Nút "Thử lại" ở trạng thái lỗi |
 
 **`state` là một biến, không phải bốn cờ.** Bốn cờ `loading`/`error`/`empty`/`emptyFiltered` cho phép biểu diễn những tổ hợp vô nghĩa (`loading` và `error` cùng `true`), và mỗi nơi gọi lại xử lý tổ hợp đó một kiểu. Một biến kiểu liệt kê thì trình biên dịch bắt được ca thiếu.
 
+**Ba slot nội dung trạng thái.** Cùng khuôn `rowDetail`: mỗi slot là một input `TemplateRef` do màn cấp.
+
+| Slot | Input | Hiện khi | Màn ghép gì |
+| --- | --- | --- | --- |
+| trống | `emptyTemplate` | `state` là `'empty'` hoặc `'empty-filtered'` | [`EmptyState.md`](./EmptyState.md) — biến thể theo ca, xem mục Trạng thái |
+| đang tải | `loadingTemplate` | `state` là `'loading'` và chưa có dòng nào để giữ lại | [`SkeletonLoader.md`](./SkeletonLoader.md) dạng hàng |
+| lỗi | `errorTemplate` | `state` là `'error'` | [`EmptyState.md`](./EmptyState.md) biến thể `error`, nút "Thử lại" gọi việc tải lại của màn |
+
+`DataTable` quyết **khi nào** hiện slot nào và giữ tiêu đề cột quanh nó; màn quyết **hiện gì** trong slot. Tách như vậy vì `DataTable` nằm ở tầng bọc và không được import component tự dựng — luật ở [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.2. Nút trong slot gọi thẳng hàm của màn, nên `DataTable` không có output riêng cho "Thử lại"; khuôn chung cho mọi lớp bọc ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5. Cú pháp khai slot là việc thi công, mẫu ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md).
+
 `DataTable` là component **dumb**: nó **phát** yêu cầu đổi trang và đổi sắp xếp; trang cha gọi API rồi truyền dữ liệu mới xuống ([`../COMPONENTS.md`](../COMPONENTS.md) §5).
+
+Trang, sắp xếp, từ khoá tìm và bộ lọc sống trên URL, do tầng trạng thái danh sách của màn giữ — hợp đồng ở [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.8. `DataTable` không đọc và không ghi URL.
 
 ## Do / Don't
 
@@ -232,7 +251,4 @@ Khối chi tiết có dải trái `--border-w-accent` màu `--color-brand` để
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Dạng thẻ ở màn nhỏ nằm trong `DataTable` hay là một component riêng? Nằm trong thì tiện dùng nhưng làm component phình; tách ra thì mỗi màn phải tự chọn | Khi dựng màn danh sách đầu tiên |
-| 2 | Ngưỡng nào chuyển sang cuộn vô hạn thay vì phân trang? Hôm nay mặc định là phân trang cho mọi thứ | Dự án đầu tiên có màn nhật ký |
-| 3 | Có lưu trạng thái bảng (trang, sắp xếp, bộ lọc) lên URL không? Lưu thì chia sẻ được liên kết và F5 không mất chỗ; không lưu thì URL sạch | Cùng lúc chốt quy ước định tuyến |
-| 4 | Có cần cho người dùng ẩn/hiện cột và lưu lại lựa chọn đó không? | Sau khi có màn thật với nhiều cột |
+| 1 | Có cần cho người dùng ẩn/hiện cột và lưu lại lựa chọn đó không? | Sau F3 — dự án hạ nguồn đầu tiên có bảng nhiều cột |

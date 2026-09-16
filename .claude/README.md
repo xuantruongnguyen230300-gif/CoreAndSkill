@@ -13,9 +13,9 @@
 | Đường dẫn | Chứa gì |
 | --- | --- |
 | [`CLAUDE.md`](CLAUDE.md) | Luật toàn repo: git, ranh giới `.claude` ↔ `docs` ↔ `spec`, nhãn trạng thái, ba khoá frontmatter |
-| `settings.json` | Cấu hình harness — `permissions.allow` / `permissions.deny`, nơi lệnh git ghi bị **cưỡng chế bằng máy** |
-| `check-docs.sh` | Cổng tài liệu. **Không phải chạy tay** — hook `Stop` và CI đều gọi nó |
-| `hooks/` | Script do harness chạy: `on-edit.sh` ghi dấu file đã sửa, `on-stop.sh` chạy cổng cuối lượt |
+| `settings.json` | Cấu hình harness — `permissions.allow` / `permissions.deny` và khối `hooks`, nơi lệnh git ghi bị **cưỡng chế bằng máy** |
+| `check-docs.sh` | Cổng tài liệu. Hook `Stop` chạy nó ở cuối mỗi lượt và CI chạy lại, nên **không lượt nào thoát được nó**. Chạy tay là **tuỳ chọn** — để thấy đỏ ngay lúc đang sửa thay vì lúc kết thúc lượt. Chạy tay qua **công cụ Bash** (Git Bash): trên máy Windows, `bash` gọi từ công cụ PowerShell có thể trỏ vào WSL và không chạy được |
+| `hooks/` | Script do harness chạy. Script nào đang gắn vào sự kiện nào: đọc khối `hooks` của `settings.json` — file có mặt trong thư mục chưa chắc đã được gắn. Sửa hook thì chạy bộ test payload trước khi coi là xong, qua công cụ Bash: `bash .claude/hooks/tests/run-tests.sh` (CI cũng chạy) |
 | `agents/` | Định nghĩa agent — `ls .claude/agents` là danh sách thật |
 | `skills/` | Skill gọi bằng `/<tên>` — `ls .claude/skills` là danh sách thật |
 
@@ -71,9 +71,10 @@ ls .claude/skills
                        tech-writer
 ```
 
-Ba chiều mũi tên đáng chú ý:
+Những chiều mũi tên đáng chú ý:
 
 - **`architect` nhận từ mọi phía.** Bất kỳ agent nào gặp một quyết định kiến trúc đều dừng và chuyển sang đó. Không có đường vòng.
+- **`core-reviewer` do phiên chính gọi, không do agent thi công gọi.** `backend-expert`, `frontend-expert`, `test-engineer` chạm Core thì kết thúc báo cáo bằng dòng `CẦN CORE-REVIEW: BE` và/hoặc `CẦN CORE-REVIEW: FE`; phiên chính hoặc `/feature-kickoff` đọc dòng đó rồi gọi, chỉ truyền phạm vi.
 - **`test-engineer` và `core-reviewer` chỉ trả việc ngược lên**, không tự sửa. Đó là thiết kế, không phải hạn chế — xem §4.
 - **`ba-analyst` ↔ `architect`.** BA **không** tự quyết một feature thuộc Core hay Module. Đó là quyết định ranh giới kiến trúc.
 
@@ -90,6 +91,7 @@ yêu cầu thô của người dùng
         │
         ├──── 🙋 CẦN NGƯỜI: trả lời câu hỏi nghiệp vụ còn mở
         ├──── 🙋 CẦN NGƯỜI hoặc architect: feature này thuộc Core hay Module?
+        ├──── 🛑 kết luận Core → LUÔN qua architect trước [3]
         │
         ▼
 [2] design-expert — CHỈ khi feature cần màn hình/component chưa có spec
@@ -104,6 +106,7 @@ yêu cầu thô của người dùng
         │
         ├──── 🛑 DỪNG: việc đòi quyết định kiến trúc mới → architect
         ├──── 🛑 DỪNG: thiếu spec nghiệp vụ → ba-analyst
+        ├──── chạm Core → báo cáo kết thúc bằng dòng CẦN CORE-REVIEW: BE | FE
         │
         ▼
 [4] test-engineer — tìm ca biên hai agent trên bỏ sót
@@ -111,7 +114,7 @@ yêu cầu thô của người dùng
         ├──── 🛑 DỪNG: test đỏ vì CODE SAI → trả về [3], KHÔNG sửa code cho test xanh
         │
         ▼
-[5] core-reviewer — chỉ khi việc chạm Core; một lượt = một phạm vi (BE hoặc FE)
+[5] core-reviewer — phiên chính gọi khi có dòng CẦN CORE-REVIEW; một lượt = một phạm vi (BE hoặc FE)
         │
         ├──── finding → trả về [3] để sửa. core-reviewer KHÔNG sửa.
         │
@@ -131,7 +134,7 @@ yêu cầu thô của người dùng
 | Sau [1] — trả lời câu hỏi nghiệp vụ | Nghiệp vụ là thứ **chỉ người dùng biết**. Suy diễn từ tên feature là bịa |
 | Trong [1]/[2] — Core hay Module | Đặt sai chỗ thì hoặc Core mang theo thứ không ai dùng, hoặc mỗi dự án dựng lại một bản |
 | Trước [6] — chốt bàn giao | Viết tài liệu cho tính năng chưa qua review là viết tài liệu cho thứ còn sắp đổi |
-| Mọi lệnh git ghi, ở bất kỳ bước nào | [`CLAUDE.md`](CLAUDE.md) §1 — cưỡng chế bằng `permissions.deny`, không phải bằng câu văn |
+| Mọi lệnh git ghi, ở bất kỳ bước nào | [`CLAUDE.md`](CLAUDE.md) §1 — cưỡng chế bằng `permissions.deny` và hook `PreToolUse`, không phải bằng câu văn |
 
 Ngoài ra `design-expert` **luôn dừng xin xác nhận riêng trước khi xuất bản ra định dạng ngoài**, kể cả đang chạy chuỗi stage tự động — vì bên trong repo thì hoàn tác được, ra ngoài thì không.
 
@@ -140,9 +143,9 @@ Ngoài ra `design-expert` **luôn dừng xin xác nhận riêng trước khi xu�
 Không phải feature nào cũng đi hết sáu bước:
 
 - **Sửa lỗi nhỏ trong một module**: [3] → [4]. Không cần [1], [2], [5].
-- **Thay đổi chạm `Core/`**: bắt buộc qua `architect` **trước** [3], và bắt buộc có [5] sau đó.
+- **Feature kết luận thuộc Core, hoặc thay đổi chạm `Core/`**: **luôn** qua `architect` **trước** [3], và bắt buộc có [5] sau đó.
 - **Chỉ đổi giao diện, không đổi hành vi**: [2] → [3] FE → [5] nếu chạm Core FE.
-- **Giai đoạn chưa có `src/`** (trạng thái hiện tại của repo — đọc `docs/README.md` §Trạng thái repo): phần lớn việc dừng ở [1], [2] và `architect`. Đây là lúc quyết định kiến trúc rẻ nhất để đưa ra và rẻ nhất để đảo.
+- **Giai đoạn chưa có `src/`** (trạng thái hiện tại của repo — đọc `docs/README.md` §Trạng thái repo): phần lớn việc dừng ở [1], [2] và `architect`. Đây là lúc quyết định kiến trúc rẻ nhất để đưa ra và rẻ nhất để đảo. Điều kiện chuyển sang giai đoạn 2 và danh sách chỗ phải lật nhãn: `docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md`. Nhãn giai đoạn trong `.claude/` và `README.md` gốc do **phiên chính** lật, theo đúng danh sách đó.
 
 ---
 
@@ -192,6 +195,8 @@ Corpus đầy đủ đủ lớn để **giết một lượt review trước khi
 
 Vì vậy mỗi bảng định tuyến cố ý **ngắn**, và mỗi dòng dẫn tới **đúng một** file. Chủ đề không có trong bảng → tra `docs/README.md` rồi mở đúng một file.
 
+Bảng tách hai phần theo tiêu đề mục — **Bộ luật** (agent mở theo việc đang làm; tổng cỡ có ngưỡng, cổng `check-docs.sh` §23 canh) và **Tra cứu** (mở đúng một file khi chủ đề chạm tới; không cộng vào ngưỡng). Ngưỡng và cách đo: luật D36 ở `docs/RULES.md`. Phần "vì sao, bẫy, ví dụ mở rộng" của mỗi file luật nằm ở file lý do cùng tên trong `docs/wiki-core/` — agent thi công chỉ mở nó khi cần lý do.
+
 ### Một lượt review một phạm vi
 
 `core-reviewer` soát **BE hoặc FE, không bao giờ cả hai** trong một lượt. Cùng lý do trên.
@@ -237,9 +242,9 @@ ls .claude/skills
 
 Nhóm skill **sinh code** (`/core-new-module`, `/core-new-usecase`, `/core-new-entity`, `/fe-new-feature`) chưa được viết.
 
-Lý do: một skill scaffold về bản chất là máy sao chép có sửa tên — **nó cần một bản gốc**. Repo chưa có `src/`, nên chưa có module mẫu nào đã chạy được để sao. Viết trước là viết theo tưởng tượng về một thứ chưa tồn tại, và sản phẩm sẽ là skill sinh ra code không build được mà không có đáp án đúng nào để đối chiếu khi đi sửa.
+Lý do: một skill scaffold về bản chất là máy sao chép có sửa tên — **nó cần một bản gốc**: một module mẫu đã chạy được. Viết trước là viết theo tưởng tượng về một thứ chưa tồn tại, và sản phẩm sẽ là skill sinh ra code không build được mà không có đáp án đúng nào để đối chiếu khi đi sửa.
 
-Chúng thuộc giai đoạn 2, sau khi module mẫu đầu tiên chạy được.
+> 📖 Module mẫu dựng ở đâu, skill scaffold viết ở đâu và khi nào đưa về Core: đọc `docs/adr/0032-module-mau-o-du-an-ha-nguon.md`
 
 ### Kích hoạt agent không qua skill
 
@@ -254,7 +259,7 @@ Chúng thuộc giai đoạn 2, sau khi module mẫu đầu tiên chạy được
 5. **Viết mục "dừng lại và hỏi" cụ thể cho vai trò đó.** Một danh sách chung chung sao chép từ agent khác không có tác dụng — nó không mô tả đúng những ranh giới mà agent này thật sự gặp.
 6. **Cập nhật file này**: bảng §2, sơ đồ "ai gọi ai", và luồng feature §3 nếu agent mới nằm trong luồng.
 7. **Cập nhật mục bàn giao của những agent sẽ giao việc cho nó** — bàn giao là hai chiều, khai một chiều thì không ai gọi tới.
-8. **Chạy cổng**: `bash .claude/check-docs.sh`.
+8. **Chạy cổng**: `bash .claude/check-docs.sh` — hook `Stop` cũng chạy nó ở cuối lượt, nên bước này là để thấy đỏ sớm, không phải để cổng có chạy hay không.
 
 Bỏ bước 6 hoặc 7 là cách phổ biến nhất để có một agent tồn tại nhưng không bao giờ được gọi.
 
@@ -268,20 +273,24 @@ Mục này bắt buộc có, và bắt buộc trung thực. Một tài liệu ch
 
 Nhiều agent khai trong `description` rằng nên được dùng "PROACTIVELY" sau một sự kiện nào đó. Cơ chế đó **phụ thuộc vào việc agent nhớ gọi**: không có gì chặn một lượt kết thúc mà bỏ qua bước đó — không lỗi, không cảnh báo, không dấu vết. Nó chỉ đơn giản là không xảy ra.
 
-**Hai trường hợp nay đã được cưỡng chế bằng hook**, xem [`CLAUDE.md`](CLAUDE.md) §8:
+**Một phần đã có hook canh**, xem [`CLAUDE.md`](CLAUDE.md) §8:
 
-| Việc | Trước | Nay |
+| Việc | Hook | Làm gì |
 | --- | --- | --- |
-| Chạy cổng tài liệu sau khi sửa `docs/` hoặc `.claude/` | Agent phải nhớ | Hook `Stop` chạy, cổng đỏ thì **chặn lượt** |
-| Gọi `core-reviewer` sau khi chạm Core | Agent phải nhớ | Hook `Stop` **chặn một lần** kèm yêu cầu gọi |
+| Không chạy lệnh cấm | `PreToolUse` | Chặn trước khi lệnh chạy — lớp thứ hai sau `permissions.deny` |
+| Chạy cổng tài liệu sau khi sửa `docs/`, `.claude/` hoặc `spec/` | `PostToolUse` ghi dấu, `Stop` chạy cổng | Cổng đỏ thì **chặn lượt**, lặp tới khi xanh |
+| Gọi `core-reviewer` sau khi chạm Core | `SubagentStop` ghi dấu review, `Stop` so dấu với file đã sửa | **Chặn mỗi lần kết thúc lượt** tới khi có lượt review mới hơn — **chỉ khi có `src/`** |
+| Chạy cổng build/test sau khi sửa `src/` | `Stop` | **Nhắc**, không chặn — CI là nơi chặn |
 
-Hook do harness chạy, không do model quyết định — nó không quên.
+Hook do harness chạy, không do model quyết định — nó không quên. Cơ chế ba lớp của `core-reviewer` và lối thoát: [`CLAUDE.md`](CLAUDE.md) §8.
 
 **Nhưng phần còn lại vẫn là niềm tin, và đừng nhầm hai thứ:**
 
-- Hook **buộc gọi** `core-reviewer`, nó không buộc ai **đọc kỹ** báo cáo hay **sửa** theo báo cáo.
-- Hook chỉ canh hai sự kiện trên. Mọi "PROACTIVELY" khác — gọi `ba-analyst` khi thiếu spec, gọi `design-expert` khi thiếu spec màn hình, gọi `test-engineer` tìm ca biên — vẫn hoàn toàn phụ thuộc trí nhớ.
-- Nhánh chặn của hook chấp nhận lý do "lượt này không cần review". Một agent muốn đi vòng thì vẫn đi vòng được; hook chỉ làm việc đó thành **một hành động có ý thức, phải nói ra**, thay vì một chỗ bị bỏ quên trong im lặng.
+- Hook chặn tới khi **có một lượt** `core-reviewer` kết thúc sau lần sửa. Nó không biết lượt đó soát đúng phạm vi hay chưa — một lượt soát FE cũng ghi dấu cho thay đổi BE — và không buộc ai **đọc kỹ** báo cáo hay **sửa** theo báo cáo.
+- Người dùng vẫn bỏ qua được lớp chặn đó bằng cách tự xoá dấu — đó là quyết định có chủ ý, không phải lỗ hổng.
+- Hook chỉ canh các việc trong bảng. Mọi "PROACTIVELY" khác — gọi `ba-analyst` khi thiếu spec, gọi `design-expert` khi thiếu spec màn hình, gọi `test-engineer` tìm ca biên — vẫn hoàn toàn phụ thuộc trí nhớ.
+- Việc agent thi công có ghi dòng `CẦN CORE-REVIEW` hay không cũng là niềm tin. Lưới đỡ của nó là hook `Stop` ở trên — hook tự nhìn file đã sửa, không đọc báo cáo.
+- Hook `PreToolUse` chỉ đọc chuỗi lệnh của một lời gọi công cụ. Đường vòng nó không thấy: các dòng nợ C4 ở `docs/RULES.md` §10.
 
 Đó là cải thiện thật, không phải giải pháp trọn vẹn.
 

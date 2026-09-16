@@ -8,15 +8,17 @@ verified: chua-doi-chieu
 
 > 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**
 >
-> **Định nghĩa hoàn thành:** đăng nhập qua form thật bằng **cookie phiên**; guard chặn đúng khi chưa đăng nhập **và** điều hướng kèm đường dẫn quay lại; tài khoản buộc đổi mật khẩu bị ép sang màn đổi mật khẩu và **không vào được route nào khác**; đăng xuất khiến route cũ bị chặn **ngay**, không cần tải lại trang; menu dựng theo **permission** trả về từ server.
+> **Định nghĩa hoàn thành:** đăng nhập qua form thật bằng **cookie phiên**; guard chặn đúng khi chưa đăng nhập **và** điều hướng kèm đường dẫn quay lại; tài khoản buộc đổi mật khẩu bị ép sang màn đổi mật khẩu và **không vào được route nào khác**; đăng xuất khiến route cũ bị chặn **ngay**, không cần tải lại trang; menu dựng theo **permission** trả về từ server; màn hồ sơ cá nhân đọc và lưu được qua HTTP thật.
 
 ---
 
 ## 1. Hợp đồng đã chốt — không phải đoán
 
-> **Phạm vi F2 gồm cả luồng quên mật khẩu**: màn nhập email, màn đặt lại mật khẩu theo liên kết, và màn thông báo kết quả. Hợp đồng đã có ở [`../../../contracts/auth.md`](../../../contracts/auth.md) — ba màn này hay bị bỏ quên vì chúng nằm **ngoài** guard, tức không màn nào trong app dẫn tới chúng.
+> **Phạm vi F2 gồm cả màn hồ sơ cá nhân** ([`../../../contracts/profile.md`](../../../contracts/profile.md)). Nó chỉ cần phiên đã chạy: endpoint hồ sơ thuộc mức "chỉ cần đăng nhập", không đi qua ma trận quyền ([`../../../adr/0024-ba-muc-khai-bao-phan-quyen-endpoint.md`](../../../adr/0024-ba-muc-khai-bao-phan-quyen-endpoint.md)).
+>
+> **Quên mật khẩu tự phục vụ nằm ngoài v1** ([`../../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md)). F2 không có màn nào cho luồng đó; người quên mật khẩu được quản trị đặt lại hộ.
 
-Hình dạng request và response nằm ở [`../../../contracts/auth.md`](../../../contracts/auth.md): đăng nhập, đăng xuất, "tôi là ai", đổi mật khẩu, và endpoint lấy token XSRF.
+Hình dạng request và response nằm ở [`../../../contracts/auth.md`](../../../contracts/auth.md): đăng nhập, đăng xuất, "tôi là ai", đổi mật khẩu, và endpoint lấy token XSRF. Hồ sơ cá nhân: [`../../../contracts/profile.md`](../../../contracts/profile.md).
 
 Vì hình dạng đã cố định, FE **dựng được ngay** trên dữ liệu giả đúng hợp đồng, không phải đợi BE. Nhưng **đóng** F2 thì cần endpoint thật chạy — vì đúng những thứ dữ liệu giả không mô phỏng được (cookie, XSRF, hình dạng lỗi thật) là những thứ hay hỏng nhất.
 
@@ -28,13 +30,14 @@ Vì hình dạng đã cố định, FE **dựng được ngay** trên dữ liệ
 1. Interceptor cookie + XSRF (nếu chưa xong ở F0)
         │
         ▼
-2. AuthService — đăng nhập, đăng xuất, "tôi là ai" + ánh xạ DTO → model
+2. AuthService — đăng nhập, đăng xuất, "tôi là ai", ánh xạ DTO → model,
+   người dùng hiện tại dạng signal (nạp MỘT LẦN lúc khởi động app), kiểm quyền
         │
         ▼
-3. SessionService — state dạng signal, nạp MỘT LẦN lúc khởi động app
+3. SessionExpiryHandler + nhánh 401 của errorInterceptor
         │
         ▼
-4. PermissionService + directive hiển thị theo quyền
+4. Directive hiển thị theo quyền
         │
         ▼
 5. Ba guard theo đúng thứ tự + khai route từng feature
@@ -44,9 +47,14 @@ Vì hình dạng đã cố định, FE **dựng được ngay** trên dữ liệ
         │
         ▼
 7. Layout shell + menu động
+        │
+        ▼
+8. Màn hồ sơ cá nhân
 ```
 
-**Bước 3 nạp một lần lúc khởi động, không nạp lại mỗi lần đổi route.** Gọi trong guard nghĩa là mỗi lần điều hướng là một request nữa, và mỗi lần đó là một cơ hội để giao diện chớp nháy hoặc để hai request đua nhau.
+**Một `AuthService` giữ cả người dùng hiện tại lẫn câu hỏi "có quyền không"** ([`../../../quy-uoc/fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §3.3). Không tách một service phiên hay một service quyền riêng: hai service cho cùng một trạng thái là hai chỗ để lệch.
+
+**Bước 2 nạp người dùng một lần lúc khởi động, không nạp lại mỗi lần đổi route.** Gọi trong guard nghĩa là mỗi lần điều hướng là một request nữa, và mỗi lần đó là một cơ hội để giao diện chớp nháy hoặc để hai request đua nhau.
 
 > 📖 Cơ chế đầy đủ, mười bẫy và cách kiểm: [`../07-auth-identity.md`](../07-auth-identity.md).
 > 📖 Quy ước guard, thứ tự guard, cờ tắt shell: [`../../../quy-uoc/fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md). Đó là nguồn duy nhất — không viết lại guard theo trí nhớ.
@@ -89,11 +97,13 @@ Kiểm permission trước khi kiểm "buộc đổi mật khẩu" → người 
 
 ### 4.4 Nhiều 401 cùng lúc
 
-Một màn gọi bốn API song song, phiên hết hạn, cả bốn trả 401 → bốn lần điều hướng và bốn thông báo. Phải chặn: chỉ xử lý lần đầu.
+Một màn gọi bốn API song song, phiên hết hạn, cả bốn trả 401 → bốn lần điều hướng và bốn thông báo. Phải chặn: `SessionExpiryHandler` chạy **một lần**, cho tới lần đăng nhập kế tiếp ([`../07-auth-identity.md`](../07-auth-identity.md) §7.3).
 
-### 4.5 401 của chính lời gọi đăng nhập bị coi là hết phiên
+### 4.5 401 của `me` lúc khởi động hoặc của `logout` bị coi là hết phiên
 
-Sai mật khẩu trả 401. Không loại trừ endpoint đăng nhập thì người nhập sai mật khẩu bị "đăng xuất" và điều hướng lung tung thay vì thấy thông báo sai mật khẩu.
+Hai request này nhận 401 như chuyện bình thường: chưa đăng nhập, hoặc phiên đã hết trước khi bấm đăng xuất. Chúng mang cờ `HttpContextToken` để nhánh 401 bỏ qua `SessionExpiryHandler`; thiếu cờ thì người chưa từng đăng nhập bị báo hết phiên ngay khi mở app.
+
+Sai mật khẩu **không** thuộc nhóm này: đăng nhập sai trả **422** ([`../../../contracts/auth.md`](../../../contracts/auth.md) §3) và đi đường lỗi của form — [`../07-auth-identity.md`](../07-auth-identity.md) §7.3.
 
 ### 4.6 Token XSRF cũ sau khi đăng nhập
 
@@ -130,10 +140,20 @@ Triệu chứng khi cấu hình sai: **luôn nhận 401 dù vừa đăng nhập 
 - [ ] Đăng xuất → gọi lại API cần auth → chặn ngay, không cần tải lại trang
 - [ ] Bốn request song song cùng nhận 401 → **một** lần điều hướng, **một** thông báo
 - [ ] Nhập sai mật khẩu → thấy thông báo sai mật khẩu, không bị coi là hết phiên
+- [ ] Mở app khi chưa đăng nhập → vào màn đăng nhập, **không** có thông báo hết phiên
+- [ ] Tài khoản mang `has_permission_bypass` → mọi chức năng theo quyền hiện ra, không qua nhánh FE riêng nào
+- [ ] Form đăng nhập không có ô ghi nhớ đăng nhập
+- [ ] Màn hồ sơ cá nhân đọc và lưu được qua HTTP thật
+- [ ] Lưu hồ sơ với họ tên mới → Topbar hiện tên mới ngay, không tải lại trang
+- [ ] Chọn một ngôn ngữ khác ở màn đổi mật khẩu bắt buộc → đổi xong, giao diện giữ ngôn ngữ đó và hồ sơ mang ngôn ngữ đó ([`../08-i18n.md`](../08-i18n.md) §7) — chỉ khi `CORE_I18N.languages` có từ hai mục; v1 bỏ qua
+- [ ] Thu một quyền của tài khoản đang mở app → thao tác kế tiếp nhận 403 → nút **và** mục menu của quyền đó biến mất, người dùng ở lại màn
+- [ ] Đã đăng nhập, gõ URL không tồn tại → trang 404 **trong** khung app; chưa đăng nhập → về màn đăng nhập kèm đường dẫn quay lại
+- [ ] Một request chạm hạn mức ở màn không tắt toast → toast hiện số giây chờ khớp header `Retry-After` của chính response đó
+- [ ] Mở hồ sơ ở hai tab, lưu ở tab thứ nhất rồi lưu ở tab thứ hai → tab thứ hai nhận 409 kèm toast xung đột, dữ liệu vừa nhập còn nguyên trên form, tab Network **không** có request gửi lại tự động ([`../../../quy-uoc/fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §2.2)
 - [ ] Đăng xuất ở một tab → tab khác tự dọn
 - [ ] Tài khoản thiếu permission gõ thẳng URL → bị chặn, **không** thấy nội dung màn dù chỉ chớp nhoáng
 - [ ] Menu chỉ hiện mục mà tài khoản có quyền; ẩn mục **không** thay được guard
-- [ ] Đổi ngôn ngữ → menu đổi theo (cache menu có khoá gồm cả người dùng lẫn ngôn ngữ)
+- [ ] Đổi ngôn ngữ → menu đổi theo (cache menu có khoá gồm cả người dùng lẫn ngôn ngữ) — chỉ khi `CORE_I18N.languages` có từ hai mục; v1 bỏ qua
 - [ ] Không tệp `.html` nào chứa chữ tiếng Việt (luật F8)
 - [ ] Không hằng số vai trò nào trong `core/`
 - [ ] Xem tab Network: cookie thật sự được gửi kèm request
@@ -146,7 +166,7 @@ Triệu chứng khi cấu hình sai: **luôn nhận 401 dù vừa đăng nhập 
 | --- | --- |
 | Cơ chế xác thực đầy đủ | [`../07-auth-identity.md`](../07-auth-identity.md) |
 | Guard và routing | [`../../../quy-uoc/fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) |
-| Hợp đồng endpoint | [`../../../contracts/auth.md`](../../../contracts/auth.md) · [`../../../contracts/meta-menu.md`](../../../contracts/meta-menu.md) |
+| Hợp đồng endpoint | [`../../../contracts/auth.md`](../../../contracts/auth.md) · [`../../../contracts/profile.md`](../../../contracts/profile.md) · [`../../../contracts/meta-menu.md`](../../../contracts/meta-menu.md) |
 | i18n và cổng F8 | [`../08-i18n.md`](../08-i18n.md) |
 | Vì sao permission chứ không phải role | [`../../../adr/0005-permission-based.md`](../../../adr/0005-permission-based.md) |
 | Pha kế tiếp | [`04-f3-man-quan-tri.md`](04-f3-man-quan-tri.md) |

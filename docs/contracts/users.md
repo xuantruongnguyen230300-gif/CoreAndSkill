@@ -27,16 +27,16 @@ lại được mật khẩu mà không sửa được vai trò của ai. Gộp l
 
 ---
 
-## 2. Bốn luật bảo vệ tài khoản quản trị — đọc TRƯỚC các card
+## 2. Luật bảo vệ tài khoản quản trị — đọc TRƯỚC các card
 
-Bốn luật này ép ở **handler**, trước khi chạm tầng ghi, và nằm ở **đúng một chỗ** trong
+Các luật này ép ở **handler**, trước khi chạm tầng ghi, và nằm ở **đúng một chỗ** trong
 `Core.Application`. Rải chúng ra từng handler là cách chắc chắn để một handler mới quên một luật.
 
 > 🛑 **Không luật nào dựa trên TÊN vai trò.** Luật S1 cấm hằng số role trong Core
-> ([`../adr/0005-permission-based.md`](../adr/0005-permission-based.md)). Bốn luật dưới đây dựa
-> vào **tập quyền** của người gọi và vào cờ dữ liệu `is_system` của vai trò
-> ([`../database/schema-core.md`](../database/schema-core.md) §4.2) — cả hai đều là dữ liệu,
-> không phải chuỗi trong code.
+> ([`../adr/0005-permission-based.md`](../adr/0005-permission-based.md)). Các luật dưới đây dựa
+> vào **tập quyền** của người gọi và vào cờ dữ liệu — `is_system` của vai trò
+> ([`../database/schema-core.md`](../database/schema-core.md) §4.2), `has_permission_bypass` của
+> tài khoản (§4.1 cùng file) — tất cả đều là dữ liệu, không phải chuỗi trong code.
 
 ### Luật 1 — Không leo thang đặc quyền
 
@@ -92,16 +92,42 @@ có một hậu quả không tự sửa được.
 Không có luật này, một người chỉ có `core.user.lock` khoá được toàn bộ quản trị viên và chiếm
 quyền điều hành hệ thống bằng đúng một quyền.
 
-### Bốn luật, hai loại lỗi — ranh giới nằm ở "người gọi có thiếu tư cách không"
+### Luật 5 — Đặt lại mật khẩu hộ: không nhắm vào tài khoản "cao hơn" người gọi, không nhắm vào chính mình
 
-Bốn mã trên không cùng một loại, và chọn sai loại làm FE hiển thị sai hẳn câu:
+Áp cho `POST /api/v1/core/users/{id}/reset-password` (§9).
+
+| Tài khoản đích | `code` | `type` | HTTP |
+| --- | --- | --- | ---: |
+| Tập quyền hiệu lực của đích **vượt** tập quyền của người gọi | `CORE.USER.RESET_PASSWORD_TARGET_FORBIDDEN` | `Forbidden` | **403** |
+| Đích mang `has_permission_bypass` | `CORE.USER.RESET_PASSWORD_TARGET_FORBIDDEN` | `Forbidden` | **403** |
+| Đích là **chính** người gọi | `CORE.USER.CANNOT_RESET_OWN_PASSWORD` | `BusinessRule` | **422** |
+
+Đặt được mật khẩu của một người là nắm được tài khoản đó. Nếu tài khoản đó có quyền mà người gọi
+không có, đó là leo thang đặc quyền — cùng lý do với luật 1, chỉ khác đường đi.
+
+**Vì sao cần vế thứ hai.** Tài khoản mang `has_permission_bypass` có tập quyền hiệu lực là **toàn
+bộ** danh mục ([`auth.md`](auth.md) §3), nên vế đầu đã chặn mọi người gọi — trừ một người gọi cũng
+mang cờ đó. Vế thứ hai chặn nốt ca ấy. Tài khoản mang cờ chỉ được khôi phục từ khu hệ thống
+([`tenants.md`](tenants.md) §4).
+
+**Hai vế dùng chung một mã, có chủ đích:** tách mã là cho người gọi biết tài khoản đích có mang cờ
+hay không.
+
+**Tự đặt lại cho chính mình là 422.** Endpoint này không đòi mật khẩu hiện tại; đổi mật khẩu của
+chính mình đi đường [`auth.md`](auth.md) §6.
+
+### Hai loại lỗi — ranh giới nằm ở "người gọi có thiếu tư cách không"
+
+Các mã trên không cùng một loại, và chọn sai loại làm FE hiển thị sai hẳn câu:
 
 | Luật | `type` | HTTP | Vì sao |
 | --- | --- | ---: | --- |
 | 1 — leo thang đặc quyền | `Forbidden` | 403 | Người gọi **thiếu** tập quyền mà vai trò đích cấp |
 | 4 — khoá tài khoản mang vai trò hệ thống | `Forbidden` | 403 | Người gọi **không mang** vai trò hệ thống |
+| 5 — đặt lại mật khẩu cho tài khoản "cao hơn" | `Forbidden` | 403 | Người gọi **thiếu** tập quyền mà tài khoản đích có |
 | 2 — tự gỡ vai trò hệ thống của mình | `BusinessRule` | 422 | Người gọi **có đủ** quyền; thứ bị chặn là thao tác nhắm vào chính mình |
 | 3 — tự khoá chính mình | `BusinessRule` | 422 | Như trên |
+| 5 — tự đặt lại mật khẩu của mình | `BusinessRule` | 422 | Như trên |
 
 Phép thử một câu: **403 khi câu trả lời đúng là "bạn không đủ tư cách"; 422 khi câu trả lời
 đúng là "việc này không làm được, kể cả với bạn".** Trả 403 cho luật 2 và 3 làm FE hiện *"bạn
@@ -166,8 +192,10 @@ Sắp xếp luôn có tiêu chí phụ `id` ở cuối — thiếu nó, dữ li�
         ],
         "isLocked": false,
         "lockoutEnd": null,
+        "lockedByAdmin": false,
         "mustChangePassword": false,
-        "createdAt": "2026-09-01T03:12:45.120Z"
+        "createdAt": "2026-09-01T03:12:45.120Z",
+        "version": "9d3b4c7e-2f10-4a8b-b1c5-6e7f8a9b0c1d"
       }
     ],
     "page": 1,
@@ -175,15 +203,19 @@ Sắp xếp luôn có tiêu chí phụ `id` ở cuối — thiếu nó, dữ li�
     "totalCount": 137
   },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000020"
+  "traceId": "b0ec8faf3f54d8d861cd580da7252a58"
 }
 ```
 
 | Field | Ghi chú |
 | --- | --- |
+| `email` | `string \| null` — cột `email` cho phép NULL ([`../database/schema-core.md`](../database/schema-core.md) §4.1); cùng kiểu với [`auth.md`](auth.md) §3 và [`profile.md`](profile.md) §1. `null` ⇒ tài khoản chưa đặt email |
 | `roles` | **Object, không phải chuỗi.** FE cần `id` để gửi lại khi gán vai trò, cần `isSystem` để hiển thị đúng |
 | `isLocked` | Đã tính sẵn từ `lockoutEnd` so với thời điểm hiện tại — FE **không** tự tính lại |
 | `lockoutEnd` | Trả kèm để hiện "khoá tới lúc nào". `null` khi không khoá |
+| `lockedByAdmin` | Cột `locked_by_admin` ([`../database/schema-core.md`](../database/schema-core.md) §4.1). `isLocked && lockedByAdmin` ⇒ quản trị khoá (§8); `isLocked && !lockedByAdmin` ⇒ khoá tự động, hết ở `lockoutEnd` |
+| `createdAt` | `string \| null` — cột `created_at` cho phép NULL ([`../database/schema-core.md`](../database/schema-core.md) §4.1, §3.2). FE phải dựng được lưới khi ô này rỗng |
+| `version` | Token đồng thời của bản ghi, **luôn** có mặt; FE gửi lại nguyên chuỗi khi gọi §6, §8, §9. Nguồn giá trị và khuôn: [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.3 |
 
 **`isLocked` tính sẵn ở BE có chủ đích:** để FE tự so `lockoutEnd` với thời điểm hiện tại là đặt
 một quy tắc nghiệp vụ vào hai nơi, và hai đồng hồ (máy chủ và trình duyệt) có thể lệch nhau.
@@ -192,10 +224,15 @@ một quy tắc nghiệp vụ vào hai nơi, và hai đồng hồ (máy chủ v�
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | `page < 1`, `pageSize` ngoài `1..200`, `sortBy` ngoài allowlist, `searchText` quá dài. `fieldErrors` mang khoá `Page` / `PageSize` / `SortBy` / `SearchText` |
 | `CORE.USER.ROLE_NOT_FOUND` | `BusinessRule` | 422 | `roleId` không tồn tại |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | |
-| `CORE.AUTH.FORBIDDEN` | `Forbidden` | 403 | Thiếu `core.user.read` |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | `page < 1`, `pageSize` ngoài `1..200`, `sortBy` ngoài allowlist, `searchText` quá dài. `fieldErrors` mang khoá `Page` / `PageSize` / `SortBy` / `SearchText` |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.FORBIDDEN` | Thiếu `core.user.read` |
 
 > **`roleId` không tồn tại là LỖI, không phải "trả danh sách rỗng".** Trả rỗng làm người gọi
 > tưởng không có ai mang vai trò đó, trong khi thật ra họ gõ sai id. Hai tình huống khác hẳn nhau
@@ -217,15 +254,21 @@ một quy tắc nghiệp vụ vào hai nơi, và hai đồng hồ (máy chủ v�
 
 ### Response 200
 
-`data` là một phần tử `items` của §3, cùng shape.
+`data` là một phần tử `items` của §3, cùng shape — kể cả `version`, token cho các thao tác ghi ở
+§6, §8, §9.
 
 ### Lỗi
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
 | `CORE.USER.NOT_FOUND` | `NotFound` | 404 | `{id}` không tồn tại |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | |
-| `CORE.AUTH.FORBIDDEN` | `Forbidden` | 403 | |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.FORBIDDEN` | Thiếu `core.user.read` |
 
 ---
 
@@ -251,7 +294,7 @@ một quy tắc nghiệp vụ vào hai nơi, và hai đồng hồ (máy chủ v�
 | `userName` | ✔ | Duy nhất, không đổi được sau khi tạo |
 | `email` | ✔ | Duy nhất |
 | `fullName` | ✔ | Tối đa 200 ký tự |
-| `tempPassword` | ✔ | Mật khẩu tạm. Tài khoản tạo ra có `mustChangePassword = true` |
+| `tempPassword` | ✔ | Mật khẩu tạm, **người gọi tự gõ**. Tài khoản tạo ra có `mustChangePassword = true`. Không xuất hiện trong response hay log |
 | `roleIds` | ✘ | Rỗng ⇒ tài khoản không có vai trò nào, tức không có quyền nào |
 
 ### Response 201
@@ -261,7 +304,7 @@ một quy tắc nghiệp vụ vào hai nơi, và hai đồng hồ (máy chủ v�
   "success": true,
   "data": { "id": "0192f3c3-4a5b-7c31-9a4e-6b1f2d3c4e5f" },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000021"
+  "traceId": "846cb7840c4e5ca40d1ad76ee88577f1"
 }
 ```
 
@@ -271,13 +314,21 @@ Kèm header `Location: /api/v1/core/users/0192f3c3-4a5b-7c31-9a4e-6b1f2d3c4e5f`.
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | Thiếu field, sai định dạng email, `fullName` quá dài |
 | `CORE.USER.USERNAME_DUPLICATED` | `Conflict` | 409 | `userName` đã tồn tại. `messageParams`: `{ "UserName": "…" }` |
 | `CORE.USER.EMAIL_DUPLICATED` | `Conflict` | 409 | `email` đã tồn tại. `messageParams`: `{ "Email": "…" }` |
 | `CORE.USER.ROLE_NOT_FOUND` | `BusinessRule` | 422 | Một `roleId` không tồn tại |
 | `CORE.USER.ROLE_ESCALATION_FORBIDDEN` | `Forbidden` | 403 | Luật 1 §2 |
 | `CORE.USER.CREATE_FAILED` | `BusinessRule` | 422 | Identity từ chối (mật khẩu không đạt chính sách…). Lý do ở `fieldErrors` |
-| `CORE.AUTH.FORBIDDEN` | `Forbidden` | 403 | Thiếu quyền |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | Thiếu field, sai định dạng email, `fullName` quá dài |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.AUTH.FORBIDDEN` | Thiếu `core.user.write`, hoặc thiếu `core.user.role.assign` khi `roleIds` khác rỗng |
 
 ### Ghi chú
 
@@ -303,9 +354,16 @@ Sửa thông tin hồ sơ. **Không đụng vai trò** — vai trò có endpoint
 ```json
 {
   "email": "binh.tv@congty.vn",
-  "fullName": "Trần Văn Bình"
+  "fullName": "Trần Văn Bình",
+  "version": "9d3b4c7e-2f10-4a8b-b1c5-6e7f8a9b0c1d"
 }
 ```
+
+| Field | Bắt buộc | Ghi chú |
+| --- | --- | --- |
+| `email` | ✔ | Duy nhất |
+| `fullName` | ✔ | Tối đa 200 ký tự |
+| `version` | ✔ | Token nhận từ `GET` gần nhất (§3, §4). Thiếu hoặc lệch ⇒ 409, vì `null` không bao giờ khớp |
 
 `userName` **không** có trong request: nó là định danh đăng nhập, đổi nó là đổi thứ người dùng và
 mọi bản ghi audit đang tham chiếu tới.
@@ -313,18 +371,27 @@ mọi bản ghi audit đang tham chiếu tới.
 ### Response 200
 
 ```json
-{ "success": true, "data": true, "error": null, "traceId": "0HNO9S8JAP586:00000022" }
+{ "success": true, "data": null, "error": null, "traceId": "117ee389df2b2fce6b57cfae63535863" }
 ```
 
 ### Lỗi
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | Sai định dạng, quá dài |
 | `CORE.USER.NOT_FOUND` | `NotFound` | 404 | |
 | `CORE.USER.EMAIL_DUPLICATED` | `Conflict` | 409 | Email đã thuộc người khác |
 | `CORE.USER.UPDATE_FAILED` | `BusinessRule` | 422 | Identity từ chối. Lý do ở `fieldErrors` |
-| `CORE.AUTH.FORBIDDEN` | `Forbidden` | 403 | |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | Sai định dạng, quá dài |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.AUTH.FORBIDDEN` | Thiếu `core.user.write` |
+| `CORE.CONCURRENCY.CONFLICT` | `version` thiếu, hoặc lệch với bản ghi `{id}` trong database — một thao tác khác đã ghi xong sau khi FE đọc (khoá, đặt lại mật khẩu, chính chủ sửa hồ sơ…). Không ghi gì |
 
 ### Ghi chú — vì sao TÁCH vai trò khỏi endpoint này
 
@@ -358,23 +425,33 @@ Tách endpoint gỡ hẳn lớp đó: sửa email **không thể** đụng vai t
 **Ngữ nghĩa: THAY THẾ, không phải thêm vào.** Vai trò không có trong `roleIds` bị gỡ.
 `roleIds: []` nghĩa là gỡ sạch — đó là thao tác hợp lệ và **cố ý** phải viết ra tường minh.
 
+Tài khoản đích mang `has_permission_bypass` **vẫn gán vai trò được** — BE không chặn; vai trò chỉ có tác dụng sau khi tài khoản từ bỏ cờ ([`profile.md`](profile.md) §3).
+
 ### Response 200
 
 ```json
-{ "success": true, "data": true, "error": null, "traceId": "0HNO9S8JAP586:00000023" }
+{ "success": true, "data": null, "error": null, "traceId": "de0bdd57b95f558cac92cb00b49735c0" }
 ```
 
 ### Lỗi
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | `roleIds` là `null` |
 | `CORE.USER.DUPLICATE_ROLE_ENTRY` | `Validation` | 400 | Cùng một `roleId` xuất hiện từ hai lần trở lên |
 | `CORE.USER.NOT_FOUND` | `NotFound` | 404 | |
 | `CORE.USER.ROLE_NOT_FOUND` | `BusinessRule` | 422 | Một `roleId` không tồn tại |
 | `CORE.USER.ROLE_ESCALATION_FORBIDDEN` | `Forbidden` | 403 | Luật 1 §2 — áp cho **cả** vai trò được thêm **và** vai trò bị gỡ |
 | `CORE.USER.SELF_SYSTEM_ROLE_REMOVAL_FORBIDDEN` | `BusinessRule` | 422 | Luật 2 §2 |
-| `CORE.AUTH.FORBIDDEN` | `Forbidden` | 403 | Thiếu `core.user.role.assign` |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | `roleIds` là `null` |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.AUTH.FORBIDDEN` | Thiếu `core.user.role.assign` |
 
 > **`roleIds` trùng lặp là 400, không phải "tự lọc trùng".** `ToDictionary` trên một mảng có khoá
 > trùng ném `ArgumentException`, và exception đó không có nhánh xử lý nghiệp vụ nên client nhận
@@ -383,11 +460,16 @@ Tách endpoint gỡ hẳn lớp đó: sửa email **không thể** đụng vai t
 
 ### Ghi chú — hiệu lực với phiên đang chạy
 
-Đổi vai trò **không** có hiệu lực tức thì với phiên đang mở của người bị đổi. Cookie phiên mang
-danh tính đã phát trước đó; hiệu lực đến sau khoảng một chu kỳ kiểm `SecurityStamp`.
+Đổi vai trò của một người — và đổi ma trận quyền của một vai trò
+([`permissions.md`](permissions.md) §6) — **có hiệu lực từ request kế tiếp** của người bị ảnh
+hưởng. Kiểm quyền đọc tập quyền hiệu lực từ database ở mỗi request, không từ cookie phiên, nên
+không phải chờ đăng nhập lại.
 
-FE của người **bị** đổi vẫn hiện menu cũ trong khoảng đó, nhưng **BE đã chặn ngay** — kiểm quyền
-đọc từ database ở mỗi request. Tức là: hiển thị trễ, **chặn thì không**. Đó là hướng an toàn.
+Giao diện thì trễ hơn: tập `permissions` FE đang giữ là thứ nó lấy lần gần nhất từ
+[`auth.md`](auth.md) §5. Người vừa bị gỡ quyền vẫn thấy nút cũ; bấm vào thì nhận 403, và **FE làm
+mới tập quyền ngay khi nhận 403** ([`auth.md`](auth.md) §11; nhánh xử lý phía FE:
+[`../quy-uoc/fe-api-client.md`](../quy-uoc/fe-api-client.md)). Tức là: hiển thị trễ tới lần bấm kế
+tiếp, **chặn thì không trễ**. Đó là hướng an toàn.
 
 ---
 
@@ -396,13 +478,23 @@ FE của người **bị** đổi vẫn hiện menu cũ trong khoảng đó, nh�
 **Status:** DRAFT
 **Quyền:** `core.user.lock`
 
-Không có body.
+### Request
+
+```json
+{ "version": "9d3b4c7e-2f10-4a8b-b1c5-6e7f8a9b0c1d" }
+```
+
+| Field | Bắt buộc | Ghi chú |
+| --- | --- | --- |
+| `version` | ✔ | Token nhận từ `GET` gần nhất (§3, §4) — của **bản ghi đích** `{id}`, không phải của người gọi. Thiếu hoặc lệch ⇒ 409, vì `null` không bao giờ khớp. Áp cho **cả hai** endpoint |
 
 ### Response 200
 
 ```json
-{ "success": true, "data": true, "error": null, "traceId": "0HNO9S8JAP586:00000024" }
+{ "success": true, "data": null, "error": null, "traceId": "521a9c95708ae661f48611af5402ec24" }
 ```
+
+`data: null` — FE tải lại chi tiết (§4) để có `version` mới trước thao tác ghi kế tiếp.
 
 ### Lỗi
 
@@ -412,7 +504,16 @@ Không có body.
 | `CORE.USER.CANNOT_LOCK_SELF` | `BusinessRule` | 422 | Luật 3 §2 | `lock` |
 | `CORE.USER.SYSTEM_ROLE_LOCK_FORBIDDEN` | `Forbidden` | 403 | Luật 4 §2 | `lock` |
 | `CORE.USER.LOCK_FAILED` | `BusinessRule` | 422 | Identity từ chối thao tác | cả hai |
-| `CORE.AUTH.FORBIDDEN` | `Forbidden` | 403 | Thiếu `core.user.lock` | cả hai |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11; mọi dòng áp cho **cả hai** endpoint:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.AUTH.FORBIDDEN` | Thiếu `core.user.lock` |
+| `CORE.CONCURRENCY.CONFLICT` | `version` thiếu, hoặc lệch với bản ghi `{id}` trong database — một thao tác khác đã ghi xong sau khi FE đọc. Không ghi gì |
 
 > **Thao tác hỏng là LỖI, không phải `200` kèm `data: false`.** Trả 200 cho một thao tác thất bại
 > buộc FE kiểm hai thứ (status code **và** giá trị `data`) cho mỗi lời gọi, và cái thứ hai luôn bị
@@ -422,10 +523,15 @@ Không có body.
 
 Khoá đi qua `lockout_end` của Identity, **không** qua một cột `is_active` riêng
 ([`../database/schema-core.md`](../database/schema-core.md) §4.1). Dùng
-`UserManager.SetLockoutEndDateAsync` — nó cập nhật `security_stamp` cùng lượt, và bỏ qua bước đó
-nghĩa là phiên đang chạy của người vừa bị khoá **vẫn sống**.
+`UserManager.SetLockoutEndDateAsync`, đặt `locked_by_admin = true`, rồi **đổi security stamp tường minh trong chính thao tác đó**
+([`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §7.4) — bỏ qua bước sau nghĩa
+là phiên đang chạy của người vừa bị khoá **vẫn sống**.
 
-Khoá cũng **không** có hiệu lực tức thì với phiên đang mở, cùng cơ chế và cùng ngưỡng như §7.
+`unlock` đặt `lockout_end = null`, `locked_by_admin = false`, và **không** đổi security stamp — phiên nào đang mở (nếu có) giữ nguyên, người vừa được mở khoá không phải đăng nhập lại.
+
+**Phiên đang mở của người bị khoá bị chấm dứt ở request kế tiếp** — cùng nhịp với đổi vai trò ở
+§7. `SecurityStamp` đã đổi, nên request kế tiếp của phiên đó trả 401 `CORE.AUTH.NOT_AUTHENTICATED`
+([`auth.md`](auth.md) §11); đăng nhập lại **đúng mật khẩu** thì nhận `CORE.AUTH.LOCKED_OUT`, sai mật khẩu thì vẫn nhận `CORE.AUTH.INVALID_CREDENTIALS` ([`auth.md`](auth.md) §3).
 
 ---
 
@@ -434,32 +540,51 @@ Khoá cũng **không** có hiệu lực tức thì với phiên đang mở, cùn
 **Status:** DRAFT
 **Quyền:** `core.user.reset-password`
 
-Quản trị đặt mật khẩu tạm cho người khác.
+Quản trị đặt mật khẩu tạm cho **người khác trong cùng đơn vị**. Ràng buộc trên tài khoản đích: luật 5 §2.
 
 ### Request
 
 ```json
-{ "tempPassword": "…" }
+{ "tempPassword": "…", "version": "9d3b4c7e-2f10-4a8b-b1c5-6e7f8a9b0c1d" }
 ```
+
+| Field | Bắt buộc | Ghi chú |
+| --- | --- | --- |
+| `tempPassword` | ✔ | Do **người gọi tự gõ**. Không xuất hiện trong response hay log |
+| `version` | ✔ | Token nhận từ `GET` gần nhất (§3, §4) — của **bản ghi đích** `{id}`. Thiếu hoặc lệch ⇒ 409, vì `null` không bao giờ khớp |
 
 ### Response 200
 
 ```json
-{ "success": true, "data": true, "error": null, "traceId": "0HNO9S8JAP586:00000025" }
+{ "success": true, "data": null, "error": null, "traceId": "1861d48b008ebaa8e4f0832a12495cd0" }
 ```
 
+`data: null` — FE tải lại chi tiết (§4) để có `version` mới trước thao tác ghi kế tiếp.
+
 Sau lệnh này, tài khoản đích có `mustChangePassword = true` và **mọi phiên đang mở của họ bị chấm
-dứt**. Lần đăng nhập kế tiếp buộc đi qua
+dứt ở request kế tiếp** — `SecurityStamp` đổi, cùng cơ chế và cùng nhịp với khoá ở §8. Lần đăng
+nhập kế tiếp buộc đi qua
 `POST /api/v1/core/auth/change-password-required` ([`auth.md`](auth.md) §7).
 
 ### Lỗi
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | Thiếu `tempPassword` |
 | `CORE.USER.NOT_FOUND` | `NotFound` | 404 | |
+| `CORE.USER.RESET_PASSWORD_TARGET_FORBIDDEN` | `Forbidden` | 403 | Luật 5 §2 — tài khoản đích có quyền vượt người gọi, hoặc mang `has_permission_bypass` |
+| `CORE.USER.CANNOT_RESET_OWN_PASSWORD` | `BusinessRule` | 422 | Luật 5 §2 — `{id}` là chính người gọi |
 | `CORE.USER.RESET_PASSWORD_FAILED` | `BusinessRule` | 422 | Identity từ chối — mật khẩu không đạt chính sách. Lý do ở `fieldErrors` |
-| `CORE.AUTH.FORBIDDEN` | `Forbidden` | 403 | Thiếu `core.user.reset-password` |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | Thiếu `tempPassword` |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.AUTH.FORBIDDEN` | Thiếu `core.user.reset-password` |
+| `CORE.CONCURRENCY.CONFLICT` | `version` thiếu, hoặc lệch với bản ghi `{id}` trong database — một thao tác khác đã ghi xong sau khi FE đọc. Không ghi gì |
 
 ### Ghi chú
 
@@ -495,6 +620,5 @@ Ghi ra để không ai tưởng đã chốt:
 
 | # | Câu hỏi | Ai quyết |
 | --- | --- | --- |
-| 1 | Mật khẩu tạm do quản trị nhập tay, hay hệ thống sinh và hiện một lần? | Người dùng + `ba-analyst` |
 | 3 | `searchText` có tìm theo số điện thoại không? | `ba-analyst` |
 | 4 | Khoá có cần lý do (`reason`) ghi vào nhật ký không? | Người dùng |

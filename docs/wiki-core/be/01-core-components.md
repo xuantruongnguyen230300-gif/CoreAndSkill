@@ -29,11 +29,16 @@ Chi phí của một thành phần Nhóm B thêm quá sớm không phải là th
 
 Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**. Xem [`../../kien-truc-core-module.md`](../../kien-truc-core-module.md) §4.2.
 
+> **Mã `CA##` là mã THÀNH PHẦN của file này, không phải mã luật.** Mã luật `A##` thuộc
+> [`../../RULES.md`](../../RULES.md) §3 và mang nghĩa hoàn toàn khác. Hai không gian mã tách bằng
+> tiền tố chứ không bằng ngữ cảnh: một câu *"A7"* trong khu BE trước đây đọc được thành hai thứ,
+> và người đọc không có cách nào biết mình đang tra nhầm bảng nào.
+
 ---
 
 ## 1. Nhóm A — thiếu là Core không dùng được
 
-### A1. Kết quả thao tác tường minh — `Result<T>` và catalog mã lỗi
+### CA1. Kết quả thao tác tường minh — `Result<T>` và catalog mã lỗi
 
 **Giải quyết gì.** Một handler có hai loại đầu ra khác hẳn nhau: *thất bại nghiệp vụ* (email trùng, số dư không đủ — hoàn toàn nằm trong dự kiến) và *lỗi ngoài dự kiến* (mất kết nối DB). Trộn hai thứ vào cùng một cơ chế thì không phân biệt được, và cái giá trả ở tầng biên.
 
@@ -43,7 +48,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 📖 Quyết định: [`../../adr/0003-result-thuan.md`](../../adr/0003-result-thuan.md) · Thi công: [`../../quy-uoc/be-cqrs-handler.md`](../../quy-uoc/be-cqrs-handler.md)
 
-### A2. Envelope HTTP thống nhất và ánh xạ `Result` → HTTP tại đúng một chỗ
+### CA2. Envelope HTTP thống nhất và ánh xạ `Result` → HTTP tại đúng một chỗ
 
 **Giải quyết gì.** Client cần **một** hình dạng phản hồi cho mọi endpoint — thành công, lỗi nghiệp vụ, lỗi validation, lỗi hệ thống. Không có nó, mỗi controller tự dựng một kiểu và FE phải viết N nhánh phân tích.
 
@@ -53,7 +58,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 📖 [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md)
 
-### A3. Entity nền — định danh, trường audit, soft delete
+### CA3. Entity nền — định danh, trường audit, soft delete
 
 **Giải quyết gì.** Mọi bảng nghiệp vụ đều cần biết ai tạo, ai sửa lần cuối, lúc nào, và đã bị xoá mềm chưa. Viết tay ở từng entity thì sẽ có entity quên.
 
@@ -61,17 +66,17 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 **Chi phí thêm.** Rẻ, nhưng có bẫy: soft delete kéo theo query filter, kéo theo unique index phải tính tới cột xoá mềm, kéo theo hành vi lạ khi join. Đọc [`10-data-retention.md`](10-data-retention.md) **trước khi** bật soft delete cho một bảng.
 
-### A4. Đơn vị công việc và biên transaction ở tầng request
+### CA4. Đơn vị công việc và biên transaction ở tầng request
 
 **Giải quyết gì.** Một command chạm nhiều bảng phải hoặc thành công hết, hoặc không đổi gì. Nếu mỗi repository tự `SaveChanges`, sẽ có ca ghi được nửa chừng.
 
 **Dấu hiệu thiếu.** Trong log có bản ghi cha tồn tại mà bản ghi con thì không. Không ai tìm ra nguyên nhân vì mỗi lần một kiểu.
 
-**Chi phí thêm.** Một pipeline behavior mở transaction cho command và commit khi handler trả thành công. Đây là một trong hai behavior duy nhất của Core — xem [`../../adr/0006-pipeline-behavior.md`](../../adr/0006-pipeline-behavior.md).
+**Chi phí thêm.** Một pipeline behavior mở transaction cho command và commit khi handler trả thành công. Đây là một trong hai behavior duy nhất của Core — xem [`../../adr/0006-pipeline-behavior.md`](../../adr/0006-pipeline-behavior.md). Khi module có `DbContext` riêng, đơn vị công việc điều phối mọi `DbContext` trên một kết nối và một transaction — [`../../adr/0025-luu-du-lieu-module-mot-transaction.md`](../../adr/0025-luu-du-lieu-module-mot-transaction.md).
 
 > Ở dự án tiền nhiệm **thiếu đúng behavior này**: có Validation, có ExceptionHandling, không có Transaction. Đó là lý do nó nằm trong Nhóm A ở đây chứ không phải "nên có".
 
-### A5. Validation ở biên, chạy trước handler
+### CA5. Validation ở biên, chạy trước handler
 
 **Giải quyết gì.** Handler không nên bắt đầu bằng mười dòng kiểm tra null và độ dài. Việc đó thuộc về một lớp chạy trước, và kết quả phải ra được dạng lỗi-theo-từng-ô-nhập để FE gắn vào đúng ô.
 
@@ -79,7 +84,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 **Chi phí thêm.** Một behavior và một validator cho mỗi command. Điều kiện bắt buộc: **mọi validator phải được đăng ký** — quên một cái thì nó im lặng không chạy, đúng kiểu hỏng không ai thấy. Luật A11 ở [`../../RULES.md`](../../RULES.md) canh việc này.
 
-### A6. Danh tính và phiên đăng nhập
+### CA6. Danh tính và phiên đăng nhập
 
 **Giải quyết gì.** Hash mật khẩu đúng cách, khoá tài khoản sau nhiều lần sai, token đặt lại mật khẩu, quản lý phiên. Đây là nhóm việc **không được tự viết** — sai một chi tiết là lỗ hổng.
 
@@ -87,7 +92,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 **Chi phí thêm.** Dùng ASP.NET Core Identity kèm phiên cookie. Chi phí thật nằm ở chỗ Identity kéo theo một bộ bảng và một mô hình dữ liệu mình không chọn — phải khoanh vùng nó lại. Xem [`02-identity-auth.md`](02-identity-auth.md).
 
-### A7. Phân quyền theo permission, không theo tên role
+### CA7. Phân quyền theo permission, không theo tên role
 
 **Giải quyết gì.** Mỗi dự án có bộ vai trò khác nhau. Nếu Core biết tên vai trò, Core không mang đi được.
 
@@ -97,7 +102,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 📖 [`../../adr/0005-permission-based.md`](../../adr/0005-permission-based.md)
 
-### A8. Người dùng hiện tại như một interface
+### CA8. Người dùng hiện tại như một interface
 
 **Giải quyết gì.** Tầng Application cần biết ai đang thao tác — để ghi trường audit, để lọc dữ liệu — mà **không** được biết `HttpContext` tồn tại.
 
@@ -105,7 +110,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 **Chi phí thêm.** Một interface ở Application, một cài đặt ở Web. Rẻ, và nó là thứ giữ luật A2 ở [`../../RULES.md`](../../RULES.md) không bị vi phạm.
 
-### A9. Cấu hình có kiểm tra lúc khởi động
+### CA9. Cấu hình có kiểm tra lúc khởi động
 
 **Giải quyết gì.** Thiếu một khoá cấu hình phải làm app **không khởi động được**, chứ không phải chạy bình thường rồi hỏng lúc 2 giờ sáng ở một nhánh code hiếm.
 
@@ -113,7 +118,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 **Chi phí thêm.** Gần bằng không. Luật A8 ở [`../../RULES.md`](../../RULES.md) canh việc mọi nhóm cấu hình bắt buộc đều có đường kiểm tra lúc khởi động.
 
-### A10. Log có cấu trúc và một mã lần gọi xuyên suốt
+### CA10. Log có cấu trúc và một mã lần gọi xuyên suốt
 
 **Giải quyết gì.** Khi người dùng báo lỗi, phải tìm được **đúng** chuỗi log của lần gọi đó, xuyên qua mọi tầng.
 
@@ -121,7 +126,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 **Chi phí thêm.** Nhỏ. Có bẫy về thứ **không được** log — xem [`07-observability.md`](07-observability.md).
 
-### A11. Health check phân biệt sống và sẵn sàng
+### CA11. Health check phân biệt sống và sẵn sàng
 
 **Giải quyết gì.** Bộ điều phối cần hai câu trả lời khác nhau: *process còn sống không* và *đã sẵn sàng nhận request chưa*. Trộn hai câu này là cách tạo ra vòng lặp khởi động lại.
 
@@ -129,7 +134,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 **Chi phí thêm.** Hai endpoint. Xem [`07-observability.md`](07-observability.md).
 
-### A12. Migration và cơ chế phát hiện DB lệch model
+### CA12. Migration và cơ chế phát hiện DB lệch model
 
 **Giải quyết gì.** Schema phải đi cùng code. Và khi DB thiếu migration, app phải **từ chối khởi động** thay vì chạy rồi hỏng ở truy vấn đầu tiên chạm cột chưa tồn tại.
 
@@ -137,7 +142,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 **Chi phí thêm.** Nhỏ, nhưng quyết định **ai sở hữu migration** thì không nhỏ — xem [`13-core-data-migration.md`](13-core-data-migration.md) và [`../../database/migration-policy.md`](../../database/migration-policy.md). Luật E8 ở [`../../RULES.md`](../../RULES.md) canh việc app từ chối khởi động khi còn migration chưa áp.
 
-### A13. Menu động theo quyền
+### CA13. Menu động theo quyền
 
 **Giải quyết gì.** Người dùng chỉ nhìn thấy thứ mình có quyền dùng. Nếu menu hardcode ở FE, mỗi lần đổi quyền phải sửa và triển khai lại FE.
 
@@ -145,7 +150,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 **Chi phí thêm.** Một bảng, một endpoint, và một cám dỗ phải cưỡng lại: biến metadata thành một ngôn ngữ lập trình thứ hai. Ranh giới ở [`03-metadata-driven-design.md`](03-metadata-driven-design.md).
 
-### A14. Lớp bảo mật biên — CSRF, CORS, rate limit
+### CA14. Lớp bảo mật biên — CSRF, CORS, rate limit
 
 **Giải quyết gì.** Phiên cookie tự động được trình duyệt gửi kèm, nên phải có antiforgery. Kiến trúc tách FE/BE nên phải có allowlist nguồn gọi. Endpoint đăng nhập nên phải có giới hạn tần suất.
 
@@ -153,7 +158,7 @@ Ngưỡng nâng một thứ lên Core: **từ hai module trở lên cần nó**.
 
 **Chi phí thêm.** Trung bình, và có bẫy đã xảy ra thật (đặt trùng tên cookie). Xem [`09-security-beyond-auth.md`](09-security-beyond-auth.md).
 
-### A15. Bộ test kiến trúc
+### CA15. Bộ test kiến trúc
 
 **Giải quyết gì.** Mọi luật ranh giới ở [`../../RULES.md`](../../RULES.md) chỉ là câu văn cho tới khi có test canh nó.
 
@@ -169,7 +174,7 @@ Mỗi dòng dưới đây kèm **ngưỡng kích hoạt**: sự kiện quan sát
 
 | Thành phần | Giải quyết gì | Ngưỡng kích hoạt |
 | --- | --- | --- |
-| **Bộ lập lịch job nền** | Việc chạy định kỳ, dọn dẹp | Có từ hai job định kỳ trở lên; một job thì một hosted service là đủ |
+| **Thư viện lập lịch job nền** | Lịch cron do người dùng cấu hình. *Job định kỳ chạy bằng `BackgroundService` của .NET thuộc v1 — [`18-trien-khai-va-van-hanh.md`](18-trien-khai-va-van-hanh.md) §7* | Cần lịch cron do người dùng cấu hình |
 | **Màn hình ĐỌC nhật ký kiểm toán** | Tra cứu ai đã đổi gì, lúc nào. *Bảng `core.audit_log` và đường **ghi** vào nó thuộc v1 — [`10-data-retention.md`](10-data-retention.md) §5* | Có yêu cầu tuân thủ, hoặc có tranh chấp dữ liệu thật đã xảy ra |
 | **Feature flag** | Bật/tắt tính năng không cần triển khai lại | Có nhu cầu bật dần theo nhóm người dùng |
 | **Metadata cột lưới / form** | Cấu hình hiển thị không cần sửa code | Từ ba màn hình lưới trở lên có cùng nhu cầu tuỳ biến cột |
@@ -200,16 +205,16 @@ Mỗi dòng dưới đây kèm **ngưỡng kích hoạt**: sự kiện quan sát
 ## 4. Trình tự dựng — thứ tự phụ thuộc, không phải thứ tự ưu tiên
 
 ```text
-A3 Entity nền ─┬─> A4 Transaction ─> A12 Migration
-               └─> A1 Result ─> A2 Envelope ─> A5 Validation
-A6 Danh tính ──> A7 Permission ──> A13 Menu động
-                     │
-A8 Người dùng hiện tại┘
-A9 Cấu hình ─> A10 Log ─> A11 Health check
-A15 ArchTest — dựng SONG SONG, không để cuối
+CA3 Entity nền ─┬─> CA4 Transaction ─> CA12 Migration
+                └─> CA1 Result ─> CA2 Envelope ─> CA5 Validation
+CA6 Danh tính ──> CA7 Permission ──> CA13 Menu động
+                      │
+CA8 Người dùng hiện tại┘
+CA9 Cấu hình ─> CA10 Log ─> CA11 Health check
+CA15 ArchTest — dựng SONG SONG, không để cuối
 ```
 
-**A15 không được để cuối.** Một bộ ArchTest viết sau khi code đã xong sẽ được viết cho khớp code hiện có, tức là nó xác nhận hiện trạng thay vì canh luật. Viết luật trước, code sau.
+**CA15 không được để cuối.** Một bộ ArchTest viết sau khi code đã xong sẽ được viết cho khớp code hiện có, tức là nó xác nhận hiện trạng thay vì canh luật. Viết luật trước, code sau.
 
 ---
 
@@ -221,24 +226,24 @@ A15 ArchTest — dựng SONG SONG, không để cuối
 
 | Thành phần | Ghi chú thi công |
 | --- | --- |
-| A1 `Result` + catalog mã lỗi | Result **thuần** — Domain và Application không ném exception cho lỗi nghiệp vụ |
-| A2 Envelope + ánh xạ HTTP | Ánh xạ tại đúng một chỗ, **cấm reflection** |
-| A3 Entity nền + soft delete | Query filter đặt tên, canh bằng ArchTest |
-| A4 Transaction | Một trong **hai** pipeline behavior duy nhất |
-| A5 Validation | Behavior thứ hai |
-| A6 Danh tính | ASP.NET Core Identity, phiên cookie, kiểu Identity khoanh trong `Core.Infrastructure` |
-| A7 Permission | Không có hằng số vai trò trong Core |
-| A8 Người dùng hiện tại | Interface ở Application, cài đặt ở Web |
-| A9 Cấu hình kiểm lúc khởi động | Mọi nhóm cấu hình bắt buộc |
-| A10 Log + mã lần gọi | Serilog, log có cấu trúc |
-| A11 Health check | Tách sống / sẵn sàng |
-| A12 Migration | **Core sở hữu migration schema `core`** — đảo ngược so với dự án tiền nhiệm |
-| A13 Menu động | Theo quyền |
-| A14 CSRF / CORS / rate limit | Antiforgery hai lớp |
-| A15 ArchTest | Kèm **meta-test cho từng detector** |
-| A16 Lưu file | Chốt 2026-09-10 là **thuộc v1**. Interface lưu trữ ở Application, phục vụ qua endpoint có kiểm quyền — [`14-file-storage.md`](14-file-storage.md) |
-| A17 Nhập / xuất dữ liệu | Chốt 2026-09-10 là **thuộc v1**. Xuất theo bộ lọc đang xem, quyền xuất riêng, ghi nhật ký kiểm toán — [`15-import-export.md`](15-import-export.md) |
-| A18 Thông báo và Outbox | Chốt 2026-09-10 là **thuộc v1**. Outbox đi kèm bắt buộc: nó là đường mà sự kiện nghiệp vụ tới được kênh gửi — [`12-notifications.md`](12-notifications.md) §1.2 |
+| CA1 `Result` + catalog mã lỗi | Result **thuần** — Domain và Application không ném exception cho lỗi nghiệp vụ |
+| CA2 Envelope + ánh xạ HTTP | Ánh xạ tại đúng một chỗ, **cấm reflection** |
+| CA3 Entity nền + soft delete | Query filter đặt tên, canh bằng ArchTest |
+| CA4 Transaction | Một trong **hai** pipeline behavior duy nhất |
+| CA5 Validation | Behavior thứ hai |
+| CA6 Danh tính | ASP.NET Core Identity, phiên cookie, kiểu Identity khoanh trong `Core.Infrastructure` |
+| CA7 Permission | Không có hằng số vai trò trong Core |
+| CA8 Người dùng hiện tại | Interface ở Application, cài đặt ở Web |
+| CA9 Cấu hình kiểm lúc khởi động | Mọi nhóm cấu hình bắt buộc |
+| CA10 Log + mã lần gọi | Serilog, log có cấu trúc |
+| CA11 Health check | Tách sống / sẵn sàng |
+| CA12 Migration | **Core sở hữu migration schema `core`** — đảo ngược so với dự án tiền nhiệm |
+| CA13 Menu động | Theo quyền |
+| CA14 CSRF / CORS / rate limit | Antiforgery hai lớp |
+| CA15 ArchTest | Kèm **meta-test cho từng detector** |
+| CA16 Lưu file | Chốt 2026-09-10 là **thuộc v1**. Interface lưu trữ ở Application, phục vụ qua endpoint có kiểm quyền — [`14-file-storage.md`](14-file-storage.md) |
+| CA17 Nhập / xuất dữ liệu | Chốt 2026-09-10 là **thuộc v1**. Xuất theo bộ lọc đang xem, quyền xuất riêng, ghi nhật ký kiểm toán — [`15-import-export.md`](15-import-export.md) |
+| CA18 Thông báo và Outbox | Chốt 2026-09-10 là **thuộc v1**. Outbox đi kèm bắt buộc: nó là đường mà sự kiện nghiệp vụ tới được kênh gửi — [`12-notifications.md`](12-notifications.md) §1.2 |
 
 ### 5.2 Cố ý CHƯA làm ở v1 — và vì sao
 
@@ -249,7 +254,7 @@ A15 ArchTest — dựng SONG SONG, không để cuối
 | **Multi-tenant** | **Không hoãn — trong phạm vi v1**: nhiều cơ quan dùng chung một bản cài. Cột phân biệt, bộ lọc truy vấn toàn cục, cách ly tuyệt đối. Xem [`../../adr/0013-multi-tenant.md`](../../adr/0013-multi-tenant.md) và [`17-multi-tenant.md`](17-multi-tenant.md) | — đã trong phạm vi |
 | **Pipeline behavior cho caching** | Cache ở tầng behavior là chỗ **tệ nhất** để bắt đầu: nó cache theo hình dạng request, không theo ngữ nghĩa dữ liệu, nên vô hiệu hoá đúng lúc là bất khả thi. Cache khi cần thì cache ở đúng nơi biết dữ liệu nào vừa đổi | Không có — hướng này bị loại, không hoãn. Cache sẽ làm ở tầng truy vấn cụ thể |
 | **Pipeline behavior cho logging và đo hiệu năng** | Trùng với thứ hạ tầng đã cho sẵn (middleware log request, telemetry). Thêm behavior là log hai lần cùng một thứ ở hai định dạng khác nhau. Xem [`../../adr/0006-pipeline-behavior.md`](../../adr/0006-pipeline-behavior.md) | Có nhu cầu đo **riêng ở tầng handler** mà tầng HTTP không thấy được |
-| **Bộ lập lịch job nền** | Chưa có job định kỳ nào. Tiến trình phát Outbox — khi Outbox được bật — là hosted service chạy liên tục, không phải job định kỳ | Từ hai job định kỳ trở lên |
+| **Thư viện lập lịch job nền** (Quartz.NET, Hangfire…) | Đã chốt `BackgroundService` của .NET sau seam `IBackgroundJobScheduler`, không thư viện. Các job đã có — dọn dữ liệu quá hạn, đối soát tệp mồ côi, nhập nền — chạy trên cơ chế đó — [`18-trien-khai-va-van-hanh.md`](18-trien-khai-va-van-hanh.md) §7 | Cần lịch cron do người dùng cấu hình |
 | **Phiên bản API** | Chưa có client bên thứ ba | Có client không triển khai cùng nhịp với BE |
 
 ### 5.3 Cách dùng bảng 5.2 khi review

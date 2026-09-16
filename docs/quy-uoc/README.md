@@ -68,12 +68,12 @@ trông giống nhau, và mọi lệch đều thành finding — kể cả nhữn
 | Lớp | Công nghệ | Ghi chú ràng buộc |
 | --- | --- | --- |
 | Runtime | **.NET 10** (LTS), ASP.NET Core | Build không warning ([`../RULES.md`](../RULES.md) T4) |
-| Mediator | **MediatR** | Đúng hai pipeline behavior ở v1 — xem [`be-cqrs-handler.md`](be-cqrs-handler.md) |
+| Mediator | **MediatR** | Đúng hai pipeline behavior ở v1 — xem [`be-cqrs-handler.md`](be-cqrs-handler.md). Dòng phiên bản được khoá: [`../adr/0031-khoa-mediatr-12-5.md`](../adr/0031-khoa-mediatr-12-5.md) |
 | Validation | **FluentValidation** | Validator trả về lỗi qua `Result`, không ném exception |
 | ORM | **EF Core + PostgreSQL (Npgsql)** | Concurrency token dùng `xmin`, không dùng recipe SQL Server |
 | Identity | **ASP.NET Core Identity**, phiên bằng **Cookie** (KHÔNG JWT) | `AppUser`/`AppRole` chỉ sống trong `Core.Infrastructure` |
 | Chống CSRF | Cookie `SameSite=Lax` + antiforgery **hai lớp** (kiểm `Origin` + token) | `Lax` chỉ chặn site khác; subdomain khác cùng tên miền gốc vẫn là cùng site — nên vẫn cần hai lớp |
-| Frontend | **Angular 20.3** standalone + signals, **PrimeNG 20**, `@ngx-translate` | Xem [`fe-architecture.md`](fe-architecture.md) |
+| Frontend | **Angular** standalone + signals, **PrimeNG**, `@ngx-translate` | Xem [`fe-architecture.md`](fe-architecture.md). Phiên bản, toolchain và kế hoạch nâng cấp: [`../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md) — tài liệu sống không chép số phiên bản |
 | Cache | Redis — **hoãn tới v2** | Khai interface trước, chưa có implementation — xem [`be-performance.md`](be-performance.md) |
 | Message broker | **KHÔNG có ở v1** | Outbox + hosted service thay thế |
 
@@ -91,7 +91,7 @@ của nó, và những file còn lại chỉ trỏ về nó.
 | Tạo project mới, quyết định file này nằm ở tầng nào, viết `Program.cs`, đăng ký DI, thêm `IOptions<T>` | [`be-architecture.md`](be-architecture.md) |
 | Viết entity mới, `BaseEntity`, Value Object, soft delete, concurrency token, ranh giới Identity | [`be-entity-domain.md`](be-entity-domain.md) |
 | Viết Command/Query/Handler/Validator, dùng `Result<T>`, khai `ErrorDescriptor`, phân trang `PagedList<T>` | [`be-cqrs-handler.md`](be-cqrs-handler.md) |
-| Viết controller, ánh xạ `Result` → HTTP, hình dạng envelope, `RequirePermissionAttribute`, rate limit, CORS/antiforgery | [`be-api-controller.md`](be-api-controller.md) |
+| Viết controller, ánh xạ `Result` → HTTP, hình dạng envelope, ba attribute phân quyền endpoint, allowlist ẩn danh, rate limit, cookie phiên, CORS/antiforgery | [`be-api-controller.md`](be-api-controller.md) |
 | Viết repository, tối ưu query, đặt index, chống N+1, phân trang keyset, cân nhắc cache | [`be-performance.md`](be-performance.md) |
 | Đặt file FE vào `core/` hay `shared/` hay `platform/` hay `modules/` | [`fe-architecture.md`](fe-architecture.md) |
 | Gọi API từ FE, ranh giới DTO ↔ model, mapper | [`fe-api-client.md`](fe-api-client.md) |
@@ -101,6 +101,8 @@ của nó, và những file còn lại chỉ trỏ về nó.
 | Chấm review: cái gì là finding, cái gì không | [`tieu-chi-review.md`](tieu-chi-review.md) |
 
 Không thấy chủ đề của mình ở bảng trên → tra mục lục cấp trên: [`../README.md`](../README.md).
+
+Mỗi file luật ở đây chỉ giữ **luật, bảng, chữ ký, ví dụ tối thiểu**. Phần "vì sao, bẫy, ví dụ mở rộng" nằm ở file **cùng tên** trong `../wiki-core/be/ly-do/` hoặc `../wiki-core/fe/ly-do/`, cùng số mục § — mục lục ở [`../wiki-core/README.md`](../wiki-core/README.md) §4 và §5. Cần lý do mới mở; thi công thì không cần.
 
 ---
 
@@ -112,16 +114,21 @@ Một quy ước không trả lời được *"vì sao"* thì không ai theo, v�
 tiện sẽ bỏ nó. Một quy ước không nói *"đánh đổi gì"* thì người sau sẽ lật nó mà không
 biết mình đang trả lại cái giá nào.
 
+Chỗ của "vì sao" và "đánh đổi" là **file lý do cùng tên** trong `../wiki-core/{be,fe}/ly-do/`,
+cùng số mục §. File luật giữ câu luật và một dòng trỏ sang đó — để agent thi công không
+phải gánh phần giải thích ở mỗi lượt.
+
 ### 5.2 Bẫy đã biết phải nói thẳng
 
-Chỗ nào có một cách viết **trông đúng mà sai**, quy ước phải nêu đích danh cách viết đó
-và nêu hậu quả. Ba bẫy đắt nhất kế thừa từ dự án tiền nhiệm đều được ghi lại ở đây:
+Chỗ nào có một cách viết **trông đúng mà sai**, file luật nêu đích danh **câu cấm**, và
+file lý do nêu cách viết sai đó cùng hậu quả. Ba bẫy đắt nhất kế thừa từ dự án tiền
+nhiệm:
 
 | Bẫy | Ở file |
 | --- | --- |
-| Cầu nối lỗi dựng bằng reflection — chữ ký đổi thì mọi lỗi nghiệp vụ thành `NullReferenceException` | [`be-api-controller.md`](be-api-controller.md) |
-| Concurrency token dùng API của SQL Server trên PostgreSQL — check vô hiệu **im lặng** | [`be-entity-domain.md`](be-entity-domain.md) |
-| Rate limit chọn sai overload — hạn mức đăng nhập áp cho **toàn hệ thống** thay vì mỗi IP | [`be-api-controller.md`](be-api-controller.md) |
+| Cầu nối lỗi dựng bằng reflection — chữ ký đổi thì mọi lỗi nghiệp vụ thành `NullReferenceException` | câu cấm: [`be-api-controller.md`](be-api-controller.md) §1 · diễn giải: [`../wiki-core/be/ly-do/be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §1.3 |
+| Concurrency token dùng API của SQL Server trên PostgreSQL — check vô hiệu **im lặng** | câu cấm: [`be-entity-domain.md`](be-entity-domain.md) §6 · diễn giải: [`../wiki-core/be/ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §6 |
+| Rate limit chọn sai overload — hạn mức đăng nhập áp cho **toàn hệ thống** thay vì mỗi IP | câu cấm: [`be-api-controller.md`](be-api-controller.md) §6.2 · diễn giải: [`../wiki-core/be/ly-do/be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §6.2 |
 
 📖 Postmortem đầy đủ: [`../audit/`](../audit/).
 

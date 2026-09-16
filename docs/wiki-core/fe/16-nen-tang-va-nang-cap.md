@@ -10,6 +10,8 @@ verified: chua-doi-chieu
 >
 > Hai câu hỏi mà không ai đặt ra cho tới lúc đã quá muộn để trả lời rẻ: **"app này chạy được trên trình duyệt nào"** và **"bao lâu nâng framework một lần"**. File này trả lời trước cả hai.
 >
+> 📖 Phiên bản đã chốt của framework, thư viện UI, thư viện dịch và toolchain đi kèm, cùng **kế hoạch nâng bản lớn kế tiếp trước khi bản đang dùng hết hỗ trợ**: [`../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md). File này giữ **chính sách**; con số và lịch nằm ở ADR đó và ở `package.json` + `.nvmrc`.
+>
 > Không thuộc file này: quét lỗ hổng phụ thuộc — [`14-security.md`](14-security.md) §7. Ngân sách bundle — [`13-performance.md`](13-performance.md) §4.
 
 ---
@@ -172,7 +174,7 @@ Phiên bản của môi trường chạy công cụ build ít được nhắc, v
 
 | Việc | Vì sao |
 | --- | --- |
-| Khai phạm vi phiên bản môi trường build trong cấu hình dự án | Người mới vào dự án biết cần cài gì; công cụ cảnh báo khi lệch |
+| Ghim phiên bản môi trường build ở `.nvmrc` và trường `engines` của `package.json` — từ F0, hai tệp này cùng `package.json` là **nguồn phiên bản duy nhất** | Người mới vào dự án biết cần cài gì; công cụ cảnh báo khi lệch |
 | Dùng lệnh cài đặt **theo tệp khoá**, không phải lệnh cài thông thường | Lệnh thông thường có thể sửa tệp khoá và cho ra cây phụ thuộc khác với cây đã kiểm |
 | CI và máy dev dùng cùng phạm vi phiên bản | Lệch phiên bản môi trường build cho ra bundle khác nhau, và chỉ một trong hai được test |
 
@@ -204,14 +206,15 @@ Dòng thứ hai là dòng hay bị bỏ qua nhất và có hậu quả rõ nhấ
 | Không để tụt quá một bản lớn | ✅ sẽ có | §2.1 — ba mốc bắt buộc ở §2.2 |
 | Kiểm thư viện UI trước khi nâng | ✅ sẽ có | §3 — ràng buộc thật quyết định nhịp nâng |
 | Checklist bốn mục sau mỗi lần nâng | ✅ sẽ có | §4 |
-| Khai phạm vi phiên bản môi trường build | ✅ sẽ có | §9 |
+| Ghim phiên bản môi trường build (`.nvmrc` + `engines`) | ✅ sẽ có | §9 — từ pha F0 |
+| Kế hoạch nâng bản lớn kế tiếp trước khi bản đang dùng hết hỗ trợ | ✅ sẽ có | [`../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md) |
 | Nâng theo lịch cố định | ❌ chưa | Điều kiện: hiện nâng theo ba mốc ở §2.2. Chuyển sang nhịp cố định khi đội đủ lớn để việc nâng có người chịu trách nhiệm |
 | Cập nhật phụ thuộc tự động | ❌ chưa | Điều kiện: CI đủ tin cậy để một PR tự động xanh có nghĩa |
 | Siết phạm vi trình duyệt | ❌ chưa | Điều kiện: có số liệu người dùng thật (§5.5) |
 | Nâng framework trước khi thư viện UI sẵn sàng | ❌ loại, không hoãn `K46` | §3 — dẫn tới ép cài cho qua rồi vỡ ở chỗ phức tạp nhất |
 | Chép số phiên bản vào tài liệu | ❌ loại, không hoãn `K47` | §8 — đọc bằng lệnh |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 
@@ -219,6 +222,7 @@ Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái 
 
 | Câu hỏi | File |
 | --- | --- |
+| Phiên bản đã chốt, toolchain, kế hoạch nâng cấp | [`../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md) |
 | Ngân sách bundle | [`13-performance.md`](13-performance.md) §4 |
 | Quét lỗ hổng phụ thuộc | [`14-security.md`](14-security.md) §7 |
 | Cái gì được commit | [`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md) |

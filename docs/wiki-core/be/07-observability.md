@@ -65,7 +65,7 @@ Mọi dòng nên mang được, không cần lặp lại ở từng lời gọi:
 ### 3.1 Vòng đời
 
 ```text
-FE sinh (hoặc nhận từ hạ tầng) ──> gửi kèm header
+FE / hạ tầng gửi header traceparent (nếu có)
                                        │
                         Middleware nhận / sinh nếu chưa có
                                        │
@@ -81,7 +81,7 @@ FE sinh (hoặc nhận từ hạ tầng) ──> gửi kèm header
 ### 3.2 Bốn yêu cầu
 
 1. **Sinh sớm nhất có thể** — middleware đầu chuỗi, trước cả xác thực. Lỗi khi xác thực cũng phải truy được.
-2. **Nhận giá trị từ client nếu có, sinh mới nếu không.** FE gửi lên thì hai bên nối được với nhau.
+2. **Theo chuẩn W3C Trace Context: nhận header `traceparent` nếu có, sinh mới nếu không.** FE gửi lên thì hai bên nối được với nhau. Mã lần gọi lấy từ đâu và gán vào chỗ nào: đọc [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §3.
 3. **Trả về trong envelope lỗi.** Người dùng đọc được mã đó cho bộ phận hỗ trợ. Đây là thứ rút ngắn việc điều tra từ hàng chục phút xuống dưới một phút.
 4. **Đi theo cả việc chạy nền.** Bản ghi outbox mang mã của request đã sinh ra nó — nếu không, mọi thứ chạy nền sẽ là một vùng tối không nối được với nguyên nhân.
 
@@ -209,6 +209,7 @@ Hai nguyên tắc kèm theo:
 
 - Endpoint health check **không đòi xác thực**, nhưng **không được tiết lộ chi tiết** (chuỗi kết nối, phiên bản thư viện, thông điệp lỗi nội bộ) — nó là endpoint công khai.
 - Readiness phải trả về **thất bại khi còn migration chưa áp**. Đây là mặt còn lại của luật E8 ở [`../../RULES.md`](../../RULES.md).
+- Readiness trả **`Degraded`** (không phải thất bại) khi Outbox có bản ghi `dead` hoặc bản ghi chưa phát cũ nhất quá ngưỡng — ngưỡng và định nghĩa `dead`: [`12-notifications.md`](12-notifications.md) §2.5.
 
 ---
 

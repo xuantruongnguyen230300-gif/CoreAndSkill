@@ -49,14 +49,14 @@ Quá **bảy bước** thì không còn là một quy trình người dùng theo
 
 | Khoản | Giá trị |
 | --- | --- |
-| Đường kính chấm | 24px |
-| Độ dày vạch nối | 2px |
+| Đường kính chấm | `--stepper-dot` |
+| Độ dày vạch nối | `--stepper-line-w` |
 | Cỡ chữ nhãn bước | `--fs-sm`, `--fw-medium`; bước hiện hành `--fw-semibold` |
 | Cỡ chữ mô tả phụ | `--fs-2xs`, màu `--color-text-muted` |
 | Khe chấm → nhãn | `--sp-4` |
 | Khe giữa hai bước | `--sp-2` tối thiểu, vạch nối giãn lấp phần còn lại |
 
-Đường kính chấm 24px khai trong `:root` dưới tên `--step-dot` theo tầng token thứ ba ở [`../DESIGN.md`](../DESIGN.md) §1.
+Hai giá trị trên là token tầng 3 của component này; số thật khai ở [`../DESIGN.md`](../DESIGN.md) §6.5.
 
 ## Trạng thái
 
@@ -80,7 +80,7 @@ Bảng dưới là trạng thái của **cả dải**. Trạng thái của từn
 | `done` | Nền `--color-success`, icon `pi-check` màu `--color-text-on-brand` | `--color-text` | ✅ Có — quay lại sửa |
 | `current` | Nền `--color-brand`, số thứ tự màu `--color-text-on-brand` | `--color-text`, `--fw-semibold` | — đang ở đây |
 | `upcoming` | Nền `--color-surface`, viền `--color-border` dày `--border-w-strong`, số màu `--color-text-muted` | `--color-text-muted` | 🛑 Không |
-| `error` | Nền `--color-danger`, icon `pi-times` màu `--color-text-on-brand` | `--color-danger` | ✅ Có — quay lại sửa |
+| `error` | Nền `--color-danger`, icon `pi-times-circle` màu `--color-text-on-brand` | `--color-danger` | ✅ Có — quay lại sửa |
 
 🛑 **Bốn trạng thái này khác nhau bằng HÌNH DẠNG, không chỉ bằng màu.** Dấu tích, số, dấu nhân — ba hình khác nhau. [`../DESIGN.md`](../DESIGN.md) §2.7 cấm để màu làm kênh duy nhất, và một dải bốn chấm chỉ khác sắc là bốn chấm giống hệt nhau với người mù màu.
 
@@ -94,17 +94,17 @@ Vạch nối giữa hai bước đã qua dùng `--color-success`; vạch tới b
 | Chữ | `--fs-2xs`, `--fs-xs`, `--fs-sm`, `--fw-medium`, `--fw-semibold`, `--fw-bold`, `--lh-snug` |
 | Khoảng cách | `--sp-2`, `--sp-3`, `--sp-4`, `--sp-6` |
 | Hình dạng | `--radius-full`, `--border-w-strong` |
-| Kích thước | `--icon-sm` |
-| Icon | `pi-check`, `pi-times`, `pi-spinner` — [`../Icons.md`](../Icons.md) §5 |
+| Kích thước | `--icon-sm`, `--stepper-dot`, `--stepper-line-w` |
+| Icon | `pi-check`, `pi-times-circle`, `pi-spinner` — [`../Icons.md`](../Icons.md) §5 |
 | Chuyển động | `--dur-base`, `--ease-standard` |
 
 ## Responsive
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-lg` | `horizontal` đầy đủ: chấm, nhãn, mô tả phụ |
-| `--bp-md` … `--bp-lg` | `horizontal` bỏ mô tả phụ, giữ nhãn |
-| < `--bp-md` | Chuyển sang `compact` — một dòng "Bước 3 / 4 · Kiểm tra dữ liệu" kèm thanh tiến trình mảnh |
+| ≥ `$bp-lg` | `horizontal` đầy đủ: chấm, nhãn, mô tả phụ |
+| `$bp-md` … `$bp-lg` | `horizontal` bỏ mô tả phụ, giữ nhãn |
+| < `$bp-md` | Chuyển sang `compact` — một dòng "Bước 3 / 4 · Kiểm tra dữ liệu" kèm thanh tiến trình mảnh |
 
 **Vì sao đổi hẳn sang `compact` thay vì cho cuộn ngang:** một dải bốn bước cuộn ngang thì người dùng chỉ thấy hai bước một lúc, và chỉ báo tiến độ mất hết ý nghĩa — họ không còn thấy mình đang ở đâu trong toàn bộ. Một dòng chữ nói thẳng "3 / 4" giữ đúng thông tin đó trong một phần mười chỗ.
 
@@ -135,6 +135,8 @@ Vạch nối giữa hai bước đã qua dùng `--color-success`; vạch tới b
 
 Nội dung của từng bước **không** nằm trong component này. `Stepper` chỉ là dải chỉ báo; trang quyết định hiện gì dưới nó. Gộp nội dung vào sẽ biến nó thành một khung điều hướng, và lúc đó nó gánh hai vai.
 
+Ba luật của trang dùng `Stepper`: rời quy trình giữa chừng thì **hỏi xác nhận** qua guard "chưa lưu" ([`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md)) — giữ tạm cần chỗ lưu bản nháp mà Core không có; "Tiếp tục" là submit của bước, nên bước lỗi **chặn** đi tiếp theo đúng luật submit của [`FormRow.md`](./FormRow.md); `compact` dùng lại [`ProgressBar.md`](./ProgressBar.md) `determinate` cỡ `sm` — file đó đã nhận "chỉ báo bước ở màn nhỏ" là chỗ dùng của nó.
+
 `Stepper` là component **dumb** ([`../COMPONENTS.md`](../COMPONENTS.md) §5).
 
 ## Do / Don't
@@ -150,8 +152,4 @@ Nội dung của từng bước **không** nằm trong component này. `Stepper`
 
 ## Cần chốt
 
-| # | Câu hỏi | Ai trả lời được |
-| --- | --- | --- |
-| 1 | Rời trang giữa chừng thì giữ tạm hay hỏi xác nhận? Giữ tạm thì cần một chỗ lưu bản nháp mà Core chưa có; hỏi xác nhận thì đơn giản nhưng người dùng đóng nhầm tab là mất hết | `architect`, vì giữ tạm chạm tới lưu trữ |
-| 2 | Bước lỗi có chặn đi tiếp tuyệt đối không, hay cho đi tiếp rồi quay lại sửa? Chặn thì an toàn; cho đi tiếp thì hợp với ca nhập liệu dài, nơi người dùng muốn làm hết rồi sửa một lượt | Dự án đầu tiên có màn nhập từ tệp |
-| 3 | `compact` có dùng lại `ProgressBar` hay tự vẽ thanh riêng? Dùng lại thì đỡ một hiện thực, nhưng `ProgressBar` mang ngữ nghĩa "tiến trình của một việc đang chạy", còn ở đây là "vị trí trong một chuỗi" | Người dựng hai component này |
+Không còn.

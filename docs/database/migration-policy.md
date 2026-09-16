@@ -29,6 +29,32 @@ Luật E6 ([`../RULES.md`](../RULES.md) §4) ép điều này bằng ArchTest
 `EveryMigration_LivesIn_ItsOwningProject`. Host là composition root, luật A7 đã cấm nó chứa
 logic; migration cũng là logic.
 
+**Bảng lịch sử migration nằm trong chính schema mà `DbContext` quản, và cùng một tên ở mọi schema:
+`<schema>.__ef_migrations_history`** — `core.__ef_migrations_history` cho Core
+([`schema-core.md`](schema-core.md) §9.2), `<x>.__ef_migrations_history` cho module `<X>`. Mỗi
+`DbContext` khai nó bằng `MigrationsHistoryTable` trong `UseNpgsql`; mẫu của Core ở
+[`../quy-uoc/be-performance.md`](../quy-uoc/be-performance.md) §7.2. Tên chung là thứ cho câu nghiệm
+thu quyền ở [`script-runbook.md`](script-runbook.md) §3.6 phủ mọi schema mà không phải liệt kê schema nào.
+
+#### Ngoại lệ có tên của E6: khoá quyền của module — định nghĩa gốc
+
+Khoá quyền của module nằm trong hai bảng của schema `core`, nhưng chỉ module biết khoá của mình. Đường
+đưa chúng vào database là migration của **chính module**, trong đúng giới hạn dưới đây:
+
+| Migration của module **được** | Migration của module **không được** |
+| --- | --- |
+| `INSERT … ON CONFLICT … DO NOTHING` vào `core.permission_resource` và `core.permission`, cho khoá mà module khai qua `IPermissionCatalogSource` | `UPDATE`, `DELETE`, `TRUNCATE` trên hai bảng đó; chạm bất kỳ bảng `core` nào khác; đổi cấu trúc schema `core` |
+
+| Ràng buộc | Vì sao |
+| --- | --- |
+| **Chỉ ghi thêm, bỏ qua khi đã có** | Migration của module không bao giờ sửa hay xoá dòng mà Core ghi, nên bản vá Core về sau không đè lên thứ module ghi — và ngược lại. Đó chính là ca hai chủ sở hữu mà §1.1 mô tả, thu hẹp về một thao tác không xung đột được |
+| Cùng năm điều kiện của phần seed ở §4.1 | Định danh cố định, không xoá tự động, không phụ thuộc dữ liệu có sẵn — áp như với khoá của Core |
+| Test CI đối chiếu **hai chiều** của luật B7 phủ cả khoá của module | Khoá có trong code module mà thiếu trong migration module thì deny-by-default trả 403 cho mọi người |
+| Script của module áp **sau** script của Core ([`script-runbook.md`](script-runbook.md) §3.3 bước 2) | Bảng đích phải có trước khi module ghi vào |
+
+Hai đường khác cho khoá của module đều đã bị chặn: migration của **Core** ghi khoá của module là Core
+biết module tồn tại (luật A3); tiến trình ứng dụng tự ghi danh mục là hướng đã khoá — §4.1.
+
 ### 1.1 Đây là ĐẢO NGƯỢC so với dự án tiền nhiệm — và vì sao
 
 Ở dự án tiền nhiệm, **host sở hữu toàn bộ migration**: mọi file `Migrations/*.cs` cùng
@@ -146,6 +172,7 @@ chốt PostgreSQL còn hơn tin vào một lớp trừu tượng không chịu n
 
 | Ví dụ tốt | Vì sao |
 | --- | --- |
+| `TaoLuocDoCore` | Migration **đầu tiên** của schema `core` — dựng toàn bộ lược đồ ban đầu; không dùng `InitialCreate` |
 | `AddNotificationRecipientTable` | Nói rõ thêm cái gì |
 | `AddIndexRolePermissionByPermission` | Nói rõ index nào, trên bảng nào |
 | `RenameMenuItemNameToLabelKey` | Nói rõ cột nào, đổi thành gì |
@@ -188,15 +215,10 @@ Vì sao đây là luật chứ không phải sở thích:
 | Lệnh chạm schema **không thuộc** bên mình | Cấu hình `DbContext` đang gom cả entity của bên kia. Luật E4 sẽ bắt, nhưng ở đây đã thấy rồi thì dừng luôn |
 | Migration **rỗng** khi ta vừa đổi model | `dotnet ef` đang đọc một `DbContext` khác với `DbContext` ta vừa sửa |
 
-Phép thử rẻ nhất để biết snapshot có khớp model không, **không sinh file nào**:
-
-```bash
-dotnet ef migrations has-pending-model-changes \
-  --project src/BE/Core/CoreAndSkill.Core.Infrastructure \
-  --startup-project src/BE/CoreAndSkill.Api
-```
-
-Chạy được bất cứ lúc nào, không để lại rác trong `src/`. Nên chạy trước mỗi lần `migrations add`.
+Phép thử rẻ nhất để biết snapshot có khớp model không, **không sinh file nào**: lệnh
+`has-pending-model-changes` ở [`script-runbook.md`](script-runbook.md) §5.4, chạy cho đúng
+`DbContext` vừa sửa. Chạy được bất cứ lúc nào, không để lại rác trong `src/`. Nên chạy trước mỗi
+lần `migrations add`.
 
 ---
 
@@ -208,23 +230,55 @@ Chạy được bất cứ lúc nào, không để lại rác trong `src/`. Nên
 | Ở đâu | Trong migration EF | **Tuỳ khối lượng** — xem dưới |
 | Chạy khi | Áp script schema | Sau khi schema đã áp |
 
-### 4.1 Seed danh mục — được phép nằm trong migration, có điều kiện
+### 4.1 Danh mục quyền — dòng vào database bằng migration, và chỉ bằng migration
 
-Danh mục **nhỏ, cố định, là một phần của định nghĩa schema** thì nằm trong migration được. Cụ
-thể ở repo này: `permission_resource` và `permission` của Core — chúng là danh mục kỹ thuật do
-lập trình viên khai, không phải dữ liệu người dùng.
+Danh mục **nhỏ, cố định, là hợp đồng giữa code và dữ liệu** thì nằm trong migration. Ở repo này
+đó là `core.permission_resource` và `core.permission`. **Khoá** khai trong code qua seam
+`IPermissionCatalogSource` và được kiểm lúc khởi động
+([`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §1.1); **dòng** tương ứng vào
+database bằng migration.
 
-Ba điều kiện, thiếu một thì không được:
+**Giá trị của dòng seed lấy từ chính record khai ở seam, không có nguồn thứ hai.** Mỗi
+`PermissionResourceDefinition` là một dòng `core.permission_resource` (`Key` → `key`, `NameKey` →
+`name_key`, `ModuleKey` → `module_key`, `DisplayOrder` → `display_order`); mỗi `PermissionDefinition`
+là một dòng `core.permission` (`Code` → `code`, `ResourceKey` → `resource_key`, `Action` → `action`,
+`NameKey` → `name_key`, `DisplayOrder` → `display_order`). Migration chỉ thêm `id` cố định (điều
+kiện 2 dưới đây) và cột audit; nó **không** tự đặt giá trị cho cột nào khác — một cột mà migration
+tự nghĩ ra là một cột không có gì đối chiếu, và test B7 sẽ không thấy nó lệch.
+
+Điều kiện của phần seed trong migration, thiếu một thì không được:
 
 1. **Idempotent** — `ON CONFLICT … DO NOTHING`, chạy nhiều lần cho kết quả như chạy một lần. Nhớ
    lặp lại nguyên văn vị từ của index một phần ([`schema-core.md`](schema-core.md) §3.3).
-2. **Không phụ thuộc dữ liệu có sẵn.** Một câu `UPDATE … WHERE role_id = (SELECT … WHERE name =
+2. **Định danh cố định** — cùng một khoá mang cùng một `id` ở mọi môi trường, không sinh ngẫu
+   nhiên lúc chạy.
+3. **Không xoá tự động.** Khoá bỏ khỏi code không kéo theo `DELETE` trong migration: dòng phân
+   quyền trỏ tới nó sẽ thành rác âm thầm. Bỏ một khoá là một bước có chủ đích.
+4. **Không phụ thuộc dữ liệu có sẵn.** Một câu `UPDATE … WHERE role_id = (SELECT … WHERE name =
    'Admin')` sẽ **im lặng không làm gì** trên database chưa có vai trò đó — và không ai biết.
-3. **Đo được bằng mắt sau khi chạy.** Kèm một câu `SELECT` kiểm ngay trong file, xem
-   [`script-runbook.md`](script-runbook.md) §7.
+5. **Đo được bằng mắt sau khi chạy.** Câu nghiệm thu `core.permission` ở
+   [`script-runbook.md`](script-runbook.md) §3.3.
 
-**Không bao giờ seed vào migration:** tài khoản người dùng. Mật khẩu Identity không tạo được bằng
-SQL ([`schema-core.md`](schema-core.md) §4.1), nên bước đó là một lệnh riêng chạy bằng binary.
+**Hằng số trong code và dòng seed trong migration phải khớp hai chiều** — test CI của luật **B7**
+([`../RULES.md`](../RULES.md)) đối chiếu cặp `Code` + `ResourceKey` của mọi `PermissionDefinition`
+với cặp `code` + `resource_key` trong migration: khoá có trong code mà thiếu dòng seed thì đỏ (deny-by-default
+trả 403 cho mọi người); dòng seed không ứng với khoá nào trong code cũng đỏ — đó là dấu hiệu một khoá
+bị bỏ khỏi code mà chưa đi qua bước có chủ đích của điều kiện 3.
+
+**Tiến trình ứng dụng chỉ đọc hai bảng này.** Tài khoản database của ứng dụng chỉ có `SELECT`
+trên chúng — luật **M13**, bảng quyền ở [`script-runbook.md`](script-runbook.md) §3.6. Hướng
+"tiến trình ứng dụng tự ghi danh mục lúc khởi động hoặc lúc chạy" đã khoá, kèm lý do:
+[`../wiki-core/be/13-core-data-migration.md`](../wiki-core/be/13-core-data-migration.md) §8.
+
+**Khoá của module** khai qua cùng seam, và vào database bằng migration của **chính module** — ngoại lệ
+có tên của luật E6 ở §1, cùng năm điều kiện trên, cùng test B7.
+
+**Không bao giờ nằm trong migration:**
+
+| Dữ liệu | Đi đường nào |
+| --- | --- |
+| Tài khoản người dùng | Mật khẩu Identity không tạo được bằng SQL ([`schema-core.md`](schema-core.md) §4.1). Tài khoản đầu tiên do lệnh bootstrap tạo — [`script-runbook.md`](script-runbook.md) §3.3 |
+| Dữ liệu của một đơn vị — vai trò mặc định, ánh xạ vai trò → quyền, menu | Mang `tenant_id`, sinh ra cùng đơn vị: service tạo đơn vị ghi — [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md) |
 
 ### 4.2 Backfill lớn KHÔNG nằm trong migration — bốn lý do
 
@@ -334,7 +388,7 @@ nó là.
 | --- | --- | --- |
 | E4 `EveryMappedEntity_LivesInTheSchemaOfItsSide` | ArchTest | Entity của Core rơi vào schema module, hoặc ngược lại. Đây là lỗi im lặng: bảng vẫn dựng, vẫn chạy, chỉ sai chỗ — và chỉ lộ ra vào ngày tách module |
 | E5 `NoForeignKey_CrossesSchemaBoundary` | ArchTest | Navigation property nối hai schema, tức FK vật lý xuyên ranh giới. Bắt ở tầng model; câu kiểm (4) ở [`schema-core.md`](schema-core.md) §11 bắt phần SQL viết tay |
-| E6 `EveryMigration_LivesIn_ItsOwningProject` | ArchTest | Migration chạm schema `core` nằm trong project module, hoặc ngược lại — tức chính ca hai chủ sở hữu mà §1.1 mô tả |
+| E6 `EveryMigration_LivesIn_ItsOwningProject` | ArchTest | Migration chạm schema `core` nằm trong project module ngoài ngoại lệ khoá quyền (§1), hoặc ngược lại — tức chính ca hai chủ sở hữu mà §1.1 mô tả |
 | E8 `Startup_Fails_When_PendingMigrationsExist` | Integration test | App khởi động được trong khi DB còn thiếu migration. Xem [`script-runbook.md`](script-runbook.md) §5 |
 
 Bốn dòng này nằm trong bảng §4 của [`../RULES.md`](../RULES.md), trạng thái `📐` — cổng chưa tồn
@@ -350,10 +404,15 @@ chứa file:
 | File migration nằm ở | Được phép chạm schema |
 | --- | --- |
 | `Core.Infrastructure` | `core` — và chỉ `core` |
-| `Modules.<X>.Infrastructure` | `<x>` — và chỉ `<x>` |
+| `Modules.<X>.Infrastructure` | `<x>`; với `core` **chỉ** đúng dạng của ngoại lệ khoá quyền ở §1 |
 
-Một migration của module chạm bảng `core` là dấu hiệu module đang "sửa hộ" Core, và bản vá Core
-lần sau sẽ đè lên nó hoặc xung đột với nó.
+Một migration của module chạm bảng `core` **ngoài** ngoại lệ đó là dấu hiệu module đang "sửa hộ" Core,
+và bản vá Core lần sau sẽ đè lên nó hoặc xung đột với nó.
+
+Ngoại lệ đi bằng SQL viết tay trong migration — dạng `ON CONFLICT … DO NOTHING` không có trong thao tác
+chèn dữ liệu dựng sẵn của EF — nên phần này của detector buộc phải đọc văn bản lệnh SQL của migration
+module: mọi tham chiếu `core.` chỉ được nằm trong câu `INSERT` vào hai bảng đã nêu, kèm
+`ON CONFLICT … DO NOTHING`. Lời cảnh báo ngay dưới áp nguyên văn cho phần đó.
 
 > ⚠️ **Bài học khi thi công detector này:** ở dự án tiền nhiệm, một detector cùng loại quét **văn
 > bản nguồn** thay vì cấu trúc, nên code phải viết vòng để né nó — đuôi vẫy chó. Ưu tiên đọc
@@ -374,6 +433,9 @@ Danh sách này áp cho **mỗi** thay đổi schema `core`, không có ngoại 
 5. Nếu là thay đổi phá vỡ → chia bốn bước theo §5, migration này chỉ làm bước hiện tại.
 6. Sinh script `.sql` idempotent và đặt vào thư mục `<gốc repo>/database/scripts/` — [`script-runbook.md`](script-runbook.md) §4.
 7. Cập nhật [`schema-core.md`](schema-core.md): cột, index, ràng buộc, và **lý do**.
+   Bảng mới cần quyền khác mặc định cho tài khoản ứng dụng ⇒ sửa bảng quyền ở
+   [`script-runbook.md`](script-runbook.md) §3.6 cùng lượt. Thêm khoá quyền của Core ⇒ thêm dòng
+   seed vào migration cùng lượt (§4.1).
 8. Cập nhật hợp đồng API nào chịu ảnh hưởng trong [`../contracts/`](../contracts/README.md).
 9. Chạy integration test — luật T2 đòi Postgres thật, không mock.
 

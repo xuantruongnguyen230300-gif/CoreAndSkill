@@ -25,7 +25,7 @@ Kích hoạt một hành động, có nhãn chữ.
 | Hành động chính hoặc phụ của một vùng | 🛑 Chuyển giữa hai chế độ xem → [`SegmentedControl.md`](./SegmentedControl.md) |
 | Nút submit của form | 🛑 Bật/tắt một tuỳ chọn → [`Check.md`](./Check.md) |
 
-**Ngoại lệ được phép, một cái:** một thẻ `<a>` được tạo hình như nút khi nó thật sự là điều hướng nhưng lại là hành động chính của màn. Khi đó nó **vẫn là `<a>`** — chỉ mượn lớp hình thức, không mượn thẻ.
+**Ngoại lệ được phép, một cái:** một thẻ `<a>` được tạo hình như nút — bất kỳ biến thể nào — khi nó thật sự là điều hướng nhưng đứng trong nhóm hành động của màn (hành động chính hay phụ ở [`PageHeader.md`](./PageHeader.md), chân [`Dialog.md`](./Dialog.md), [`EmptyState.md`](./EmptyState.md)). Khi đó nó **vẫn là `<a>`** — chỉ mượn lớp hình thức, không mượn thẻ.
 
 ## Biến thể
 
@@ -41,6 +41,8 @@ Tương phản chữ trên nền đặc (đã tính, [`../DESIGN.md`](../DESIGN.
 🛑 **Không quá một `primary` trong cùng một vùng nhìn.** Hai nút primary cạnh nhau nghĩa là không cái nào là chính, và người dùng phải đọc cả hai để chọn. Đây là lỗi hay gặp nhất ở chân `Dialog`: Lưu là `primary`, Huỷ là `secondary`.
 
 🛑 **`danger` không phải "nút màu đỏ cho vui".** Nó dành cho thao tác không hoàn tác được. Dùng cho một nút "Xoá bộ lọc" sẽ làm màu đỏ mất nghĩa đúng lúc nó cần có nghĩa nhất.
+
+Bốn biến thể là toàn bộ. Không có `link`: điều hướng là `<a>` (§Khi nào dùng), hành động tại chỗ cần trông nhẹ là `ghost`. Không có nút kèm menu thả xuống: hành vi lớp nổi thuộc nhóm "khó" ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 — khi cần thì là component riêng, hôm nay hành động phụ đi qua [`Menu.md`](./Menu.md) mở từ một [`IconButton.md`](./IconButton.md).
 
 ## Kích thước
 
@@ -68,7 +70,7 @@ Nhãn nút **không xuống dòng** (`white-space: nowrap`). Nhãn dài quá th�
 | `focus-visible` | `outline: var(--border-w-strong) solid var(--color-focus)`, `outline-offset: 2px`. Chỉ `:focus-visible`. Khoảng hở 2px là thứ giữ cho vòng focus không tàng hình trên nút `primary` — xem [`../DESIGN.md`](../DESIGN.md) §2.6 | Có |
 | `active` | Nền của bậc `active` (`--color-brand-active` cho `primary`); `transform: translateY(1px)`; bỏ bóng. Không dùng `scale` — nó làm chữ nhoè | Có |
 | `disabled` | `opacity: 0.55`; `cursor: not-allowed`; bỏ mọi hiệu ứng hover/active. Bắt buộc thuộc tính `disabled` thật, không chỉ đổi màu | Có |
-| `loading` | Icon `pi-spinner` quay thay cho icon dẫn; nhãn **giữ nguyên**; nút bị vô hiệu hoá; `aria-busy="true"`. Bề rộng nút **không đổi** — dự trữ chỗ cho spinner bằng `min-width` đo ở trạng thái nghỉ | Có |
+| `loading` | Icon `pi-spinner` quay thay cho icon dẫn; nhãn **giữ nguyên**; nút bị vô hiệu hoá; `aria-busy="true"`. Bề rộng nút **không đổi** — dự trữ chỗ cho spinner bằng `min-width` đo ở trạng thái nghỉ, đúng một lần lúc chuyển sang `loading`; không đặt số cứng vì nhãn dài ngắn khác nhau | Có |
 | `error` | **Không áp dụng.** Nút không tự mang lỗi. Kết quả hỏng của một hành động hiện ở `Toast` hoặc `NoticeBanner` | — |
 | `empty` | **Không áp dụng.** Nút không có nhãn là lỗi thi công, không phải một trạng thái | — |
 
@@ -92,9 +94,9 @@ Nhãn nút **không xuống dòng** (`white-space: nowrap`). Nhãn dài quá th�
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Nút giữ bề rộng theo nội dung; nhóm nút xếp ngang, khe `--sp-4` |
-| < `--bp-md` | Nhóm nút trong chân `Dialog` xuống dòng; nút `primary` **lên trên** khi xếp dọc |
-| < `--bp-xs` | Nút trong `Toolbar` và chân `Dialog` chuyển sang `block` |
+| ≥ `$bp-md` | Nút giữ bề rộng theo nội dung; nhóm nút xếp ngang, khe `--sp-4` |
+| < `$bp-md` | Nhóm nút trong chân `Dialog` xuống dòng; nút `primary` **lên trên** khi xếp dọc |
+| < `$bp-xs` | Nút trong `Toolbar` và chân `Dialog` chuyển sang `block` |
 
 **Khi xếp dọc, `primary` lên trên chứ không xuống dưới.** Ở màn hình nhỏ người dùng quét từ trên xuống; hành động chính phải gặp trước. Thứ tự trong DOM giữ nguyên (Huỷ trước, Lưu sau, để thứ tự Tab hợp lý ở desktop) và đảo bằng `order` của flex ở màn nhỏ.
 
@@ -145,8 +147,4 @@ Nội dung nhãn vào qua slot mặc định (`<ng-content>`), không qua một 
 
 ## Cần chốt
 
-| # | Câu hỏi | Ai trả lời được |
-| --- | --- | --- |
-| 1 | Có cần biến thể `link` (nút trông như liên kết) không? Hôm nay `ghost` gánh vai đó. Rủi ro: `ghost` và `link` gần giống nhau sẽ tạo ra hai thứ không ai phân biệt được | Dự án đầu tiên gặp nhu cầu thật |
-| 2 | Nút có menu thả xuống (split button) là biến thể của `Button` hay một component riêng? Nghiêng về component riêng vì nó có hành vi overlay, thuộc nhóm "khó" ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 | Khi có màn cần nó |
-| 3 | `min-width` dự trữ chỗ cho spinner đặt bằng số cụ thể hay đo lúc chạy? Số cụ thể đơn giản hơn nhưng sai với nhãn dài; đo lúc chạy đúng hơn nhưng thêm một lần đọc bố cục | Người dựng component |
+Không còn.

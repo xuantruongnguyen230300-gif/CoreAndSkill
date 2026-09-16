@@ -17,9 +17,9 @@ verified: chua-doi-chieu
 | Pha | Tên | Xong thì có gì **chạy được** |
 | --- | --- | --- |
 | **B0** | Nền móng | Năm project dựng xong với đúng chiều tham chiếu; một endpoint thử trả envelope đúng khuôn cho cả nhánh thành công lẫn nhánh lỗi; thiếu một giá trị cấu hình bắt buộc thì app **không khởi động**; ArchTest đã chạy và đã từng đỏ |
-| **B1** | Dữ liệu, đơn vị, danh tính | Database dựng từ trống bằng runbook; đăng nhập bằng cookie chạy thật qua HTTP; mọi bảng dữ liệu mang cột đơn vị và bộ lọc đơn vị đã bật; app từ chối khởi động khi DB lệch model |
-| **B2** | Phân quyền, menu, bảo mật biên | Bốn card hợp đồng hiện có chạy đúng như đã khai; 403 bắn đúng chỗ; CSRF và rate limit chặn thật, chứng minh bằng test |
-| **B3** | Vận hành | Nhật ký kiểm toán ghi được; chỉ số và health check phản ánh đúng trạng thái; triển khai và quay lui đi theo đúng thứ tự ở [`../18-trien-khai-va-van-hanh.md`](../18-trien-khai-va-van-hanh.md); tạo một đơn vị mới chạy lại được nhiều lần |
+| **B1** | Dữ liệu, đơn vị, danh tính | Database dựng từ trống bằng runbook; lệnh bootstrap dựng hai đơn vị và hai tài khoản đầu tiên qua service tạo đơn vị dùng chung; đăng nhập bằng cookie chạy thật qua HTTP; card `auth.md` (trừ §10) và `profile.md` chạy đúng như đã khai; mọi bảng dữ liệu mang cột đơn vị và bộ lọc đơn vị đã bật; app từ chối khởi động khi DB lệch model |
+| **B2** | Phân quyền, menu, bảo mật biên | Card `users.md`, `roles.md`, `permissions.md`, `meta-menu.md` và `auth.md` §10 chạy đúng như đã khai; 403 bắn đúng chỗ; CSRF và rate limit chặn thật, chứng minh bằng test |
+| **B3** | Vận hành | Nhật ký kiểm toán ghi được; chỉ số và health check phản ánh đúng trạng thái; triển khai và quay lui đi theo đúng thứ tự ở [`../18-trien-khai-va-van-hanh.md`](../18-trien-khai-va-van-hanh.md); card `tenants.md` (gồm endpoint khôi phục quản trị đơn vị) và `client-errors.md` chạy đúng như đã khai; tạo một đơn vị mới chạy lại được nhiều lần |
 | **B4** | Tệp, nhập/xuất, thông báo | Đính kèm tệp và tải lại được có kiểm quyền; xuất danh sách theo bộ lọc đang xem; một sự kiện nghiệp vụ sinh thông báo tới đúng người nhận qua Outbox |
 
 Mỗi pha một file: [`01-b0-nen-mong.md`](01-b0-nen-mong.md) · [`02-b1-du-lieu-don-vi-danh-tinh.md`](02-b1-du-lieu-don-vi-danh-tinh.md) · [`03-b2-phan-quyen-va-bien.md`](03-b2-phan-quyen-va-bien.md) · [`04-b3-van-hanh.md`](04-b3-van-hanh.md) · [`05-b4-tep-nhap-xuat-thong-bao.md`](05-b4-tep-nhap-xuat-thong-bao.md)
@@ -58,13 +58,30 @@ B0 ──► B1 ──► B2 ──► B3 ──► B4
 
 ## 4. Quan hệ với lộ trình FE
 
-Hai lộ trình chạy song song được, với đúng một ràng buộc: **F2 của FE cần B2 của BE đã xong** (đăng nhập, phân quyền, menu). Trước mốc đó FE dùng dữ liệu giả theo card hợp đồng.
+Hai lộ trình chạy song song được. Trước khi endpoint thật có, FE dùng dữ liệu giả theo card hợp đồng. Các ràng buộc:
 
-Ràng buộc thứ hai, nhẹ hơn: F3 (hai màn quản trị) cần các endpoint người dùng và phân quyền của B2 chạy thật.
+| FE | Cần gì từ BE | Vì sao |
+| --- | --- | --- |
+| **F0** | Endpoint thử của B0, trả cả nhánh thành công lẫn nhánh lỗi | Nghiệm thu F0 gọi một endpoint lỗi thật để kiểm envelope và chuỗi interceptor — dữ liệu giả không chứng minh được việc đó |
+| **F2** | B2 đã xong (đăng nhập, phân quyền, menu) | Đóng pha cần phiên, quyền và menu chạy thật |
+| **F3** (màn người dùng, vai trò, phân quyền) | Endpoint người dùng, vai trò và phân quyền của B2 chạy thật | Cùng lý do |
+| Khu quản trị đơn vị phía FE | B3 đã xong | Card `tenants.md` thuộc B3 |
 
 ---
 
-## 5. Đọc tiếp
+## 5. Sau B4 — module mẫu ở dự án hạ nguồn đầu tiên
+
+Module mẫu **không** nằm trong repo Core: nó được dựng ở dự án hạ nguồn đầu tiên dùng Core — [`../../../adr/0032-module-mau-o-du-an-ha-nguon.md`](../../../adr/0032-module-mau-o-du-an-ha-nguon.md).
+
+**Định nghĩa hoàn thành:**
+
+- Một module nghiệp vụ chạy trong dự án hạ nguồn, lắp vào host theo ranh giới ở [`../../../kien-truc-core-module.md`](../../../kien-truc-core-module.md), **không** sửa code Core để lắp được. Cần sửa Core thì đi thủ tục ở [`../01-core-components.md`](../01-core-components.md) §6.
+- Module có schema và migration của riêng nó, cấp khoá quyền qua `IPermissionCatalogSource`, và ArchTest của Core chạy trên solution đó vẫn xanh.
+- Skill scaffold module được viết **từ** module đó, ở dự án hạ nguồn, rồi mới đưa về Core.
+
+---
+
+## 6. Đọc tiếp
 
 | Câu hỏi | File |
 | --- | --- |

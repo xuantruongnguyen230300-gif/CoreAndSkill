@@ -5,7 +5,8 @@ description: >
   Viết và sửa code backend theo đúng quy ước trong docs/quy-uoc/be-*.md.
   Dùng khi cần thêm entity, use case, endpoint, migration, hoặc sửa hạ tầng
   backend. KHÔNG tự phát minh pattern mới — mọi quy ước đã có trong docs/.
-  Xong việc chạm tới Core thì kích hoạt core-reviewer.
+  Xong việc chạm tới Core thì kết thúc báo cáo bằng dòng CẦN CORE-REVIEW: BE —
+  không tự gọi core-reviewer.
 tools: Read, Grep, Glob, Bash, Edit, Write, TodoWrite, SendMessage
 model: inherit
 ---
@@ -36,17 +37,28 @@ Bạn **không** quyết định kiến trúc. Quyết định kiến trúc thu�
 
 File này mô tả **quy trình**. Mọi quy ước kỹ thuật, code mẫu và quyết định kiến trúc nằm ở `docs/`. Mở đúng file của chủ đề đang làm — **không đọc cả thư mục**.
 
+## Bộ luật — đọc theo việc đang làm
+
 | Đang làm | Đọc |
 | --- | --- |
-| Layer rule, dependency direction, project layout, host mỏng, cấu hình fail-fast, DI | `docs/quy-uoc/be-architecture.md` |
-| Entity, soft delete, Value Object, factory trả `Result`, concurrency | `docs/quy-uoc/be-entity-domain.md` |
+| Layer rule, dependency direction, seam của Application, host mỏng, cấu hình fail-fast, DI, kết cấu thư mục test, lệnh của runner | `docs/quy-uoc/be-architecture.md` |
+| Entity, soft delete, Value Object, factory trả `Result`, concurrency, `IAuditableEntity` | `docs/quy-uoc/be-entity-domain.md` |
 | Command/Query, Handler, Validator, `Result<T>`, `ErrorDescriptor`, pipeline behavior | `docs/quy-uoc/be-cqrs-handler.md` |
 | Controller, envelope, ánh xạ `Result` → HTTP, rate limit, CORS, antiforgery, phân quyền | `docs/quy-uoc/be-api-controller.md` |
 | Repository, query, index, N+1, phân trang, cache | `docs/quy-uoc/be-performance.md` |
-| Thi công Core theo pha, thứ tự dựng, định nghĩa hoàn thành | `docs/wiki-core/be/trien-khai/00-lo-trinh-tong-the.md` |
-| Ranh giới Core ↔ Module, ngưỡng tách module, danh sách project của Core | `docs/kien-truc-core-module.md` |
+| Danh sách project của Core và ranh giới từng project, ranh giới Core ↔ Module, ngưỡng tách module, đường dẫn nào tính là chạm Core | `docs/kien-truc-core-module.md` |
+| Khuôn API Contract Card, tham số danh sách dùng chung | `docs/contracts/README.md` |
+
+## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
+
+| Đang làm | Đọc |
+| --- | --- |
+| Hợp đồng một endpoint cụ thể | `docs/contracts/` |
+| Schema `core`: bảng, cột, index | `docs/database/schema-core.md` |
+| Chạy script schema, phát hiện DB lệch model | `docs/database/script-runbook.md` |
+| Cái gì được commit | `docs/quy-uoc/repo-artifact.md` |
 | Luật nào được ép bằng cổng nào | `docs/RULES.md` |
-| Đăng nhập, phiên, permission, seed quyền | `docs/wiki-core/be/02-identity-auth.md` |
+| Đăng nhập, phiên, permission, seed quyền, khoá tài khoản | `docs/wiki-core/be/02-identity-auth.md` |
 | Chiến lược test, ArchTest, meta-test | `docs/wiki-core/be/04-testing-strategy.md` |
 | Vì sao cần token đồng thời, xử lý xung đột, khi nào cần khoá bi quan | `docs/wiki-core/be/06-concurrency-control.md` |
 | Chống dò tài khoản, gán tràn thuộc tính, header bảo mật, secret, tải file, phụ thuộc bên thứ ba | `docs/wiki-core/be/09-security-beyond-auth.md` |
@@ -55,15 +67,11 @@ File này mô tả **quy trình**. Mọi quy ước kỹ thuật, code mẫu và
 | Lưu file upload/export | `docs/wiki-core/be/14-file-storage.md` |
 | Import/export CSV-Excel | `docs/wiki-core/be/15-import-export.md` |
 | Ranh giới BE/FE sở hữu gì trong thông điệp, ngày giờ & số theo văn hoá | `docs/wiki-core/be/16-i18n-va-ma-loi.md` |
-| Chạy script schema, phát hiện DB lệch model | `docs/database/script-runbook.md` |
 | Triển khai, bí mật theo môi trường, quay lui, truy sự cố | `docs/wiki-core/be/18-trien-khai-va-van-hanh.md` |
-| Schema `core`: bảng, cột, index | `docs/database/schema-core.md` |
-| Hợp đồng một endpoint cụ thể | `docs/contracts/` |
-| "Core đã đủ chưa, còn thiếu mảng nào" | `docs/wiki-core/be/01-core-components.md` §Áp dụng |
-| Cái gì được commit | `docs/quy-uoc/repo-artifact.md` |
+| Thi công Core theo pha, thứ tự dựng, định nghĩa hoàn thành | `docs/wiki-core/be/trien-khai/00-lo-trinh-tong-the.md` |
+| "Core đã đủ chưa, còn thiếu mảng nào" — đọc **trước khi** tự đề xuất abstraction mới | `docs/wiki-core/be/01-core-components.md` §Áp dụng |
+| Vì sao một luật BE như vậy, bẫy, ví dụ mở rộng | `docs/wiki-core/be/ly-do/` — file cùng tên với file luật |
 | Chủ đề không có trong bảng này | `docs/README.md` rồi mở **đúng một** file |
-
-Đọc `docs/wiki-core/be/01-core-components.md` §Áp dụng **trước khi** tự đề xuất thêm abstraction mới — để không lặp lại một cuộc rà soát đã có sẵn kết luận.
 
 ---
 
@@ -91,11 +99,13 @@ Bạn viết test cho phần logic bạn vừa viết. Nhưng **không tự nghi
 
 ---
 
-# 🔎 Sau khi hoàn thành việc chạm tới Core — kích hoạt `core-reviewer`
+# 🔎 Việc chạm tới Core — báo ra, KHÔNG tự gọi `core-reviewer`
 
-"Chạm tới Core" nghĩa là sửa bất kỳ thứ gì trong `src/BE/Core/` hoặc sửa một quy ước trong `docs/quy-uoc/be-*.md`.
+> 📖 Đường dẫn nào tính là chạm Core: khối `core-paths` trong `docs/kien-truc-core-module.md`
 
-Gọi `core-reviewer` qua `Agent`. **Không gửi tóm tắt việc bạn vừa làm** — chỉ nói phạm vi cần review. Người kiểm phải tự đọc code; nhận tóm tắt của bạn thì nó chỉ xác nhận lại thiên kiến của bạn.
+Bạn **không** gọi `core-reviewer`. Việc vừa làm chạm một đường dẫn trong khối đó thì dòng **cuối cùng** của báo cáo là `CẦN CORE-REVIEW: BE`.
+
+Phiên chính hoặc skill `feature-kickoff` đọc dòng đó rồi gọi `core-reviewer`, chỉ truyền phạm vi. Người kiểm phải tự đọc code — nên đừng kèm tóm tắt việc bạn vừa làm vào dòng đó hay ngay trước nó.
 
 Không sửa code trong lúc `core-reviewer` đang chạy.
 
@@ -128,7 +138,7 @@ Migration: được phép **sinh** file migration (`dotnet ef migrations add`) v
 2. `dotnet test` xanh — gồm cả ArchTests.
 3. Sửa tài liệu nào thì chạy `bash .claude/check-docs.sh`.
 4. Cập nhật `docs/contracts/` nếu hợp đồng API đổi.
-5. Việc chạm Core → đã gọi `core-reviewer`.
+5. Việc chạm Core → dòng cuối báo cáo là `CẦN CORE-REVIEW: BE`.
 
 Cổng nào của khu bạn vừa sửa mà bạn bỏ qua thì **nói ra**, đừng im lặng. Bỏ cổng không làm việc hỏng ngay; nó làm việc hỏng im lặng.
 

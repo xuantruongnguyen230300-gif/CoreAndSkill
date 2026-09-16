@@ -6,8 +6,8 @@ verified: chua-doi-chieu
 
 # `contracts/` — hợp đồng API giữa BE và FE
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`. **Mọi card trong khu này mang
-> `Status: DRAFT`** — không endpoint nào đã được viết, và không endpoint nào BE đã cam kết làm.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/` — không endpoint nào đã được viết. BE đã cam
+> kết endpoint nào chưa: **đọc dòng `Status:` của từng card** (§3).
 
 ## 1. Khu này là gì
 
@@ -22,11 +22,12 @@ phải chờ nhau.
 | [`permissions.md`](permissions.md) | Ma trận quyền, ma trận theo tài nguyên, danh mục permission |
 | [`meta-menu.md`](meta-menu.md) | Menu động theo quyền, metadata lưới/form |
 | [`client-errors.md`](client-errors.md) | Báo lỗi runtime của trình duyệt về server |
-| [`tenants.md`](tenants.md) | Khu quản trị hệ thống: danh sách đơn vị, tạo đơn vị, ngưng và bật lại |
-| [`roles.md`](roles.md) | Quản trị vai trò: danh sách, tạo, đổi tên, xoá |
-| [`profile.md`](profile.md) | Hồ sơ cá nhân: xem và tự sửa thông tin cơ bản |
+| [`tenants.md`](tenants.md) | Khu quản trị hệ thống: danh sách đơn vị, tạo đơn vị, ngưng và bật lại, khôi phục tài khoản quản trị đơn vị, tạo tài khoản quản trị mới |
+| [`roles.md`](roles.md) | Quản trị vai trò: danh sách, chi tiết, tạo, đổi tên, xoá |
+| [`profile.md`](profile.md) | Hồ sơ cá nhân: xem và tự sửa thông tin cơ bản, tự bỏ cờ bỏ qua kiểm quyền |
 | [`files.md`](files.md) | Tải tệp đính kèm lên, tải xuống có kiểm quyền, gỡ tệp |
 | [`exports.md`](exports.md) | **Khuôn** xuất và nhập dữ liệu — mỗi tài nguyên theo khuôn này |
+| [`jobs.md`](jobs.md) | Theo dõi một việc chạy nền: trạng thái, kết quả |
 | [`notifications.md`](notifications.md) | Thông báo trong ứng dụng: danh sách, số chưa đọc, đánh dấu đã đọc |
 
 **Không thuộc khu này — đây là file chủ ở nơi khác, card chỉ được trỏ tới:**
@@ -35,6 +36,7 @@ phải chờ nhau.
 | --- | --- |
 | Hình dạng envelope, `Result` → HTTP, rate limit, CORS/antiforgery | [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) |
 | `Result<T>`, `Error`, `ErrorType`, `ErrorDescriptor`, `PagedList<T>`, khuôn mã lỗi | [`../quy-uoc/be-cqrs-handler.md`](../quy-uoc/be-cqrs-handler.md) |
+| Token đồng thời đi trên dây thế nào — field `version` | [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.3 |
 | Bảng, cột, index | [`../database/schema-core.md`](../database/schema-core.md) |
 
 Mục §4–§7 dưới đây **trỏ đường** sang các file chủ đó và chỉ giữ phần thuộc về riêng khu
@@ -60,11 +62,18 @@ Schema + ví dụ JSON.
 Schema + ví dụ JSON.
 
 ### Lỗi
-Bảng: mã lỗi · `ErrorType` · HTTP · khi nào xảy ra.
+Bảng 1 — mã RIÊNG của endpoint: mã lỗi · `ErrorType` · HTTP · khi nào xảy ra.
+Bảng 2 — mã DÙNG CHUNG: mã lỗi · khi nào xảy ra, kèm dòng trỏ `auth.md` §11.
 
 ### Ghi chú
 Bẫy, ràng buộc, thứ FE phải biết.
 ```
+
+**Bảng 2 KHÔNG có cột `type` và HTTP.** Mã dùng chung có đúng một chủ —
+[`auth.md`](auth.md) §11 — và chép hai cột đó vào từng card là dựng lại chính bản sao mà
+[`../OWNERSHIP.md`](../OWNERSHIP.md) §1 cấm: đổi ánh xạ của một mã dùng chung thì phải sửa mọi
+card, và người sửa sẽ chỉ sửa một. Card giữ cột *"khi nào"* vì **ca** sinh ra mã là thứ riêng của
+endpoint đó.
 
 **Mục "Lỗi" là mục quan trọng nhất, và là mục hay bị bỏ nhất.** FE không đoán được tập lỗi có
 thể xảy ra; thiếu nó, FE sẽ viết đúng một nhánh `catch` chung và mọi lỗi nghiệp vụ hiện ra thành
@@ -113,18 +122,18 @@ Bốn luật card nào cũng phải tuân:
 >
 > Bảng đó **cố ý không được chép lại vào đây.** Cột `ErrorType` trong bảng "Lỗi" của mỗi card tra thẳng ở file chủ.
 
-Ba status còn lại **không** đến từ `ErrorType` — chúng do hạ tầng dựng envelope tay, và vẫn mang
-`code` (luật R6):
+Hai status còn lại **không** đến từ `ErrorType` — 405 do định tuyến, 429 do rate limiter. Hạ tầng dựng
+envelope tay, và envelope đó vẫn mang `code` (luật R6). 500 đi qua `ErrorType.Unexpected` — chỉ bộ xử
+lý exception toàn cục phát, **không** lộ chi tiết, chỉ `traceId`.
 
-| HTTP | `code` | Ai sinh |
-| ---: | --- | --- |
-| 405 | `CORE.ROUTE.METHOD_NOT_ALLOWED` | Middleware định tuyến. Kèm header `Allow` |
-| 429 | `CORE.RATE_LIMIT.EXCEEDED` | Rate limiter. Kèm header `Retry-After` (giây) |
-| 500 | — | Bộ xử lý exception toàn cục. **Không** lộ chi tiết, chỉ `traceId` |
+> 📖 **Mã của 405, 429 và mọi mã hạ tầng dùng chung khác: đọc [`auth.md`](auth.md) §11.**
 
-> **`CORE.ROUTE.NOT_FOUND` ≠ `CORE.USER.NOT_FOUND`.** Cùng HTTP 404, cùng `type: "NotFound"`.
-> `code` là thứ **duy nhất** phân biệt "FE gọi sai URL" (bug của FE) với "bản ghi không tồn tại"
-> (dữ liệu, cần hiển thị cho người dùng).
+409 do xung đột đồng thời có **một** khuôn trên dây cho mọi endpoint ghi đè bản ghi: `GET` trả
+`version`, request ghi gửi lại trong body. Card chỉ khai field `version` ở bảng field của mình,
+**không** tả lại cơ chế.
+
+> 📖 **Token đồng thời — nguồn giá trị, đi trên dây thế nào, endpoint nào không mang nó: đọc
+> [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.3.**
 
 ## 6. Khuôn mã lỗi
 
@@ -151,10 +160,10 @@ chép thẳng vào `[Route]`, và một tiền tố lệch làm hỏng cả nh�
 
 Version cũ sống song song đúng một chu kỳ phát hành, và **ngày gỡ ghi trong chính card**.
 
-## 8. Phân trang, sắp xếp, lọc — dùng chung cho mọi danh sách
+## 8. Tham số danh sách dùng chung: phân trang, sắp xếp, lọc — định nghĩa gốc
 
-Tên tham số theo query record ở
-[`../quy-uoc/be-cqrs-handler.md`](../quy-uoc/be-cqrs-handler.md) §9, camelCase trên dây:
+Bảng dưới là tên **trên dây**, camelCase, cho mọi danh sách. Query record phía BE
+([`../quy-uoc/be-cqrs-handler.md`](../quy-uoc/be-cqrs-handler.md) §9) theo bảng này:
 
 | Tham số | Kiểu | Hợp lệ | Bỏ trống | Ngoài khoảng |
 | --- | --- | --- | --- | --- |
@@ -162,8 +171,19 @@ Tên tham số theo query record ở
 | `pageSize` | int | `1..200` | `20` | **400**, `fieldErrors["PageSize"]` |
 | `sortBy` | string | Tên **field của DTO**, thuộc allowlist của endpoint | Mặc định của endpoint | **400**, `fieldErrors["SortBy"]` |
 | `sortDescending` | bool | | `false` | — |
+| `searchText` | string | Chuỗi tìm; card khai **field nào** được tìm và trần độ dài | Không lọc | **400**, `fieldErrors["SearchText"]` |
 
 Bộ lọc là **field rời** trên query record (`roleId`, `status`), không phải một chuỗi biểu thức.
+
+**Lựa chọn số dòng mỗi trang trên giao diện** — `pageSizeOptions` của dải phân trang
+([`../Design/Components/Pagination.md`](../Design/Components/Pagination.md)): **`10`, `20`, `50`, `100`**.
+Mặc định `20` của `pageSize` là một phần tử của danh sách này. Trần `200` là giới hạn API áp cho
+**mọi** người gọi, không phải một lựa chọn trên giao diện: người dùng chỉ chọn được bốn giá trị
+trên, còn API vẫn nhận mọi giá trị trong `1..200`. Danh sách khai **một lần** ở đây; component và
+màn hình truyền từ nguồn này, không giữ mặc định riêng.
+
+Card của từng endpoint danh sách **không** khai lại bảng trên. Card chỉ khai phần riêng: allowlist
+`sortBy` và giá trị mặc định của nó, phạm vi của `searchText`, và bộ lọc riêng.
 
 **Response** — hình dạng duy nhất cho mọi danh sách, bọc trong envelope §4:
 
@@ -172,9 +192,13 @@ Bộ lọc là **field rời** trên query record (`roleId`, `status`), không p
   "success": true,
   "data": { "items": [], "page": 1, "pageSize": 20, "totalCount": 137 },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000004"
+  "traceId": "a6a8bce037eb102c3057e2bc84b48611"
 }
 ```
+
+Phần tử của `items` là DTO riêng của endpoint. Bản ghi mà màn hình ghi đè được thì phần tử mang
+`version` — cùng field, cùng khuôn với `GET` chi tiết
+([`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.3).
 
 Ba quy tắc, mỗi cái đều đắt nếu làm sai:
 
@@ -194,7 +218,7 @@ Ba quy tắc, mỗi cái đều đắt nếu làm sai:
 | --- | --- |
 | Xác thực | **Cookie phiên** (ASP.NET Core Identity), **KHÔNG JWT**. FE gọi với `withCredentials: true` |
 | CSRF | Mọi `POST`/`PUT`/`PATCH`/`DELETE` phải mang header `X-XSRF-TOKEN`. Áp theo **method**, không có ngoại lệ theo endpoint — kể cả đăng nhập. Xem [`auth.md`](auth.md) |
-| Phân quyền | Kiểm bằng **permission**, không bằng tên vai trò (luật S2). Mỗi card khai `Quyền:` |
+| Phân quyền | Kiểm bằng **permission**, không bằng tên vai trò (luật S2). Mỗi card khai `Quyền:` bằng **đúng một** mức của luật S11 — một khoá quyền (`[RequirePermission]`), `[RequireSystemOperator]`, hoặc `[AuthenticatedOnly("<lý do>")]` với chuỗi lý do viết ngay trong card để người thi công chép nguyên vào attribute — hoặc ghi rõ không cần đăng nhập. Quyết định: [`../adr/0024-ba-muc-khai-bao-phan-quyen-endpoint.md`](../adr/0024-ba-muc-khai-bao-phan-quyen-endpoint.md) |
 | Chưa đăng nhập | **401 JSON sạch**, không 302 redirect. FE là SPA; redirect làm `HttpClient` nhận về 200 kèm một trang HTML |
 | Rate limit | Mọi endpoint đều có thể trả **429**, không riêng màn đăng nhập |
 | 404 / 405 do định tuyến | Cũng mang envelope §4. Thân rỗng là bug |

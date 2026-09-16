@@ -74,9 +74,23 @@ Danh sách đầy đủ, kèm ngưỡng "khi nào Nhóm B thành cần thiết",
 | Triển khai một bản mới, bí mật theo môi trường, quay lui, truy một sự cố | [`be/18-trien-khai-va-van-hanh.md`](be/18-trien-khai-va-van-hanh.md) |
 | Cấu hình khác nhau theo từng đơn vị, thứ tự ưu tiên, ai khai khoá | [`be/19-cau-hinh-theo-don-vi.md`](be/19-cau-hinh-theo-don-vi.md) |
 | Sinh số phiếu, số văn bản không trùng và không nhảy | [`be/20-sinh-ma-nghiep-vu.md`](be/20-sinh-ma-nghiep-vu.md) |
+| "Class này nằm file nào" | [`be/tra-cuu-file-class.md`](be/tra-cuu-file-class.md) — **rỗng có chủ đích ở giai đoạn 1** |
 
 **Lộ trình thi công BE** (thứ tự làm, không phải lý thuyết): bắt đầu ở [`be/trien-khai/00-lo-trinh-tong-the.md`](be/trien-khai/00-lo-trinh-tong-the.md).
-| "Class này nằm file nào" | [`be/tra-cuu-file-class.md`](be/tra-cuu-file-class.md) — **rỗng có chủ đích ở giai đoạn 1** |
+
+**Lý do của từng file luật BE** — "vì sao, bẫy, ví dụ mở rộng", cùng số mục § với file luật; luật thì vẫn ở [`../quy-uoc/`](../quy-uoc/) và [`../database/`](../database/):
+
+| File luật | File lý do |
+| --- | --- |
+| [`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) | [`be/ly-do/be-architecture.md`](be/ly-do/be-architecture.md) |
+| [`../quy-uoc/be-entity-domain.md`](../quy-uoc/be-entity-domain.md) | [`be/ly-do/be-entity-domain.md`](be/ly-do/be-entity-domain.md) |
+| [`../quy-uoc/be-cqrs-handler.md`](../quy-uoc/be-cqrs-handler.md) | [`be/ly-do/be-cqrs-handler.md`](be/ly-do/be-cqrs-handler.md) |
+| [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) | [`be/ly-do/be-api-controller.md`](be/ly-do/be-api-controller.md) |
+| [`../quy-uoc/be-performance.md`](../quy-uoc/be-performance.md) | [`be/ly-do/be-performance.md`](be/ly-do/be-performance.md) |
+| [`../quy-uoc/repo-artifact.md`](../quy-uoc/repo-artifact.md) | [`be/ly-do/repo-artifact.md`](be/ly-do/repo-artifact.md) |
+| [`../kien-truc-core-module.md`](../kien-truc-core-module.md) | [`be/ly-do/kien-truc-core-module.md`](be/ly-do/kien-truc-core-module.md) |
+| [`../database/schema-core.md`](../database/schema-core.md) | [`be/ly-do/schema-core.md`](be/ly-do/schema-core.md) |
+| [`../database/script-runbook.md`](../database/script-runbook.md) | [`be/ly-do/script-runbook.md`](be/ly-do/script-runbook.md) |
 
 ## 5. Mục lục — Frontend
 
@@ -101,6 +115,15 @@ Danh sách đầy đủ, kèm ngưỡng "khi nào Nhóm B thành cần thiết",
 | Phục vụ static file, SPA fallback, cache header | [`fe/17-phuc-vu-va-trien-khai.md`](fe/17-phuc-vu-va-trien-khai.md) |
 
 **Lộ trình thi công FE** (thứ tự làm, không phải lý thuyết): bắt đầu ở [`fe/trien-khai/00-lo-trinh-tong-the.md`](fe/trien-khai/00-lo-trinh-tong-the.md).
+
+**Lý do của từng file luật FE** — cùng khuôn với phần BE ở §4:
+
+| File luật | File lý do |
+| --- | --- |
+| [`../quy-uoc/fe-architecture.md`](../quy-uoc/fe-architecture.md) | [`fe/ly-do/fe-architecture.md`](fe/ly-do/fe-architecture.md) |
+| [`../quy-uoc/fe-api-client.md`](../quy-uoc/fe-api-client.md) | [`fe/ly-do/fe-api-client.md`](fe/ly-do/fe-api-client.md) |
+| [`../quy-uoc/fe-ui-conventions.md`](../quy-uoc/fe-ui-conventions.md) | [`fe/ly-do/fe-ui-conventions.md`](fe/ly-do/fe-ui-conventions.md) |
+| [`../quy-uoc/fe-routing-guard.md`](../quy-uoc/fe-routing-guard.md) | [`fe/ly-do/fe-routing-guard.md`](fe/ly-do/fe-routing-guard.md) |
 
 ## 6. Cách dùng theo vai
 

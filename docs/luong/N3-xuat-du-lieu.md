@@ -28,7 +28,7 @@ Người dùng đã đăng nhập, từ nút **Xuất** trên thanh công cụ c
 
 | # | Ai làm | Hệ thống làm gì | Chi tiết ở |
 | --- | --- | --- | --- |
-| 1 | FE | `GET /<khu>/<tài nguyên>/export` kèm **đúng bộ tham số lọc đang hiển thị** | [`../contracts/exports.md`](../contracts/exports.md) §1 |
+| 1 | FE | `GET /api/v1/<khu>/<tài nguyên>/export` kèm **đúng bộ tham số lọc đang hiển thị** | [`../contracts/exports.md`](../contracts/exports.md) §1 |
 | 2 | BE | Kiểm quyền xuất của tài nguyên đó | [`../database/schema-core.md`](../database/schema-core.md) §5 |
 | 3 | BE | Đếm số dòng khớp bộ lọc **trước khi** dựng tệp | [`../contracts/exports.md`](../contracts/exports.md) §1 |
 | 4 | BE | Vượt giới hạn ⇒ dừng, trả lỗi kèm số dòng thực tế. Dưới giới hạn ⇒ dựng tệp | cùng trên |
@@ -41,10 +41,12 @@ Người dùng đã đăng nhập, từ nút **Xuất** trên thanh công cụ c
 
 ## 4. Hỏng ở đâu — và người dùng thấy gì
 
+> 📖 Loại lỗi và HTTP status của từng mã: [`../contracts/exports.md`](../contracts/exports.md) §1. Bảng dưới chỉ giữ `code`.
+
 | Ca | Mã lỗi | Người dùng thấy |
 | --- | --- | --- |
-| Thiếu quyền xuất | `CORE.AUTH.FORBIDDEN` (403) | Nút Xuất lẽ ra đã không hiện — nếu nó hiện thì FE đang dựng giao diện không theo tập quyền |
-| Vượt giới hạn số dòng | `CORE.EXPORT.TOO_MANY_ROWS` (422) | Thông điệp phải nêu **số dòng thực tế và giới hạn**, để người dùng biết cần lọc hẹp thêm bao nhiêu |
+| Thiếu quyền xuất | `CORE.AUTH.FORBIDDEN` | Nút Xuất lẽ ra đã không hiện — nếu nó hiện thì FE đang dựng giao diện không theo tập quyền |
+| Vượt giới hạn số dòng | `CORE.EXPORT.TOO_MANY_ROWS` | Thông điệp phải nêu **số dòng thực tế và giới hạn**, để người dùng biết cần lọc hẹp thêm bao nhiêu |
 | Bộ lọc gửi lên khác bộ lọc đang hiển thị | không có mã lỗi | 🛑 Tệp xuất ra **đúng cú pháp nhưng sai nội dung**. Không lỗi nào bắn ra; chỉ có người đọc tệp phát hiện, và thường là muộn |
 
 ## 5. Quan hệ với đơn vị
@@ -57,6 +59,6 @@ Gọi `IgnoreQueryFilters` **không tham số** bỏ **cả hai** filter cùng l
 
 ## 6. Câu chưa trả lời được
 
-- **Giới hạn số dòng khai ở đâu và theo cái gì?** [`../contracts/exports.md`](../contracts/exports.md) §1 nói giới hạn là bắt buộc vì chưa có xuất chạy nền, nhưng không nói giá trị nằm ở cấu hình hay hằng số, và có khác nhau theo đơn vị không.
-- **Tệp xuất ra có được lưu lại không?** Nếu có thì nó là một tệp theo luồng `N2` và thừa hưởng mọi câu hỏi chưa trả lời của luồng đó. Nếu không thì người dùng mất kết nối giữa chừng là phải xuất lại từ đầu.
-- **Có ghi nhật ký kiểm toán khi ai đó xuất dữ liệu không?** Xuất là thao tác mang dữ liệu ra khỏi hệ. [`../wiki-core/be/10-data-retention.md`](../wiki-core/be/10-data-retention.md) không xếp nó vào danh sách thao tác phải ghi.
+- **Tệp xuất dùng ngôn ngữ nào — của người xuất (`preferred_language`) hay của đơn vị?** Tiêu đề cột và giá trị enum trong tệp phải dịch theo một trong hai; chưa file nào chốt.
+
+Giới hạn số dòng, tệp không lưu lại, và ghi nhật ký kiểm toán khi xuất: [`../contracts/exports.md`](../contracts/exports.md) §1 · [`../wiki-core/be/10-data-retention.md`](../wiki-core/be/10-data-retention.md) §5.4.

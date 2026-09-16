@@ -47,9 +47,9 @@ Các màn Core là: đăng nhập, đổi mật khẩu, danh sách người dùn
 Một biểu đồ luôn gắn với một câu hỏi nghiệp vụ cụ thể: xu hướng của *cái gì*, phân bố theo *tiêu chí nào*. Đó là kiến thức của module. Nếu Core **cài sẵn thư viện biểu đồ vào bundle khởi động**, hai chuyện xảy ra:
 
 1. **Core gánh một phụ thuộc cho một tính năng nó không dùng** — mỗi lần nâng Angular lại phải kiểm tính tương thích của một thư viện không màn Core nào chạm tới ([`16-nen-tang-va-nang-cap.md`](16-nen-tang-va-nang-cap.md) §3).
-2. **Mọi dự án trả giá bundle cho một tính năng phần lớn trong số đó không bật.** Mọi biến thể của [`../../Design/Components/Chart.md`](../../Design/Components/Chart.md) trừ `line` đều tự dựng bằng HTML/CSS và không cần thư viện nào.
+2. **Mọi dự án trả giá bundle cho một tính năng phần lớn trong số đó không bật.** Mọi biến thể của [`../../Design/Components/Chart.md`](../../Design/Components/Chart.md) trừ `line` đều vẽ bằng HTML/CSS bên trong lớp bọc và không cần thư viện nào.
 
-**Lập luận thứ hai trước đây còn có một vế nữa** — rằng component biểu đồ dùng chung sẽ tiến hoá theo nhu cầu của module đầu tiên, mang tên gọi và đơn vị của module đó. Vế đó vẫn là rủi ro thật, nhưng nay nó được chặn bằng một ràng buộc thay vì bằng việc không có component: [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md) ràng buộc 3 cấm từ vựng nghiệp vụ trong ba component đó, và *Điều kiện lật* của ADR coi lần rò thứ ba là dấu hiệu phải xem lại toàn bộ quyết định.
+**Lập luận thứ hai có thêm một vế rủi ro** — component biểu đồ dùng chung sẽ tiến hoá theo nhu cầu của module đầu tiên, mang tên gọi và đơn vị của module đó. Rủi ro đó có thật, và nó được chặn bằng một ràng buộc thay vì bằng việc không có component: [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md) ràng buộc 3 cấm từ vựng nghiệp vụ trong ba component đó, và *Điều kiện lật* của ADR coi lần rò thứ ba là dấu hiệu phải xem lại toàn bộ quyết định.
 
 Ở dự án tiền nhiệm, một thư viện biểu đồ được cài cho đúng một component của đúng một module. Module đó bị gỡ, và thư viện vẫn nằm trong danh sách phụ thuộc thêm một thời gian nữa — không ai dùng, vẫn phải nâng cấp.
 
@@ -71,7 +71,7 @@ Cài khi màn **đầu tiên** dùng biến thể `line` thật sự cần, và 
 
 - Phụ thuộc được cài kèm lý do ghi ngay cạnh chỗ khai.
 - **Nạp theo yêu cầu, không vào bundle khởi động** — ADR-0019 ràng buộc 1. Dự án không vẽ đường không tải một byte nào của nó.
-- Mọi biến thể `Chart` trừ `line` tự dựng bằng HTML/CSS và **không** chạm tới thư viện này.
+- Mọi biến thể `Chart` trừ `line` vẽ bằng HTML/CSS bên trong cùng lớp bọc `shared/ui/chart` và **không** chạm tới thư viện này.
 
 ---
 
@@ -189,7 +189,7 @@ Ba ràng buộc nếu có mức thay đổi: nói rõ **so với kỳ nào**; **
 
 ## 9. Kiểm chứng — dùng khi biểu đồ đầu tiên ra đời
 
-- [ ] Thư viện biểu đồ được khai trong phụ thuộc của **module**, có ghi lý do; `shared/` và `core/` không nhắc tới nó
+- [ ] Thư viện biểu đồ chỉ được import trong lớp bọc `shared/ui/chart` (thư mục theo cột Nền, [`05-component-library.md`](05-component-library.md) §3), phụ thuộc khai kèm lý do; `core/` và mọi màn không nhắc tới nó
 - [ ] Biểu đồ nằm trong lazy chunk, không trong bundle khởi động
 - [ ] Màu biểu đồ đến từ token, đổi theo chế độ sáng/tối
 - [ ] Có câu tóm tắt kết luận, tính từ chính dữ liệu đang vẽ
@@ -207,17 +207,17 @@ Ba ràng buộc nếu có mức thay đổi: nói rõ **so với kỳ nào**; **
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
 | Ô số liệu dựng bằng HTML và token | ✅ sẽ có | §8 — thứ thường được cần thay vì biểu đồ |
-| Thư viện biểu đồ trong một **module** nghiệp vụ | ❌ chưa | Điều kiện: màn nghiệp vụ đầu tiên cần. Tiêu chí chọn ở §3 |
+| Cài thư viện biểu đồ, sau lớp bọc `shared/ui/chart` | ❌ chưa | Điều kiện: màn đầu tiên dùng biến thể `line` thật sự cần (§2.4). Tiêu chí chọn ở §3 |
 | Component biểu đồ **thuộc Core** | ✅ đã có | [`../../Design/Components/Chart.md`](../../Design/Components/Chart.md). Điều kiện cấp bởi [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md), **đi trước** ngưỡng hai module — cái giá ghi ở mục *Hệ quả tiêu cực* của ADR |
 | Hai lớp bù tiếp cận cho biểu đồ | ✅ đã có | `Chart.md` bắt buộc bảng số liệu tương đương ngay ở mục *Khi nào dùng*, và bắt nhãn số hiện rõ cho ba màu dưới ngưỡng tương phản (§4.1) |
 | Bảng màu biểu đồ trong hệ token | ✅ đã có | [`../../Design/DESIGN.md`](../../Design/DESIGN.md) §2.8 — `--chart-1`…`--chart-8`, thang mức độ, dải hai chiều, đã chạy qua phép kiểm bằng máy ở cả hai theme (§4.3) |
 | Kéo và thu phóng biểu đồ | ❌ chưa | Điều kiện: giảm số điểm và đổi loại biểu đồ đều không đủ (§5) |
-| Thư viện biểu đồ trong **bundle khởi động** | ❌ loại, không hoãn `K33` | §2.2, §2.3 — mọi biến thể trừ `line` tự dựng, nên cài sẵn là bắt mọi dự án trả giá cho thứ phần lớn không bật. ADR-0019 ràng buộc 1 |
+| Thư viện biểu đồ trong **bundle khởi động** | ❌ loại, không hoãn `K33` | §2.2, §2.3 — mọi biến thể trừ `line` vẽ bằng HTML/CSS, nên cài sẵn là bắt mọi dự án trả giá cho thứ phần lớn không bật. ADR-0019 ràng buộc 1 |
 | Biểu đồ không trả lời câu hỏi nào | ❌ loại, không hoãn `K34` | §1 — chiếm màn hình và tốn bảo trì |
 | Trục giá trị cắt gốc mà không đánh dấu | ❌ loại, không hoãn `K35` | §6 — bóp méo dữ liệu |
 | Màu là kênh thông tin duy nhất | ❌ loại, không hoãn `K36` | §4.2 |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

@@ -22,7 +22,7 @@ Hiện một dòng chú ngắn cho một phần tử, khi và chỉ khi người
 | --- | --- |
 | Hiện nhãn chữ của một mục nav khi [`Sidebar.md`](./Sidebar.md) đang thu gọn còn dải icon | 🛑 **Làm nhãn cho một [`IconButton.md`](./IconButton.md).** Nhãn là việc của `aria-label` — xem ràng buộc cứng dưới đây |
 | Nói vì sao một control đang bị khoá: "Cần quyền duyệt chứng từ" | 🛑 Thông tin người dùng **cần** để hoàn thành việc → dòng gợi ý của [`FormRow.md`](./FormRow.md), luôn nhìn thấy được |
-| Hiện giá trị đầy đủ của một ô bảng đã bị cắt bằng dấu ba chấm | 🛑 Nội dung dài hơn hai dòng → [`Dialog.md`](./Dialog.md) hoặc một dòng mô tả tại chỗ |
+| Hiện giá trị đầy đủ của một ô bảng đã bị cắt bằng dấu ba chấm — **khai theo cột**, không tự đo mọi ô lúc chạy; cờ trong `ColumnDef` chốt khi dựng [`DataTable.md`](./DataTable.md) | 🛑 Nội dung dài hơn hai dòng → [`Dialog.md`](./Dialog.md) hoặc một dòng mô tả tại chỗ |
 | Giải thích một icon trạng thái trong ô bảng | 🛑 Bất cứ thứ gì **bấm được** bên trong — xem Do / Don't |
 
 ### Ràng buộc cứng — tooltip không bao giờ là nhãn
@@ -56,7 +56,7 @@ Chỉ hai biến thể, và ranh giới giữa chúng là **độ dài**. Toolti
 | Cân nặng | `--fw-medium` |
 | Đệm | `--sp-2` dọc / `--sp-4` ngang |
 | Bo góc | `--radius-xs` |
-| Bề rộng tối đa | 280px — quá ngưỡng này thì xuống dòng |
+| Bề rộng tối đa | `--layout-tooltip-w-max` ([`../DESIGN.md`](../DESIGN.md) §6.1) — giá trị riêng, một trần cho mọi điểm ngắt; quá thì xuống dòng |
 | Khe tới phần tử neo | `--sp-3` |
 | Đổ bóng, lớp | `--shadow-2`, `--z-popover` |
 
@@ -85,6 +85,7 @@ Mũi nhọn chỉ về phần tử neo là **bắt buộc**. Không có nó, m�
 | Chữ | `--fs-xs`, `--fw-medium`, `--lh-snug` |
 | Khoảng cách | `--sp-2`, `--sp-3`, `--sp-4` |
 | Hình dạng | `--radius-xs` |
+| Kích thước | `--layout-tooltip-w-max` |
 | Bóng, lớp | `--shadow-2`, `--z-popover` |
 | Chuyển động | `--dur-fast`, `--dur-slow`, `--ease-standard` |
 
@@ -92,13 +93,13 @@ Mũi nhọn chỉ về phần tử neo là **bắt buộc**. Không có nó, m�
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Hiện bên trên phần tử neo; lật xuống dưới, sang trái hoặc sang phải khi không đủ chỗ |
-| `--bp-sm` … `--bp-md` | Giữ nguyên. Bề rộng tối đa co xuống còn 220px |
-| < `--bp-sm` | 🛑 **Tắt hẳn.** Xem dưới |
+| ≥ `$bp-md` | Hiện bên trên phần tử neo; lật xuống dưới, sang trái hoặc sang phải khi không đủ chỗ |
+| `$bp-sm` … `$bp-md` | Giữ nguyên, cùng trần bề rộng |
+| < `$bp-sm` | 🛑 **Tắt hẳn.** Xem dưới |
 
 **Vì sao tắt hẳn ở màn nhỏ thay vì đổi cách hiện:** không có chuột thì không có "rê chuột", và mọi cách giả lập — chạm giữ, chạm lần một để xem chạm lần hai để bấm — đều tạo ra một nút hành xử khác với mọi nút còn lại. Cái giá phải trả rất cụ thể và phải chấp nhận công khai: **mọi thông tin chỉ có trong tooltip là thông tin người dùng di động không bao giờ thấy.** Đó chính là lý do luật ở mục Biến thể cấm đặt thông tin cần thiết vào đây.
 
-Riêng ca `Sidebar` thu gọn thì không bị ảnh hưởng: dưới `--bp-md` sidebar đã chuyển sang dạng drawer và hiện nhãn đầy đủ.
+Riêng ca `Sidebar` thu gọn thì không bị ảnh hưởng: dưới `$bp-md` sidebar đã chuyển sang dạng drawer và hiện nhãn đầy đủ.
 
 ## Accessibility
 
@@ -119,7 +120,7 @@ Riêng ca `Sidebar` thu gọn thì không bị ảnh hưởng: dưới `--bp-md`
 | `text` | input | `string` | — | **Bắt buộc.** Rỗng thì không dựng gì — xem trạng thái `empty` |
 | `variant` | input | `'label' \| 'hint'` | `'label'` | Mặc định là dạng ngắn nhất, sai theo hướng an toàn |
 | `position` | input | `'top' \| 'bottom' \| 'left' \| 'right'` | `'top'` | Chỉ là **hướng ưu tiên**; component tự lật khi không đủ chỗ |
-| `delay` | input | `number` | `400` | Mili-giây, chỉ áp cho chuột. Bàn phím luôn hiện ngay, không nhận giá trị này |
+| `delay` | input | `number` | = `--dur-slow` | Mili-giây, chỉ áp cho chuột; mặc định đọc từ token, không giữ hằng số riêng. Bàn phím luôn hiện ngay, không nhận giá trị này |
 | `disabled` | input | `boolean` | `false` | Tắt tooltip mà không phải gỡ nó khỏi template |
 
 Không có output. Tooltip không phát sự kiện nào ra ngoài — nó không phải một điểm tương tác.
@@ -142,6 +143,5 @@ Không có output. Tooltip không phát sự kiện nào ra ngoài — nó khôn
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Ô bảng bị cắt có tự gắn tooltip không, hay phải khai từng cột? Tự động thì tiện nhưng phải đo bề rộng lúc chạy và đo lại mỗi lần đổi cỡ cửa sổ — một phép đo bố cục chạy trên mọi ô của một bảng lớn | Người dựng [`DataTable.md`](./DataTable.md) |
-| 2 | `--dur-slow` (320ms) có đúng là độ trễ tốt không? Ngắn quá thì tooltip nhảy ra khi con trỏ chỉ đi ngang; dài quá thì người dùng bỏ cuộc trước khi nó kịp hiện | Sau khi có màn thật để thử |
-| 3 | Có cần một component `Popover` riêng cho nội dung giàu và bấm được không? Hôm nay chưa có, và mọi nhu cầu kiểu đó đang bị đẩy sang `Dialog` — chấp nhận được nhưng nặng tay với những ca nhỏ | Màn đầu tiên gặp nhu cầu thật |
+| 1 | `--dur-slow` có đúng là độ trễ tốt không? Ngắn quá thì tooltip nhảy ra khi con trỏ chỉ đi ngang; dài quá thì người dùng bỏ cuộc trước khi nó kịp hiện | F1 — khi dựng `Tooltip` |
+| 2 | Có cần một component `Popover` riêng cho nội dung giàu và bấm được không? Hôm nay chưa có, và mọi nhu cầu kiểu đó đang bị đẩy sang `Dialog` — chấp nhận được nhưng nặng tay với những ca nhỏ | Sau F3 — dự án hạ nguồn đầu tiên có nhu cầu thật |

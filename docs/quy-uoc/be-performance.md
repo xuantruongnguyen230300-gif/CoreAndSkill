@@ -12,6 +12,7 @@ verified: chua-doi-chieu
 > *"chậm"* / *"tối ưu"* / *"cache"*.
 >
 > 📖 Kiến thức nền, ngưỡng áp dụng và cách đo: [`../wiki-core/be/11-performance-caching.md`](../wiki-core/be/11-performance-caching.md).
+> Lý do, bẫy, ví dụ mở rộng của từng mục — cùng số §: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md).
 
 ---
 
@@ -21,9 +22,9 @@ verified: chua-doi-chieu
 query pattern  →  index  →  ĐO LẠI  →  thuật toán  →  ĐO LẠI  →  cache
 ```
 
-Cache đặt trước ba bước đầu chỉ **che** lỗi chứ không sửa: lần miss vẫn chậm y hệt, seq
-scan vẫn nguyên, N+1 vẫn nguyên — và giờ có thêm một tầng nữa để debug khi số liệu hiển
-thị sai.
+Cache đặt trước ba bước đầu chỉ **che** lỗi chứ không sửa.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §1
 
 ---
 
@@ -32,92 +33,71 @@ thị sai.
 ### 2.1 Interface ở Application, implementation ở Infrastructure
 
 ```csharp
-// Core.Application/Users/IUserRepository.cs
-public interface IUserRepository
+// Core.Application/Menu/IMenuItemRepository.cs
+public interface IMenuItemRepository
 {
-    Task<User?> GetByIdAsync(Guid id, CancellationToken ct);
-    Task<bool> EmailExistsAsync(string email, CancellationToken ct);
-    Task<PagedList<UserListItemDto>> SearchAsync(UserSearchCriteria criteria, CancellationToken ct);
-    Task AddAsync(User user, CancellationToken ct);
-    void Remove(User user);
+    Task<MenuItem?> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<bool> CodeExistsAsync(string code, CancellationToken ct);
+    Task<PagedList<MenuItemListItemDto>> SearchAsync(MenuItemSearchCriteria criteria, CancellationToken ct);
+    Task AddAsync(MenuItem item, CancellationToken ct);
+    void Remove(MenuItem item);
 }
 ```
+
+Không method nào nhận tham số đơn vị: `MenuItem` là entity `ITenantScoped`, bộ lọc tenant đã giới hạn
+mọi truy vấn trong đơn vị hiện hành ([`be-entity-domain.md`](be-entity-domain.md) §5.1).
 
 | Luật | Vì sao |
 | --- | --- |
 | Interface khai ở **Application**, cạnh feature dùng nó | Vertical slice; và Application không được biết Infrastructure |
-| **Không** `IRepository<T>` tổng quát | Nó buộc mọi entity mang cùng một bề mặt, và phần lớn implementation sẽ có method không dùng — vi phạm ISP |
+| **Không** `IRepository<T>` tổng quát | Nó buộc mọi entity mang cùng một bề mặt — vi phạm ISP |
 | Repository **không** tự `SaveChangesAsync` | `TransactionBehavior` sở hữu điểm commit — [`be-cqrs-handler.md`](be-cqrs-handler.md) §5.3 |
 | Method trả về **entity** hoặc **DTO đã projection**, không trả `IQueryable` | Xem §2.2 |
 | `Remove` là `void` | Nó chỉ đánh dấu trên `ChangeTracker`; đặt `async` cho nó là nói dối về việc có I/O |
 
 ### 2.2 `IQueryable` không được rò ra khỏi Application
 
-> **Không method public nào trả `IQueryable<T>`.**
+> **Không method public nào trả `IQueryable<T>`.** Handler viết `.Include(...)` hay
+> `EF.Functions.ILike(...)` là đang viết code EF Core trong tầng Application.
 
-Bốn hậu quả nếu để rò, xếp theo mức độ khó phát hiện:
-
-1. **Query chạy ở nơi không ai biết.** Một `IQueryable` trả về từ repository sẽ được
-   materialize ở handler, ở controller, hoặc — tệ nhất — trong vòng lặp render.
-2. **Ranh giới tầng vỡ mà ArchTest không bắt.** Handler viết `.Include(...)`,
-   `.Where(x => EF.Functions.ILike(...))` là đang viết code EF Core trong tầng
-   Application, dù nó không `using` namespace nào bị cấm.
-3. **Không test được nếu không có DB.** `IQueryable` của EF khác `IQueryable` của
-   `List<T>` ở đúng những chỗ quan trọng (translation, null semantics, so sánh chuỗi).
-4. **Không kiểm soát được vòng đời `DbContext`.** Query chạy sau khi scope đã đóng thì ném
-   `ObjectDisposedException` — ở một chỗ cách xa nguyên nhân.
-
-Cách đúng: repository nhận một **criteria object** và trả kết quả đã materialize.
+Repository nhận một **criteria object** và trả kết quả đã materialize:
 
 ```csharp
-// Core.Application/Users/UserSearchCriteria.cs
-public sealed record UserSearchCriteria(
-    string? Keyword,
-    bool? IsLocked,
-    IReadOnlyCollection<string>? RoleNames,
+// Core.Application/Menu/MenuItemSearchCriteria.cs
+public sealed record MenuItemSearchCriteria(
+    string? SearchText,
+    Guid? ParentId,
     int Page,
     int PageSize,
-    UserSortField SortBy,
+    MenuItemSortField SortBy,
     bool SortDescending);
 
-public enum UserSortField { UserName, FullName, CreatedAt }
+public enum MenuItemSortField { Code, DisplayOrder, CreatedAt }
 ```
 
-`SortBy` là **enum**, không phải chuỗi. Đây là cách rẻ nhất để cưỡng chế allowlist sắp
-xếp ([`be-cqrs-handler.md`](be-cqrs-handler.md) §9.3): giá trị ngoài danh sách không
-deserialize được, nên nó không bao giờ tới được câu SQL.
+`SortBy` là **enum**, không phải chuỗi — cách rẻ nhất để cưỡng chế allowlist sắp xếp
+([`be-cqrs-handler.md`](be-cqrs-handler.md) §9.3).
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §2.2
 
 ---
 
 ## 3. Projection thay vì load cả entity
 
 ```csharp
-// ❌ Load toàn bộ entity rồi map ở C#
-var users = await db.Users.Where(u => !u.IsLocked).ToListAsync(ct);
-return users.Select(u => new UserListItemDto(u.Id, u.UserName, u.FullName)).ToList();
-```
-
-```csharp
 // ✅ Projection — chỉ những cột thật sự cần rời khỏi DB
-return await db.Users
+return await db.MenuItems
     .AsNoTracking()
-    .Where(u => !u.IsLocked)
-    .OrderBy(u => u.UserName).ThenBy(u => u.Id)
-    .Select(u => new UserListItemDto(u.Id, u.UserName, u.FullName))
+    .Where(m => m.ParentId == null)
+    .OrderBy(m => m.DisplayOrder).ThenBy(m => m.Id)
+    .Select(m => new MenuItemListItemDto(m.Id, m.Code, m.LabelKey))
     .ToListAsync(ct);
 ```
 
-Ba thứ nhánh sai trả giá, và không thứ nào lộ ra ở màn hình:
+**Với projection, `AsNoTracking()` là thừa** — giữ lại vẫn vô hại và làm rõ ý định; đừng coi việc thiếu
+nó ở một câu projection là finding.
 
-| | Load cả entity | Projection |
-| --- | --- | --- |
-| Cột đọc từ DB | Tất cả, gồm cả cột lớn không dùng | Đúng ba cột |
-| Bộ nhớ `ChangeTracker` | Mọi entity được theo dõi (nếu quên `AsNoTracking`) | Không có gì để theo dõi |
-| Có dùng được index-only scan không | Không | Có, nếu index phủ đủ cột |
-
-**Với projection, `AsNoTracking()` là thừa** — kết quả không phải entity nên không có gì
-để track. Giữ nó lại vẫn vô hại và làm rõ ý định; nhưng đừng coi việc thiếu nó ở một câu
-projection là finding.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §3
 
 ### 3.1 `AsNoTracking` — luật hai chiều
 
@@ -126,12 +106,10 @@ projection là finding.
 | Chỉ đọc, không sửa gì sau đó | **Có** |
 | Lấy entity ra **để sửa rồi lưu** | **KHÔNG** — thay đổi sẽ không được ghi |
 
-Vế thứ hai là một **lỗi im lặng**: không exception, không cảnh báo, chỉ là dữ liệu không
-đổi. Vì vậy **đọc call-site trước khi thêm**, đừng áp `AsNoTracking()` hàng loạt bằng
-find-replace.
+**Đọc call-site trước khi thêm**, đừng áp `AsNoTracking()` hàng loạt bằng find-replace. Đừng bật
+`QueryTrackingBehavior.NoTracking` ở mức `DbContext`.
 
-Đừng bật `QueryTrackingBehavior.NoTracking` ở mức `DbContext`: nó đảo mặc định, nên mọi
-đường ghi phải nhớ bật lại tracking — và chỗ quên sẽ hỏng im lặng đúng như trên.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §3.1
 
 ---
 
@@ -170,21 +148,18 @@ var orders = await db.Orders
     .ToListAsync(ct);
 ```
 
-Khi thật sự cần entity kèm collection con: `Include` + `AsSplitQuery()`. Một `Include`
-trên collection sinh tích Descartes — cột của bảng cha lặp lại theo số dòng con, và với
-hai collection thì nhân lên lần nữa. `AsSplitQuery` đổi một câu khổng lồ lấy vài câu nhỏ.
+Khi thật sự cần entity kèm collection con: `Include` + `AsSplitQuery()` — chấp nhận được với đường đọc
+thuần.
 
-Đánh đổi của `AsSplitQuery`: các câu chạy ở thời điểm khác nhau nên **không** thấy cùng
-một ảnh chụp dữ liệu, trừ khi nằm trong transaction. Với đường đọc thuần, chấp nhận được.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §4.2
 
 ### 4.3 Phát hiện N+1
 
 Ba cách, xếp theo thứ tự nên áp dụng:
 
-1. **Bật log SQL ở Development.** `EnableSensitiveDataLogging()` **chỉ** ở Development —
-   nó in cả giá trị tham số, gồm dữ liệu cá nhân, nên không được lọt ra Production.
-2. **Đếm câu lệnh trong integration test.** Một `DbCommandInterceptor` đếm số lần
-   `ReaderExecuting` trong một request, và test khẳng định một trần:
+1. **Bật log SQL ở Development.** `EnableSensitiveDataLogging()` **chỉ** ở Development.
+2. **Đếm câu lệnh trong integration test** — `DbCommandInterceptor` đếm `ReaderExecuting`, test khẳng
+   định một trần:
 
 ```csharp
 // Tests/.../CommandCountingInterceptor.cs
@@ -213,10 +188,11 @@ public async Task GetUsersList_Issues_AtMost_TwoQueries()
 }
 ```
 
-   Trần "2" là câu đếm + câu lấy trang. Test này bắt được hồi quy mà mắt không bắt được:
-   một `Include` thêm vào sáu tháng sau làm số câu nhảy lên hàng chục.
+   Trần "2" là câu đếm + câu lấy trang.
 
 3. **Xem `EXPLAIN (ANALYZE, BUFFERS)`** cho câu chậm nhất khi đã có dữ liệu thật.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §4.3
 
 ---
 
@@ -224,54 +200,52 @@ public async Task GetUsersList_Issues_AtMost_TwoQueries()
 
 ### 5.1 Đặt ở đâu
 
-Index khai trong `IEntityTypeConfiguration<T>`, **cùng project với entity**, không khai
-rải trong migration viết tay. Migration là **kết quả** sinh ra từ model, không phải nguồn.
+Index khai trong `IEntityTypeConfiguration<T>`, **cùng project với entity**, không khai rải trong
+migration viết tay. Migration là **kết quả** sinh ra từ model, không phải nguồn.
 
 ```csharp
-// Core.Infrastructure/Persistence/Configurations/UserConfiguration.cs
-public sealed class UserConfiguration : IEntityTypeConfiguration<User>
+// Core.Infrastructure/Persistence/Configurations/MenuItemConfiguration.cs
+public sealed class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
 {
-    public void Configure(EntityTypeBuilder<User> builder)
+    public void Configure(EntityTypeBuilder<MenuItem> builder)
     {
-        builder.ToTable("users", CoreSchema.Name);
+        builder.ToTable("menu_item", CoreSchema.Name);
 
-        builder.HasIndex(u => u.Email)
+        builder.HasIndex(m => new { m.TenantId, m.Code })
                .IsUnique()
-               .HasFilter("\"IsDeleted\" = false");
+               .HasFilter("is_deleted = false")
+               .HasDatabaseName("ux_menu_item_tenant_code_active");
 
-        builder.HasIndex(u => new { u.IsLocked, u.UserName });
-
-        builder.HasIndex(u => u.CreatedAt)
-               .HasDatabaseName("ix_users_created_at");
+        builder.HasIndex(m => new { m.TenantId, m.ParentId, m.DisplayOrder })
+               .HasDatabaseName("ix_menu_item_tenant_parent_order");
     }
 }
 ```
 
+Tên bảng, tên cột trong `HasFilter` và tên index lấy **nguyên văn** từ
+[`../database/schema-core.md`](../database/schema-core.md) §6.1. Chuỗi trong `HasFilter` là SQL thô — tên
+**vật lý** của cột, không phải tên property — [`be-entity-domain.md`](be-entity-domain.md) §5.3.
+
 ### 5.2 Bảy quy tắc
 
-1. **Mỗi predicate lọc nóng phải có index dẫn đầu đúng cột đó.** Index `(A, B)` **không**
-   seek được cho query chỉ lọc theo `B`.
-2. **Thứ tự cột: lọc bằng `=` trước, khoảng/sắp xếp sau.** Index `(IsLocked, UserName)`
-   phục vụ được `WHERE IsLocked = false ORDER BY UserName`; đảo lại thì không.
-3. **Index unique trên bảng có soft delete PHẢI có `HasFilter`.** Không có nó, lần chèn
-   lại một giá trị đã xoá mềm sẽ trùng khoá — [`be-entity-domain.md`](be-entity-domain.md) §5.3.
-4. **Tìm kiếm chuỗi không dấu phân biệt hoa thường** dùng `ILIKE` với index `gin` +
-   `pg_trgm`, không dùng `LOWER(col) = LOWER(@p)` — vế trái có hàm thì index thường vô
-   dụng.
-5. **Cột JSON truy vấn thường xuyên** dùng `jsonb` + index `gin`. Nhưng nếu một khoá bên
-   trong JSON được lọc thường xuyên, đó là dấu hiệu nó nên là một **cột thật**.
-6. **Index có giá.** Mỗi index làm chậm mọi `INSERT`/`UPDATE` trên bảng và chiếm dung
-   lượng. Thêm index vì "có thể sau này cần" là trả chi phí chắc chắn cho lợi ích giả định.
-7. **Đặt tên tường minh** khi index cần được nhắc tới ở nơi khác (runbook, script vận
-   hành). Tên EF sinh tự động đổi khi đổi tên property.
+1. **Mỗi predicate lọc nóng phải có index dẫn đầu đúng cột đó** — `(A, B)` **không** seek được cho
+   query chỉ lọc theo `B`.
+2. **Thứ tự cột: lọc bằng `=` trước, khoảng/sắp xếp sau.**
+3. **Index unique trên bảng có soft delete PHẢI có `HasFilter`** — [`be-entity-domain.md`](be-entity-domain.md) §5.3.
+4. **Tìm chuỗi không phân biệt hoa thường** dùng `ILIKE` + index `gin` (`pg_trgm`), không `LOWER(col) = LOWER(@p)`.
+5. **Cột JSON truy vấn thường xuyên** dùng `jsonb` + index `gin`; khoá bên trong JSON lọc thường xuyên
+   thì nên là **cột thật**.
+6. **Index có giá** — làm chậm mọi `INSERT`/`UPDATE`. Không thêm index vì "có thể sau này cần".
+7. **Đặt tên tường minh** khi index cần được nhắc tới ở nơi khác (runbook, script vận hành).
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §5.2
 
 ### 5.3 Cột `CreatedAt` và múi giờ
 
-Dùng `DateTimeOffset` ở CLR và `timestamptz` ở PostgreSQL. Npgsql ánh xạ mặc định như
-vậy, và nó là lựa chọn đúng: `timestamp` (không `tz`) lưu một thời điểm **không xác định
-được** khi hệ thống có người dùng ở nhiều múi giờ, hoặc khi server đổi múi giờ.
+Dùng `DateTimeOffset` ở CLR và `timestamptz` ở PostgreSQL (mặc định của Npgsql). **Luôn ghi UTC.**
+Chuyển sang giờ địa phương là việc của tầng hiển thị.
 
-**Luôn ghi UTC.** Chuyển sang giờ địa phương là việc của tầng hiển thị.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §5.3
 
 ---
 
@@ -297,22 +271,17 @@ return new PagedList<UserListItemDto>
 };
 ```
 
-**Bắt buộc có tiêu chí sắp xếp phụ ổn định** (`ThenBy(u => u.Id)`). Không có nó, các bản
-ghi trùng giá trị sắp xếp có thứ tự **không xác định** giữa hai lần chạy — cùng một bản ghi
-xuất hiện ở trang 1 và trang 2, một bản ghi khác không xuất hiện ở đâu cả.
+**Bắt buộc có tiêu chí sắp xếp phụ ổn định** (`ThenBy(u => u.Id)`).
 
 ### 6.2 Khi nào offset không còn dùng được
-
-`OFFSET n` buộc PostgreSQL **đọc và bỏ** n dòng đầu. Chi phí tăng tuyến tính theo số trang:
-trang 1000 với `pageSize = 50` nghĩa là đọc 50.000 dòng để trả về 50.
 
 Ngưỡng chuyển sang keyset — thoả **một** là đủ:
 
 - Bảng vượt vài trăm nghìn dòng **và** người dùng thật sự lật tới các trang sâu.
-- Đây là API cuộn vô hạn (mobile, infinite scroll) — nơi "trang tiếp theo" mới là thao tác
-  thật, còn "nhảy tới trang 500" thì không tồn tại.
-- Dữ liệu thay đổi liên tục trong lúc người dùng lật trang — offset khi đó **bỏ sót và lặp
-  lại** bản ghi, vì cửa sổ dịch chuyển dưới chân.
+- Đây là API cuộn vô hạn (mobile, infinite scroll).
+- Dữ liệu thay đổi liên tục trong lúc người dùng lật trang.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §6
 
 ### 6.3 Keyset
 
@@ -343,8 +312,7 @@ var items = await query
 | Tổng số trang | Có (`CountAsync`) | Thường bỏ, vì `COUNT` mới là câu đắt |
 | Dữ liệu đổi giữa chừng | Bỏ sót / lặp bản ghi | Ổn định |
 
-Keyset **không phải mặc định**: nó bỏ mất khả năng nhảy trang mà UI dạng bảng của trang
-quản trị đang dùng. Chọn nó khi một trong ba ngưỡng ở §6.2 thoả, không phải để cho nhanh.
+Keyset **không phải mặc định**: chọn nó khi một trong ba ngưỡng ở §6.2 thoả, không phải để cho nhanh.
 
 ---
 
@@ -361,25 +329,21 @@ db.AddRange(rows.Select(Map));
 await db.SaveChangesAsync(ct);
 ```
 
-Với khối lượng rất lớn (từ hàng chục nghìn dòng), `SaveChanges` một lượt cũng không phù
-hợp: `ChangeTracker` phình và bộ nhớ tăng tuyến tính. Khi đó chia lô theo kích thước cố
-định, và gọi `ChangeTracker.Clear()` sau mỗi lô. Ngưỡng chính xác phải **đo**, không đoán —
-và nếu khối lượng lớn tới mức phải chia lô thì việc đó gần như chắc chắn thuộc về một job
-nền ([`be-cqrs-handler.md`](be-cqrs-handler.md) §10).
+Khối lượng rất lớn (từ hàng chục nghìn dòng): chia lô cố định, `ChangeTracker.Clear()` sau mỗi lô;
+ngưỡng phải **đo** — và việc đó thuộc về job nền ([`be-cqrs-handler.md`](be-cqrs-handler.md) §10).
 
-Cập nhật/xoá hàng loạt theo điều kiện dùng `ExecuteUpdateAsync` / `ExecuteDeleteAsync` —
-chúng sinh một câu UPDATE/DELETE duy nhất, không load entity. Hai lưu ý:
+Cập nhật/xoá hàng loạt theo điều kiện: `ExecuteUpdateAsync` / `ExecuteDeleteAsync`. Chúng **bỏ qua
+`ChangeTracker`** và interceptor — `AuditInterceptor` **không** chạy, phải tự set cột vết trong câu
+`ExecuteUpdate`. `ExecuteDeleteAsync` là **xoá cứng** — entity có soft delete dùng `ExecuteUpdateAsync`
+đặt `IsDeleted = true`.
 
-- Chúng **bỏ qua `ChangeTracker`** và bỏ qua interceptor, nên `AuditInterceptor` **không**
-  chạy — phải tự set các cột vết trong chính câu `ExecuteUpdate`.
-- `ExecuteDeleteAsync` là **xoá cứng**. Trên entity có soft delete, dùng `ExecuteUpdateAsync`
-  đặt `IsDeleted = true` thay vì xoá.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §7.1
 
 ### 7.2 Cấu hình `UseNpgsql`
 
 ```csharp
 services.AddDbContext<CoreDbContext>((sp, options) => options
-    .UseNpgsql(connectionString, npgsql =>
+    .UseNpgsql(sp.GetRequiredService<DbConnection>(), npgsql =>
     {
         npgsql.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorCodesToAdd: null);
         npgsql.CommandTimeout(30);
@@ -390,14 +354,14 @@ services.AddDbContext<CoreDbContext>((sp, options) => options
 
 | Thiết lập | Vì sao khai tường minh |
 | --- | --- |
+| `DbConnection` dùng chung thay vì chuỗi kết nối | Mọi `DbContext` của một request đi chung một kết nối để đứng chung một transaction — [`be-cqrs-handler.md`](be-cqrs-handler.md) §4 |
 | `EnableRetryOnFailure` | Một nhịp chớp mạng giữa app và Postgres không được biến thành 500 cho người dùng |
-| `CommandTimeout(30)` | Bằng đúng mặc định — khai ra để nó là con số **đã cân nhắc**, không phải mặc định trôi vào. Hạ xuống khi có số đo p99 thật |
+| `CommandTimeout(30)` | Bằng đúng mặc định — khai ra để nó là con số **đã cân nhắc**. Hạ xuống khi có số đo p99 thật |
 | `MigrationsHistoryTable` trong schema `core` | Core sở hữu lịch sử migration của mình; module có bảng riêng — [`../database/migration-policy.md`](../database/migration-policy.md) |
 
-> ⚠️ **Bẫy đi kèm `EnableRetryOnFailure`:** chiến lược thử lại **không** bọc được
-> transaction do code tự mở. Nó ném `InvalidOperationException` lúc **chạy**, không lúc
-> biên dịch, và chỉ trên đúng đường ghi đó. Đây là một trong ba lý do transaction gom về
-> `IUnitOfWork.ExecuteInTransactionAsync` — [`be-cqrs-handler.md`](be-cqrs-handler.md) §4.
+> ⚠️ **Bẫy đi kèm `EnableRetryOnFailure`:** chiến lược thử lại **không** bọc được transaction do code tự
+> mở — ném `InvalidOperationException` lúc **chạy**. Transaction gom về `IUnitOfWork.ExecuteInTransactionAsync`
+> — [`be-cqrs-handler.md`](be-cqrs-handler.md) §4.
 
 ---
 
@@ -405,20 +369,11 @@ services.AddDbContext<CoreDbContext>((sp, options) => options
 
 ### 8.1 Trạng thái và lý do
 
-> 📐 **Redis và `CachingBehavior` KHÔNG có ở v1.** Không phải bỏ sót — chưa đo được vấn
-> đề nào để cache giải quyết.
+> 📐 **Redis và `CachingBehavior` KHÔNG có ở v1.** Không phải bỏ sót — chưa đo được vấn đề nào để cache
+> giải quyết. Quyết định về số lượng behavior ở v1:
+> [`../adr/0006-pipeline-behavior.md`](../adr/0006-pipeline-behavior.md).
 
-Ba lý do, xếp theo mức độ quyết định:
-
-1. **Chưa có số đo.** Không có một query nào được chứng minh là chậm trên dữ liệu thật.
-   Thêm cache lúc này là tối ưu một thứ chưa biết có tốn hay không.
-2. **Cache là một nguồn sự thật thứ hai.** Mọi bug từ đó về sau đều có thêm câu hỏi *"dữ
-   liệu này cũ hay mới?"*, và câu hỏi đó tốn thời gian ngay cả khi câu trả lời là "mới".
-3. **Hệ chạy một process.** Nếu sau này thật sự cần cache, mức đầu tiên là in-process —
-   Redis chỉ cần khi có từ hai process trở lên đọc chung một tập dữ liệu.
-
-Xem [`../adr/0006-pipeline-behavior.md`](../adr/0006-pipeline-behavior.md) cho quyết định
-về số lượng behavior ở v1.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §8.1
 
 ### 8.2 Interface khai trước — để đổi implementation không sửa call site
 
@@ -437,52 +392,39 @@ public interface ICacheStore
 }
 ```
 
-Bốn method, không hơn. `RemoveByTagAsync` có mặt ngay từ đầu **có chủ đích**: invalidation
-theo nhóm là thứ khó thêm sau, vì thêm sau nghĩa là phải đi sửa mọi lời gọi `SetAsync` để
-bổ sung tag.
+Bốn method, không hơn. Implementation ở v1: **không có**; chỗ nào thật sự cần trước thì đăng ký một
+implementation **no-op** (luôn miss, `Set` không làm gì). `Core.Application` **không bao giờ** chạm thẳng
+`HybridCache`/`IMemoryCache`/`IDistributedCache` — chỉ qua `ICacheStore`.
 
-Implementation ở v1: **không có**. Nếu một chỗ nào đó thật sự cần trước khi tầng cache được
-dựng, đăng ký một implementation **no-op** (luôn miss, `Set` không làm gì) — nó đúng về
-mặt ngữ nghĩa và giữ call site không phải đổi khi implementation thật xuất hiện.
-
-`Core.Application` **không bao giờ** chạm thẳng `HybridCache`/`IMemoryCache`/
-`IDistributedCache` — chỉ qua `ICacheStore`.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §8.2
 
 ### 8.3 Ba điều kiện bắt buộc trước khi thêm bất kỳ cache nào
 
 Thiếu **một** thì dừng lại và hỏi, không tự quyết:
 
-1. **Số đo** chứng minh chỗ đó tốn thật — thời gian, tần suất, và tỉ lệ so với tổng thời
-   gian request.
-2. **Danh sách đầy đủ đường ghi phải invalidate**, kể cả job nền (nó không có
-   `HttpContext`, và đây là chỗ dễ quên nhất).
+1. **Số đo** chứng minh chỗ đó tốn thật — thời gian, tần suất, tỉ lệ so với tổng thời gian request.
+2. **Danh sách đầy đủ đường ghi phải invalidate**, kể cả job nền (không có `HttpContext` — chỗ dễ quên nhất).
 3. **Test xác nhận invalidation chạy**, không chỉ test cache hit.
 
-> **Cache dữ liệu phân quyền mà chỉ dựa TTL, không invalidate tường minh khi ma trận quyền
-> đổi → quyền đã thu hồi còn hiệu lực tới hết TTL.** Đó là lỗ hổng bảo mật, không phải vấn
-> đề hiệu năng. Nếu cache phân quyền, invalidation phải là **đồng bộ** trong cùng lượt ghi
-> ma trận.
+> **Cache dữ liệu phân quyền mà chỉ dựa TTL → quyền đã thu hồi còn hiệu lực tới hết TTL.** Đó là lỗ hổng
+> bảo mật. Nếu cache phân quyền, invalidation phải **đồng bộ** trong cùng lượt ghi ma trận.
 
 ### 8.4 Cái gì được cache mà không cần ba điều kiện trên
 
-`ConcurrentDictionary` cache **metadata bất biến trong một process** — kết quả phân tích
-assembly, bảng ánh xạ dựng một lần lúc khởi động. Nguồn dữ liệu là chính assembly nên nó
-không bao giờ cũ.
+`ConcurrentDictionary` cache **metadata bất biến trong một process** — kết quả phân tích assembly, bảng
+ánh xạ dựng một lần lúc khởi động. `static Dictionary` giữ dữ liệu **từ DB** thì **không** hợp lệ.
 
-`static Dictionary` giữ dữ liệu **từ DB** thì **không** hợp lệ: không eviction, không
-invalidation, và không ai gọi nó là cache nên không ai nghĩ tới việc xoá nó.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §8.4
 
 ---
 
 ## 9. Khi sửa code tính toán nghiệp vụ
 
-Khi tối ưu **bất kỳ** code nào tính ra con số hiển thị cho người dùng: output phải **giống
-hệt** trước khi sửa, trên cùng dữ liệu. Đối chiếu thật bằng một test so sánh, đừng suy
-luận — đây là con số người dùng nhìn thấy, không phải chi tiết nội bộ.
+Tối ưu code tính ra con số hiển thị cho người dùng: output phải **giống hệt** trước khi sửa, trên cùng
+dữ liệu — đối chiếu bằng một test so sánh. Khuôn an toàn: giữ implementation cũ tạm thời, chạy cả hai
+trên cùng tập dữ liệu, so sánh, rồi mới xoá bản cũ.
 
-Khuôn an toàn: giữ implementation cũ lại tạm thời, chạy cả hai trên cùng tập dữ liệu, so
-sánh, rồi mới xoá bản cũ. Chi phí một buổi; cái tránh được là một sai số không ai phát hiện
-cho tới khi có người đối chiếu với sổ sách bên ngoài.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §9
 
 ---
 
@@ -495,11 +437,9 @@ cho tới khi có người đối chiếu với sổ sách bên ngoài.
 - [ ] Dùng projection `Select` thay vì load cả entity, trừ khi thật sự cần entity để sửa.
 - [ ] Mọi predicate lọc nóng có index dẫn đầu đúng cột đó.
 - [ ] Index unique trên bảng soft delete có `HasFilter`.
-- [ ] `Distinct` / `GroupBy` / `Count` / phân trang chạy ở **SQL**, không `ToListAsync()`
-      rồi mới làm trong C#.
+- [ ] `Distinct` / `GroupBy` / `Count` / phân trang chạy ở **SQL**, không `ToListAsync()` rồi làm trong C#.
 - [ ] Không `await` trong vòng lặp.
 - [ ] Sắp xếp có tiêu chí phụ ổn định (`ThenBy(x => x.Id)`).
 - [ ] `SortBy` đến từ enum hoặc allowlist, không phải chuỗi client gửi thẳng vào `OrderBy`.
-- [ ] Nếu bỏ qua một mục trên: comment nêu **con số** trần trên và điều kiện làm nó hết
-      đúng. *"Dataset hiện tại nhỏ"* suông **không** phải ngoại lệ hợp lệ — nó không kiểm
-      chứng được, và nó luôn đúng cho tới đúng ngày nó sai.
+- [ ] Nếu bỏ qua một mục trên: comment nêu **con số** trần trên và điều kiện làm nó hết đúng.
+      *"Dataset hiện tại nhỏ"* suông **không** phải ngoại lệ hợp lệ.

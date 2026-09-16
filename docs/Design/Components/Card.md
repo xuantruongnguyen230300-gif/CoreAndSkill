@@ -49,7 +49,7 @@ Gom một khối nội dung thuộc về nhau thành **một bề mặt có ranh
 | `md` | `--sp-6` | `--sp-6` | `--fs-lg` | **Mặc định.** Đệm mặc định của `Card` theo [`../DESIGN.md`](../DESIGN.md) §4 |
 | `lg` | `--sp-8` | `--sp-8` | `--fs-lg` | Thẻ chiếm hết bề rộng trang, nội dung dài cần thở |
 
-Bo góc `--radius-lg` cho mọi cỡ. Bề rộng do lưới của trang quyết, `Card` không tự đặt `width`.
+Bo góc `--radius-lg` cho mọi cỡ. Bề rộng do lưới của trang quyết, `Card` không tự đặt `width`. Ba cỡ là thang đệm riêng của `Card`; câu hỏi mật độ toàn hệ sống ở [`../DESIGN.md`](../DESIGN.md) §10 — chốt ở đó thì `Card` theo.
 
 Ba phần, đều tuỳ chọn trừ thân:
 
@@ -57,7 +57,7 @@ Ba phần, đều tuỳ chọn trừ thân:
 | --- | --- | --- |
 | Đầu | Thẻ heading + mô tả phụ + chỗ đặt hành động bên phải | Vạch `--color-border-subtle` — vạch **bên trong** một bề mặt, đúng vai của bậc này ([`../DESIGN.md`](../DESIGN.md) §2.3) |
 | Thân | Nội dung chính, vào qua slot | — |
-| Chân | Hành động, tổng số, chú thích — nền `--color-surface-2` | Vạch `--color-border-subtle` phía trên |
+| Chân | Hành động, tổng số, chú thích — nền `--color-surface-2`; `Badge` hoặc `Avatar` đặt ở đây do nơi gọi bật `onSurface2`, `Card` không tự xử | Vạch `--color-border-subtle` phía trên |
 
 ## Trạng thái
 
@@ -91,10 +91,10 @@ Ba phần, đều tuỳ chọn trừ thân:
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-lg` | Đệm theo cỡ đã khai; nhiều `Card` xếp lưới, khe `--sp-8` |
-| `--bp-md` … `--bp-lg` | Giữ nguyên đệm; lưới giảm số cột |
-| < `--bp-md` | Đệm hạ một bậc (`md` dùng `--sp-5`); lưới về một cột; hành động ở phần đầu xuống dòng dưới tiêu đề |
-| < `--bp-xs` | Bo góc giữ nguyên `--radius-lg`; chân thẻ chuyển sang xếp dọc, nút bên trong thành `block` |
+| ≥ `$bp-lg` | Đệm theo cỡ đã khai; nhiều `Card` xếp lưới, khe `--sp-8` |
+| `$bp-md` … `$bp-lg` | Giữ nguyên đệm; lưới giảm số cột |
+| < `$bp-md` | Đệm hạ một bậc (`md` dùng `--sp-5`); lưới về một cột; hành động ở phần đầu xuống dòng dưới tiêu đề |
+| < `$bp-xs` | Bo góc giữ nguyên `--radius-lg`; chân thẻ chuyển sang xếp dọc, nút bên trong thành `block` |
 
 **Đệm hạ một bậc ở màn nhỏ chứ không bỏ hẳn.** Bỏ đệm để lấy bề rộng làm chữ chạm sát viền và thẻ trông như một khối bị nén. Một bậc là đủ để lấy lại chỗ mà vẫn còn khoảng thở.
 
@@ -145,6 +145,4 @@ Nội dung vào qua slot: slot mặc định cho thân, hai slot đặt tên cho
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Thang mật độ đệm (`sm`/`md`/`lg`) ở đây có nên thành token mật độ dùng chung toàn hệ không? [`../DESIGN.md`](../DESIGN.md) §10 đã để ngỏ đúng câu hỏi này ở dòng compact/comfortable — nếu chốt ở đó thì `Card` phải theo, không giữ thang riêng | Người sở hữu hệ token |
-| 2 | Chân thẻ nền `--color-surface-2` có làm mọi `Badge` đặt trong đó phải đổi sang `--color-border-strong` không? Theo [`../DESIGN.md`](../DESIGN.md) §2.3 thì có — cần ghi rõ ở [`Badge.md`](./Badge.md) hay để `Card` tự xử? | Người dựng hai component |
-| 3 | Thẻ `interactive` có cần một biến thể "có một hành động phụ ở góc" không? Hôm nay spec cấm hẳn nút lồng trong thẻ bấm được, nhưng lưới thẻ hồ sơ gần như luôn muốn một nút menu ở góc | Dự án đầu tiên có lưới thẻ |
+| 1 | Thẻ `interactive` có cần một biến thể "có một hành động phụ ở góc" không? Hôm nay spec cấm hẳn nút lồng trong thẻ bấm được, nhưng lưới thẻ hồ sơ gần như luôn muốn một nút menu ở góc | Sau F3 — dự án hạ nguồn đầu tiên có lưới thẻ |

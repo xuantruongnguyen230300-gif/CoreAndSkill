@@ -57,15 +57,17 @@ Mỗi spec phải khai **đủ tám** trạng thái. Cái nào không áp dụng
 
 ### 2.2 Kích thước
 
-Ba cỡ control, dùng token `--size-control-sm|md|lg` ([`DESIGN.md`](./DESIGN.md) §6.2). Component nào có nhiều cỡ thì **phải dùng đúng ba cỡ này**, không đẻ cỡ thứ tư.
+Ba cỡ control. Component nào có nhiều cỡ thì **phải dùng đúng ba cỡ này**, không đẻ cỡ thứ tư.
 
-| Cỡ | Chiều cao | Dùng khi |
+| Cỡ | Token chiều cao | Dùng khi |
 | --- | --- | --- |
-| `sm` | 28px | Trong hàng bảng, trong chip, chỗ mật độ cao |
-| `md` | 34px | **Mặc định.** Form, toolbar, dialog |
-| `lg` | 42px | Nút submit chính, ô nhập trên màn đăng nhập |
+| `sm` | `--size-control-sm` | Trong hàng bảng, trong chip, chỗ mật độ cao |
+| `md` | `--size-control-md` | **Mặc định.** Form, toolbar, dialog |
+| `lg` | `--size-control-lg` | Nút submit chính, ô nhập trên màn đăng nhập |
 
-Vùng bấm nhỏ nhất là **24×24px** (WCAG 2.2 SC 2.5.8). Cỡ `sm` đã qua, nhưng với component chỉ có icon thì vùng bấm phải nới bằng `padding` chứ không bằng `margin` — `margin` không nhận sự kiện chuột.
+> 📖 Giá trị ba token: đọc [`DESIGN.md`](./DESIGN.md) §6.2. File này không giữ bản sao — một con số chép ra đây sẽ không được sửa cùng lúc với bản gốc ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §5).
+
+Vùng bấm nhỏ nhất là **24×24px** (WCAG 2.2 SC 2.5.8 — ngưỡng của chuẩn ngoài, không phải token). Cỡ `sm` vượt ngưỡng đó, nhưng với component chỉ có icon thì vùng bấm phải nới bằng `padding` chứ không bằng `margin` — `margin` không nhận sự kiện chuột.
 
 ### 2.3 Biến thể
 
@@ -79,7 +81,7 @@ Một component chỉ được lồng component **cùng cấp hoặc thấp hơn
 
 ```text
 Tầng 0 — hạt: Badge · Avatar · SkeletonLoader · Check · ProgressBar
-Tầng 1 — control: Button · IconButton · Input · SegmentedControl · Pagination · FilterChip · LanguageSwitcher
+Tầng 1 — control: Button · IconButton · Input · DatePicker · SegmentedControl · Pagination · FilterChip · LanguageSwitcher
 Tầng 2 — cụm: FormRow · AuthField · Card · Table · EmptyState · NoticeBanner · Tabs · FileUpload · FilterPanel
                 TreeSelect · Autocomplete · Timeline · Chart
 Tầng 3 — vùng: Toolbar · DataTable · EditableGrid · PageHeader · AuthCard · Stepper
@@ -99,7 +101,8 @@ Luật chống lồng nhau vẫn giữ nguyên hiệu lực ở chỗ nó sinh r
 | --- | --- | --- | --- | --- |
 | `Button` | Nút có nhãn chữ, bốn vai, ba cỡ | [Components/Button.md](./Components/Button.md) | tự dựng | 📐 spec xong, chưa dựng |
 | `IconButton` | Nút chỉ có icon, luôn kèm nhãn cho trình đọc màn hình | [Components/IconButton.md](./Components/IconButton.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Input` | Hợp đồng ô nhập dùng chung cho text, number, date, select, textarea | [Components/Input.md](./Components/Input.md) | tự dựng | 📐 spec xong, chưa dựng |
+| `Input` | Hợp đồng ô nhập dùng chung cho text, number, select, textarea | [Components/Input.md](./Components/Input.md) | tự dựng | 📐 spec xong, chưa dựng |
+| `DatePicker` | Ô chọn một ngày hoặc một khoảng ngày, lịch thả xuống, luôn `dd/mm/yyyy` | [Components/DatePicker.md](./Components/DatePicker.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
 | `FormRow` | Cụm nhãn + ô nhập + gợi ý + lỗi; nơi duy nhất quyết định lỗi hiện ở đâu | [Components/FormRow.md](./Components/FormRow.md) | tự dựng | 📐 spec xong, chưa dựng |
 | `Check` | Ô đánh dấu và nút chọn một trong nhiều, gồm trạng thái nửa chọn | [Components/Check.md](./Components/Check.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
 | `SegmentedControl` | Chuyển đổi giữa vài chế độ xem loại trừ nhau | [Components/SegmentedControl.md](./Components/SegmentedControl.md) | tự dựng | 📐 spec xong, chưa dựng |
@@ -109,7 +112,7 @@ Luật chống lồng nhau vẫn giữ nguyên hiệu lực ở chỗ nó sinh r
 | `Table` | Bảng tĩnh — chỉ trình bày, không phân trang, không sắp xếp | [Components/Table.md](./Components/Table.md) | tự dựng | 📐 spec xong, chưa dựng |
 | `DataTable` | Lưới dữ liệu: phân trang phía máy chủ, sắp xếp, chọn dòng, cột ghim | [Components/DataTable.md](./Components/DataTable.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
 | `Dialog` | Hộp thoại chặn, bẫy focus, ba cỡ bề rộng | [Components/Dialog.md](./Components/Dialog.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `ConfirmDialog` | Hỏi xác nhận — đúng hai nút, có mức độ nguy hiểm | [Components/ConfirmDialog.md](./Components/ConfirmDialog.md) | dựng trên `Dialog` | 📐 spec xong, chưa dựng |
+| `ConfirmDialog` | Hỏi xác nhận — đúng hai nút, có mức độ nguy hiểm | [Components/ConfirmDialog.md](./Components/ConfirmDialog.md) | tự dựng | 📐 spec xong, chưa dựng |
 | `Toast` | Thông báo nổi tạm thời, tự biến mất | [Components/Toast.md](./Components/Toast.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
 | `NoticeBanner` | Thông báo nằm trong trang, ở lại cho tới khi bối cảnh đổi | [Components/NoticeBanner.md](./Components/NoticeBanner.md) | tự dựng | 📐 spec xong, chưa dựng |
 | `Sidebar` | Dải điều hướng của khung ứng dụng: cây menu, thu gọn, drawer | [Components/Sidebar.md](./Components/Sidebar.md) | tự dựng | 📐 spec xong, chưa dựng |
@@ -135,8 +138,10 @@ Luật chống lồng nhau vẫn giữ nguyên hiệu lực ở chỗ nó sinh r
 | `EditableGrid` | Nhập và sửa nhiều dòng ngay trên lưới, không mở hộp thoại từng dòng | [Components/EditableGrid.md](./Components/EditableGrid.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
 | `Stepper` | Chia một việc dài thành các bước có thứ tự mà **người dùng** điều khiển | [Components/Stepper.md](./Components/Stepper.md) | tự dựng | 📐 spec xong, chưa dựng |
 | `Timeline` | Chuỗi sự việc theo thời gian: nhật ký đã xảy ra, hoặc luồng duyệt còn bước phía trước | [Components/Timeline.md](./Components/Timeline.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Chart` | Vẽ số liệu thành hình để so sánh nhanh hơn đọc bảng | [Components/Chart.md](./Components/Chart.md) | hỗn hợp | 📐 spec xong, chưa dựng |
+| `Chart` | Vẽ số liệu thành hình để so sánh nhanh hơn đọc bảng | [Components/Chart.md](./Components/Chart.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
 | `FilterPanel` | Nơi nhập nhiều điều kiện lọc cùng lúc rồi áp một lần | [Components/FilterPanel.md](./Components/FilterPanel.md) | tự dựng | 📐 spec xong, chưa dựng |
+
+**Cột "Nền" nhận đúng một trong hai giá trị: `bọc PrimeNG` · `tự dựng`.** FE đọc cột này bằng máy để xếp component vào thư mục — quy tắc ánh xạ ở [`../wiki-core/fe/05-component-library.md`](../wiki-core/fe/05-component-library.md). Component dựng **trên** một component bọc khác mà không tự import thư viện (như `ConfirmDialog` trên `Dialog`) mang `tự dựng`. Component bọc mà chỉ **một phần** biến thể cần thư viện (như `Chart`: chỉ `line`) vẫn mang `bọc PrimeNG` — các biến thể còn lại vẽ bên trong cùng lớp bọc.
 
 Đừng chép số lượng vào tài liệu ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §6). Đếm bằng lệnh:
 
@@ -171,6 +176,7 @@ Quyết định này đổi hẳn khối lượng việc của một component, 
 | Kéo thả tệp, đọc tệp, tiến trình tải lên | Nhiều API trình duyệt, nhiều ca biên bảo mật | `FileUpload` |
 | Ngữ nghĩa control biểu mẫu gốc + trạng thái nửa chọn | `indeterminate` không có trong HTML thuần, phải đặt bằng script | `Check` |
 | Ngữ nghĩa `tablist`/`tab`/`tabpanel` + phím mũi tên | Bàn phím theo chuẩn ARIA khá dài | `Tabs` |
+| Thang đo, nội suy đường, bắt con trỏ gần nhất trên nhiều chuỗi | Nhiều ca biên hình học, và sai thì số hiện trong hộp giá trị không khớp điểm đang trỏ | `Chart` (dạng `line`) |
 
 Mọi thứ còn lại **tự dựng**. Một `Button` bọc thư viện chỉ đổi một lớp trung gian lấy một lớp trung gian khác, mà lại nhận thêm CSS mặc định phải đè.
 
@@ -180,6 +186,12 @@ Mọi thứ còn lại **tự dựng**. Một `Button` bọc thư viện chỉ �
 2. **Bọc nghĩa là giấu hẳn.** API của component bọc **không** để lọt kiểu dữ liệu, tên sự kiện hay tên slot của PrimeNG ra ngoài. Lọt ra là mất luôn cái lợi duy nhất của việc bọc: đổi thư viện mà không phải sửa màn hình.
 3. **Không đè style bằng `::ng-deep`.** Tạo hình bằng token và bằng cơ chế theme của thư viện. `::ng-deep` không bị đóng gói theo component, nên nó rò ra toàn ứng dụng và hỏng ở lần nâng cấp kế tiếp.
 4. **Trạng thái vẫn phải khai đủ tám.** Bọc thư viện không miễn trừ §2.1 — vẫn phải viết ra `disabled` trông thế nào, `loading` trông thế nào.
+5. **Lớp bọc không import component tự dựng.** Chiều import giữa hai tầng là luật thi công, khai ở [`../quy-uoc/fe-architecture.md`](../quy-uoc/fe-architecture.md) §2.2. Thứ lớp bọc hiện ra chia làm hai loại, và hai loại đi hai đường khác nhau:
+   - **Phần cấu trúc của chính lớp bọc do thư viện vẽ, tạo hình bằng token qua preset theme của thư viện.** Đó là những control luôn giống nhau ở mọi nơi dùng: nút đóng của `Dialog` và `Toast`, nút hành động của `Toast`, chip trong ô chọn nhiều của `Autocomplete` và `TreeSelect`, nút chọn tệp, nút theo dòng và thanh tiến trình của `FileUpload`, badge đếm trên nhãn `Tabs`, nút sửa dòng của `EditableGrid`, nút "Đóng hết" của `DataTable`. Spec gọi tên một component tự dựng ở những chỗ này (`IconButton`, `Button`, `FilterChip`, `Badge`, `ProgressBar`) là để nói phần đó **mượn token và hình thức** của component nào — không phải để import nó. Đây **không** phải định nghĩa hình thức thứ hai theo §1: giá trị vẫn sống ở [`DESIGN.md`](./DESIGN.md), hình thức vẫn sống ở spec được gọi tên; preset chỉ là nơi áp.
+   - **Nội dung do màn quyết vào qua template.** Khối trống, khung đang tải, khối lỗi, và nút hành động nghiệp vụ nằm trong các khối đó vào qua input `TemplateRef` đặt tên `<vai>Template`: `emptyTemplate`, `loadingTemplate`, `errorTemplate`. Lớp bọc quyết **khi nào** hiện, màn quyết **hiện gì**; nút trong template gọi thẳng hàm của màn, nên lớp bọc không mở output riêng cho nút đó. Khuôn gốc ở [`Components/DataTable.md`](./Components/DataTable.md) §API.
+   - Phép thử một câu: *hai màn khác nhau có cần hiện thứ khác nhau ở chỗ này không?* Có → template. Không, chỗ đó luôn là cùng một control của lớp bọc → phần cấu trúc; nó báo ra ngoài bằng `output()` của lớp bọc.
+   - Lớp bọc có input `state` thì hiện template theo `state`. Lớp bọc chỉ có `loading` thì `loadingTemplate` hiện khi `loading` là `true`, còn `errorTemplate` hiện khi màn truyền nó khác `null` — màn chỉ truyền lúc đang lỗi — và thắng mọi slot khác.
+   - Vùng đã là slot nội dung của màn (thân `Dialog`, thân `Drawer`, panel `Tabs`) thì màn đặt component tự dựng thẳng vào slot đó, không cần template.
 
 ---
 
@@ -187,20 +199,22 @@ Mọi thứ còn lại **tự dựng**. Một `Button` bọc thư viện chỉ �
 
 | | **Dumb** (trình bày) | **Smart** (kết nối) |
 | --- | --- | --- |
-| Ở đâu | `shared/components/` | `platform/`, `modules/<x>/pages/` |
+| Ở đâu | `shared/ui/` hoặc `shared/components/`, theo cột "Nền" ở §3 | `platform/`, `modules/<x>/pages/` |
 | Nhận dữ liệu | Qua `input()` | Tự gọi service |
 | Báo ra ngoài | Qua `output()` | Gọi service, điều hướng |
 | Được inject service? | 🛑 Không service lấy dữ liệu | ✅ Có |
 | Biết về HTTP, route, store? | 🛑 Không | ✅ Có |
 | Test bằng | Dựng với input thuần, không cần mock gì | Cần mock service |
 
-**Mọi component trong bảng §3 là dumb.** Không có ngoại lệ. Ép bằng cổng FE — [`../RULES.md`](../RULES.md) §7 F11.
+**Mọi component trong bảng §3 là dumb.** Không có ngoại lệ.
+
+Cổng chỉ phủ **một nửa** luật này, và nửa kia phải nói ra: [`../RULES.md`](../RULES.md) §7 F11 quét `shared/components/`, nên component `tự dựng` được ép bằng lệnh. Component `bọc PrimeNG` nằm ở `shared/ui/` — F11 không chạm tới, và luật dumb ở đó giữ bằng review.
 
 Ba ca dễ nhầm, giải sẵn:
 
 | Ca | Nhìn có vẻ smart | Cách giữ dumb |
 | --- | --- | --- |
-| `Sidebar` hiển thị cây menu lấy từ API | Nó cần dữ liệu menu | Nhận cây menu qua `input()`. Component khung ở `platform/` gọi API rồi truyền vào |
+| `Sidebar` / `Topbar` hiển thị menu và người đang đăng nhập | Chúng cần dữ liệu phiên và menu | Nhận cả hai qua `input()`. `platform/shell` là tầng smart inject phiên và menu rồi truyền xuống |
 | `Toast` được gọi từ bất cứ đâu | Nó cần một hàng đợi toàn cục | Tách đôi: một service giữ hàng đợi (smart, ở `core/`), một component chỉ vẽ danh sách nhận qua `input()` (dumb) |
 | `DataTable` phân trang phía máy chủ | Nó phải gọi API mỗi lần đổi trang | Nó **phát** sự kiện đổi trang qua `output()`. Trang cha gọi API và truyền dữ liệu mới xuống |
 

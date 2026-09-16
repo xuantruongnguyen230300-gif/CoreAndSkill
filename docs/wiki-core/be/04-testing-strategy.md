@@ -160,7 +160,7 @@ Phân biệt với luật A10: A10 canh *"behavior có được đăng ký đún
 | Cách | Công cụ | Ghi chú |
 | --- | --- | --- |
 | Đồ thị assembly | **ArchUnitNET** | Lớp chính, dùng cho phần lớn detector. Chọn nó thay vì thư viện tương đương vì API rộng hơn khi luật phức tạp dần |
-| Phân tích cú pháp | **Roslyn analyzer**, chỉ cho vài luật hình dạng code | Đắt hơn, bù lại báo lỗi ngay lúc biên dịch. Dành cho luật mà vi phạm gây hỏng im lặng — điển hình là cấm phản chiếu ở đường ánh xạ lỗi (luật R5) |
+| Phân tích cú pháp | **Roslyn syntax API**, gọi trong project ArchTest để quét AST, chỉ cho vài luật hình dạng code | Đắt hơn đồ thị assembly. Dành cho luật mà vi phạm gây hỏng im lặng — điển hình là cấm phản chiếu ở đường ánh xạ lỗi (luật R5, ép bằng ArchTest) |
 | Quét văn bản | `grep` trong cổng | Chỉ khi hai cách trên không làm được, và luôn kèm meta-test |
 
 > **Trước khi cam kết, viết thử ba detector KHÓ NHẤT bằng ArchUnitNET.** Ba cái đó chạy được thì phần còn lại chắc chắn chạy được; ngược lại thì đổi công cụ lúc mới có ba test rẻ hơn nhiều so với lúc đã có bốn mươi.
@@ -297,6 +297,8 @@ Xem [`../../database/migration-policy.md`](../../database/migration-policy.md).
 
 **Luật T3** ở [`../../RULES.md`](../../RULES.md) đặt ngưỡng cho `Core.Domain` và `Core.Application` cao hơn ngưỡng cho module. Lý do: Core được dùng lại ở mọi dự án, nên một lỗi ở Core nhân lên theo số dự án.
 
+**Công cụ ép:** `coverlet.msbuild`, khai `Threshold` theo **dòng và nhánh** — dưới ngưỡng thì `dotnet test` thất bại. Con số ngưỡng chỉ nằm ở luật T3, không chép sang cấu hình tài liệu nào khác.
+
 ### Vì sao không 100%
 
 | Lý do | Giải thích |
@@ -338,24 +340,25 @@ Ba khối, tách bằng dòng trống, không trộn:
 
 ```csharp
 [Fact]
-public async Task ChangePassword_WhenCurrentPasswordWrong_ReturnsInvalidCredentials()
+public async Task ChangePassword_WhenCurrentPasswordWrong_ReturnsChangePasswordFailed_WithPasswordMismatchOnCurrentPassword()
 {
     // Arrange
     var user = await Fixture.CreateUserAsync(password: "dung-mat-khau");
 
     // Act
-    var result = await Sut.ChangePasswordAsync(user.Id, "sai-mat-khau", "moi", CancellationToken.None);
+    var result = await Sut.ChangePasswordAsync(user.Id, "sai-mat-khau", "Moi-mat-khau-1", clearMustChangePassword: false, CancellationToken.None);
 
-    // Assert
-    Assert.True(result.IsFailure);
-    Assert.Equal(ErrorCodes.Auth.InvalidCredentials, result.Error.Code);
+    // Assert — hợp đồng ở contracts/auth.md §6: mã gốc + lý do ở fieldErrors, ô mật khẩu hiện tại
+    result.IsFailure.ShouldBeTrue();
+    result.Error!.Code.ShouldBe(AuthErrors.ChangePasswordFailed.Code);
+    result.Error.FieldErrors["CurrentPassword"].ShouldContain(f => f.Code == AuthErrors.PasswordMismatch.Code);
 }
 ```
 
 Hai quy tắc kèm theo:
 
 - **Một Act cho mỗi test.** Hai Act là hai test bị ghép, và khi đỏ thì không biết cái nào hỏng.
-- **Assert vào mã lỗi, không vào câu chữ.** Câu chữ không nằm ở BE (luật R8), nên assert vào chuỗi tiếng Việt là assert vào thứ không tồn tại.
+- **Assert vào mã lỗi, không vào câu chữ.** Câu chữ không nằm ở BE (luật R8), nên assert vào chuỗi tiếng Việt là assert vào thứ không tồn tại. Mã lấy từ catalog (`XxxErrors.Yyy`, [`../../quy-uoc/be-cqrs-handler.md`](../../quy-uoc/be-cqrs-handler.md) §7.1), không gõ literal trong test.
 
 ### 6.3 Khẳng định ĐÚNG con số, không khẳng định "khác 200" — luật T5
 
@@ -459,7 +462,7 @@ Danh mục tồn tại vì một lý do cụ thể: **người viết code khôn
 | ArchTest phủ mọi luật §3–§6 **và §9** của [`../../RULES.md`](../../RULES.md) | ✅ sẽ có | Viết **song song** với code, không để cuối. §9 là nhóm multi-tenant — nó từng vắng mặt khỏi mục kiểm kê của chính file này (xem 🚨 ở §2.2), nên nó được nêu riêng ở đây |
 | Meta-test `Detector_*` | ✅ sẽ có | Luật T1 — không có ngoại lệ |
 | Integration test trên PostgreSQL thật | ✅ sẽ có | Một container cho cả lượt chạy |
-| Cổng coverage trong CI | ✅ sẽ có | Ngưỡng ở [`../../RULES.md`](../../RULES.md) T3 |
+| Cổng coverage trong CI | ✅ sẽ có | `coverlet.msbuild`, ngưỡng dòng và nhánh (§5). Con số ở [`../../RULES.md`](../../RULES.md) T3 |
 | Build không warning | ✅ sẽ có | Luật T4 |
 | **E2E** | ❌ chưa ở v1 | Thêm khi có luồng nghiệp vụ đủ ổn định để không phải sửa test mỗi tuần. Trước đó, E2E là chi phí bảo trì thuần |
 | **Test hiệu năng tự động** | ❌ chưa | Đo thủ công trước, xem [`11-performance-caching.md`](11-performance-caching.md) |

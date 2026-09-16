@@ -131,7 +131,7 @@ Câu hỏi chặn cả feature thì nói rõ — `backend-expert` và `frontend-
 3. **Yêu cầu đụng tới một quy tắc trong `docs/`** — ví dụ nghiệp vụ đòi một cách xử lý lỗi khác quy ước chung. Quy tắc trong `docs/` thắng; báo người dùng và chuyển cho `architect`.
 4. **Đã có `spec/<feature>/business-rules.md`.** Không ghi đè, hỏi trước.
 5. **Người dùng muốn bỏ qua spec để "code trước cho nhanh".** Nói rõ hệ quả: hai agent sẽ suy diễn hai nghiệp vụ khác nhau, và sai lệch chỉ lộ ra khi ghép.
-6. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1. Nói rõ cần chạy lệnh gì, người dùng tự chạy.
+6. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1.
 
 ## Đầu ra
 

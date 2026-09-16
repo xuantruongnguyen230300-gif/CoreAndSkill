@@ -49,12 +49,12 @@ Mở đầu một trang: cho biết đang ở đâu, trang này là gì, và hà
 | Cỡ chữ tiêu đề | `--fs-xl`, `--fw-bold`, `--lh-tight`, `--ls-tight` |
 | Cỡ chữ mô tả | `--fs-sm`, `--color-text-muted`, `--lh-normal` |
 | Cỡ chữ đường dẫn | `--fs-xs`, `--color-text-muted` |
-| Bề rộng tối đa mô tả | 640px |
+| Bề rộng tối đa mô tả | `--layout-form-w` |
 | Khe giữa các nút | `--sp-4` |
 
-**`PageHeader` không có nền, không có viền, không có bóng.** Nó nằm trực tiếp trên `--color-bg`. Bọc nó trong một `Card` làm trang có hai lớp hộp lồng nhau ngay từ đầu và tốn chiều dọc vô ích.
+**`PageHeader` không có nền, không có viền, không có bóng.** Nó nằm trực tiếp trên `--color-bg`. Bọc nó trong một `Card` làm trang có hai lớp hộp lồng nhau ngay từ đầu và tốn chiều dọc vô ích. Nó **cuộn cùng nội dung**, kể cả đường dẫn phân cấp — việc "vẫn biết đang ở đâu khi đã cuộn" do tiêu đề tuyến dính đỉnh ở [`Topbar.md`](./Topbar.md) gánh.
 
-**Bề rộng mô tả giới hạn 640px** vì lý do đọc: một dòng chữ trải hết 1440px thì mắt mất dòng khi xuống hàng. Tiêu đề không cần giới hạn — nó ngắn.
+**Bề rộng mô tả có trần** vì lý do đọc: một dòng chữ trải hết bề rộng `main` thì mắt mất dòng khi xuống hàng. Trần đó dùng `--layout-form-w` — bí danh của bậc "form thông thường" trong thang bề rộng ở [`../DESIGN.md`](../DESIGN.md) §6.1, tức **cùng bề rộng dòng** mà khối form trong trang đã dùng. Mô tả của `PageHeader` và form ngay dưới nó đọc cùng một độ dài dòng, và không bậc thứ tư nào được đẻ ra. Tiêu đề không cần giới hạn — nó ngắn.
 
 ## Trạng thái
 
@@ -78,16 +78,16 @@ Mở đầu một trang: cho biết đang ở đâu, trang này là gì, và hà
 | Màu | `--color-text`, `--color-text-muted`, `--color-brand`, `--color-focus` |
 | Chữ | `--fs-xs`, `--fs-sm`, `--fs-xl`, `--fw-bold`, `--fw-regular`, `--lh-tight`, `--lh-normal`, `--ls-tight` |
 | Khoảng cách | `--sp-3`, `--sp-4`, `--sp-6`, `--sp-8` |
-| Kích thước | `--icon-sm`, `--icon-md` |
+| Kích thước | `--icon-sm`, `--icon-md`, `--layout-form-w` (trần bề rộng mô tả) |
 
 ## Responsive
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Khối chữ bên trái, nhóm hành động bên phải, cùng một hàng, căn theo mép trên |
-| `--bp-sm` … `--bp-md` | Nhóm hành động xuống hàng dưới khối chữ, căn trái |
-| < `--bp-sm` | Đường dẫn rút gọn còn cấp cha trực tiếp; mô tả **ẩn** nếu nhóm hành động có từ hai nút; nút chuyển `block` |
-| < `--bp-xs` | Cỡ tiêu đề hạ xuống `--fs-lg`; chỉ giữ hành động chính, các hành động phụ dồn vào một menu |
+| ≥ `$bp-md` | Khối chữ bên trái, nhóm hành động bên phải, cùng một hàng, căn theo mép trên |
+| `$bp-sm` … `$bp-md` | Nhóm hành động xuống hàng dưới khối chữ, căn trái |
+| < `$bp-sm` | Đường dẫn rút gọn còn cấp cha trực tiếp; mô tả **ẩn** nếu nhóm hành động có từ hai nút; nút chuyển `block` |
+| < `$bp-xs` | Cỡ tiêu đề hạ xuống `--fs-lg`; chỉ giữ hành động chính, các hành động phụ dồn vào một [`Menu.md`](./Menu.md). Ngưỡng dồn là điểm ngắt này, không phải số nút |
 
 🛑 **Mô tả ẩn ở màn nhỏ là một sự đánh đổi, không phải một tối ưu.** Nó chỉ chấp nhận được khi mô tả thuần tuý bổ trợ. Nếu mô tả chứa thông tin cần thiết (một cảnh báo, một điều kiện) thì nó không thuộc `PageHeader` — nó thuộc [`NoticeBanner.md`](./NoticeBanner.md), và banner thì không bao giờ ẩn.
 
@@ -139,6 +139,4 @@ Badge trạng thái ở biến thể `detail` cũng vào qua một slot riêng c
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Đường dẫn phân cấp có dính đỉnh cùng [`Topbar.md`](./Topbar.md) khi cuộn không? Dính thì luôn biết đang ở đâu nhưng ăn thêm chiều dọc vốn đã ít | Sau khi có màn danh sách dài đầu tiên |
-| 2 | Ở màn nhỏ, các hành động phụ dồn vào [`Menu.md`](./Menu.md). Còn để ngỏ **ngưỡng**: từ mấy nút trở lên thì dồn? Dồn quá sớm thì thêm một lần chạm cho thao tác thường dùng; dồn quá muộn thì hàng nút tràn | Sau khi có màn thật đo được thao tác |
-| 3 | Trang chi tiết có hiện thông tin phụ (người tạo, ngày sửa cuối) ở `PageHeader` không? Nó tiện nhưng làm phần đầu trang cao lên và đẩy nội dung xuống | Khi dựng màn chi tiết đầu tiên |
+| 1 | Trang chi tiết có hiện thông tin phụ (người tạo, ngày sửa cuối) ở `PageHeader` không? Nó tiện nhưng làm phần đầu trang cao lên và đẩy nội dung xuống | F3 — khi dựng màn chi tiết đầu tiên |

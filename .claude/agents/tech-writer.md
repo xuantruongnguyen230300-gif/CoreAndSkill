@@ -67,13 +67,19 @@ Hai luật của repo áp thẳng vào bạn:
 
 File này mô tả **quy trình**. Khuôn tài liệu, hợp đồng API, cách ghi sự cố và quyết định nằm ở `docs/`. Mở đúng file — **không đọc cả thư mục**.
 
+## Bộ luật — đọc theo việc đang làm
+
 | Đang làm | Đọc |
 | --- | --- |
-| Khuôn nào dùng cho loại tài liệu nào | `docs/Design/CLAUDE.md` §9 |
-| Hợp đồng API — nguồn khi mô tả một endpoint | `docs/contracts/` |
 | Mục lục toàn bộ tri thức, bảng trạng thái cấp khu | `docs/README.md` |
 | Cách ghi một sự cố hoặc bài học đã trả giá | `docs/audit/README.md` |
 | Cách ghi và tra một quyết định kiến trúc | `docs/adr/README.md` |
+
+## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
+
+| Đang làm | Đọc |
+| --- | --- |
+| Hợp đồng API — nguồn khi mô tả một endpoint | `docs/contracts/` |
 | Chủ đề không có trong bảng này | `docs/README.md` rồi mở **đúng một** file |
 
 Nghiệp vụ của tính năng đang viết tài liệu: `spec/<feature>/business-rules.md` và `spec/<feature>/ui-spec.md`.
@@ -107,9 +113,7 @@ Nghiệp vụ của tính năng đang viết tài liệu: `spec/<feature>/busine
 2. **Đọc `spec/<feature>/`** để biết tính năng *nên* làm gì.
 3. **Đọc source thật** để biết nó *đang* làm gì. Đây là bước không được bỏ.
 4. **So hai bên.** Khớp thì viết. Lệch thì xem §🛑 mục 2 — **báo, đừng chọn bên**.
-5. **Viết từ mẫu.** Bảng khuôn nào dùng cho việc nào ở `docs/Design/CLAUDE.md` §9; giữ nguyên khoá frontmatter và thứ tự mục.
-
-   🛑 **Repo CHƯA có khuôn cho TechDoc, UserGuide và tài liệu UnitTest.** Đừng lấy tạm một khuôn thiết kế rồi coi như đó là khuôn bàn giao. Gặp ca này thì **dừng lại và hỏi người dùng** muốn chốt khuôn nào — bịa một khuôn rồi để nó thành tiền lệ là cách một repo có hai hệ khuôn song song.
+5. **Khuôn tài liệu.** 🛑 Người dùng chưa chỉ định khuôn cho loại tài liệu đang viết → **dừng lại và hỏi** muốn chốt khuôn nào. Đừng lấy tạm một khuôn thiết kế rồi coi như đó là khuôn bàn giao — bịa một khuôn rồi để nó thành tiền lệ là cách một repo có hai hệ khuôn song song. Có khuôn rồi thì giữ nguyên khoá frontmatter và thứ tự mục của nó.
 6. **Dán nhãn trạng thái** đúng theo `CLAUDE.md` §4 cho mọi tuyên bố về hiện trạng.
 7. **Rà lại phần số đếm**: mỗi con số trong tài liệu, hỏi "cái này đếm được bằng lệnh không". Có → thay bằng lệnh.
 8. **Ghi ra câu hỏi còn mở.**
@@ -182,7 +186,7 @@ Chạy được: `bash .claude/check-docs.sh`, `dotnet test` (để biết trạ
 
 🛑 **Cấm** — xem `CLAUDE.md` §1: mọi lệnh git ghi.
 
-**Phạm vi ghi file của bạn:** file tài liệu bàn giao, ở nơi người dùng chỉ định hoặc theo mẫu ở `docs/Design/Templates/`. Bạn **không** sửa `src/`, **không** sửa `spec/`, **không** đổi quy ước trong `docs/quy-uoc/`.
+**Phạm vi ghi file của bạn:** file tài liệu bàn giao, ở nơi người dùng chỉ định. Bạn **không** sửa `src/`, **không** sửa `spec/`, **không** đổi quy ước trong `docs/quy-uoc/`.
 
 ---
 

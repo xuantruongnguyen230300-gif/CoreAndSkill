@@ -18,7 +18,7 @@ Danh sách này sinh ra từ nhu cầu thật của hệ quản trị, không ph
 
 | Component | Vai | Không có thì sao |
 | --- | --- | --- |
-| **Data grid** (server-side) | Bảng dữ liệu có phân trang, sắp xếp, lọc ở server | Mỗi màn danh sách tự nối phân trang với API theo cách riêng — và sai theo cách riêng |
+| **Bảng dữ liệu** (`DataTable`, server-side) | Bảng dữ liệu có phân trang, sắp xếp, lọc ở server | Mỗi màn danh sách tự nối phân trang với API theo cách riêng — và sai theo cách riêng |
 | **Form field** | Nhãn, ô nhập, chú thích, thông báo lỗi, dấu bắt buộc | Mỗi form đặt lỗi ở một chỗ khác nhau; người dùng phải học lại ở mỗi màn |
 | **Modal / dialog** | Khung hộp thoại, quản lý focus, đóng bằng phím Esc | Focus lọt ra sau nền mờ — lỗi tiếp cận nghiêm trọng và không ai thấy khi dùng chuột |
 | **Confirm** | Hỏi xác nhận trước thao tác không hoàn tác được | Mỗi màn tự dựng một dialog xác nhận, câu chữ mỗi nơi một kiểu |
@@ -90,12 +90,23 @@ Cổng ép luật này quét đúng các dòng ✔ làm allowlist. Thêm một �
 ## 3. Ba tầng component trong `shared/`
 
 ```
-shared/ui/           ← bọc thư viện UI. Mỏng. Không biết nghiệp vụ, không biết API.
-shared/components/   ← component ghép của mình (data grid, page header, empty state).
+shared/ui/           ← component "bọc PrimeNG". Không biết nghiệp vụ, không biết API.
+shared/components/   ← component "tự dựng" (page header, empty state, sidebar, topbar). Không import primeng/*.
 shared/directives/   ← hành vi tái dùng (autofocus, chặn double-submit, hiển thị theo quyền).
 ```
 
-Ranh giới giữa `shared/ui/` và `shared/components/`: `shared/ui/` **chỉ** bọc một component của thư viện; `shared/components/` ghép nhiều thứ lại thành một khối có nghĩa với sản phẩm. Trộn hai tầng này thì lớp bọc dần mang logic và mất tính "mỏng" vốn là lý do nó tồn tại.
+**Component thuộc thư mục nào — quy tắc máy kiểm được:** đọc cột **"Nền"** ở bảng component của [`../../Design/COMPONENTS.md`](../../Design/COMPONENTS.md).
+
+| Cột "Nền" ghi | Thư mục |
+| --- | --- |
+| `bọc PrimeNG` | `shared/ui/<tên-component>/` |
+| `tự dựng` | `shared/components/<tên-component>/` |
+
+Không có ca thứ ba, và không ai phải phán đoán: cột đó là nguồn, thư mục đuổi theo. Muốn đổi thư mục của một component thì đổi cột "Nền" ở `Design/` trước. Quy tắc này khớp thẳng với allowlist F5 ở §2.4 — chỉ `shared/ui/` được import `primeng/*`, nên một component "tự dựng" lỡ import thư viện UI sẽ đỏ cổng.
+
+**Chiều phụ thuộc giữa hai thư mục:** `shared/components/` dựng trên `shared/ui/`; `shared/ui/` **không** import `shared/components/` ([`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.2). Một lớp bọc ở `shared/ui/` được ghép lớp bọc khác **cùng thư mục** — `DataTable` bọc bảng của PrimeNG và ghép `Pagination` — còn nội dung trống và đang tải thì nó **nhận qua slot**: màn đặt `EmptyState`, `SkeletonLoader` vào slot của `DataTable` ([`../../Design/Components/DataTable.md`](../../Design/Components/DataTable.md)).
+
+Thứ giữ lớp bọc "mỏng" không phải số component bên trong, mà là hai thứ nó không được biết: **nghiệp vụ** và **API**. Lớp bọc biết một trong hai thì nó đã thành màn hình.
 
 ---
 
@@ -109,9 +120,9 @@ Ranh giới giữa `shared/ui/` và `shared/components/`: `shared/ui/` **chỉ**
 </app-button>
 ```
 
-Directive này thuộc `shared/directives/`, hỏi `PermissionService` ở `core/auth`, và **không** biết tên permission nào tồn tại — chuỗi do nơi gọi truyền vào.
+Directive này thuộc `shared/directives/`, hỏi `AuthService` ở `core/auth` ([`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §3.3–§3.4), và **không** biết tên permission nào tồn tại — chuỗi do nơi gọi truyền vào.
 
-**Chuỗi truyền vào phải là một khoá có thật trong danh mục quyền** ([`../../database/schema-core.md`](../../database/schema-core.md) §5.2). Một khoá tự chế trông vô hại: directive nhận chuỗi lạ, `PermissionService` không tìm thấy, và vì phân quyền là deny-by-default nên nút **biến mất với mọi người, kể cả tài khoản đủ quyền** — không lỗi, không cảnh báo, và người đọc template không có cách nào biết chuỗi đó sai.
+**Chuỗi truyền vào phải là một khoá có thật trong danh mục quyền** ([`../../database/schema-core.md`](../../database/schema-core.md) §5.2). Một khoá tự chế trông vô hại: directive nhận chuỗi lạ, `AuthService` không tìm thấy, và vì phân quyền là deny-by-default nên nút **biến mất với mọi người, kể cả tài khoản đủ quyền** — không lỗi, không cảnh báo, và người đọc template không có cách nào biết chuỗi đó sai.
 
 > 🛑 **Đây là tiện nghi giao diện, không phải bảo mật.** Người dùng vẫn gọi được API bằng công cụ khác. Kiểm quyền thật nằm ở BE ([`../../RULES.md`](../../RULES.md) S2), và luôn phải có kể cả khi FE đã ẩn nút. Xem [`14-security.md`](14-security.md) §2.
 
@@ -133,11 +144,18 @@ Một component dumb tự gọi API là một component **không dùng lại đ�
 
 Điều làm quy tắc này khó giữ là nó **không gây lỗi gì cả** khi vi phạm. Component vẫn chạy, màn hình vẫn đúng. Chi phí chỉ hiện ra sáu tháng sau, khi có người muốn dùng lại nó ở màn thứ hai và phát hiện không tách ra được. Vì thế nó cần một cổng, không phải một lời nhắc trong review.
 
-### 5.2 Ngoại lệ được biết trước
+### 5.2 Layout shell — smart ở `platform/`, dumb ở `shared/`
 
-Component của layout shell (topbar, sidebar) nằm ở `shared/components/` nhưng **cần** biết người dùng hiện tại và menu. Chúng là ngoại lệ có tên, khai tường minh trong cấu hình cổng kèm lý do và đường dẫn cụ thể — **không** nới rule chung.
+Layout shell cần biết người dùng hiện tại và menu. Nhu cầu đó nằm ở tầng smart, nên **không** component nào trong `components/` phải inject service:
 
-Nguyên tắc chung cho mọi ngoại lệ của mọi cổng FE: **loại trừ một đường dẫn cụ thể kèm lý do, đừng làm rule lỏng đi.** Rule lỏng thì lần sau không ai biết vì sao nó lỏng.
+| Phần | Nằm ở | Vai |
+| --- | --- | --- |
+| Khung shell | `platform/shell` | **Smart** — inject phiên và menu, truyền dữ liệu xuống |
+| `Sidebar`, `Topbar` | `shared/components/` | **Dumb** — "tự dựng" theo cột Nền (§3), không dùng PrimeNG; nhận dữ liệu qua `input()`, báo ra qua `output()` |
+
+Vì vậy luật F11 **không có allowlist đường dẫn**: cổng quét mọi thư mục `components/` và không tha đường dẫn nào. Thứ duy nhất được tha là vài token không lấy dữ liệu — DOM và vòng đời của chính component — ở bảng token của [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §8.8. Spec giao diện của hai component: [`../../Design/Components/Sidebar.md`](../../Design/Components/Sidebar.md), [`../../Design/Components/Topbar.md`](../../Design/Components/Topbar.md).
+
+Nguyên tắc chung khi một cổng FE thật sự cần ngoại lệ: **loại trừ một đường dẫn cụ thể kèm lý do, đừng làm rule lỏng đi.** Rule lỏng thì lần sau không ai biết vì sao nó lỏng.
 
 ---
 
@@ -190,7 +208,8 @@ Chi tiết ngưỡng và cách viết: [`06-testing-strategy.md`](06-testing-str
 ## 9. Kiểm chứng
 
 - [ ] Tìm `primeng/` trong `src/app` → chỉ còn kết quả trong các đường dẫn ✔ của allowlist §2.4 (luật F5)
-- [ ] Không component nào trong `components/` inject service lấy dữ liệu (luật F11)
+- [ ] Không component nào trong `components/` inject service lấy dữ liệu (luật F11) — kể cả `Sidebar`, `Topbar`
+- [ ] Mỗi component ở `shared/ui/` có cột Nền "bọc PrimeNG" ở `Design/COMPONENTS.md`; mỗi component ở `shared/components/` có cột Nền "tự dựng" (§3)
 - [ ] Không file nào trong `components/` hay `pages/` nhắc tới kiểu DTO (luật F10)
 - [ ] Không còn cú pháp Angular cũ trong toàn bộ `src/app` (luật F9)
 - [ ] Mọi `@for` có `track` với khoá ổn định (luật F13)
@@ -208,17 +227,17 @@ Chi tiết ngưỡng và cách viết: [`06-testing-strategy.md`](06-testing-str
 | Lớp bọc `shared/ui/` + allowlist §2.4 | ✅ sẽ có | Luật F5, pha F1 |
 | Bộ component ở §1 trừ upload | ✅ sẽ có | Sinh ra từ nhu cầu thật của F3 |
 | Directive hiển thị theo permission | ✅ sẽ có | §4 — tiện nghi giao diện, không phải bảo mật |
-| Ranh giới dumb / smart có cổng | ✅ sẽ có | Luật F10, F11 |
+| Ranh giới dumb / smart có cổng | ✅ sẽ có | Luật F10, F11 — F11 không allowlist đường dẫn (§5.2) |
 | Upload | ❌ chưa | Điều kiện: nghiệp vụ đầu tiên cần đính kèm (§7) |
 | Trình soạn thảo văn bản đa dạng thức | ❌ chưa | Điều kiện: có màn thật cần — và kèm làm sạch HTML ở BE |
 | Bảng chỉnh sửa tại chỗ | ✅ sẽ có | [`../../Design/Components/EditableGrid.md`](../../Design/Components/EditableGrid.md) — component riêng, không phải chế độ của lưới đọc. Điều kiện cấp bởi [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md) |
-| Bộ chọn khoảng ngày | ✅ sẽ có | [`../../Design/Components/Input.md`](../../Design/Components/Input.md) biến thể `daterange`. Cùng ADR |
+| Bộ chọn ngày, khoảng ngày | ✅ sẽ có | [`../../Design/Components/DatePicker.md`](../../Design/Components/DatePicker.md) — bọc PrimeNG. Cùng ADR |
 | Trình soạn thảo văn bản đa dạng thức | ❌ chưa | Điều kiện: có màn thật cần; cân nhắc đặt ở module nếu chỉ một nơi dùng |
 | Catalog component chạy được (Storybook hoặc tương đương) | ❌ chưa | Điều kiện: từ hai người trở lên cùng làm UI, hoặc có sản phẩm thứ hai dùng lại bộ này |
 | Base class cho component hoặc cho service | ❌ loại, không hoãn `K19` | [`01-core-components.md`](01-core-components.md) §9 — dùng composition; hàm dùng chung cho CRUD ở [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §5 |
 | Import thẳng thư viện UI từ màn nghiệp vụ | ❌ loại, không hoãn `K20` | Luật F5 |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

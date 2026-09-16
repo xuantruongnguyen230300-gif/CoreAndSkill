@@ -81,6 +81,8 @@ Cả hai đều hỏng, và cả hai đều hiếm — nên chúng sống rất 
 
 **Outbox đóng khe hở bằng cách biến hai việc thành một:** ghi dữ liệu và ghi bản ghi sự kiện vào **cùng một transaction**, trên cùng một DB. Transaction thành công thì cả hai cùng có; thất bại thì cả hai cùng không. Việc phát sự kiện đi được tách ra một tiến trình riêng, đọc bảng outbox và phát.
 
+Module có `DbContext` riêng, còn outbox nằm ở schema `core` — nên *"cùng một transaction"* chỉ đúng khi mọi `DbContext` tham gia chạy trên **một** kết nối và **một** transaction do đơn vị công việc điều phối: [`../../adr/0025-luu-du-lieu-module-mot-transaction.md`](../../adr/0025-luu-du-lieu-module-mot-transaction.md).
+
 ### 4.2 Hình dạng bảng outbox
 
 | Cột | Vai |

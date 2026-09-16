@@ -70,23 +70,15 @@ Phân theo thời gian có một lợi ích thêm: chính sách dọn dẹp theo
 
 ## 3. Siêu dữ liệu trong DB
 
-Mỗi file có một bản ghi trong DB: khoá lưu trữ, tên gốc, kiểu nội dung, kích thước, ai tải lên, lúc nào, và tham chiếu tới bản ghi nghiệp vụ nếu có.
+Mỗi file có một bản ghi trong DB — bảng `core.file`, cột ở [`../../database/schema-core.md`](../../database/schema-core.md) §9.7.
 
 > **Từ đây có hai nguồn sự thật — DB và nơi lưu file — và chúng sẽ lệch nhau.** Toàn bộ §5 nói về việc đó.
 
 ---
 
-### 3.1 Gắn file vào bản ghi nghiệp vụ — ba mức, chọn tường minh
+### 3.1 Gắn file vào bản ghi nghiệp vụ
 
-Người dùng thường tải file lên **trước khi** bản ghi nghiệp vụ tồn tại (họ đang điền form). Ba cách xử lý:
-
-| Cách | Luồng | Đánh đổi |
-| --- | --- | --- |
-| **Tải sau khi lưu** | Lưu bản ghi trước, rồi mới cho đính kèm | Đơn giản nhất, không có file mồ côi. Trải nghiệm kém với form dài |
-| **Tải lên vùng tạm, gắn khi lưu** | File vào vùng tạm kèm khoá phiên; khi lưu bản ghi thì chuyển sang vùng chính | Trải nghiệm tốt. Cần job dọn vùng tạm — xem §6 |
-| **Tải thẳng vào vùng chính, gắn sau** | File vào vùng chính ngay, tham chiếu điền sau | Sinh nhiều file mồ côi nhất; cần job đối soát chạy đều |
-
-Cách thứ hai là cân bằng tốt nhất cho ứng dụng quản trị. Điều quan trọng là **chọn tường minh cho từng luồng** — không chọn thì mỗi màn hình sẽ tự làm một kiểu, và job dọn dẹp không biết được file nào là rác, file nào đang chờ gắn.
+**Đã chốt một mức cho mọi luồng:** file vào vùng chính ngay khi tải lên; cặp `owner_table` / `owner_id` của `core.file` rỗng tới khi bản ghi chủ được lưu ([`../../luong/N2-dinh-kem-tep.md`](../../luong/N2-dinh-kem-tep.md) bước 5). File không bao giờ được gắn là việc của job đối soát §5.2.
 
 ---
 
@@ -156,13 +148,15 @@ Dòng thứ ba là dòng hay bị bỏ qua: mọi người viết khối dọn d
 
 ---
 
-## 7. Kích thước và giới hạn
+## 7. Kích thước và giới hạn — định nghĩa gốc
 
-| Giới hạn | Đặt ở đâu |
-| --- | --- |
-| Kích thước một file | Cả tầng máy chủ web và tầng ứng dụng |
-| Tổng kích thước một request nhiều file | Tầng ứng dụng |
-| Hạn mức theo người dùng hoặc theo bản ghi | Nghiệp vụ, nếu cần |
+| Giới hạn | Đặt ở đâu | Cơ chế |
+| --- | --- | --- |
+| Kích thước một file | Cả tầng máy chủ web và tầng ứng dụng | `[RequestSizeLimit]` hoặc `FormOptions.MultipartBodyLengthLimit` trên action nhận `IFormFile` — khai **tường minh**, không dựa mặc định ẩn của Kestrel. Giá trị ở khoá `Core:File:MaxUploadMb` |
+| Tổng kích thước một request nhiều file | Tầng ứng dụng | Cùng khoá `Core:File:MaxUploadMb`, nhân theo số tệp cho phép một lần gửi |
+| Hạn mức theo người dùng hoặc theo bản ghi | Nghiệp vụ, nếu cần | — |
+
+**Mọi action nhận `IFormFile` phải khai giới hạn này tường minh, không để framework tự quyết bằng mặc định ẩn.** Thiếu nó thì action vẫn build, vẫn chạy — cho tới ngày có người gửi một tệp rất lớn: nội dung đã bị multipart parser buffer hết **trước khi** bất kỳ validator nào kiểm được gì, kể cả trần số dòng ở [`15-import-export.md`](15-import-export.md) §7 (`Core:Import:MaxRows`) — trần đó đếm dòng sau khi đã nhận hết file, không ngăn được request lớn.
 
 Đặt ở tầng máy chủ web là quan trọng: thiếu nó thì toàn bộ nội dung đã được nhận và ghi vào bộ nhớ hoặc đĩa **trước khi** ứng dụng có cơ hội từ chối.
 
@@ -184,7 +178,7 @@ Dòng cuối là chỗ hay bị phát hiện muộn — thường là trong chí
 
 ## 9. §Áp dụng
 
-> **Thuộc phạm vi v1** (chốt 2026-09-10) — [`01-core-components.md`](01-core-components.md) §5.1, mục A16.
+> **Thuộc phạm vi v1** (chốt 2026-09-10) — [`01-core-components.md`](01-core-components.md) §5.1, mục CA16.
 > Thi công ở pha **B4** ([`trien-khai/05-b4-tep-nhap-xuat-thong-bao.md`](trien-khai/05-b4-tep-nhap-xuat-thong-bao.md)); hợp đồng endpoint ở [`../../contracts/files.md`](../../contracts/files.md).
 
 | Hạng mục | Trạng thái | Ghi chú |

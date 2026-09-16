@@ -75,13 +75,14 @@ Chỗ code lệch spec. Theo [`../CLAUDE.md`](../CLAUDE.md) §5 thì **sửa cod
 
 | Tuyến | Khung | Component ghép | Nguồn câu chữ | Ảnh | Spec |
 | --- | --- | --- | --- | --- | --- |
-| `/nguoi-dung` | ứng dụng | PageHeader · Card · Toolbar · DataTable · Pagination | khoá i18n `nguoiDung.*` | chưa chụp | ✅ `Screens/02-nguoi-dung.md` |
+| `/quan-tri/nguoi-dung` | ứng dụng | PageHeader · Card · Toolbar · DataTable · Pagination | khoá i18n `nguoiDung.*` | chưa chụp | chưa có |
 
-Ba luật:
+Bốn luật:
 
 1. **Đếm bằng lệnh, không chép số.** Số màn là thứ đếm được, nên [`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §6 cấm chép. Ghi lệnh đếm ngay đầu file và tiêu chí PASS: *"số dòng trong bảng bằng số tuyến lệnh trả về"*.
 2. **Tuyến chuyển hướng và tuyến bắt-tất-cả không phải màn.** Chúng đổ về một trong các tuyến đã đếm.
 3. **Cột "Nguồn câu chữ" kiểm bằng lệnh**, không viết từ trí nhớ. Đây là ô đã sai thật ở dự án tiền nhiệm.
+4. **Cột "Spec" chỉ ghi đường dẫn tới file đã có.** Chưa có spec thì ghi `chưa có` — không ghi trước tên file, không đánh dấu hoàn thành cho tệp chưa tồn tại. Cùng lý do với ảnh ở §5: một tên file chờ viết trông giống hệt một spec đã xong.
 
 ---
 

@@ -6,8 +6,8 @@ verified: chua-doi-chieu
 
 # Contract card — Auth
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi card trong file này mang `Status: DRAFT`: chưa có `src/`,
-> BE chưa cam kết, ví dụ JSON là **phác thảo** chứ không phải body thật.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`, ví dụ JSON là **phác thảo** chứ không phải body
+> thật. BE đã cam kết endpoint nào: đọc dòng `Status:` của từng card.
 >
 > Envelope, `ErrorType` → HTTP, khuôn mã lỗi, phân trang: [`README.md`](README.md). Định nghĩa
 > đầy đủ: [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md). Card này không
@@ -22,9 +22,10 @@ verified: chua-doi-chieu
 
 | Thứ | Giá trị |
 | --- | --- |
-| Cookie phiên | Do Identity phát, `HttpOnly`, `Secure`, không đọc được từ JS |
+| Cookie phiên | Do scheme cookie ở `Core.Web` phát ([`../adr/0026-ranh-gioi-identity-va-cookie.md`](../adr/0026-ranh-gioi-identity-va-cookie.md)); `HttpOnly`, `Secure`, không đọc được từ JS |
 | Token CSRF | Nằm trong **thân** phản hồi của `GET /api/v1/core/antiforgery/token`. FE giữ **trong bộ nhớ** — **không** có cookie CSRF nào cho JS đọc |
 | Header CSRF | `X-XSRF-TOKEN` |
+| Header `Origin` | Request ghi mang `Origin` ngoài allowlist bị chặn **403 `CORE.AUTH.ORIGIN_REJECTED`**, kể cả khi token CSRF hợp lệ — lớp chặn: [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §7.2 |
 | FE phải bật | `withCredentials: true` cho mọi request |
 
 FE tự gắn header — cách gắn và vì sao không dùng cơ chế có sẵn của Angular:
@@ -33,6 +34,11 @@ FE tự gắn header — cách gắn và vì sao không dùng cơ chế có sẵ
 **Antiforgery áp theo METHOD, không theo endpoint.** Mọi `POST`/`PUT`/`PATCH`/`DELETE` phải mang
 `X-XSRF-TOKEN` — **kể cả `POST /api/v1/core/auth/login`**. Không có allowlist ngoại lệ, vì một
 allowlist là một danh sách sẽ dài dần và không ai rà lại.
+
+**Xác thực chạy trước antiforgery** — thứ tự ở
+[`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §3.1. Request ghi của một phiên
+đã hết hạn nhận **401 `CORE.AUTH.NOT_AUTHENTICATED`**, không phải 403
+`CORE.AUTH.CSRF_REJECTED`: FE đưa về màn đăng nhập, không lấy lại token rồi gửi lại.
 
 ### 1.1 🪤 Bẫy CSRF phải biết trước khi code FE
 
@@ -53,8 +59,10 @@ dự án tiền nhiệm, và triệu chứng của nó không gợi ra nguyên n
 
 ### 1.2 Trạng thái "bắt buộc đổi mật khẩu" chặn gần như mọi endpoint
 
-Khi người dùng có `mustChangePassword = true`, mọi endpoint trả **403
-`CORE.AUTH.PASSWORD_CHANGE_REQUIRED`**, trừ đúng bốn đường sau:
+Khi người dùng có `mustChangePassword = true`, mọi endpoint **có danh tính** và không mang
+`[AllowAnonymous]` trả **403 `CORE.AUTH.PASSWORD_CHANGE_REQUIRED`**, trừ đúng bốn đường sau
+(endpoint ẩn danh như `POST …/login` hay `POST …/client-errors` không bị kiểm — cùng khuôn với
+lớp antiforgery):
 
 | Đường được phép | Vì sao |
 | --- | --- |
@@ -71,7 +79,7 @@ mang mật khẩu tạm do người khác đặt, đó là lỗ thật.
 
 ## 2. `GET /api/v1/core/antiforgery/token`
 
-**Status:** DRAFT
+**Status:** AGREED — BE và FE cùng soát 2026-09-15
 **Quyền:** không cần đăng nhập · **không** bị rate-limit
 
 Phát hành request-token chống CSRF trong **thân** phản hồi, và set cookie **nội bộ** của antiforgery
@@ -88,7 +96,7 @@ envelope, không có ngoại lệ"* ở [`../quy-uoc/be-api-controller.md`](../q
   "success": true,
   "data": { "token": "CfDJ8Nl4…" },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000009"
+  "traceId": "36396a58d6ea4b4d48cd2a0ba88cf0b5"
 }
 ```
 
@@ -115,7 +123,7 @@ Không có nhánh lỗi nghiệp vụ.
 
 ## 3. `POST /api/v1/core/auth/login`
 
-**Status:** DRAFT
+**Status:** AGREED — BE và FE cùng soát 2026-09-15
 **Quyền:** không cần đăng nhập
 
 ### Request
@@ -124,17 +132,18 @@ Không có nhánh lỗi nghiệp vụ.
 {
   "tenantCode": "SO-GD",
   "userName": "an.nv",
-  "password": "…",
-  "rememberMe": false
+  "password": "…"
 }
 ```
 
 | Field | Kiểu | Bắt buộc | Ghi chú |
 | --- | --- | --- | --- |
-| `tenantCode` | string | ✔ | **Mã đơn vị.** Ô nhập cùng cấp với ô tên đăng nhập, điền **trước** khi xác thực |
+| `tenantCode` | string | ✔ | **Mã đơn vị.** Ô nhập cùng cấp với ô tên đăng nhập, điền **trước** khi xác thực. Khuôn và cách chuẩn hoá: [`tenants.md`](tenants.md) §2 — BE chuẩn hoá về chữ HOA trước khi tra, nên người dùng gõ thường vẫn khớp |
 | `userName` | string | ✔ | Tên đăng nhập, **không** phải email |
 | `password` | string | ✔ | |
-| `rememberMe` | bool | ✘ | Mặc định `false` |
+
+Request **không** có tuỳ chọn duy trì phiên: mọi phiên hết hạn sau cùng một khoảng không thao tác —
+`sessionMinutes` ở Response 200.
 
 > 🚨 **`tenantCode` là field BẮT BUỘC, không phải tuỳ chọn — bỏ nó ra là hỏng luồng đăng
 > nhập, không phải "thiếu một tiện ích".** Tên đăng nhập chỉ duy nhất theo cặp
@@ -148,13 +157,11 @@ Không có nhánh lỗi nghiệp vụ.
 > Sau khi đăng nhập, đơn vị đến từ claim trong phiếu, và **không** endpoint nào khác nhận
 > `tenantId`/`tenantCode` từ request (luật M2).
 
-**`rememberMe` mặc định `false` nằm ở bên an toàn có chủ đích:** client cũ chưa biết trường này
-nhận phiên **ngắn hơn**, không phải dài hơn.
-
-| `rememberMe` | Cookie |
-| --- | --- |
-| `false` | Cookie phiên — chết khi đóng trình duyệt |
-| `true` | Cookie 14 ngày, trượt theo hoạt động |
+**Tài khoản vận hành hệ thống cũng gõ mã đơn vị, như mọi người.** Mã của đơn vị hệ thống do người
+vận hành đặt qua cấu hình lúc cài đặt
+([`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)).
+Mã chỉ là điều kiện tra cứu: hệ thống nhận ra đơn vị hệ thống bằng cột `is_system`
+([`../database/schema-core.md`](../database/schema-core.md) §1.3), không bằng mã.
 
 ### Response 200
 
@@ -170,20 +177,30 @@ nhận phiên **ngắn hơn**, không phải dài hơn.
     "permissions": ["core.user.read", "core.user.write", "core.menu.read"],
     "mustChangePassword": false,
     "isSystemOperator": false,
-    "sessionMinutes": 30
+    "sessionMinutes": 30,
+    "preferredLanguage": "vi",
+    "tenantCode": "SO-GD",
+    "tenantName": "Sở Giáo dục và Đào tạo"
   },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000010"
+  "traceId": "e735e706bcd9c0efb3aaa352d9c0433e"
 }
 ```
 
 | Field | Kiểu | Ghi chú |
 | --- | --- | --- |
+| `id` | uuid | Định danh tài khoản — cột `id` của `core.app_user` ([`../database/schema-core.md`](../database/schema-core.md) §4.1) |
+| `userName` | string | Tên đăng nhập, **không** phải email |
+| `email` | string \| null | Cột `email` của `core.app_user` cho phép NULL ([`../database/schema-core.md`](../database/schema-core.md) §4.1). `null` ⇒ tài khoản chưa đặt email. Cùng kiểu với [`profile.md`](profile.md) §1 — FE không được giả định luôn có chuỗi |
+| `fullName` | string | Cột `full_name`, không NULL |
+| `preferredLanguage` | string \| null | Cột `preferred_language` của `core.app_user` ([`../database/schema-core.md`](../database/schema-core.md) §4.1). `null` ⇒ dùng ngôn ngữ mặc định của hệ thống. FE áp ngôn ngữ sau đăng nhập từ field này — [`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §7. Sửa qua [`profile.md`](profile.md) §2 |
+| `tenantCode` | string | Cột `code` của `core.tenant` ([`../database/schema-core.md`](../database/schema-core.md) §1.3) — đơn vị của phiên. Chỉ để **hiển thị**: không endpoint nào nhận lại nó (luật M2) |
+| `tenantName` | string | Cột `name` của `core.tenant` ([`../database/schema-core.md`](../database/schema-core.md) §1.3). Chỉ để **hiển thị** |
 | `roles` | string[] | **Tên vai trò từ database.** Dùng để **hiển thị**, không bao giờ để phân nhánh quyền (luật S2) |
-| `permissions` | string[] | Tập mã quyền hiệu lực. **Đây là thứ FE dùng để ẩn/hiện chức năng** |
+| `permissions` | string[] | **Tập quyền hiệu lực** của tài khoản, lấy từ đúng bộ kiểm quyền mà endpoint dùng để chặn — định nghĩa, gồm cả ca tài khoản mang `has_permission_bypass`: [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §4.3. **Đây là thứ FE dùng để ẩn/hiện chức năng.** Response không mang cờ bypass, và FE không có nhánh riêng cho nó |
 | `mustChangePassword` | bool | `true` ⇒ FE điều hướng thẳng sang màn đổi mật khẩu bắt buộc |
 | `isSystemOperator` | bool | `true` ⇒ tài khoản vận hành hệ thống ([`../adr/0017-khu-quan-tri-he-thong.md`](../adr/0017-khu-quan-tri-he-thong.md)). FE hiện khu quản trị đơn vị và **ẩn** mọi màn nghiệp vụ. Cờ này **không** nằm trong `permissions` — nó là đường phân quyền riêng, đúng như thiết kế |
-| `sessionMinutes` | int | Phiên sống bao lâu tính từ **request thành công gần nhất**. FE dùng để hẹn giờ cảnh báo sắp hết phiên — [`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md) §7.5. Chốt v1: **30**. Giá trị và lý do: [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §7.4 |
+| `sessionMinutes` | int | Phiên sống bao lâu tính từ **request gần nhất mang phiên hợp lệ** — kể cả request mà handler trả lỗi nghiệp vụ. Chốt v1: **30**. FE v1 **không** hẹn giờ cảnh báo theo trường này ([`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md) §10, hàng *Đếm ngược hết phiên*); trường vẫn nằm trong DTO để FE dùng khi hàng đó lật. Giá trị, cách cookie gia hạn ở mọi request mang phiên hợp lệ, và cái giá của nó: [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §7.4. Phiên còn một **trần tuyệt đối** tính từ lúc đăng nhập — hết trần thì 401 dù đang thao tác; giá trị và khoá cấu hình ở cùng mục đó, response không mang |
 
 > **Vì sao trả `permissions` chứ không để FE tự suy từ `roles`.** Suy từ `roles` đòi FE mang một
 > bản sao của ma trận quyền — bản sao đó sẽ lệch, và lệch theo chiều nguy hiểm: FE hiện một nút
@@ -196,20 +213,55 @@ nhận phiên **ngắn hơn**, không phải dài hơn.
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | `tenantCode`, `userName` hoặc `password` rỗng. Kèm `fieldErrors["TenantCode"]` / `["UserName"]` / `["Password"]` |
-| `CORE.AUTH.INVALID_CREDENTIALS` | `BusinessRule` | 422 | Sai mã đơn vị, đơn vị đã ngưng hoạt động, sai tên đăng nhập, hoặc sai mật khẩu — **bốn ca, một mã** |
-| `CORE.AUTH.LOCKED_OUT` | `BusinessRule` | 422 | Tài khoản đang bị khoá |
-| `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu hoặc sai `X-XSRF-TOKEN` |
-| `CORE.RATE_LIMIT.EXCEEDED` | `BusinessRule` | 429 | Chạm hạn mức. Kèm header `Retry-After` |
+| `CORE.AUTH.INVALID_CREDENTIALS` | `BusinessRule` | 422 | Sai mã đơn vị, đơn vị đã ngưng hoạt động, sai tên đăng nhập, hoặc sai mật khẩu — **bốn ca, một mã**. Sai mật khẩu nhận mã này **kể cả khi tài khoản đang bị khoá** |
+| `CORE.AUTH.LOCKED_OUT` | `BusinessRule` | 422 | Mật khẩu **đúng** nhưng tài khoản đang bị khoá — khoá tay của quản trị ([`users.md`](users.md) §8) hoặc khoá tự động sau nhiều lần sai liên tiếp |
+
+**Mã dùng chung** — `type` và HTTP tra ở §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | `tenantCode`, `userName` hoặc `password` rỗng, hoặc `userName` quá dài. Kèm `fieldErrors["TenantCode"]` / `["UserName"]` / `["Password"]` — mã từng ô ở bảng dưới |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.RATE_LIMIT.EXCEEDED` | Chạm hạn mức — theo IP, hoặc theo cặp mã đơn vị + tên đăng nhập (§10). Kèm header `Retry-After` |
+
+**Mã trong `fieldErrors` của `CORE.VALIDATION.FAILED`** — do validator gắn; nhóm mã dùng chung khai ở
+[`../quy-uoc/be-cqrs-handler.md`](../quy-uoc/be-cqrs-handler.md) §7.1:
+
+| Khoá | Mã trong `fieldErrors` | Khi nào |
+| --- | --- | --- |
+| `TenantCode` | `CORE.VALIDATION.REQUIRED` | Rỗng |
+| `UserName` | `CORE.VALIDATION.REQUIRED` | Rỗng |
+| `UserName` | `CORE.VALIDATION.MAX_LENGTH` — `messageParams` khoá `MaxLength` | Vượt trần độ dài; trần đi trong `messageParams`, card không chép |
+| `Password` | `CORE.VALIDATION.REQUIRED` | Rỗng |
 
 ### Ghi chú
 
-> **Vì sao `CORE.AUTH.LOCKED_OUT` KHÔNG gộp vào `CORE.AUTH.INVALID_CREDENTIALS`.** Thông điệp
-> riêng xác nhận tài khoản đó có thật, nên nhìn qua là một rò rỉ. Nhưng nó chỉ rò rỉ **một** tài
-> khoản sau nhiều lần đoán sai cho riêng nó — không liệt kê hàng loạt được.
+**Thứ tự kiểm — bước nào hỏng thì dừng ở đó:**
+
+| # | Kiểm | Hỏng thì trả |
+| --- | --- | --- |
+| 1 | Mã đơn vị tồn tại, đơn vị đang hoạt động | `CORE.AUTH.INVALID_CREDENTIALS` |
+| 2 | Tên đăng nhập tồn tại trong đơn vị đó | `CORE.AUTH.INVALID_CREDENTIALS` |
+| 3 | Mật khẩu đúng | `CORE.AUTH.INVALID_CREDENTIALS` — **kể cả khi tài khoản đang bị khoá** |
+| 4 | Tài khoản không bị khoá | `CORE.AUTH.LOCKED_OUT` |
+
+Hạn mức theo `LoginPartitionKey` (§10) không nằm trong bảng này — chỗ kiểm của nó:
+[`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §6.5.
+
+**Khoá tự động:** ngưỡng số lần sai liên tiếp và thời gian khoá khai ở cấu hình
+`Core:Identity:Lockout`; giá trị mặc định ở
+[`../wiki-core/be/02-identity-auth.md`](../wiki-core/be/02-identity-auth.md) §4.2. Card không chép
+con số.
+
+> **Vì sao `CORE.AUTH.LOCKED_OUT` chỉ trả khi mật khẩu đúng.** Người không biết mật khẩu — kể cả
+> người đang dò — luôn nhận `CORE.AUTH.INVALID_CREDENTIALS`, nên mã khoá không xác nhận với họ rằng
+> tài khoản có thật. Báo khoá cho một mật khẩu sai thì ngược lại: cố tình gõ sai tới ngưỡng rồi đọc
+> mã là đủ biết một tên đăng nhập tồn tại.
 >
-> Đổi lại, gộp hai mã khiến người dùng thật bị khoá không hiểu chuyện gì và thử lại liên tục, mà
-> mỗi lần thử lại **gia hạn khoá**. Đó là một vòng lặp người dùng không tự thoát được.
+> Người nhận được `CORE.AUTH.LOCKED_OUT` là người đã gõ đúng mật khẩu, và họ cần một câu riêng.
+> Gộp vào "sai thông tin đăng nhập" thì người dùng thật bị khoá tưởng mình gõ sai, thử lại liên tục
+> và không biết phải đi tìm quản trị.
 >
 > Đường liệt kê hàng loạt thật là **chênh lệch thời gian phản hồi** giữa "user không tồn tại" và
 > "user tồn tại, sai mật khẩu" — vá đường đó, đừng vá bằng cách làm thông điệp mơ hồ. Xem
@@ -225,42 +277,51 @@ nhận phiên **ngắn hơn**, không phải dài hơn.
 > Hệ quả cho FE: **không** tô đỏ riêng ô mã đơn vị khi nhận mã này. Tô riêng một ô là làm lộ
 > đúng thứ việc gộp mã đang che.
 
-> **Đừng nhầm 429 với `CORE.AUTH.LOCKED_OUT` (422).** 422 là **tài khoản** bị khoá, cần quản trị
-> mở. 429 là **người gọi** đang bị siết, tự hết sau khoảng thời gian trong `Retry-After`.
+> **Đừng nhầm 429 với `CORE.AUTH.LOCKED_OUT` (422).** 422 là **tài khoản** bị khoá — hết khi quản
+> trị mở khoá, hoặc khi hết thời gian của khoá tự động. 429 là **người gọi** đang bị siết, tự hết
+> sau khoảng thời gian trong `Retry-After`.
+
+Bổ sung mã `fieldErrors` 2026-09-16 — không đổi hình dạng request/response, `Status` giữ nguyên.
 
 ---
 
 ## 4. `POST /api/v1/core/auth/logout`
 
-**Status:** DRAFT
-**Quyền:** `[Authorize]`
+**Status:** AGREED — BE và FE cùng soát 2026-09-15
+**Quyền:** `[AuthenticatedOnly("Đăng xuất — ai đã đăng nhập cũng phải thoát được")]`
 
-Không có body. Xoá cookie phiên phía server.
+Không có body. Xoá cookie phiên phía server — **chỉ phiên đang gọi**; phiên khác của cùng tài khoản trên máy khác giữ nguyên. Muốn chấm dứt mọi phiên: tự đổi mật khẩu (§6).
 
 ### Response 200
 
 ```json
-{ "success": true, "data": true, "error": null, "traceId": "0HNO9S8JAP586:00000011" }
+{ "success": true, "data": null, "error": null, "traceId": "7a713f908fc93d7d517d098b992aa704" }
 ```
 
 ### Lỗi
 
-| `code` | `type` | HTTP | Khi nào |
-| --- | --- | ---: | --- |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | Chưa đăng nhập |
-| `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu hoặc sai `X-XSRF-TOKEN` |
+**Mã dùng chung** — `type` và HTTP tra ở §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập, hoặc phiên đã hết hạn |
+| `CORE.AUTH.CSRF_REJECTED` | Phiên còn hiệu lực, thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Phiên còn hiệu lực, header `Origin` ngoài allowlist |
 
 ### Ghi chú
 
-Gọi khi đã hết phiên vẫn trả 401 chứ không 200 — FE nên coi cả hai là "đã đăng xuất" và dọn
-trạng thái cục bộ như nhau.
+Gọi khi đã hết phiên vẫn trả 401 chứ không 200 — kể cả khi token CSRF FE đang giữ đã cũ, vì xác
+thực chạy trước antiforgery (§1). FE nên coi cả hai là "đã đăng xuất" và dọn trạng thái cục bộ như
+nhau.
+
+**Giới hạn:** chưa có kho phiếu phía server ([`../wiki-core/be/02-identity-auth.md`](../wiki-core/be/02-identity-auth.md) §7), nên đăng xuất chỉ làm trình duyệt đang gọi bỏ cookie — một bản sao của cookie đó vẫn sống tới trần phiên tuyệt đối ([`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §7.4). Nghi cookie bị sao chép thì đổi mật khẩu (§6) để đổi security stamp.
 
 ---
 
 ## 5. `GET /api/v1/core/auth/me`
 
-**Status:** DRAFT
-**Quyền:** `[Authorize]`
+**Status:** AGREED — BE và FE cùng soát 2026-09-15
+**Quyền:** `[AuthenticatedOnly("Danh tính của chính phiên đang gọi")]`
 
 Thông tin người dùng của phiên hiện tại. FE gọi lúc khởi động để biết đã đăng nhập chưa.
 
@@ -280,18 +341,23 @@ Thông tin người dùng của phiên hiện tại. FE gọi lúc khởi độn
     "permissions": ["core.user.read", "core.user.write", "core.menu.read"],
     "mustChangePassword": false,
     "isSystemOperator": false,
-    "sessionMinutes": 30
+    "sessionMinutes": 30,
+    "preferredLanguage": "vi",
+    "tenantCode": "SO-GD",
+    "tenantName": "Sở Giáo dục và Đào tạo"
   },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000012"
+  "traceId": "bd68c7e68becd7f8eec1c5f9340aac1a"
 }
 ```
 
 ### Lỗi
 
-| `code` | `type` | HTTP | Khi nào |
-| --- | --- | ---: | --- |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | Chưa đăng nhập, hoặc phiên đã hết hạn |
+**Mã dùng chung** — `type` và HTTP tra ở §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập, hoặc phiên đã hết hạn |
 
 ### Ghi chú
 
@@ -306,8 +372,8 @@ Core là redirect sang trang đăng nhập — hành vi đúng cho ứng dụng 
 
 ## 6. `POST /api/v1/core/auth/change-password`
 
-**Status:** DRAFT
-**Quyền:** `[Authorize]` — dùng khi người dùng **tự nguyện** đổi mật khẩu
+**Status:** AGREED — BE và FE cùng soát 2026-09-15
+**Quyền:** `[AuthenticatedOnly("Đổi mật khẩu của chính mình")]` — dùng khi người dùng **tự nguyện** đổi mật khẩu
 
 ### Request
 
@@ -321,18 +387,32 @@ Core là redirect sang trang đăng nhập — hành vi đúng cho ứng dụng 
 ### Response 200
 
 ```json
-{ "success": true, "data": true, "error": null, "traceId": "0HNO9S8JAP586:00000013" }
+{ "success": true, "data": null, "error": null, "traceId": "ef249ca46fa87d26fcbc490d4f71fe96" }
 ```
 
 ### Lỗi
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | Thiếu field, hoặc `newPassword` trùng `currentPassword` |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | Chưa đăng nhập |
-| `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.CHANGE_PASSWORD_FAILED` | `BusinessRule` | 422 | Identity từ chối — sai mật khẩu hiện tại, hoặc mật khẩu mới không đạt chính sách. **Lý do nằm ở `fieldErrors`** |
-| `CORE.USER.NOT_FOUND` | `NotFound` | 404 | Tài khoản bị xoá trong khi phiên còn sống |
+
+**Mã dùng chung** — `type` và HTTP tra ở §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | Thiếu field — kèm `fieldErrors["CurrentPassword"]` / `["NewPassword"]`; hoặc `newPassword` trùng `currentPassword` — kèm `fieldErrors["NewPassword"]`, mã trong bảng dưới |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` | Đang ở trạng thái §1.2 — endpoint này **không** nằm trong bốn đường được phép; đường đúng lúc đó là §7 |
+| `CORE.CONCURRENCY.CONFLICT` | Bản ghi tài khoản bị một thao tác khác ghi xong trước khi request này ghi — `concurrency_stamp` của Identity đổi |
+
+**Mã trong `fieldErrors` của `CORE.VALIDATION.FAILED`** — do validator gắn, gốc envelope mang
+`type: "Validation"`, HTTP 400:
+
+| Mã trong `fieldErrors` | Khoá | Khi nào |
+| --- | --- | --- |
+| `CORE.AUTH.NEW_PASSWORD_SAME_AS_CURRENT` | `NewPassword` | `newPassword` trùng `currentPassword` |
 
 **`CORE.AUTH.CHANGE_PASSWORD_FAILED` — chi tiết đi qua `fieldErrors`:**
 
@@ -351,14 +431,15 @@ Core là redirect sang trang đăng nhập — hành vi đúng cho ứng dụng 
                            { "code": "CORE.AUTH.PASSWORD_REQUIRES_DIGIT", "messageParams": null } ]
     }
   },
-  "traceId": "0HNO9S8JAP586:00000014"
+  "traceId": "78e72a44b160bd7f1a9c763c6420d720"
 }
 ```
 
 > **Ánh xạ mã Identity đi theo MÃ, không theo endpoint.** `CORE.AUTH.PASSWORD_MISMATCH` nói về
 > mật khẩu **hiện tại**, nên nó rơi vào `CurrentPassword`, không phải `NewPassword`. Mã không
-> thuộc ô nhập nào (ví dụ một xung đột concurrency — nó nói về **bản ghi**) rơi vào khoá
-> `"$record"`; khoá đó cố ý bắt đầu bằng `$` để không bao giờ trùng tên một property thật.
+> thuộc ô nhập nào rơi vào khoá dự phòng `"$record"`; khoá đó cố ý bắt đầu bằng `$` để không
+> bao giờ trùng tên một property thật. Hiện chưa mã nào của endpoint này rơi vào khoá đó —
+> xung đột concurrency **không** đi đường `fieldErrors` mà là 409 ở gốc envelope (§11).
 >
 > Mã Identity thô (`PasswordTooShort`, `PasswordMismatch`…) **không** đi thẳng ra dây: chúng
 > được ánh xạ sang mã của catalog, đúng khuôn `MIỀN.TÀI_NGUYÊN.LÝ_DO`. Một hệ đặt tên thứ hai
@@ -372,11 +453,12 @@ Core là redirect sang trang đăng nhập — hành vi đúng cho ứng dụng 
 | Phiên | Sau khi đổi mật khẩu thành công |
 | --- | --- |
 | Phiên đang gọi endpoint này | **Giữ nguyên** — không bị đăng xuất |
-| Mọi phiên khác của chính người đó | **Bị chấm dứt** trong khoảng một chu kỳ kiểm `SecurityStamp`; request kế tiếp của chúng trả 401 |
+| Mọi phiên khác của chính người đó | **Bị chấm dứt ở request kế tiếp** — `SecurityStamp` đổi, request đó trả 401. Cùng nhịp với khoá và đặt lại mật khẩu hộ ([`users.md`](users.md) §8, §9) |
 
 Đây là hành vi cố ý: đổi mật khẩu phải vô hiệu hoá phiên cũ, nhưng không có lý do gì đá người
-vừa **chủ động** đổi mật khẩu ra khỏi hệ thống. BE giữ phiên hiện tại bằng
-`SignInManager.RefreshSignInAsync` ngay sau khi đổi thành công.
+vừa **chủ động** đổi mật khẩu ra khỏi hệ thống. BE giữ phiên hiện tại bằng cách **cấp lại cookie
+phiên** ngay sau khi đổi thành công — cơ chế ở
+[`../adr/0026-ranh-gioi-identity-va-cookie.md`](../adr/0026-ranh-gioi-identity-va-cookie.md), hệ quả 4.
 
 **FE không cần tự gọi `logout` rồi bắt đăng nhập lại** — cookie hiện tại vẫn hợp lệ.
 
@@ -384,15 +466,16 @@ vừa **chủ động** đổi mật khẩu ra khỏi hệ thống. BE giữ phi
 
 ## 7. `POST /api/v1/core/auth/change-password-required`
 
-**Status:** DRAFT
-**Quyền:** `[Authorize]` — **chỉ dùng được khi `mustChangePassword = true`**
+**Status:** AGREED — BE và FE cùng soát 2026-09-15
+**Quyền:** `[AuthenticatedOnly("Đường thoát duy nhất khỏi trạng thái bắt buộc đổi mật khẩu")]` — **chỉ dùng được khi `mustChangePassword = true`**
 
 Đường thoát duy nhất khỏi trạng thái §1.2. Tách khỏi §6 vì ba lý do:
 
 1. Nó là endpoint **duy nhất** ngoài ba đường ở §1.2 mà middleware cho đi qua. Một endpoint riêng
    làm allowlist đó thành một danh sách đường dẫn cố định, không phải một điều kiện lồng trong
    logic.
-2. Sau khi thành công, nó đặt `must_change_password = false` — hành vi mà §6 **không** có.
+2. Sau khi thành công, nó đặt `must_change_password = false` — hành vi mà §6 **không** có (handler truyền
+   `clearMustChangePassword: true` vào seam ở [`../quy-uoc/be-entity-domain.md`](../quy-uoc/be-entity-domain.md) §7.1).
 3. Tập lỗi khác: nó từ chối khi người dùng **không** ở trạng thái bắt buộc đổi.
 
 ### Request
@@ -407,7 +490,7 @@ vừa **chủ động** đổi mật khẩu ra khỏi hệ thống. BE giữ phi
 ### Response 200
 
 ```json
-{ "success": true, "data": true, "error": null, "traceId": "0HNO9S8JAP586:00000015" }
+{ "success": true, "data": null, "error": null, "traceId": "cbd3d9b611d7e772465e0845084f9115" }
 ```
 
 Sau lệnh này, `GET /api/v1/core/auth/me` trả `mustChangePassword: false` và mọi endpoint khác mở
@@ -417,11 +500,18 @@ lại.
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | Thiếu field, hoặc `newPassword` trùng `currentPassword` |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | Chưa đăng nhập |
-| `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.PASSWORD_CHANGE_NOT_REQUIRED` | `BusinessRule` | 422 | Người dùng **không** ở trạng thái bắt buộc đổi — dùng §6 |
 | `CORE.AUTH.CHANGE_PASSWORD_FAILED` | `BusinessRule` | 422 | Identity từ chối. `fieldErrors` như §6 |
+
+**Mã dùng chung** — `type` và HTTP tra ở §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | Thiếu field, hoặc `newPassword` trùng `currentPassword` (`fieldErrors["NewPassword"]` mang `CORE.AUTH.NEW_PASSWORD_SAME_AS_CURRENT`). Khoá và mã như §6 |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.CONCURRENCY.CONFLICT` | Như §6 — `concurrency_stamp` của tài khoản đổi trước khi request này ghi |
 
 ### Ghi chú
 
@@ -429,15 +519,26 @@ lại.
 buộc đổi mật khẩu" trở thành hình thức: người dùng nhập lại đúng mật khẩu tạm, cờ tắt, và mật
 khẩu do người khác biết vẫn còn hiệu lực.
 
+**Ảnh hưởng tới phiên: như §6.** BE **cấp lại cookie phiên** cho phiên đang gọi ngay sau khi đổi
+thành công, nên người dùng đi thẳng vào ứng dụng mà không phải đăng nhập lại; mọi phiên khác của
+tài khoản bị chấm dứt. Bảng và cơ chế: §6, mục *Ghi chú — ảnh hưởng tới các phiên khác*.
+
+Thiếu bước cấp lại cookie thì `SecurityStamp` vừa đổi làm **chính phiên này** trượt ở request kế
+tiếp — người dùng bị đá ra đúng lúc vừa đổi mật khẩu xong.
+
 ---
 
 ## 8. `POST /api/v1/core/auth/forgot-password`
 
+> 📐 **NGOÀI PHẠM VI v1.** Chốt (2026-09-14): v1 không có quên mật khẩu tự phục vụ — người dùng
+> liên hệ quản trị đơn vị, và quản trị đặt lại hộ ([`users.md`](users.md) §9). Card này và §9 ghi
+> ra để định hình sớm, không phải để thi công. Quyết định:
+> [`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md).
+
 **Status:** DRAFT
 **Quyền:** không cần đăng nhập
 
-Gửi thư chứa liên kết đặt lại mật khẩu. Endpoint này nằm trong allowlist ẩn danh ở
-[`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §5.
+Gửi thư chứa liên kết đặt lại mật khẩu.
 
 ### Request
 
@@ -460,7 +561,7 @@ khoản nào"* — [`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-mul
 ### Response 200
 
 ```json
-{ "success": true, "data": true, "error": null, "traceId": "0HNO9S8JAP586:00000017" }
+{ "success": true, "data": null, "error": null, "traceId": "91ef90fc054b28fc273c741a7e14eee9" }
 ```
 
 > 🚨 **Trả 200 kể cả khi không tìm thấy tài khoản nào.** Phân biệt "đã gửi" với "không có
@@ -472,11 +573,14 @@ khoản nào"* — [`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-mul
 
 ### Lỗi
 
-| `code` | `type` | HTTP | Khi nào |
-| --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | `tenantCode` hoặc `email` rỗng, `email` sai định dạng. Kèm `fieldErrors["TenantCode"]` / `["Email"]` |
-| `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu hoặc sai `X-XSRF-TOKEN` |
-| `CORE.RATE_LIMIT.EXCEEDED` | `BusinessRule` | 429 | Chạm hạn mức. Kèm header `Retry-After` |
+**Mã dùng chung** — `type` và HTTP tra ở §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | `tenantCode` hoặc `email` rỗng, `email` sai định dạng. Kèm `fieldErrors["TenantCode"]` / `["Email"]` |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.RATE_LIMIT.EXCEEDED` | Chạm hạn mức. Kèm header `Retry-After` |
 
 ### Ghi chú
 
@@ -486,6 +590,8 @@ vào hộp thư của người khác.
 ---
 
 ## 9. `POST /api/v1/core/auth/reset-password`
+
+> 📐 **NGOÀI PHẠM VI v1** — cùng quyết định với §8.
 
 **Status:** DRAFT
 **Quyền:** không cần đăng nhập — quyền đến từ **token** trong thư
@@ -507,7 +613,7 @@ vào hộp thư của người khác.
 ### Response 200
 
 ```json
-{ "success": true, "data": true, "error": null, "traceId": "0HNO9S8JAP586:00000018" }
+{ "success": true, "data": null, "error": null, "traceId": "9d406fdeb669a790b18640bdb28ece44" }
 ```
 
 Sau lệnh này, **mọi phiên đang mở của tài khoản đó bị chấm dứt** — `SecurityStamp` đổi. Khác
@@ -517,10 +623,16 @@ với §6, ở đây không có phiên nào để giữ lại.
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | Thiếu field |
-| `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.RESET_TOKEN_INVALID` | `BusinessRule` | 422 | Token sai, đã dùng, hoặc đã hết hạn — **ba ca, một mã** |
 | `CORE.AUTH.CHANGE_PASSWORD_FAILED` | `BusinessRule` | 422 | Mật khẩu mới không đạt chính sách. `fieldErrors` như §6 |
+
+**Mã dùng chung** — `type` và HTTP tra ở §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | Thiếu field |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 
 ### Ghi chú
 
@@ -537,15 +649,21 @@ khi server đã biết — đúng ca luật M2 cấm.
 
 Ba tầng **cộng dồn**, mốc chặt hơn chạm trước:
 
-| Tầng | Áp cho | Chặn được gì |
-| --- | --- | --- |
-| Toàn cục theo IP | **Mọi** endpoint, kể cả endpoint không khai gì | Quét/dò hàng loạt |
-| Riêng đăng nhập, theo IP | `POST /api/v1/core/auth/login` | Dò mật khẩu từ một máy |
-| Riêng đăng nhập, theo **tên đăng nhập** | `POST /api/v1/core/auth/login` | Dò phân tán từ nhiều IP vào một tài khoản — tầng thứ hai **không** bắt được ca này |
+| Tầng | Áp cho | Kiểm ở đâu | Chặn được gì |
+| --- | --- | --- | --- |
+| Toàn cục theo IP | **Mọi** endpoint, kể cả endpoint không khai gì | `UseRateLimiter` | Quét/dò hàng loạt |
+| Riêng đăng nhập, theo IP | `POST /api/v1/core/auth/login` | `UseRateLimiter` | Dò mật khẩu từ một máy |
+| Riêng đăng nhập, theo **`LoginPartitionKey`** | `POST /api/v1/core/auth/login` | **Trong handler đăng nhập**, qua seam `ILoginAttemptLimiter` | Dò phân tán từ nhiều IP vào một tài khoản — tầng thứ hai **không** bắt được ca này |
 
+Khoá của tầng thứ ba, seam giữ bộ đếm, exception khi vượt hạn mức và lý do tầng này nằm trong
+handler: [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §6.5.
 Con số cụ thể và thuật toán là của file chủ
 [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §6; card này không chép lại,
 vì con số chép ra chỗ thứ hai là con số sẽ lệch.
+
+**Cả ba tầng trả cùng một response khi vượt hạn mức** — 429 `CORE.RATE_LIMIT.EXCEEDED` kèm
+`Retry-After`, mục "Response 429" dưới đây. Người gọi không phân biệt được tầng nào đã chặn, và
+không cần phân biệt: cách xử lý là một.
 
 **Miễn rate-limit:** endpoint kiểm tra sức khoẻ và `GET /api/v1/core/antiforgery/token`. Siết
 endpoint token nghĩa là chặn đúng cái FE cần để gửi được request hợp lệ.
@@ -567,35 +685,56 @@ Retry-After: 47
     "messageParams": { "RetryAfterSeconds": "47" },
     "fieldErrors": null
   },
-  "traceId": "0HNO9S8JAP586:00000016"
+  "traceId": "f7cc4d6106a463d16b49085cd74493a4"
 }
 ```
 
-- Envelope này **dựng tay** ở `OnRejected` của rate limiter, không đi qua `Result` — nên luật R6
-  (envelope lỗi dựng tay luôn mang mã) áp thẳng vào đây. Nó là một trong các đường dựng envelope
-  ở [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §2.4.
+- Envelope này **không** đi qua `Result`. Hai tầng theo IP dựng nó tay ở `OnRejected` của rate
+  limiter; tầng thứ ba ném exception riêng từ handler và `IExceptionHandler` dựng envelope. Cả hai
+  đều là đường dựng envelope tay, nên luật R6 (envelope lỗi dựng tay luôn mang mã) áp thẳng vào
+  đây — danh sách đường ở [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §2.4.
 - **`type` là `"BusinessRule"`, và 429 là ca duy nhất mà `type` không suy ra được HTTP status.**
-  Ánh xạ `ErrorType` → HTTP ở file chủ đưa `BusinessRule` về 422; ở đây status do rate limiter
-  đặt (`RejectionStatusCode`), không do `ResultToHttpMapper`. FE vì vậy **không** được suy status
-  từ `type` — nó đọc status thật, và dùng `code` để phân nhánh. Trường `type` vẫn phải có mặt vì
-  hình dạng envelope không có nhánh thứ hai.
-- `Retry-After` (giây) lấy **từ metadata của limiter**, không hardcode — cửa sổ đổi thì giá trị
+  Ánh xạ `ErrorType` → HTTP ở file chủ đưa `BusinessRule` về 422; ở đây status do chính đường dựng
+  envelope đặt — `RejectionStatusCode` của rate limiter, hoặc `IExceptionHandler` ở tầng thứ ba —
+  không do `ResultToHttpMapper`. FE vì vậy **không** được suy status từ `type` — nó đọc status
+  thật, và dùng `code` để phân nhánh. Trường `type` vẫn phải có mặt vì hình dạng envelope không có
+  nhánh thứ hai.
+- `Retry-After` (giây) lấy **từ chính bộ đếm đã chặn**, không hardcode — cửa sổ đổi thì giá trị
   tự đi theo. Dùng chính con số này cho đồng hồ đếm ngược, đừng giả định 60.
 - **429 không còn là chuyện riêng của màn đăng nhập.** Bất kỳ màn nào cũng gặp được, nên xử lý nó
   ở interceptor chung chứ không ở màn đăng nhập.
 
 ---
 
-## 11. Bốn mã lỗi hạ tầng dùng chung
+## 11. Mã lỗi dùng chung — định nghĩa gốc
 
-| `code` | HTTP | Khi nào | FE nên làm gì |
-| --- | ---: | --- | --- |
-| `CORE.AUTH.NOT_AUTHENTICATED` | 401 | Chưa đăng nhập / hết phiên | Dọn trạng thái, đưa về màn đăng nhập |
-| `CORE.AUTH.FORBIDDEN` | 403 | Đã đăng nhập, thiếu quyền | Hiện thông báo thiếu quyền, **không** đưa về đăng nhập |
-| `CORE.AUTH.CSRF_REJECTED` | 403 | Thiếu/sai `X-XSRF-TOKEN` | Gọi lại `GET /api/v1/core/antiforgery/token` rồi thử lại **một** lần |
-| `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` | 403 | Đang ở trạng thái §1.2 | Điều hướng sang màn đổi mật khẩu bắt buộc |
+Mã mà **mọi** card đều có thể trả. Card của từng endpoint nhắc mã nào nó trả; ánh xạ mã → `type`
+→ HTTP của các mã này chỉ khai ở đây.
 
-**Ba mã 403 phải phân biệt được bằng `code`, không bằng `message`.** Chúng cùng HTTP status, cùng
-`type: "Forbidden"`, nhưng ba đường xử lý hoàn toàn khác nhau: một cái thử lại được, một cái phải
-điều hướng, một cái thì không làm gì được cả. Ở dự án tiền nhiệm, tài liệu từng viết rằng
+| `code` | `type` | HTTP | Khi nào | FE nên làm gì |
+| --- | --- | ---: | --- | --- |
+| `CORE.VALIDATION.FAILED` | `Validation` | 400 | Payload hoặc tham số không qua validator. Luôn kèm `fieldErrors` | Gắn lỗi vào đúng ô theo khoá `fieldErrors` |
+| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | Chưa đăng nhập / hết phiên | Dọn trạng thái, đưa về màn đăng nhập |
+| `CORE.AUTH.FORBIDDEN` | `Forbidden` | 403 | Đã đăng nhập, thiếu quyền | Làm mới tập quyền — quyền có thể vừa bị thu hồi ([`users.md`](users.md) §7) — rồi hiện thông báo thiếu quyền; **không** đưa về đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu/sai `X-XSRF-TOKEN` | Gọi lại `GET /api/v1/core/antiforgery/token` rồi thử lại **một** lần |
+| `CORE.AUTH.ORIGIN_REJECTED` | `Forbidden` | 403 | Request ghi mang header `Origin` ngoài allowlist — chặn ở lớp antiforgery, kể cả khi token hợp lệ ([`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §7.2) | Thông báo chung như nhóm `CORE.AUTH.*`; **không** gửi lại, **không** lấy lại token — `Origin` do trình duyệt gắn nên gửi lại vẫn bị chặn |
+| `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` | `Forbidden` | 403 | Đang ở trạng thái §1.2 | Interceptor làm mới phiên, guard điều hướng sang màn đổi mật khẩu bắt buộc — [`../quy-uoc/fe-routing-guard.md`](../quy-uoc/fe-routing-guard.md) §5.4 |
+| `CORE.RATE_LIMIT.EXCEEDED` | `BusinessRule` | 429 | Chạm hạn mức ở bất kỳ tầng nào của §10. Kèm header `Retry-After` (giây) | Xử lý ở interceptor chung, đếm ngược theo `Retry-After` |
+| `CORE.CONCURRENCY.CONFLICT` | `Conflict` | 409 | Request ghi trượt phép kiểm đồng thời: bản ghi đích đã bị một thao tác khác ghi xong giữa lúc handler đọc và lúc ghi. Token là `concurrency_stamp` của Identity với tài khoản ([`../database/schema-core.md`](../database/schema-core.md) §3.6), `xmin` với entity khác ([`../quy-uoc/be-entity-domain.md`](../quy-uoc/be-entity-domain.md) §6). Mô hình và cách bắt ở một chỗ: [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.1; token đi trên dây thế nào (field `version`): §6.3 cùng file. Card của từng endpoint ghi nhắc mã này; endpoint thay cả một tập có mã riêng ([`permissions.md`](permissions.md) §6) | **Không** tự gửi lại. Giữ nguyên dữ liệu người dùng đang nhập, nói rõ người khác vừa đổi bản ghi, cho tải lại rồi nhập lại — ba câu bắt buộc ở [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.2 |
+| `CORE.ROUTE.NOT_FOUND` | `NotFound` | 404 | Không route nào khớp | Bug của FE — **không** hiển thị như "bản ghi không tồn tại" |
+| `CORE.ROUTE.METHOD_NOT_ALLOWED` | `NotFound` | 405 | Sai verb. Kèm header `Allow` | Bug của FE |
+| `CORE.SYSTEM.UNEXPECTED` | `Unexpected` | 500 | Exception ngoài dự kiến — chỉ `IExceptionHandler` phát, không lộ chi tiết ([`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §2.4) | Toast lỗi hệ thống kèm `traceId`; không thử lại tự động |
+
+> **`CORE.ROUTE.NOT_FOUND` ≠ `CORE.USER.NOT_FOUND`.** Cùng HTTP 404, cùng `type: "NotFound"`.
+> `code` là thứ **duy nhất** phân biệt "FE gọi sai URL" (bug của FE) với "bản ghi không tồn tại"
+> (dữ liệu, cần hiển thị cho người dùng).
+>
+> **`CORE.ROUTE.METHOD_NOT_ALLOWED` mang `type: "NotFound"` dù HTTP là 405.** Không giá trị
+> `ErrorType` nào ứng với 405, trong khi envelope luôn mang trường `type`; với người gọi, sai verb
+> nghĩa là *"không có gì ở đây cho yêu cầu này"*. Như 429 ở §10, FE **không** suy status từ `type`
+> — nó đọc status thật và phân nhánh theo `code`.
+
+**Các mã 403 phải phân biệt được bằng `code`, không bằng `message`.** Chúng cùng HTTP status, cùng
+`type: "Forbidden"`, nhưng đường xử lý khác hẳn nhau: có mã thử lại được, có mã phải điều hướng, có
+mã phải làm mới tập quyền, có mã không gửi lại được. Ở dự án tiền nhiệm, tài liệu từng viết rằng
 *"message khác biệt là điểm phân biệt duy nhất"* — câu đó đã phải lật ngược.

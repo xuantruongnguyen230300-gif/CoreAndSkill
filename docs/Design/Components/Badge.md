@@ -97,15 +97,15 @@ Sáu dòng "không áp dụng" liên tiếp là **có chủ đích và là đi�
 | Hình dạng | `--radius-pill`, `--radius-sm`, `--border-w` |
 | Kích thước | `--icon-sm` |
 
-🛑 **`Badge` đặt trên nền `--color-surface-2` phải đổi viền sang `--color-border-strong`.** [`../DESIGN.md`](../DESIGN.md) §2.3 tính sẵn: `--color-border` trên `--color-surface-2` chỉ đạt 2.80:1 sáng và 2.68:1 tối — **trượt** ngưỡng 3:1 của SC 1.4.11; `--color-border-strong` ở cùng chỗ đạt 4.67:1 và 4.33:1. Đây là ca có thật, không phải giả định: một `Badge` viền nằm trong ô `th` của [`Table.md`](./Table.md), hoặc trong chân [`Card.md`](./Card.md). Component phải nhận biết được nền của mình — xem input `onSurface2` ở mục API.
+🛑 **`Badge` đặt trên nền `--color-surface-2` phải đổi viền sang `--color-border-strong`.** [`../DESIGN.md`](../DESIGN.md) §2.3 tính sẵn: `--color-border` trên `--color-surface-2` chỉ đạt 2.97:1 sáng và 2.68:1 tối — **trượt** ngưỡng 3:1 của SC 1.4.11; `--color-border-strong` ở cùng chỗ đạt 4.65:1 và 4.33:1. Đây là ca có thật, không phải giả định: một `Badge` viền nằm trong ô `th` của [`Table.md`](./Table.md), hoặc trong chân [`Card.md`](./Card.md). Component phải nhận biết được nền của mình — xem input `onSurface2` ở mục API.
 
 ## Responsive
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Cỡ theo khai báo; `Badge` đứng cùng dòng với chữ bên cạnh |
-| < `--bp-md` | Trong ô bảng, cỡ hạ xuống `sm` để cột trạng thái không ép các cột khác |
-| < `--bp-xs` | Bảng chuyển sang dạng thẻ ([`../DESIGN.md`](../DESIGN.md) §6.3); `Badge` xuống dòng riêng dưới tên bản ghi thay vì chen cùng dòng |
+| ≥ `$bp-md` | Cỡ theo khai báo; `Badge` đứng cùng dòng với chữ bên cạnh |
+| < `$bp-md` | Trong ô bảng, cỡ hạ xuống `sm` để cột trạng thái không ép các cột khác |
+| < `$bp-xs` | Bảng chuyển sang dạng thẻ ([`../DESIGN.md`](../DESIGN.md) §6.3); `Badge` xuống dòng riêng dưới tên bản ghi thay vì chen cùng dòng |
 
 🛑 **Không cắt nhãn `Badge` bằng dấu ba chấm ở màn nhỏ.** "Chờ duy…" và "Chờ duyệt lại" không phân biệt được, và nhãn trạng thái bị cắt là nhãn nói dối. Nhãn không vừa thì rút gọn **câu chữ** ở tầng i18n, không rút gọn bằng CSS.
 
@@ -155,6 +155,6 @@ Không có output nào, và đó là điểm chính: component này không tươ
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Có cần biến thể nền đặc (chữ `--color-text-on-brand` trên `--color-danger`) không? [`../DESIGN.md`](../DESIGN.md) §2.5 đã tính sẵn tương phản cho ca này, nhưng một mảng đỏ đặc lặp ở mỗi hàng bảng nặng hơn nhiều so với nền nhạt | Dự án đầu tiên cần nhấn mạnh mạnh hơn |
-| 2 | Cờ `onSurface2` có cách nào ép được bằng máy không? Quên nó là lỗi im lặng, và cổng FE ở [`../../RULES.md`](../../RULES.md) §7 hiện không có luật nào bắt được | Người viết cổng FE, ở giai đoạn có code để kiểm |
-| 3 | `Badge` chỉ có số (đếm thông báo trên icon chuông) là biến thể của component này hay một thứ riêng? Nó tròn, không có nhãn chữ, và vì vậy vi phạm luật "màu không phải kênh duy nhất" theo một cách khác — cần quyết trước khi có màn thông báo | Dự án đầu tiên có thông báo |
+| 1 | Có cần biến thể nền đặc (chữ `--color-text-on-brand` trên `--color-danger`) không? [`../DESIGN.md`](../DESIGN.md) §2.5 đã tính sẵn tương phản cho ca này, nhưng một mảng đỏ đặc lặp ở mỗi hàng bảng nặng hơn nhiều so với nền nhạt | Sau F3 — dự án hạ nguồn đầu tiên cần nhấn mạnh mạnh hơn |
+| 2 | Cờ `onSurface2` có cách nào ép được bằng máy không? Quên nó là lỗi im lặng, và cổng FE ở [`../../RULES.md`](../../RULES.md) §7 hiện không có luật nào bắt được | F1 — khi dựng `Badge` và bật cổng FE |
+| 3 | `Badge` chỉ có số (đếm thông báo trên icon chuông) là biến thể của component này hay một thứ riêng? Nó tròn, không có nhãn chữ, và vì vậy vi phạm luật "màu không phải kênh duy nhất" theo một cách khác — cần quyết trước khi có màn thông báo | Sau F3 — khu thông báo trong ứng dụng |

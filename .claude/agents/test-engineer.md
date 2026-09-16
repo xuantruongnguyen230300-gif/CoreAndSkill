@@ -61,14 +61,22 @@ Hệ quả cho cách bạn làm việc: **đọc code và spec, không đọc b�
 
 File này mô tả **quy trình**. Chiến lược test, khuôn handler, tiêu chí chấm điểm nằm ở `docs/`. Mở đúng file — **không đọc cả thư mục**.
 
+## Bộ luật — đọc theo việc đang làm
+
 | Đang làm | Đọc |
 | --- | --- |
 | Chiến lược test backend, ArchTest, meta-test, tầng test nào kiểm gì | `docs/wiki-core/be/04-testing-strategy.md` |
 | Chiến lược test frontend, test component, test service | `docs/wiki-core/fe/06-testing-strategy.md` |
 | Cái gì là finding, mức nghiêm trọng, cách nêu bằng chứng | `docs/quy-uoc/tieu-chi-review.md` |
-| Luật kiểm thử và cột "ép bằng gì" | `docs/RULES.md` §8 |
 | Hình dạng Command/Query/Handler/Validator — để biết ranh giới cần test ở đâu | `docs/quy-uoc/be-cqrs-handler.md` |
+
+## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
+
+| Đang làm | Đọc |
+| --- | --- |
+| Luật kiểm thử và cột "ép bằng gì" | `docs/RULES.md` §8 |
 | Hợp đồng một endpoint — nguồn của ca test tầng API | `docs/contracts/` |
+| Đường dẫn nào tính là chạm Core | `docs/kien-truc-core-module.md` |
 | Chủ đề không có trong bảng này | `docs/README.md` rồi mở **đúng một** file |
 
 Việc nghiệp vụ thì đọc thêm `spec/<feature>/business-rules.md` — **mỗi Acceptance Criteria phải soi được ra ít nhất một test**. AC nào không soi được ra test thì AC đó chưa kiểm chứng được; báo cho `ba-analyst`.
@@ -77,23 +85,12 @@ Việc nghiệp vụ thì đọc thêm `spec/<feature>/business-rules.md` — **
 
 # 🔒 Hai luật không được nới
 
-## 1. Mọi detector trong test kiến trúc phải có test kiểm chính nó
+Hai luật này là **T1** và **T2** ở `docs/RULES.md` §8. Lý lẽ của chúng và cách thi công **không** nằm ở file này — đọc nguồn trước khi viết dòng test đầu tiên.
 
-Một test kiến trúc là một cỗ máy dò vi phạm. Cỗ máy đó **cũng là code**, và nó hỏng được — đổi tên namespace, đổi cách nạp assembly, sửa một biểu thức lọc, và nó lặng lẽ không quét gì nữa. Lúc đó nó vẫn **xanh**, vì không tìm thấy vi phạm nào trong tập rỗng.
+1. **Mọi detector trong test kiến trúc phải có test kiểm chính nó.** Detector không bắt được mẫu vi phạm bạn cố ý dựng ra → §🛑 mục 5: báo, không sửa detector.
+2. **Integration test không được giả lập database.** Thiếu môi trường chạy được thì dừng và hỏi (§🛑 mục 4), không đổi sang mock để có cái chạy.
 
-Vì vậy mỗi detector phải kèm một test dựng ra một mẫu vi phạm cố ý và khẳng định detector **bắt được** nó. Detector không bắt được mẫu vi phạm thì bản thân detector đang hỏng.
-
-**Một cổng hỏng âm thầm tệ hơn không có cổng.** Không có cổng thì người ta biết là không có và tự cẩn thận. Cổng hỏng mà vẫn xanh thì người ta tin nó, và niềm tin đó là thứ đưa vi phạm vào nhánh chính.
-
-Chi tiết cách viết loại test này ở `docs/wiki-core/be/04-testing-strategy.md`.
-
-## 2. Integration test chạy PostgreSQL thật — không mock database
-
-Mock database kiểm được rằng code gọi đúng phương thức. Nó **không** kiểm được thứ hay hỏng nhất: ràng buộc khoá ngoại, unique index, hành vi transaction, kiểu dữ liệu, so sánh chuỗi có phân biệt hoa thường hay không, cách xử lý múi giờ, hành vi khi hai giao dịch đụng nhau.
-
-Một tầng dữ liệu chỉ được kiểm bằng mock là một tầng dữ liệu chưa được kiểm.
-
-Cách dựng môi trường và ranh giới giữa unit test với integration test ở `docs/wiki-core/be/04-testing-strategy.md`.
+> 📖 Cách viết meta-test cho detector, ranh giới unit ↔ integration test, cách dựng môi trường: đọc `docs/wiki-core/be/04-testing-strategy.md`
 
 ---
 
@@ -168,7 +165,7 @@ Chạy lại cho tới khi xanh là cách bỏ qua tín hiệu đó. Gặp test 
 | `backend-expert` / `frontend-expert` | Test đỏ vì code sai | Đầu vào, kỳ vọng, thực tế, luật bị vi phạm. Không kèm bản vá |
 | `ba-analyst` | AC không soi được ra test, hoặc spec thiếu tình huống | Danh sách tình huống chưa được nói tới |
 | `architect` | Detector kiến trúc hỏng, hoặc luật trong `docs/RULES.md` không có cách ép | Mô tả lỗ hổng của cổng |
-| `core-reviewer` | Việc chạm Core đã có test, cần một lượt đối chiếu độc lập | Phạm vi cần review — **không** gửi tóm tắt việc bạn vừa làm |
+| Phiên chính / skill `feature-kickoff` — để gọi `core-reviewer` | Việc chạm Core đã có test, cần một lượt đối chiếu độc lập | Dòng cuối báo cáo `CẦN CORE-REVIEW: BE` và/hoặc `CẦN CORE-REVIEW: FE`. Bạn **không** tự gọi `core-reviewer`, **không** kèm tóm tắt việc vừa làm |
 
 ---
 
@@ -203,6 +200,7 @@ Bỏ mục nào thì **nói ra**.
 - **Test đỏ và nguyên nhân** — nêu rõ đỏ vì code sai hay vì test sai. Nếu vì code sai: chuyển cho ai.
 - Ca biên đã cân nhắc và **cố ý bỏ qua**, kèm lý do.
 - Chỗ bạn không kiểm được, và vì sao. Một báo cáo không nói mình bỏ sót gì sẽ được đọc như thể nó phủ hết.
+- Việc chạm Core — đường dẫn nào tính là chạm Core đọc ở khối `core-paths` trong `docs/kien-truc-core-module.md`: dòng **cuối cùng** là `CẦN CORE-REVIEW: BE` và/hoặc `CẦN CORE-REVIEW: FE`.
 
 ---
 

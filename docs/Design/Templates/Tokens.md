@@ -110,9 +110,9 @@ Bốn token còn lại của họ brand giữ nguyên giá trị Core.
 | Bảng kiểm tương phản khi có đổi màu | ✅ **Bắt buộc** | Không có bảng này thì phần Ghi đè chưa xong |
 | Lý do cho mỗi token thêm mới | ✅ **Bắt buộc** | |
 | Xuất ra định dạng công cụ thiết kế | ⬜ Tuỳ chọn | Chỉ khi đội thiết kế dùng công cụ đó thật. Một file xuất không ai nhập vào đâu là một nguồn thứ hai sẽ lệch |
-| Bảng ánh xạ token → theme của thư viện UI | ⬜ Tuỳ chọn | Cần khi thư viện UI khai lại một phần bảng màu ở nơi khác |
+| Bảng ánh xạ token → theme của thư viện UI | ⬜ Tuỳ chọn | Cần khi dự án đè thêm component token của thư viện; mỗi giá trị trỏ một `var(--color-*)`, không mang mã màu |
 
-🛑 **Nếu thư viện UI khai lại bảng màu ở một chỗ thứ hai** (một hằng số preset trong TypeScript chẳng hạn), phải ghi rõ chỗ đó ngay trong file này. Đổi một chỗ mà quên chỗ kia thì CSS và thư viện component vẽ **hai màu khác nhau**, và **không có gì báo lỗi**. Đây là bẫy đã xảy ra thật ở dự án tiền nhiệm.
+🛑 **Preset của thư viện UI không giữ bảng màu.** Nó chỉ trỏ `var(--color-*)` — cơ chế ở [`../../wiki-core/fe/04-design-token-system.md`](../../wiki-core/fe/04-design-token-system.md) §7 — nên đổi token ở file này là đổi luôn màu của component thư viện. Một mã màu nằm trong preset hay trong hằng số TypeScript là **lỗi phải gỡ ở code**, không phải một chỗ thứ hai để ghi nhận: đổi một chỗ mà quên chỗ kia thì CSS và thư viện component vẽ **hai màu khác nhau**, và **không có gì báo lỗi**. Đây là bẫy đã xảy ra thật ở dự án tiền nhiệm.
 
 ---
 

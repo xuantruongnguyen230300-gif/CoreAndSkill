@@ -30,7 +30,7 @@ Chọn một nút trong một cấu trúc phân cấp, khi danh sách phẳng kh
 | Biến thể | Chọn được bao nhiêu | Dùng khi |
 | --- | --- | --- |
 | `single` | Đúng một nút | **Mặc định.** Chọn đơn vị cho một tài khoản, chọn tài khoản hạch toán |
-| `multiple` | Nhiều nút, mỗi nút thành một [`FilterChip.md`](./FilterChip.md) trong ô | Chọn nhiều đơn vị áp dụng cho một quy tắc |
+| `multiple` | Nhiều nút, mỗi nút thành một chip trong ô. Chip là phần cấu trúc của lớp bọc: thư viện vẽ, tạo hình bằng token theo hình thức của [`FilterChip.md`](./FilterChip.md) — [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5 | Chọn nhiều đơn vị áp dụng cho một quy tắc |
 | `cascade` | Nhiều nút, **chọn cha kéo theo toàn bộ con** | Phân quyền theo nhánh, nơi "cả phòng này" là một ý nghĩa thật |
 
 **`cascade` mang một câu hỏi phải trả lời ở tầng nghiệp vụ, không phải ở tầng giao diện:** khi gửi lên máy chủ, gửi **nút cha** hay gửi **danh sách con đã bung ra**? Hai cách cho kết quả khác nhau vào ngày có người thêm một đơn vị con mới — gửi cha thì đơn vị mới tự động nằm trong; gửi danh sách con thì không. Spec này không quyết thay; nó bắt màn hình dùng `cascade` phải khai rõ mình chọn cách nào.
@@ -56,7 +56,7 @@ Nút không chọn được **vẫn hiện, vẫn xoè ra được**, nhưng là
 
 Ba cỡ khớp thang chung ở [`../COMPONENTS.md`](../COMPONENTS.md) §2.2, vì khi đóng thì đây là một ô nhập và phải cao bằng các ô nhập cạnh nó.
 
-Lớp nổi: bề rộng tối thiểu bằng ô, tối đa 420px; chiều cao tối đa 320px rồi cuộn. Thụt lề mỗi cấp `--tree-indent` ([`../DESIGN.md`](../DESIGN.md) §6.1) — cùng giá trị với [`DataTable.md`](./DataTable.md) biến thể `tree`, để hai chỗ hiện cùng một cây trông giống nhau.
+Lớp nổi: bề rộng tối thiểu bằng ô, tối đa `--layout-dialog-w-sm`; chiều cao tối đa `--layout-popover-h-max` rồi cuộn — token dùng chung với [`Autocomplete.md`](./Autocomplete.md), khai ở [`../DESIGN.md`](../DESIGN.md) §6.1. Thụt lề mỗi cấp `--tree-indent` ([`../DESIGN.md`](../DESIGN.md) §6.1) — cùng giá trị với [`DataTable.md`](./DataTable.md) biến thể `tree`, để hai chỗ hiện cùng một cây trông giống nhau. Trạng thái xoè/thu nhớ **trong phiên, theo khoá nút** — cùng luật với [`DataTable.md`](./DataTable.md) công tắc `tree`.
 
 ## Trạng thái
 
@@ -67,19 +67,19 @@ Lớp nổi: bề rộng tối thiểu bằng ô, tối đa 420px; chiều cao t
 | `focus-visible` | `outline: var(--border-w-strong) solid var(--color-focus)`, `outline-offset: 2px` trên ô. Trong lớp nổi, dòng đang được bàn phím trỏ tới dùng nền `--color-brand-subtle` + chữ `--color-brand-on-subtle` | Có |
 | `active` | Lớp nổi đang mở: ô giữ vòng focus, mũi tên ở mép phải xoay 180° | Có |
 | `disabled` | Nền `--color-surface-3`, chữ `--color-text-disabled`, viền `--color-border`, con trỏ `not-allowed`. Thuộc tính `disabled` thật | Có |
-| `loading` | **Hai ca khác nhau.** *Mở lần đầu:* lớp nổi hiện ba dòng [`SkeletonLoader.md`](./SkeletonLoader.md). *Xoè một nhánh chưa tải:* **nút xoè của riêng nhánh đó** đổi thành `pi-spinner`, phần còn lại của cây vẫn dùng được. Cả hai mang `aria-busy` | Có |
-| `error` | Tải cây hỏng: lớp nổi hiện dòng lỗi màu `--color-danger` kèm nút "Thử lại"; ô giữ nguyên giá trị đang có. Lỗi **xác thực** của trường (bắt buộc mà bỏ trống) thì viền ô đổi `--color-danger` dày `--border-w-strong` và dòng lỗi hiện dưới ô qua [`FormRow.md`](./FormRow.md) | Có |
-| `empty` | **Ba ca phải phân biệt.** *Cây rỗng hoàn toàn:* "Chưa có đơn vị nào". *Lọc không khớp:* "Không có kết quả cho '…'" kèm nút xoá từ khoá. *Nhánh cha hoá ra không có con:* nút xoè **biến mất**, nút trở thành lá | Có |
+| `loading` | **Hai ca khác nhau.** *Mở lần đầu:* lớp nổi hiện `loadingTemplate` — màn ghép ba dòng [`SkeletonLoader.md`](./SkeletonLoader.md). *Xoè một nhánh chưa tải:* **nút xoè của riêng nhánh đó** đổi thành `pi-spinner`, phần còn lại của cây vẫn dùng được. Cả hai mang `aria-busy` | Có |
+| `error` | Tải cây hỏng: lớp nổi hiện `errorTemplate` — màn ghép dòng lỗi màu `--color-danger` kèm nút "Thử lại"; ô giữ nguyên giá trị đang có. Lỗi **xác thực** của trường (bắt buộc mà bỏ trống) thì viền ô đổi `--color-danger-border` dày `--border-w-strong` và dòng lỗi hiện dưới ô qua [`FormRow.md`](./FormRow.md) | Có |
+| `empty` | **Ba ca phải phân biệt.** Hai ca đầu, lớp nổi hiện `emptyTemplate` với ca rỗng trong context: *cây rỗng hoàn toàn* (`'empty'`) — "Chưa có đơn vị nào"; *lọc không khớp* (`'empty-filtered'`) — "Không có kết quả cho '…'" kèm nút xoá từ khoá. *Nhánh cha hoá ra không có con:* nút xoè **biến mất**, nút trở thành lá | Có |
 
 ## Token dùng
 
 | Nhóm | Token |
 | --- | --- |
-| Màu | `--color-surface`, `--color-surface-2`, `--color-surface-3`, `--color-text`, `--color-text-muted`, `--color-text-disabled`, `--color-border`, `--color-border-subtle`, `--color-border-strong`, `--color-brand`, `--color-brand-subtle`, `--color-brand-on-subtle`, `--color-danger`, `--color-focus` |
+| Màu | `--color-surface`, `--color-surface-2`, `--color-surface-3`, `--color-text`, `--color-text-muted`, `--color-text-disabled`, `--color-border`, `--color-border-subtle`, `--color-border-strong`, `--color-brand`, `--color-brand-subtle`, `--color-brand-on-subtle`, `--color-danger`, `--color-focus`, `--color-danger-border` |
 | Chữ | `--fs-2xs`, `--fs-xs`, `--fs-sm`, `--fs-md`, `--fw-medium`, `--lh-snug` |
 | Khoảng cách | `--sp-2`, `--sp-3`, `--sp-4`, `--sp-5` |
 | Hình dạng | `--radius-sm`, `--radius-md`, `--border-w`, `--border-w-strong` |
-| Kích thước | `--size-control-sm`, `--size-control-md`, `--size-control-lg`, `--icon-sm`, `--icon-md`, `--tree-indent` |
+| Kích thước | `--size-control-sm`, `--size-control-md`, `--size-control-lg`, `--icon-sm`, `--icon-md`, `--tree-indent`, `--layout-dialog-w-sm` (trần bề rộng lớp nổi — mượn bậc `sm` của thang bề rộng ở [`../DESIGN.md`](../DESIGN.md) §6.1, không đẻ bậc mới), `--layout-popover-h-max` |
 | Bóng, lớp | `--shadow-3`, `--z-popover` |
 | Icon | `pi-chevron-right` / `pi-chevron-down` để xoè-thu, `pi-search` cho ô lọc, `pi-spinner` khi tải — [`../Icons.md`](../Icons.md) §5 |
 
@@ -87,9 +87,9 @@ Lớp nổi: bề rộng tối thiểu bằng ô, tối đa 420px; chiều cao t
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Lớp nổi neo dưới ô, lật lên trên khi không đủ chỗ |
-| `--bp-sm` … `--bp-md` | Giữ nguyên; bề rộng lớp nổi bám theo bề rộng ô |
-| < `--bp-sm` | Lớp nổi chuyển thành [`Drawer.md`](./Drawer.md) neo đáy, cao tối đa 85vh, ô lọc dính đỉnh. Mỗi dòng cao tối thiểu `--size-control-lg` |
+| ≥ `$bp-md` | Lớp nổi neo dưới ô, lật lên trên khi không đủ chỗ |
+| `$bp-sm` … `$bp-md` | Giữ nguyên; bề rộng lớp nổi bám theo bề rộng ô |
+| < `$bp-sm` | Lớp nổi chuyển thành [`Drawer.md`](./Drawer.md) neo đáy, cao tối đa 85vh, ô lọc dính đỉnh. Mỗi dòng cao tối thiểu `--size-control-lg` |
 
 Ở màn nhỏ, thụt lề giảm còn một nửa `--tree-indent`. Cây bốn cấp với thụt lề đầy đủ trên màn 390px không còn chỗ cho nhãn.
 
@@ -120,6 +120,9 @@ Lớp nổi: bề rộng tối thiểu bằng ô, tối đa 420px; chiều cao t
 | `placeholder` | input | `string` | — | **Bắt buộc.** Nói rõ đang chọn cái gì: "Chọn đơn vị" |
 | `disabled` | input | `boolean` | `false` | |
 | `loading` | input | `boolean` | `false` | |
+| `loadingTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Nội dung lớp nổi khi mở lần đầu mà cây chưa về |
+| `emptyTemplate` | input | `TemplateRef<{ $implicit: 'empty' \| 'empty-filtered' }> \| null` | `null` | Nội dung lớp nổi khi cây rỗng hoặc lọc không khớp; `TreeSelect` biết ca nào vì ô lọc là của nó |
+| `errorTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Khối lỗi trong lớp nổi, gồm nút "Thử lại". Màn chỉ truyền khi tải cây hỏng — [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5 |
 | `valueChange` | output | `string \| string[]` | — | |
 | `nodeExpanded` | output | `string` | — | Phát khoá nhánh vừa xoè, để trang cha tải con nếu cần |
 
@@ -140,6 +143,5 @@ Lớp nổi: bề rộng tối thiểu bằng ô, tối đa 420px; chiều cao t
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Khi lọc, máy chủ trả về nhánh khớp **kèm tổ tiên** hay trả phẳng rồi client tự dựng lại cây? Trả kèm tổ tiên thì client đơn giản nhưng hợp đồng API phức tạp hơn | Người viết card hợp đồng cho danh mục đơn vị |
-| 2 | `cascade` gửi cha hay gửi danh sách con? Xem phần Biến thể. Đây là quyết định **nghiệp vụ**, và nó phải được chốt trước khi màn đầu tiên dùng biến thể này | `ba-analyst` của feature đầu tiên cần phân quyền theo nhánh |
-| 3 | Trạng thái xoè/thu có nhớ giữa hai lần mở ô không? Nhớ thì tiện khi sửa nhiều bản ghi liên tiếp; không nhớ thì mỗi lần mở là một cây sạch, dễ đoán hơn | Sau khi có màn thật |
+| 1 | Khi lọc, máy chủ trả về nhánh khớp **kèm tổ tiên** hay trả phẳng rồi client tự dựng lại cây? Trả kèm tổ tiên thì client đơn giản nhưng hợp đồng API phức tạp hơn | Sau F3 — dự án hạ nguồn đầu tiên có danh mục phân cấp (card hợp đồng của danh mục đó) |
+| 2 | `cascade` gửi cha hay gửi danh sách con? Xem phần Biến thể. Đây là quyết định **nghiệp vụ**, và nó phải được chốt trước khi màn đầu tiên dùng biến thể này | Sau F3 — `ba-analyst` của feature đầu tiên cần phân quyền theo nhánh |

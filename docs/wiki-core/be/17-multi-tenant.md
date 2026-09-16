@@ -109,7 +109,7 @@ modelBuilder.Entity(clrType).HasQueryFilter(e => !e.IsDeleted && e.TenantId == C
 // 🛑 SAI. Đây là một lỗ rò dữ liệu giữa hai cơ quan.
 var tenantId = tenantContext.TenantId;                     // chụp GIÁ TRỊ tại đây
 modelBuilder.Entity<MenuItem>()
-    .HasQueryFilter(TenantFilterKey, e => e.TenantId == tenantId);
+    .HasQueryFilter(CoreQueryFilters.TenantKey, e => e.TenantId == tenantId);
 ```
 
 `tenantId` là biến cục bộ, nên trình biên dịch nhúng **giá trị** của nó vào cây biểu thức, và model được cache. Kịch bản hỏng, đủ ba bước: (1) cán bộ Sở A đăng nhập, gọi request đầu tiên sau khi tiến trình khởi động — model được dựng, filter mang hằng số `TenantId = <A>`; (2) cán bộ Sở B đăng nhập, `ITenantContext` của request đó trả về `<B>` — **đúng**; (3) nhưng truy vấn của B dùng model đã cache, và model đó lọc theo `<A>` — **Sở B nhìn thấy dữ liệu của Sở A**. Không ngoại lệ, không log. Test tích hợp chạy một tenant duy nhất thì **xanh hoàn toàn**. Trên máy lập trình viên, nơi chỉ có một tenant, lỗi này không tồn tại.
@@ -119,13 +119,13 @@ modelBuilder.Entity<MenuItem>()
 Vế phải phải trỏ vào **instance `DbContext`**, không vào một giá trị:
 
 ```csharp
-public Guid CurrentTenantId => tenantContext.TenantId;   // ✅ dịch vụ Scoped theo request
+public Guid? CurrentTenantId => tenantContext.TenantId;  // ✅ dịch vụ Scoped theo request
 
 modelBuilder.Entity<MenuItem>()
-    .HasQueryFilter(TenantFilterKey, e => e.TenantId == CurrentTenantId);
+    .HasQueryFilter(CoreQueryFilters.TenantKey, e => e.TenantId == CurrentTenantId);
 ```
 
-EF Core nhận ra biểu thức chạm vào chính `DbContext` và xử lý nó khác hẳn một hằng số: lúc biên dịch truy vấn, nó thay tham chiếu đó bằng **instance đang chạy** và biến giá trị thành **tham số của câu SQL**, không phải hằng số nhúng trong model. SQL sinh ra mang `WHERE tenant_id = @__tenantId`, tham số nạp lại ở mỗi lần thực thi. Cùng lý do, code mẫu §3 dùng `Expression.Constant(this)` — nó nhúng **instance context**, không nhúng `Guid`.
+EF Core nhận ra biểu thức chạm vào chính `DbContext` và xử lý nó khác hẳn một hằng số: lúc biên dịch truy vấn, nó thay tham chiếu đó bằng **instance đang chạy** và biến giá trị thành **tham số của câu SQL**, không phải hằng số nhúng trong model. SQL sinh ra mang `WHERE tenant_id = @__tenantId`, tham số nạp lại ở mỗi lần thực thi. Cùng lý do, khối mẫu ở [`../../quy-uoc/be-entity-domain.md`](../../quy-uoc/be-entity-domain.md) §5.1 dùng `Expression.Constant(context, …)` — nó nhúng **instance context**, không nhúng `Guid`.
 
 Ba hệ quả bắt buộc. **`ITenantContext` đăng ký `Scoped`** — `Singleton` thì mọi request dùng chung một giá trị và bug quay lại y nguyên, chỉ đổi chỗ gây ra; `Scoped` là đúng, cùng vòng đời với `CoreDbContext` ([`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md)). **`CurrentTenantId` là property đọc mỗi lần**, không phải field gán trong constructor: field gán một lần vẫn chạy đúng ở đây vì context là scoped, nhưng nó tạo một khuôn dễ chép sang chỗ sai, ví dụ một `DbContext` lấy từ `IDbContextFactory`. Và **không để model phụ thuộc tenant** — cần dựng model **khác nhau** theo tenant thì `IModelCacheKeyFactory` **phải** được thay để khoá cache gồm cả tenant, nếu không mỗi tenant dùng lại model của tenant chạm vào tiến trình trước; nhưng câu trả lời đúng ở Core này là một model, một filter, chỉ giá trị tham số đổi.
 
@@ -154,19 +154,11 @@ public async Task QueryFilter_UsesTenantOfCurrentRequest_NotOfTheFirstOne()
 
 ## 5. Nguồn của `TenantId` — luật M2
 
-`TenantId` đến từ **claim trong phiếu xác thực**, gán một lần lúc đăng nhập, đọc qua `ICurrentUser.TenantId`. Chỗ **duy nhất** đọc `HttpContext` để lấy nó là `HttpContextCurrentUser` trong **`Core.Web`** ([`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §2.1); `ITenantContext` ở §3 lấy giá trị từ đúng nguồn đó.
+`TenantId` đến từ **claim trong phiếu xác thực**, gán một lần lúc đăng nhập, đọc qua `ITenantContext.TenantId` — **chỉ** seam đó mang đơn vị. Chỗ **duy nhất** đọc `HttpContext` để lấy nó là `HttpContextCurrentUser` trong **`Core.Web`** ([`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §2.1).
 
 > **Không phải `Core.Infrastructure`.** Project đó bị **cấm** chứa bất cứ thứ gì phụ thuộc `HttpContext` — bảng ranh giới project ở [`../../kien-truc-core-module.md`](../../kien-truc-core-module.md) §2. Đặt `HttpContextCurrentUser` vào Infrastructure là kéo cả `Microsoft.AspNetCore.Http` vào một project mà tầng dữ liệu và job nền cùng tham chiếu — job nền không có `HttpContext`, nên nó sẽ nhận một danh tính rỗng — và mọi lần ghi của nó bị interceptor từ chối (luật M8).
 
-```csharp
-// Core.Application — Application chỉ thấy interface này
-public interface ICurrentUser
-{
-    Guid   UserId   { get; }
-    Guid   TenantId { get; }
-    string UserName { get; }
-}
-```
+> 📖 Chữ ký `ICurrentUser` và `ITenantContext`, và vì sao chúng là hai seam: đọc [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1.
 
 > **Client tự khai tenant là client tự cấp quyền.**
 
@@ -194,8 +186,8 @@ Luật M3 canh bằng ArchTest `EveryUniqueIndex_OnTenantScoped_Includes_TenantI
 
 | Ca chính đáng | Ví dụ | Vì sao |
 | --- | --- | --- |
-| **Job nền toàn hệ** | Bộ phát outbox, bộ dọn dữ liệu hết hạn | Không chạy trong ngữ cảnh request nên không có tenant nào để lọc theo. Bộ phát outbox **đọc `TenantId` của chính dòng** rồi mở phạm vi ngữ cảnh thực thi của đơn vị đó trước khi giao event cho handler — [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1 |
-| **Quản trị vận hành** | Màn hình quản lý danh sách tenant, health check đếm bản ghi theo tenant | Đây là công việc **về** các tenant, không phải công việc **của** một tenant |
+| **Job nền toàn hệ** | Bộ phát outbox, bộ dọn dữ liệu hết hạn | Không chạy trong ngữ cảnh request nên không có tenant nào để lọc theo. Bộ phát outbox **đọc đơn vị và người kích hoạt ghi trên chính dòng** rồi mở phạm vi ngữ cảnh thực thi theo từng dòng trước khi giao event cho handler — [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1 |
+| **Quản trị vận hành** | Health check đếm bản ghi theo tenant | Đây là công việc **về** các tenant, không phải công việc **của** một tenant. Màn danh sách đơn vị **không** thuộc ca này: `core.tenant` không mang bộ lọc đơn vị nên không có gì để bỏ |
 | **Migration dữ liệu** | Backfill một cột mới cho toàn bảng | Chạy một lần, ngoài luồng người dùng |
 
 Không có ca thứ tư. Cụ thể **không** chính đáng: "báo cáo tổng hợp" (§1.1), "để tra cứu cho nhanh", "chỉ dùng ở màn hình quản trị của đơn vị".
@@ -205,20 +197,20 @@ Không có ca thứ tư. Cụ thể **không** chính đáng: "báo cáo tổng 
 Allowlist là một **danh sách trong code test**, không phải comment rải rác:
 
 ```csharp
-// Core.ArchTests/MultiTenancy/IgnoreQueryFiltersAllowlist.cs
+// CoreAndSkill.ArchTests/MultiTenancy/IgnoreQueryFiltersAllowlist.cs
 internal static class IgnoreQueryFiltersAllowlist
 {
     public static readonly IReadOnlyDictionary<string, string> Entries = new Dictionary<string, string>
     {
         ["Core.Infrastructure.Outbox.OutboxDispatcher.FetchPendingAsync"] =
             "Job nền chạy ngoài ngữ cảnh request — không có tenant nào để lọc theo.",
-        ["Core.Infrastructure.Tenancy.TenantAdminService.ListAllAsync"] =
-            "Màn hình quản trị danh sách tenant; endpoint gọi nó nằm trong allowlist vận hành.",
     };
 }
 ```
 
 Luật M5 canh bằng ArchTest `EveryIgnoreQueryFilters_IsOnTheAllowlist` — mọi lời gọi `IgnoreQueryFilters` trong source phải khớp một khoá trong danh sách.
+
+> 📖 Danh sách miễn trừ của luật M4 (bảng không mang `tenant_id`) dùng cùng hình thức thi công này; nội dung và lý do từng mục: đọc [`../../database/schema-core.md`](../../database/schema-core.md) §1.3.
 
 **Vì sao lý do phải nằm ngay tại chỗ khai:** một lời gọi bỏ bộ lọc đặt sai chỗ là lỗ rò **im lặng**. Người review thấy một dòng trong allowlist mà không biết vì sao nó ở đó sẽ mặc định coi nó hợp lệ — allowlist khi đó chỉ còn là danh sách phải cập nhật, không còn là cổng. Lý do viết ngay cạnh biến câu hỏi *"dòng này còn đúng không"* thành một câu trả lời được trong ba giây.
 
@@ -229,12 +221,12 @@ Luật M5 canh bằng ArchTest `EveryIgnoreQueryFilters_IsOnTheAllowlist` — m�
 ```csharp
 // Màn hình khôi phục dữ liệu đã xoá: BỎ lọc xoá mềm, GIỮ NGUYÊN lọc tenant
 var deleted = await db.MenuItems
-    .IgnoreQueryFilters([CoreDbContext.SoftDeleteFilterKey])
+    .IgnoreQueryFilters([CoreQueryFilters.SoftDeleteKey])
     .Where(x => x.IsDeleted)
     .ToListAsync(ct);
 ```
 
-`IgnoreQueryFilters()` không tham số gỡ **mọi** filter, tenant lẫn soft delete. Ở màn hình khôi phục dữ liệu, đó là một lỗ rò toàn phần cho nhu cầu chỉ cần gỡ một nửa. **Quy tắc:** dạng không tham số chỉ dùng ở ba ca trên; mọi ca khác phải nêu tên đúng filter cần gỡ.
+`IgnoreQueryFilters()` không tham số gỡ **mọi** filter, tenant lẫn soft delete. Ở màn hình khôi phục dữ liệu, đó là một lỗ rò toàn phần cho nhu cầu chỉ cần gỡ một nửa. **Quy tắc — luật B6:** dạng không tham số bị cấm ở **mọi** ca, kể cả các ca chính đáng ở §7. Mọi lời gọi nêu tên filter cần gỡ; cần gỡ cả hai thì liệt kê **cả hai** tên.
 
 ---
 
@@ -254,7 +246,7 @@ Bộ lọc toàn cục là cơ chế của EF Core, gắn vào cây biểu thứ
 var rows = await db.MenuItems
     .FromSql($"""
         SELECT * FROM core.menu_item
-        WHERE tenant_id = {currentUser.TenantId} AND is_deleted = false
+        WHERE tenant_id = {tenantContext.TenantId} AND is_deleted = false
           AND module_key = {moduleKey}
         """)
     .ToListAsync(ct);
@@ -277,7 +269,7 @@ Khi bộ lọc hoạt động đúng, truy vấn theo id của tenant khác tr�
 
 Với mã hồ sơ tuần tự (`HS-2026-0001`, `HS-2026-0002`…), khác biệt đó đủ để dựng lại **khối lượng hồ sơ, nhịp phát sinh và khoảng mã đang dùng** của mọi cơ quan khác — không cần đọc được một dòng nội dung nào. Cùng họ tấn công với dò tài khoản ở [`09-security-beyond-auth.md`](09-security-beyond-auth.md).
 
-Hệ quả cho code: handler **không** tự so `TenantId` — bộ lọc đã làm việc đó, và handler xử lý ca "không tìm thấy" đúng như ca bản ghi thật sự không tồn tại. Vì vậy **không có** nhánh `if (entity.TenantId != currentUser.TenantId) return Forbidden()`: nhánh đó vừa thừa vừa sai, vì nó chỉ chạy được khi bộ lọc đã bị bỏ — đúng chỗ không nên có nó. Mã lỗi trả về là mã "không tìm thấy" thông thường của catalog ([`16-i18n-va-ma-loi.md`](16-i18n-va-ma-loi.md)), không phải một mã riêng cho ca xuyên tenant; một mã riêng cũng là tín hiệu rò ra ngoài. Luật M7 canh bằng integration test `CrossTenantAccess_Returns_NotFound`.
+Hệ quả cho code: handler **không** tự so `TenantId` — bộ lọc đã làm việc đó, và handler xử lý ca "không tìm thấy" đúng như ca bản ghi thật sự không tồn tại. Vì vậy **không có** nhánh `if (entity.TenantId != tenantContext.TenantId) return Forbidden()`: nhánh đó vừa thừa vừa sai, vì nó chỉ chạy được khi bộ lọc đã bị bỏ — đúng chỗ không nên có nó. Mã lỗi trả về là mã "không tìm thấy" thông thường của catalog ([`16-i18n-va-ma-loi.md`](16-i18n-va-ma-loi.md)), không phải một mã riêng cho ca xuyên tenant; một mã riêng cũng là tín hiệu rò ra ngoài. Luật M7 canh bằng integration test `CrossTenantAccess_Returns_NotFound`.
 
 ---
 
@@ -294,12 +286,12 @@ Hệ quả cho code: handler **không** tự so `TenantId` — bộ lọc đã l
 
 | Thao tác | Đường | Ghi chú |
 | --- | --- | --- |
-| **Lần cài đặt đầu tiên** — đơn vị hệ thống, đơn vị nghiệp vụ đầu tiên, tài khoản vận hành đầu tiên | **Lệnh bootstrap chạy tay** ([`02-identity-auth.md`](02-identity-auth.md) §3.6) | Không có cách khác: chưa có tài khoản nào để đăng nhập vào bất kỳ màn hình nào |
+| **Lần cài đặt đầu tiên** — đơn vị hệ thống, đơn vị nghiệp vụ đầu tiên, tài khoản `superadmin` (vận hành, ở đơn vị hệ thống) và `admin` (quản trị, ở đơn vị nghiệp vụ đầu tiên) | **Lệnh bootstrap chạy tay** — máy dev và bản thật dùng **cùng một** lệnh; lệnh gọi service tạo đơn vị dùng chung với endpoint tạo đơn vị ([`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md) · [`02-identity-auth.md`](02-identity-auth.md) §3.6) | Không có cách khác: chưa có tài khoản nào để đăng nhập vào bất kỳ màn hình nào. Mã, tên hai đơn vị và thông tin hai tài khoản đọc từ cấu hình và `user-secrets`; thiếu một giá trị thì lệnh dừng, không ghi dòng nào; chạy lại không nhân đôi |
 | **Các đơn vị sau đó** — tạo, ngưng, bật lại | **Khu quản trị hệ thống**, bằng tài khoản vận hành | [`../../adr/0017-khu-quan-tri-he-thong.md`](../../adr/0017-khu-quan-tri-he-thong.md) · hợp đồng: [`../../contracts/tenants.md`](../../contracts/tenants.md) |
 
 Một câu `INSERT` viết tay **không** dựng nổi một đơn vị dùng được: bước 3 của §11.4 bắt buộc đi qua `UserManager` mới có mật khẩu băm hợp lệ, nên đơn vị tạo kiểu đó không ai đăng nhập được.
 
-**Đơn vị hệ thống là một dòng đặc biệt trong bảng đơn vị.** Nó không có dữ liệu nghiệp vụ và không nhận người dùng thường. Mọi chỗ liệt kê đơn vị cho người dùng chọn — kể cả form đăng nhập — phải **loại nó ra**; quên là lộ ra một đơn vị không có thật với người dùng.
+**Đơn vị hệ thống là một dòng đặc biệt trong bảng đơn vị**, nhận diện bằng cột `is_system` — không bằng mã. Nó không có dữ liệu nghiệp vụ và không nhận người dùng thường. Mã của nó do người vận hành đặt qua cấu hình lúc bootstrap; `superadmin` gõ mã đó vào ô mã đơn vị ở form đăng nhập như mọi người dùng khác. Mọi chỗ liệt kê đơn vị cho người dùng chọn phải **loại nó ra**; quên là lộ ra một đơn vị không có thật với người dùng.
 
 **Ngưng hoạt động chặn ở hai chỗ, không phải một:** ở bước đăng nhập, và ở bước dựng danh tính cho mỗi request. Chặn chỉ ở đăng nhập thì người đang có phiên vẫn dùng tiếp tới khi cookie hết hạn — mất đúng thứ "thu hồi tức thì" mà mô hình cookie ở [`02-identity-auth.md`](02-identity-auth.md) §1.3 chọn để có. Chặn chỉ ở mỗi request thì màn đăng nhập trả một lỗi chung chung thay vì một câu trả lời rõ ràng. Trạng thái tenant được đọc trên **mọi** request nên nó là ứng viên cache đầu tiên đáng cân nhắc — nhưng chỉ sau khi **đo** ([`11-performance-caching.md`](11-performance-caching.md)), và cache đó phải mất hiệu lực ngay khi cờ đổi, nếu không "ngưng hoạt động tức thì" lại thành "sau vài phút".
 
@@ -311,7 +303,7 @@ Cần giải phóng dung lượng thì đó là **thao tác lưu trữ có kiể
 
 ## 11. Ảnh hưởng lên Identity — phần thi công khó nhất
 
-> Mục cần đọc kỹ nhất sau §4. Không phải lý thuyết: đây là ba luồng thật phải viết khác đi.
+> Mục cần đọc kỹ nhất sau §4. Không phải lý thuyết: đây là những luồng thật phải viết khác đi.
 
 Hai cơ quan hoàn toàn có thể dùng chung một địa chỉ email (`vanthu@…`), và gần như chắc chắn có cùng tên đăng nhập (`admin`, `vanthu`, `ketoan`). Nên tên đăng nhập và email không còn duy nhất toàn hệ mà duy nhất theo cặp **(`TenantId`, giá trị chuẩn hoá)**. Hệ quả trên schema: hai index Identity tự khai (`UserNameIndex`, `EmailIndex`) phải được **khai lại với tập cột mới** trong `OnModelCreating`. Tên index giữ nguyên — [`../../database/schema-core.md`](../../database/schema-core.md) §4.0 cấm đổi **tên** chúng, không cấm đổi **định nghĩa**.
 
@@ -331,43 +323,37 @@ Hai cơ quan hoàn toàn có thể dùng chung một địa chỉ email (`vanthu
 2. Tra tenant theo mã đơn vị. Không tìm thấy, hoặc tìm thấy nhưng đã ngưng hoạt động → **trượt**, thông điệp giống hệt ca sai mật khẩu.
 3. Nạp `TenantId` vừa tra được vào `ITenantContext` của **request này**.
 4. **Chỉ sau bước 3** mới gọi `UserManager`. Từ đây bộ lọc tenant có hiệu lực và `FindByNameAsync` trả về đúng một người hoặc không ai.
-5. Kiểm mật khẩu, khoá tài khoản, cờ đổi mật khẩu lần đầu — [`02-identity-auth.md`](02-identity-auth.md) §4.
+5. Kiểm mật khẩu rồi khoá tài khoản theo thứ tự ở [`02-identity-auth.md`](02-identity-auth.md) §4.2, rồi cờ đổi mật khẩu lần đầu ở §4.3.
 6. Phát phiếu xác thực mang claim `TenantId`.
 
 > 🛑 **Bước 3 phải nằm trước bước 4.** Đảo lại thì `UserManager` chạy khi `ITenantContext` chưa có giá trị, và tuỳ cách khai giá trị rỗng, truy vấn hoặc trả rỗng (mọi người đều "sai mật khẩu") hoặc — tệ hơn nhiều — chạy như thể không có bộ lọc.
 >
 > Cách thay thế là cho luồng đăng nhập gọi `IgnoreQueryFilters` rồi tự thêm điều kiện tenant. Nó chạy được, nhưng thêm một mục vào allowlist §7 ở đúng luồng nhạy cảm nhất hệ thống. **Không chọn** — nạp ngữ cảnh trước rồi truy vấn bình thường là đường ít rủi ro hơn hẳn.
 
-### 11.2 Quên mật khẩu — gửi mail cho ai?
+### 11.2 Quên mật khẩu tự phục vụ — ngoài v1
 
-Một địa chỉ email có thể ứng với nhiều tài khoản ở nhiều tenant. Form chỉ hỏi email thì không có câu trả lời đúng cho *"đặt lại mật khẩu cho tài khoản nào"*.
+Luồng người dùng tự đặt lại mật khẩu qua email **không có ở v1** ([`../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md)). Người quên mật khẩu liên hệ quản trị đơn vị của mình, và quản trị đặt lại hộ — [`02-identity-auth.md`](02-identity-auth.md) §4.4.
 
-| Phương án | Đánh đổi |
-| --- | --- |
-| **Hỏi mã đơn vị + email**, đúng bộ ô như form đăng nhập | ✅ Chọn. Đúng một ứng viên, đúng một token, không gì mơ hồ. Giá phải trả: người dùng phải nhớ mã đơn vị — nhưng họ đã nhập nó ở form đăng nhập rồi |
-| Chỉ hỏi email, gửi **một mail cho mỗi tài khoản** khớp | Chạy được và không rò gì cho bên thứ ba (mọi mail đều tới đúng hòm thư đó). Nhưng nó nói cho chủ hòm thư biết họ có tài khoản ở những đơn vị nào — ở môi trường hành chính, đó có thể là thông tin nhạy cảm |
-| Chỉ hỏi email, chọn "tài khoản đăng nhập gần nhất" | ❌ Loại. Không đoán được từ phía người dùng; họ sẽ bấm lại nhiều lần mà không hiểu vì sao mail không tới đúng tài khoản mình cần |
-
-Ba ràng buộc giữ nguyên bất kể chọn phương án nào: **phản hồi luôn giống nhau** (sai mã đơn vị, sai email, hay đúng cả hai đều trả cùng một câu *"nếu thông tin đúng, một thư hướng dẫn đã được gửi"* — khác đi là mở đường dò tài khoản, [`09-security-beyond-auth.md`](09-security-beyond-auth.md)); **token gắn với đúng một `UserId`**, không gắn với email — Identity đã làm đúng điều này, đừng tự chế lại; và **luồng này cũng nạp `ITenantContext` trước khi truy vấn**, cùng lý do bước 3.
+Ràng buộc multi-tenant mà luồng này phải giải nếu có quyết định đưa nó vào: một địa chỉ email có thể ứng với nhiều tài khoản ở nhiều tenant, nên form chỉ hỏi email không trả lời được *"đặt lại mật khẩu cho tài khoản nào"*; và phản hồi phải giống nhau cho mọi ca ([`09-security-beyond-auth.md`](09-security-beyond-auth.md) §3).
 
 ### 11.3 Tài khoản bootstrap là bootstrap CỦA MỘT TENANT
 
-Cờ bootstrap ở [`02-identity-auth.md`](02-identity-auth.md) §3.6 giữ nguyên cơ chế, nhưng phạm vi đổi: tài khoản mang cờ đó bỏ qua kiểm **permission**, nó **không** bỏ qua bộ lọc tenant. Nó vẫn chỉ thấy dữ liệu của tenant mình. Phải nói rõ vì nó ngược trực giác *"tài khoản toàn quyền"*: trong mô hình này **không tồn tại** tài khoản nhìn được **dữ liệu nghiệp vụ** của mọi tenant. Việc quản trị chính các tenant đi qua khu hệ thống ở §10, bằng một tài khoản vận hành thuộc đơn vị hệ thống — nó thấy danh sách đơn vị, không thấy dữ liệu bên trong đơn vị nào ([`../../adr/0017-khu-quan-tri-he-thong.md`](../../adr/0017-khu-quan-tri-he-thong.md)).
+Cờ bootstrap ở [`02-identity-auth.md`](02-identity-auth.md) §3.6 giữ nguyên cơ chế, nhưng phạm vi đổi: tài khoản mang cờ đó bỏ qua kiểm **permission**, nó **không** bỏ qua bộ lọc tenant. Nó vẫn chỉ thấy dữ liệu của tenant mình. Phải nói rõ vì nó ngược trực giác *"tài khoản toàn quyền"*: trong mô hình này **không tồn tại** tài khoản nhìn được **dữ liệu nghiệp vụ** của mọi tenant. Việc quản trị chính các tenant đi qua khu hệ thống ở §10, bằng một tài khoản vận hành thuộc đơn vị hệ thống — nó thấy danh sách đơn vị, không thấy dữ liệu bên trong đơn vị nào ([`../../adr/0017-khu-quan-tri-he-thong.md`](../../adr/0017-khu-quan-tri-he-thong.md)). Thao tác duy nhất của nó chạm tới một tài khoản bên trong đơn vị là **khôi phục mật khẩu** cho một tài khoản quản trị của chính đơn vị đó, và thao tác ấy không trả dữ liệu nào — [`../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md). Tài khoản nào đủ điều kiện làm đích: [`../../contracts/tenants.md`](../../contracts/tenants.md) §4.
 
 ### 11.4 Seed cho một tenant mới
 
-Một dòng trong bảng tenant chưa dùng được. Tenant mới cần đủ bốn thứ, theo thứ tự:
+Một dòng trong bảng tenant chưa dùng được. Dựng một đơn vị dùng được là việc của **service tạo đơn vị dùng chung** — lệnh bootstrap và endpoint tạo đơn vị gọi cùng một service ([`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md)). Tenant mới cần đủ bốn thứ, theo thứ tự:
 
 | # | Thứ | Nguồn | Ghi chú |
 | --- | --- | --- | --- |
-| 1 | **Bộ vai trò mặc định** | Của **dự án**, không của Core ([`02-identity-auth.md`](02-identity-auth.md) §3.5) | Vai trò mang `TenantId` — mỗi tenant có bộ vai trò riêng, đặt tên riêng, sửa riêng |
-| 2 | **Ánh xạ vai trò → quyền** | Của dự án | Danh mục quyền là **dùng chung toàn hệ**; chỉ ánh xạ mới thuộc tenant |
-| 3 | **Tài khoản quản trị đầu tiên** | Lệnh bootstrap | Bắt buộc qua `UserManager.CreateAsync` — không tạo được mật khẩu hợp lệ bằng SQL ([`../../database/schema-core.md`](../../database/schema-core.md) §4.1). Mang `has_permission_bypass` và `must_change_password` ([`../../database/schema-core.md`](../../database/schema-core.md) §4.1) |
-| 4 | **Menu và danh mục nghiệp vụ** | Core seed menu của Core, module seed danh mục của module | Bản ghi menu mang `TenantId` — mỗi đơn vị chỉnh menu của mình mà không đụng đơn vị khác |
+| 1 | **Bộ vai trò mặc định** | Seam `ITenantSeedSource` — mọi đăng ký được gộp; Core không có hằng số vai trò ([`02-identity-auth.md`](02-identity-auth.md) §3.5) | Vai trò mang `TenantId` — mỗi tenant có bộ vai trò riêng, đặt tên riêng, sửa riêng. Không nguồn nào khai vai trò thì đơn vị chạy bằng tài khoản mang cờ bypass ở bước 3 |
+| 2 | **Ánh xạ vai trò → quyền** | Cùng seam | Danh mục quyền là **dùng chung toàn hệ**; chỉ ánh xạ mới thuộc tenant. Khoá quyền trong seed không có trong danh mục ⇒ tiến trình **không khởi động** |
+| 3 | **Tài khoản quản trị đầu tiên** | Service tạo đơn vị | Bắt buộc qua `UserManager.CreateAsync` — không tạo được mật khẩu hợp lệ bằng SQL ([`../../database/schema-core.md`](../../database/schema-core.md) §4.1). Mang `has_permission_bypass` và `must_change_password` ([`../../database/schema-core.md`](../../database/schema-core.md) §4.1) |
+| 4 | **Menu và danh mục nghiệp vụ** | Menu qua cùng seam — Core tự đăng ký menu của Core; danh mục nghiệp vụ do module seed | Bản ghi menu mang `TenantId` — mỗi đơn vị chỉnh menu của mình mà không đụng đơn vị khác |
 
-- **Seed chạy trong ngữ cảnh tenant vừa tạo** — mở phạm vi ngữ cảnh thực thi của tenant đó rồi mới ghi ([`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1). Ghi khi chưa có đơn vị thì interceptor §2 **từ chối lưu** (luật M8).
-- **Seed chạy lại được** mà không nhân đôi dữ liệu, cùng nguyên tắc idempotent ở [`13-core-data-migration.md`](13-core-data-migration.md). Mệnh đề `ON CONFLICT` phải lặp lại **nguyên văn** vị từ của index một phần, nay đã gồm cả `tenant_id`.
-- **Seed thất bại giữa chừng để lại tenant ở trạng thái ngưng hoạt động**, không phải một tenant "hoạt động nhưng thiếu menu". Tenant nửa vời là thứ không ai chẩn đoán được từ giao diện.
+- **Seed chạy trong ngữ cảnh tenant vừa tạo** — service tạo đơn vị mở phạm vi ngữ cảnh thực thi của tenant đó rồi mới ghi; nó là một trong số ít nơi luật A12 cho mở phạm vi ([`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1). Ghi khi chưa có đơn vị thì interceptor §2 **từ chối lưu** (luật M8).
+- **Seed chạy lại được** mà không nhân đôi dữ liệu, cùng nguyên tắc idempotent ở [`13-core-data-migration.md`](13-core-data-migration.md). Chỗ nào dùng `ON CONFLICT` thì mệnh đề phải lặp lại **nguyên văn** vị từ của index một phần, nay đã gồm cả `tenant_id`.
+- **Tạo đơn vị chạy trong một transaction** — đơn vị, vai trò, ánh xạ quyền, tài khoản quản trị, menu và các dòng nhật ký của lần tạo đó cùng commit, hoặc không dòng nào được ghi ([`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md)). Hỏng ở bước nào cũng không để lại đơn vị *"đã tạo nhưng thiếu seed"* — thứ không ai chẩn đoán được từ giao diện.
 
 ---
 
@@ -375,7 +361,7 @@ Một dòng trong bảng tenant chưa dùng được. Tenant mới cần đủ b
 
 Tên cổng của từng luật `M*` nằm ở cột *Ép bằng gì* của [`../../RULES.md`](../../RULES.md) §9 — nguồn duy nhất, không chép sang đây; giải thích từng luật canh điều gì ở [`04-testing-strategy.md`](04-testing-strategy.md) §2.2.
 
-Mỗi detector phải có một test `Detector_*` đối chứng chứng minh nó **bắt được** vi phạm (luật T1, [`04-testing-strategy.md`](04-testing-strategy.md)). Detector hỏng thì xanh vĩnh viễn, và ở nhóm luật này "xanh vĩnh viễn" nghĩa là hàng rào cách ly không tồn tại mà không ai biết. **Ca bắt buộc, không thay thế được bằng ArchTest:** *đăng nhập bằng tài khoản của tenant A, rồi gọi endpoint với id của một bản ghi thuộc tenant B.* Chạy end-to-end trên PostgreSQL thật (luật T2), qua đúng pipeline HTTP — không gọi thẳng handler. Đây là ca duy nhất chứng minh cả chuỗi hoạt động cùng nhau: claim → `ICurrentUser` → `ITenantContext` → query filter → kết quả rỗng → 404.
+Mỗi detector phải có một test `Detector_*` đối chứng chứng minh nó **bắt được** vi phạm (luật T1, [`04-testing-strategy.md`](04-testing-strategy.md)). Detector hỏng thì xanh vĩnh viễn, và ở nhóm luật này "xanh vĩnh viễn" nghĩa là hàng rào cách ly không tồn tại mà không ai biết. **Ca bắt buộc, không thay thế được bằng ArchTest:** *đăng nhập bằng tài khoản của tenant A, rồi gọi endpoint với id của một bản ghi thuộc tenant B.* Chạy end-to-end trên PostgreSQL thật (luật T2), qua đúng pipeline HTTP — không gọi thẳng handler. Đây là ca duy nhất chứng minh cả chuỗi hoạt động cùng nhau: claim → `ITenantContext` → query filter → kết quả rỗng → 404.
 
 | Biến thể | Mong đợi | Bắt được lỗi gì |
 | --- | --- | --- |
@@ -396,10 +382,12 @@ Mỗi detector phải có một test `Detector_*` đối chứng chứng minh n�
 | --- | --- | --- |
 | `ITenantScoped` + cột `TenantId`; bộ lọc toàn cục tên `Tenant` gắn bằng vòng lặp | ✅ sẽ có | Độc lập với `BaseEntity` (§2); hai filter đặt tên, không gộp một biểu thức (§3.1) |
 | `TenantId` đọc qua instance `DbContext` | ✅ sẽ có | Chống bẫy model cache — §4, mục nguy hiểm nhất của cả file |
-| Interceptor gán `TenantId` lúc `Added`, chặn sửa lúc `Modified` | ✅ sẽ có | §2. `TenantId` lấy từ claim của phiếu xác thực qua `ICurrentUser` — §5 |
-| Ô mã đơn vị trên form đăng nhập và form quên mật khẩu | ✅ sẽ có | §11.1, §11.2. **Không** phải màn chọn tenant |
+| Interceptor gán `TenantId` lúc `Added`, chặn sửa lúc `Modified` | ✅ sẽ có | §2. `TenantId` lấy từ claim của phiếu xác thực qua `ITenantContext` — §5 |
+| Ô mã đơn vị trên form đăng nhập | ✅ sẽ có | §11.1. **Không** phải màn chọn tenant |
 | Unique index gồm `TenantId` + mệnh đề `is_deleted`; allowlist `IgnoreQueryFilters` có lý do tại chỗ khai | ✅ sẽ có | §6 (ba thành phần, không phải hai) · §7.1 |
-| Vòng đời tenant + seed cho tenant mới chạy lại được | ✅ sẽ có | §10, §11.4 |
+| Vòng đời tenant + seed cho tenant mới chạy lại được | ✅ sẽ có | §10, §11.4. Lệnh bootstrap và endpoint tạo đơn vị dùng chung một service — [`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md) |
+| **Quên mật khẩu tự phục vụ** | ❌ chưa | §11.2. Ngoài v1 — [`../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md) |
+| **Số đơn vị dự kiến** | ✅ dưới 50 | Xem lại mô hình cột phân biệt đơn vị của [`../../adr/0013-multi-tenant.md`](../../adr/0013-multi-tenant.md) khi đạt **50 đơn vị**, hoặc khi **một** đơn vị vượt **1 triệu** bản ghi nghiệp vụ |
 | Bảy cổng M1–M7 kèm test `Detector_*` đối chứng | ✅ sẽ có | §12 |
 | **Xoá tenant** | ❌ loại, không hoãn `K05` | §10. Giải phóng dung lượng đi qua thao tác lưu trữ có kiểm soát |
 | **Báo cáo tổng hợp xuyên tenant** | ❌ loại, không hoãn `K06` | §1.1. Muốn lật thì viết ADR mới, không mở finding |

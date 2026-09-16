@@ -16,7 +16,7 @@ verified: chua-doi-chieu
 ## 1. `GET /api/v1/core/meta/menu`
 
 **Status:** DRAFT
-**Quyền:** `[Authorize]` — chỉ cần đăng nhập, không cần permission riêng
+**Quyền:** `[AuthenticatedOnly("Menu đã lọc theo tập quyền của chính người gọi — lọc là phân quyền của endpoint này")]` — chỉ cần đăng nhập, không cần permission riêng
 
 Trả cây điều hướng mà **người dùng hiện tại** được thấy. FE gọi một lần sau khi đăng nhập.
 
@@ -55,7 +55,7 @@ Trả cây điều hướng mà **người dùng hiện tại** được thấy.
     }
   ],
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000040"
+  "traceId": "33445c51ef759d0ae43bddaf586fae88"
 }
 ```
 
@@ -71,10 +71,12 @@ Trả cây điều hướng mà **người dùng hiện tại** được thấy.
 
 ### Lỗi
 
-| `code` | `type` | HTTP | Khi nào |
-| --- | --- | ---: | --- |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | Chưa đăng nhập. **JSON sạch, không 302 redirect** |
-| `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` | `Forbidden` | 403 | Đang ở trạng thái bắt buộc đổi mật khẩu ([`auth.md`](auth.md) §1.2) |
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập. **JSON sạch, không 302 redirect** |
+| `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` | Đang ở trạng thái bắt buộc đổi mật khẩu ([`auth.md`](auth.md) §1.2) |
 
 ### 1.1 Vì sao PHẲNG chứ không lồng sẵn cây
 
@@ -164,8 +166,9 @@ Hai đường xử lý, chọn một và ghi vào tài liệu triển khai của
 | Dọn khi gỡ module | Script gỡ module xoá mềm mọi mục menu mang `moduleKey` của nó | Cần nhớ chạy. Module quay lại thì seeder của nó dựng lại |
 | Lọc lúc chạy | Host khai danh sách module đang lắp; query menu bỏ qua mục có `moduleKey` không thuộc danh sách | Không phải nhớ gì, nhưng dữ liệu rác vẫn nằm trong database |
 
-**Chốt (2026-09-10): lọc lúc chạy.** Host khai danh sách module đang lắp; truy vấn menu bỏ qua
-mục có `moduleKey` không thuộc danh sách đó. Lý do: nó không phụ thuộc vào việc ai đó nhớ chạy một
+**Chốt (2026-09-10): lọc lúc chạy.** Danh sách module đang lắp là tập `moduleKey` của các nguồn
+`IPermissionCatalogSource` / `ITenantSeedSource` đã đăng ký ([`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §1.1) — host không khai tay; truy vấn menu bỏ qua
+mục có `moduleKey` không thuộc tập đó. Lý do: nó không phụ thuộc vào việc ai đó nhớ chạy một
 script — câu *"cơ chế nào không phụ thuộc trí nhớ"* là câu quyết định ở gần như mọi lựa chọn trong
 repo này.
 
@@ -177,9 +180,11 @@ vận hành, không phải điều kiện để menu hiển thị đúng.
 
 ## 2. Quản trị menu — 📐 chưa có endpoint
 
-Ở v1, menu là **dữ liệu seed**: Core cung cấp cơ chế, dự án cung cấp danh sách mục qua một seam
-mà host khai, và dữ liệu vào database qua bước seed
-([`../database/script-runbook.md`](../database/script-runbook.md) §6).
+Ở v1, menu là **dữ liệu seed**: Core cung cấp cơ chế và menu của chính Core, dự án cung cấp danh
+sách mục qua seam `ITenantSeedSource`, và dữ liệu vào database lúc **tạo đơn vị**, qua service tạo
+đơn vị dùng chung
+([`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)).
+Lắp module mới vào bản cài đã có đơn vị: chạy `core seed-tenant-defaults` — seed idempotent cho mọi đơn vị ([`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §3, bảng *Lệnh của runner*).
 
 **Không có `POST`/`PUT`/`DELETE` cho mục menu ở v1.** Lý do:
 
@@ -216,7 +221,7 @@ thay vì viết tay từng cột.
 ### 3.1 `GET /api/v1/core/meta/grid/{key}`
 
 **Status:** DRAFT · 📐 chưa thuộc v1
-**Quyền:** `[Authorize]`
+**Quyền:** `[AuthenticatedOnly("Metadata dựng màn hình — không chứa dữ liệu nghiệp vụ; quyền xem dữ liệu kiểm ở endpoint danh sách")]`
 
 ```json
 {
@@ -234,7 +239,7 @@ thay vì viết tay từng cột.
     ]
   },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000041"
+  "traceId": "0a236900b64e3ef0cc237c282476111d"
 }
 ```
 
@@ -244,7 +249,7 @@ thay vì viết tay từng cột.
 ### 3.2 `GET /api/v1/core/meta/form/{key}`
 
 **Status:** DRAFT · 📐 chưa thuộc v1
-**Quyền:** `[Authorize]`
+**Quyền:** `[AuthenticatedOnly("Metadata dựng màn hình — không chứa dữ liệu nghiệp vụ; quyền ghi kiểm ở endpoint nhận form")]`
 
 ```json
 {
@@ -260,7 +265,7 @@ thay vì viết tay từng cột.
     ]
   },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000042"
+  "traceId": "ec389edbd58d7f56bf9f8441728a2886"
 }
 ```
 
@@ -272,7 +277,12 @@ thay vì viết tay từng cột.
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
 | `CORE.META.KEY_NOT_FOUND` | `NotFound` | 404 | `{key}` không có trong danh mục metadata |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 
 ### 3.3 Ba câu phải trả lời trước khi chốt
 

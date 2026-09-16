@@ -109,6 +109,30 @@ Gắn mốc mà quên đăng ký → cổng đỏ, kèm `file:dòng`. Đăng ký
 | Seam mở rộng cho màn Core | `docs/quy-uoc/fe-architecture.md` | `Seam cho MÀN Core — định nghĩa gốc` |
 | Tầng giữ trạng thái màn danh sách | `docs/quy-uoc/fe-architecture.md` | `Trạng thái màn danh sách — định nghĩa gốc` |
 | Mã hướng khoá `K##` | `docs/wiki-core/README.md` | `Mã hướng khoá `K##` — định nghĩa gốc` |
+| Mã lỗi dùng chung của Core | `docs/contracts/auth.md` | `Mã lỗi dùng chung — định nghĩa gốc` |
+| Quyền của hai tài khoản database | `docs/database/script-runbook.md` | `Quyền của hai tài khoản database — định nghĩa gốc` |
+| Tập đường dẫn chạm Core (khối máy đọc) | `docs/kien-truc-core-module.md` | `Đường dẫn chạm Core — định nghĩa gốc` |
+| Khoá phân vùng rate limit đăng nhập | `docs/quy-uoc/be-api-controller.md` | ``LoginPartitionKey` — định nghĩa gốc` |
+| Chữ ký `ICurrentUser` và `ITenantContext` | `docs/quy-uoc/be-architecture.md` | `Danh tính và đơn vị của request — định nghĩa gốc` |
+| Xử lý phiên hết hạn phía FE | `docs/quy-uoc/fe-api-client.md` | ``SessionExpiryHandler` — định nghĩa gốc` |
+| Seam nguồn seed cho đơn vị mới | `docs/quy-uoc/be-architecture.md` | `Nguồn seed cho đơn vị mới — định nghĩa gốc` |
+| Tham số danh sách trên dây (phân trang, sắp xếp, lọc) | `docs/contracts/README.md` | `Tham số danh sách dùng chung: phân trang, sắp xếp, lọc — định nghĩa gốc` |
+| Ngoại lệ của luật E6 cho khoá quyền của module | `docs/database/migration-policy.md` | `Ngoại lệ có tên của E6: khoá quyền của module — định nghĩa gốc` |
+| Allowlist token được inject trong component dumb (F11) | `docs/wiki-core/fe/trien-khai/05-gate.md` | `Token được inject trong component dumb — định nghĩa gốc` |
+| Quy ước đặt khoá dịch phía FE | `docs/quy-uoc/fe-ui-conventions.md` | `Đặt khoá dịch — định nghĩa gốc` |
+| Interface audit cho kiểu không kế thừa `BaseEntity` | `docs/quy-uoc/be-entity-domain.md` | ``IAuditableEntity` cho kiểu không kế thừa `BaseEntity` — định nghĩa gốc` |
+| Khoá tài khoản: ngưỡng, thời hạn, cách đếm lần sai | `docs/wiki-core/be/02-identity-auth.md` | `Khoá tài khoản — định nghĩa gốc` |
+| Cách mang token đồng thời trên dây | `docs/wiki-core/be/06-concurrency-control.md` | `Token đồng thời trên dây — định nghĩa gốc` |
+| Bảng tệp đính kèm | `docs/database/schema-core.md` | ``core.file` — tệp đính kèm — định nghĩa gốc` |
+| Danh sách lệnh của runner dòng lệnh Core | `docs/quy-uoc/be-architecture.md` | `Lệnh của runner — định nghĩa gốc` |
+| Bảng việc chạy nền | `docs/database/schema-core.md` | ``core.job` — việc chạy nền — định nghĩa gốc` |
+| Token tầng 3 theo component | `docs/Design/DESIGN.md` | `Token tầng 3 theo component — định nghĩa gốc` |
+| Tập khoá cấu hình của lệnh bootstrap, tiền tố `Core:Bootstrap:` | `docs/database/script-runbook.md` | `Khoá cấu hình của lệnh bootstrap — định nghĩa gốc` |
+| Khởi động app và thiết lập phiên phía FE | `docs/quy-uoc/fe-routing-guard.md` | `khởi động và thiết lập phiên — định nghĩa gốc` |
+| Áp theme trước paint và nạp font | `docs/quy-uoc/fe-ui-conventions.md` | `Theme trước paint và font — định nghĩa gốc` |
+| Seam dựng principal, tên claim và các kiểu của phiên (`ISessionPrincipalFactory`, `CoreClaimTypes`, `LoginOutcome`, `SessionDto`) | `docs/quy-uoc/be-api-controller.md` | `Seam dựng principal và kiểu của phiên — định nghĩa gốc` |
+| Catalog mã lỗi mà hạ tầng HTTP ở `Core.Web` phát, và helper ghi envelope của chúng (`SecurityErrors`, `SecurityEnvelopeWriter`) | `docs/quy-uoc/be-api-controller.md` | `Catalog mã của hạ tầng HTTP — định nghĩa gốc` |
+| Giới hạn kích thước upload và khoá cấu hình `Core:File:MaxUploadMb` | `docs/wiki-core/be/14-file-storage.md` | `Kích thước và giới hạn — định nghĩa gốc` |
 
 > Bảng này **chưa phủ hết** mọi định nghĩa trong repo. Nó phủ những chỗ đã thật sự lệch. Thêm dòng khi phát hiện một định nghĩa bị nhân bản — đó là cách sổ này lớn lên, và mỗi dòng thêm vào là một lớp bảo vệ vĩnh viễn.
 
@@ -122,11 +146,18 @@ Một dòng chỉ được chuyển lên §3 **sau khi** chuỗi định danh đ
 
 | Chủ đề | File chủ đã chọn | Chuỗi định danh sẽ đặt |
 | --- | --- | --- |
-| — | — | — |
+| Allowlist endpoint ẩn danh (luật S4) | `docs/quy-uoc/be-api-controller.md` §5 | `Allowlist endpoint ẩn danh — định nghĩa gốc` |
+| Chữ ký `ILoginAttemptLimiter` | `docs/quy-uoc/be-api-controller.md` §6.5 | `Chữ ký ILoginAttemptLimiter — định nghĩa gốc` |
+| Luật lỗi hiện lúc nào, câu nào — hàm `fieldErrorText` | `docs/quy-uoc/fe-ui-conventions.md` §6.5 | `Hàm fieldErrorText — định nghĩa gốc` |
+| Biến thể của `EmptyState` | `docs/Design/Components/EmptyState.md` | `Biến thể EmptyState — định nghĩa gốc` |
+| Ba slot nội dung trạng thái của `DataTable` | `docs/Design/Components/DataTable.md` | `Ba slot nội dung trạng thái — định nghĩa gốc` |
+| Chip chỉ đọc của `Toolbar` (`readonlyChips`) | `docs/Design/Components/Toolbar.md` | `Chip chỉ đọc của Toolbar — định nghĩa gốc` |
 
-**Bảng này đang rỗng, và đó là trạng thái đúng.** Bảy dòng từng nằm ở đây (danh mục khoá phân quyền, hình dạng envelope, tiền tố đường dẫn, chữ ký `CoreDbContext`, thứ tự pipeline, vòng đời DI, danh sách project) đã đặt xong mốc ở file chủ và **đã chuyển lên §3** — cùng lượt với việc gỡ các bản sao của chúng ở file khác.
+**Các dòng trên mới chỉ chọn xong chủ.** Mỗi dòng là một định nghĩa mà hôm nay chỉ có **một** nguồn trong `docs/` — nhưng không nguồn nào mang mốc, nên bản sao đầu tiên của chúng sẽ không làm cổng đỏ. Việc còn lại là mở file chủ, gắn mốc `— định nghĩa gốc` vào đúng tiêu đề của phần định nghĩa, rồi chuyển dòng lên §3. Các file chủ ở đây thuộc phạm vi ghi của `backend-expert`, `frontend-expert` và `design-expert`, không thuộc phạm vi của người viết sổ.
 
-Rỗng **không** có nghĩa là repo đã hết định nghĩa bị nhân bản: nó có nghĩa là hết những chỗ **đã được chọn chủ mà chưa đặt mốc**. Chỗ chưa ai phát hiện thì không có dòng nào ở cả hai bảng — giới hạn đó nói ở §6.
+Một dòng chuyển lên §3 **trước khi** mốc thật sự nằm trong file chủ thì cổng báo ngay *"chuỗi không xuất hiện ở đâu cả — dòng này đang không canh gì"*. Đó là thứ tự bắt buộc, không phải khuyến nghị.
+
+Bảng này **không** phải danh sách đầy đủ những định nghĩa chưa được canh: nó chỉ chứa những chỗ **đã có người phát hiện và chọn chủ**. Chỗ chưa ai phát hiện thì không có dòng nào ở cả hai bảng — giới hạn đó nói ở §6.
 
 > **Vì sao bảng này tồn tại thay vì gộp vào §3:** bản đầu của sổ đưa cả tám dòng vào §3 khi mới có một mốc được đặt. Cổng lập tức báo bảy dòng *"đang không canh gì"* — đúng, và đó là bài học: một sổ đăng ký khai chủ quyền cho thứ chưa đánh dấu là đang mô tả **ý định**, không phải **thực tế**. Cùng lỗi mà [`../.claude/CLAUDE.md`](../.claude/CLAUDE.md) §4 cấm, chỉ khác chỗ áp.
 

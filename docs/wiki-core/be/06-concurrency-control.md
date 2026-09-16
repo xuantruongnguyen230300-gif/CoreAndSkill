@@ -128,7 +128,7 @@ Cách làm: **một token cho cả tập**.
 | Bước | Việc |
 | --- | --- |
 | Bắt ngoại lệ đồng thời | Ở đúng một chỗ, không rải trong từng handler |
-| Chuyển thành lỗi nghiệp vụ | Đây **không** phải lỗi hệ thống — nó nằm trong dự kiến. Trả `Result` thất bại với mã lỗi riêng, đúng luật R1 ở [`../../RULES.md`](../../RULES.md) |
+| Chuyển thành lỗi nghiệp vụ | Đây **không** phải lỗi hệ thống — nó nằm trong dự kiến. `IExceptionHandler` dịch `DbUpdateConcurrencyException` thành envelope 409 mã dùng chung `CORE.CONCURRENCY.CONFLICT` ([`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §2.4); handler không bắt — `type`, HTTP và việc FE phải làm khai ở [`../../contracts/auth.md`](../../contracts/auth.md) §11 — đúng luật R1 ở [`../../RULES.md`](../../RULES.md). Endpoint thay cả một tập (§5) có mã riêng của nó |
 | Ánh xạ sang HTTP | 409 |
 | Không tự thử lại | Thử lại tự động nghĩa là ghi đè thay đổi của người kia — đúng thứ đang muốn tránh |
 
@@ -143,6 +143,29 @@ Thông điệp phải trả lời được ba câu, nếu không người dùng 
 Mức tốt hơn, khi màn hình đáng đầu tư: hiển thị **những trường đã bị người khác đổi**, để người dùng không phải nhập lại toàn bộ. Đắt hơn nhiều, nên chỉ làm cho form dài.
 
 **Như mọi thông điệp khác:** BE trả **mã lỗi + tham số đặt tên**, FE ghép câu. Xem [`16-i18n-va-ma-loi.md`](16-i18n-va-ma-loi.md).
+
+### 6.3 Token đồng thời trên dây — định nghĩa gốc
+
+Cơ chế ở §3 chỉ chặn được ghi đè khi bản ghi người dùng **đang nhìn** cũng là bản ghi server **so token**. Muốn vậy token phải đi ra tới màn hình rồi quay về trong chính request ghi. Một khuôn, áp cho mọi endpoint ghi đè một bản ghi đã hiện lên giao diện:
+
+| # | Luật |
+| --- | --- |
+| 1 | Response của `GET` — chi tiết **và** từng phần tử của danh sách — mang field **`version`**: chuỗi, **opaque** với client. Client không suy diễn gì từ nội dung chuỗi, không so sánh lớn nhỏ, không tự dựng |
+| 2 | Request ghi (`PUT`, hoặc `POST` thao tác lên một bản ghi) gửi lại **đúng** chuỗi đó trong **body**, cùng tên `version`. Không header, không query string — một tên, một chỗ, FE không phân nhánh theo endpoint |
+| 3 | Server so `version` với token trong database **trong cùng transaction ghi**. Lệch hoặc thiếu ⇒ **409**, **không ghi gì**. `null` không bao giờ khớp |
+| 4 | Ghi thành công thì token đổi, `version` client đang giữ **hết hiệu lực**. Endpoint trả lại bản ghi thì `version` mới nằm trong đó; endpoint trả `data: null` thì FE `GET` lại trước lần ghi kế tiếp |
+
+Nguồn của `version` tuỳ loại bản ghi — client không cần biết, và card không tả lại:
+
+| Bản ghi | Nguồn của `version` | Mã khi lệch |
+| --- | --- | --- |
+| Tài khoản người dùng — `core.app_user` | `concurrency_stamp` do Identity quản ([`../../database/schema-core.md`](../../database/schema-core.md) §3.6, §4.1; [`02-identity-auth.md`](02-identity-auth.md) §2.2). Không thêm cột, không thêm token thứ hai | `CORE.CONCURRENCY.CONFLICT` |
+| Entity Core mang token `xmin` (§3) | `xmin`, gửi ra dưới dạng chuỗi | `CORE.CONCURRENCY.CONFLICT` |
+| Cả một tập (§5) | Băm của tập đã sắp xếp xác định | Mã riêng của endpoint — [`../../contracts/permissions.md`](../../contracts/permissions.md) §6 |
+
+**Endpoint không nhận `version`** — thao tác không dựa trên một bản chụp người dùng đang nhìn: đổi mật khẩu của chính mình, tự bỏ cờ bypass — **vẫn có thể trả** `CORE.CONCURRENCY.CONFLICT`: phép kiểm ở §3 chạy giữa lúc handler đọc và lúc ghi trong cùng request. Card của những endpoint đó vẫn khai mã, chỉ không có field.
+
+**Card khai gì:** `GET` khai `version` trong bảng field; request ghi khai `version` với dấu bắt buộc và ghi *"token nhận từ `GET` gần nhất"*; không card nào tả lại bốn luật trên.
 
 ---
 
@@ -180,6 +203,7 @@ Ba công cụ, chọn theo bài toán:
 | Test chứng minh cơ chế hoạt động | ✅ sẽ có | Chạy trên PostgreSQL thật; là thứ duy nhất phân biệt "có bảo vệ" với "tưởng có bảo vệ" |
 | Token cấp tập cho ma trận phân quyền | ✅ sẽ có | Băm trên tập đã sắp xếp xác định |
 | Bảng người dùng | 📐 dùng dấu đồng thời sẵn có của Identity | Không thêm cột, không thêm migration |
+| Token trên dây — field `version` trong body | ✅ sẽ có | §6.3. Một tên, một chỗ cho mọi endpoint; card chỉ khai field |
 | Ánh xạ xung đột → HTTP 409 tại một chỗ | ✅ sẽ có | |
 | **Khoá bi quan** | ❌ chưa | Chưa có ca nào cần. Khi cần, ưu tiên ràng buộc duy nhất trước khi nghĩ tới khoá |
 | **Hợp nhất thay đổi ở mức trường** | ❌ chưa | Đắt. Chỉ cân nhắc cho form dài, và cần ADR |

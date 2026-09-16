@@ -12,9 +12,11 @@ verified: chua-doi-chieu
 
 ## ⚠️ Trạng thái repo — đọc trước tiên
 
-**Repo này đang ở giai đoạn 1: chỉ có `docs/` và `.claude/`. Chưa có `src/`.**
+**Repo này đang ở giai đoạn 1: chưa có `src/`.**
 
 Vì vậy **mọi mô tả kiến trúc trong `docs/` đều là `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG`**, không phải mô tả hiện trạng. Đây là trạng thái đúng theo thiết kế: `src/` sẽ được xây ở giai đoạn 2 và phải bám theo những tài liệu này.
+
+Điều kiện chuyển sang giai đoạn 2, và ai lật nhãn trạng thái: [`adr/0030-dieu-kien-chuyen-giai-doan-2.md`](adr/0030-dieu-kien-chuyen-giai-doan-2.md).
 
 Hệ quả: gần như mọi file mang `verified: chua-doi-chieu`. Đó là giá trị **trung thực** — chưa có source để đối chiếu. Xem [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) §4 và §9.
 
@@ -42,6 +44,7 @@ Hệ quả: gần như mọi file mang `verified: chua-doi-chieu`. Đó là giá
 | **Ai sở hữu migration, schema theo module** | [`database/migration-policy.md`](database/migration-policy.md) |
 | **Chạy script DB: đường dẫn, thứ tự, phát hiện DB lệch model** | [`database/script-runbook.md`](database/script-runbook.md) |
 | **"Core đủ chưa, còn thiếu mảng nào"** | [`wiki-core/be/01-core-components.md`](wiki-core/be/01-core-components.md) §Áp dụng |
+| **Lộ trình thi công: pha nào làm gì, khi nào một pha đóng** | [`wiki-core/be/trien-khai/00-lo-trinh-tong-the.md`](wiki-core/be/trien-khai/00-lo-trinh-tong-the.md) · [`wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md`](wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md) |
 | **Kiến thức nền về core (chuẩn chung, không riêng dự án)** | [`wiki-core/`](wiki-core/) |
 | **Một quyết định kiến trúc được đưa ra vì sao** | [`adr/`](adr/) |
 | **Một sự cố đã xảy ra thế nào, cổng nào lẽ ra phải bắt** | [`audit/`](audit/) |
@@ -79,6 +82,7 @@ Ba hệ quả cho người viết:
 - Bảng nào muốn được canh thì đặt tiêu đề cột cuối theo tập đó. Đường dẫn khi ấy nằm ở **ô nào cũng được**.
 - Bảng **văn xuôi** có kèm liên kết (bảng lý do, bảng nhật ký quyết định) cố ý **không** dùng tiêu đề trong tập — nếu không, định danh ở cột đầu sẽ bị đối chiếu với một file chỉ được nhắc làm dẫn chứng.
 - 🛑 **Giới hạn đã biết:** đổi tiêu đề một bảng sang chữ ngoài tập sẽ **âm thầm** đưa bảng đó ra khỏi tầm canh. Cổng chỉ đỏ khi **mọi** bảng đều rơi ra ngoài. Đây là nợ có ý thức, ghi ở [`RULES.md`](RULES.md) §10.
+- Bảng định tuyến của một **agent** còn tách hai phần theo **tiêu đề mục**: mục *Bộ luật* (cộng dồn, có ngưỡng cỡ) và mục *Tra cứu* (mở đúng một file, không cộng). Luật D36 ở [`RULES.md`](RULES.md) §1; cổng §23 đọc thẳng tiêu đề mục. Muốn thêm một file vào bảng của agent thì hỏi trước: *agent phải tuân nó ở mọi việc, hay chỉ mở khi chủ đề chạm tới?* — câu trả lời quyết định phần.
 
 ---
 
@@ -91,10 +95,10 @@ Ba hệ quả cho người viết:
 | [`Design/`](Design/) | ✅ sống — nguồn UI duy nhất |
 | [`contracts/`](contracts/) | 📐 **ĐÍCH ĐẾN** — đọc `Status:` ở đầu **từng** card |
 | [`database/`](database/) | 📐 **ĐÍCH ĐẾN** |
-| [`luong/`](luong/) | 📐 **ĐÍCH ĐẾN** — mục lục khai đủ luồng; phần lớn còn ⬜ chưa viết |
+| [`luong/`](luong/) | 📐 **ĐÍCH ĐẾN** — mục lục khai đủ luồng |
 | [`adr/`](adr/) | ✅ sống |
 | [`audit/`](audit/) | ✅ sống |
-| [`00-overview/`](00-overview/) | 🗄️ **kế hoạch** — tài liệu lập kế hoạch giai đoạn 1, không phải quy tắc kỹ thuật |
+| [`00-overview/`](00-overview/) | 🗄️ **lịch sử** — kế hoạch lập ở giai đoạn 1, không còn hiệu lực; lộ trình thi công tra ở bảng *Tra theo chủ đề* |
 
 > 🛑 **Bảng này cố ý KHÔNG gắn nhãn cho từng file.** Trạng thái của một file đọc ở **đầu chính file đó**, cùng khoá `verified:` ở frontmatter.
 >

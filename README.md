@@ -15,9 +15,11 @@ Ba tài sản gắn chặt với nhau:
 
 ## ⚠️ Trạng thái: giai đoạn 1
 
-**Repo hiện chỉ có `docs/` và `.claude/`. Chưa có `src/`.**
+**Repo chưa có `src/`.**
 
 Đây là trạng thái theo thiết kế, không phải dở dang: `src/` sẽ được xây ở giai đoạn 2 và **bám theo `docs/`**. Viết tài liệu trước cho phép quyết định kiến trúc được đưa ra lúc còn rẻ nhất để đảo.
+
+Điều kiện chuyển sang giai đoạn 2, và ai lật nhãn trạng thái: [`docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md`](docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md).
 
 Hệ quả cần biết khi đọc:
 
@@ -34,8 +36,8 @@ Hệ quả cần biết khi đọc:
 | Backend | .NET 10 · ASP.NET Core · MediatR · FluentValidation |
 | Dữ liệu | EF Core · PostgreSQL |
 | Danh tính | ASP.NET Core Identity · phiên bằng cookie · antiforgery hai lớp |
-| Frontend | Angular 20 standalone + signals · PrimeNG · ngx-translate |
-| Kiến trúc | Modular Monolith — Core 5 project + N module, mỗi module một schema riêng |
+| Frontend | Angular standalone + signals · PrimeNG · ngx-translate — phiên bản và kế hoạch nâng cấp: [`docs/adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](docs/adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md) |
+| Kiến trúc | Modular Monolith — Core tách project theo tầng + N module, mỗi module một schema riêng. Danh sách project: [`docs/kien-truc-core-module.md`](docs/kien-truc-core-module.md) §2 |
 
 Lý do của từng lựa chọn, kèm phương án đã loại và cái giá phải trả: [`docs/adr/`](docs/adr/).
 

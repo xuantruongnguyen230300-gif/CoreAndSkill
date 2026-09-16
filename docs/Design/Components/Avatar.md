@@ -44,7 +44,7 @@ Chỉ hình tròn, không có biến thể vuông. `--radius-full` là hình d�
 
 **Vì sao chữ cái đầu đứng trước icon chung:** ở một danh sách mười người mà không ai có ảnh, mười cái icon `pi-user` giống hệt nhau — vòng tròn không còn phân biệt được ai với ai và trở thành thứ trang trí thuần tuý. Chữ cái đầu giữ lại đúng cái chức năng đó. Cái giá: hai người trùng chữ cái đầu vẫn nhìn giống nhau, nên `Avatar` **không bao giờ là cách duy nhất** để nhận ra một người — tên phải có mặt ở đâu đó gần bên.
 
-**Vì sao chữ cái đầu dùng `--color-brand-subtle` chứ không dùng một dãy màu sinh theo tên:** một dãy màu ngẫu nhiên theo tên trông sinh động và mang hai vấn đề thật. Nó cần một bảng màu mới, và bảng màu duy nhất có sẵn — bảng biểu đồ ở [`../DESIGN.md`](../DESIGN.md) §2.8 — là **màu dành riêng cho chuỗi dữ liệu**, mượn sang làm màu người là cách làm nó mất nghĩa; và một dãy sinh theo tên sẽ tạo ra những cặp nền–chữ chưa ai tính tương phản. Một nền duy nhất đã tính sẵn (chữ trên nền `brand-subtle` đạt 7.47:1 sáng / 8.35:1 tối) là lựa chọn buồn tẻ mà đúng. Xem `Cần chốt` #1.
+**Vì sao chữ cái đầu dùng `--color-brand-subtle` chứ không dùng một dãy màu sinh theo tên:** một dãy màu ngẫu nhiên theo tên trông sinh động và mang hai vấn đề thật. Nó cần một bảng màu mới, và bảng màu duy nhất có sẵn — bảng biểu đồ ở [`../DESIGN.md`](../DESIGN.md) §2.8 — là **màu dành riêng cho chuỗi dữ liệu**, mượn sang làm màu người là cách làm nó mất nghĩa; và một dãy sinh theo tên sẽ tạo ra những cặp nền–chữ chưa ai tính tương phản. Một nền duy nhất đã tính sẵn (chữ trên nền `brand-subtle` đạt 7.47:1 sáng / 8.35:1 tối) là lựa chọn buồn tẻ mà đúng — và là quyết định: dãy màu theo tên chỉ mở lại bằng một ADR mở rộng hệ token.
 
 Số chữ cái: **một hoặc hai**, lấy theo quy ước tên người dùng của dự án. Ba chữ cái ở cỡ `sm` không còn đọc được.
 
@@ -56,7 +56,7 @@ Số chữ cái: **một hoặc hai**, lấy theo quy ước tên người dùng
 | `md` | `--size-control-md` (34px) | `--fs-xs` | `--icon-md` | **Mặc định.** `Topbar`, danh sách thành viên |
 | `lg` | `--size-control-lg` (42px) | `--fs-md` | `--icon-lg` | Đầu màn hồ sơ, [`Card.md`](./Card.md) giới thiệu một người |
 
-`Avatar` **mượn** thang `--size-control-*` làm đường kính. Ba giá trị này đứng đúng chỗ vì `Avatar` gần như luôn đứng cạnh một control cùng hàng, và mượn thang là cách giữ cho nó không cao hơn hay thấp hơn thứ bên cạnh. Cái giá: tên token nói "control" trong khi `Avatar` không phải control — xem `Cần chốt` #2.
+`Avatar` **mượn** thang `--size-control-*` làm đường kính. Ba giá trị này đứng đúng chỗ vì `Avatar` gần như luôn đứng cạnh một control cùng hàng, và mượn thang là cách giữ cho nó không cao hơn hay thấp hơn thứ bên cạnh. Cái giá: tên token nói "control" trong khi `Avatar` không phải control — chấp nhận, không khai bậc `--size-avatar-*` riêng.
 
 Vòng viền `--border-w` màu `--color-border` bao quanh mọi `Avatar`, để một ảnh nền sáng không tan vào nền `--color-surface`. Đặt trên nền `--color-surface-2` thì đổi sang `--color-border-strong` ([`../DESIGN.md`](../DESIGN.md) §2.3).
 
@@ -91,10 +91,10 @@ Biến thể `stacked`: mỗi vòng chồng lên vòng trước khoảng một p
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Cỡ theo khai báo; `stacked` hiện tới bốn vòng rồi tới "+N" |
-| `--bp-md` … `--bp-lg` | `Avatar` trong `Topbar` giữ `md`; tên người dùng bên cạnh vẫn hiện |
-| < `--bp-md` | `Topbar` chỉ còn `Avatar`, ẩn tên — lúc này `Avatar` trở thành nội dung mang nghĩa, nên nút bao ngoài **phải** có `aria-label` chứa tên |
-| < `--bp-xs` | `stacked` rút xuống hai vòng rồi "+N"; cột `Avatar` trong bảng bị ẩn hẳn, giữ lại cột tên chữ |
+| ≥ `$bp-md` | Cỡ theo khai báo; `stacked` hiện tới bốn vòng rồi tới "+N" |
+| `$bp-md` … `$bp-lg` | `Avatar` trong `Topbar` giữ `md`; tên người dùng bên cạnh vẫn hiện |
+| < `$bp-md` | `Topbar` chỉ còn `Avatar`, ẩn tên — lúc này `Avatar` trở thành nội dung mang nghĩa, nên nút bao ngoài **phải** có `aria-label` chứa tên |
+| < `$bp-xs` | `stacked` rút xuống hai vòng rồi "+N"; cột `Avatar` trong bảng bị ẩn hẳn, giữ lại cột tên chữ |
 
 **Ẩn tên ở màn nhỏ đổi hẳn vai của `Avatar`.** Khi có tên bên cạnh, `Avatar` là trang trí và ảnh mang `alt=""`. Khi tên bị ẩn, nó là **thông tin duy nhất** và phải có nhãn chữ. Đây là bẫy đã biết: hai ngưỡng cùng một component nhưng hai luật accessibility khác nhau, và luật thứ hai rất dễ bị quên vì nó chỉ sai ở màn nhỏ.
 
@@ -146,6 +146,4 @@ Biến thể `stacked` **không** là một input của `Avatar` mà là một c
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Chữ cái đầu có cần một dãy màu sinh theo tên không? Hôm nay dùng một nền duy nhất `--color-brand-subtle`. Dãy màu đòi bảng màu mới, phân biệt được với người mù màu và có số đo tương phản — cùng loại việc mà [`../DESIGN.md`](../DESIGN.md) §10 để ngỏ cho biểu đồ | Người sở hữu hệ token, cùng dự án đầu tiên có danh sách người dài |
-| 2 | Đường kính đang mượn `--size-control-*`, vốn là chiều cao control. Có khai một bậc `--size-avatar-*` riêng trong [`../DESIGN.md`](../DESIGN.md) §6.2 không, hay chấp nhận mượn để `Avatar` luôn khớp chiều cao control cạnh nó? | Người sở hữu hệ token |
-| 3 | `stacked` là component riêng thì tên nó là gì, và nó vào mục lục [`../COMPONENTS.md`](../COMPONENTS.md) §3 ở tầng nào? Nó là tầng 0 hay tầng 1 chưa rõ, vì nó chứa nhiều `Avatar` | Khi có màn danh sách thành viên thật |
+| 1 | `stacked` là component riêng thì tên nó là gì, và nó vào mục lục [`../COMPONENTS.md`](../COMPONENTS.md) §3 ở tầng nào? Nó là tầng 0 hay tầng 1 chưa rõ, vì nó chứa nhiều `Avatar` | Sau F3 — dự án hạ nguồn đầu tiên có màn danh sách thành viên |

@@ -132,7 +132,7 @@ Quy trình chi tiết của hai cổng đó thuộc `backend-expert` và `fronte
 2. **Hai file quy ước mô tả cùng một luật theo hai cách khác nhau.** Báo mâu thuẫn, đừng tự chọn bên nào đúng; việc chọn file chủ thuộc skill `doc-sync`.
 3. **Một cổng khai trong bảng nhưng script không tồn tại.** Dừng, báo ngay — mọi kết luận khác của lượt này đang đứng trên một nền không có thật.
 4. **Người dùng yêu cầu sửa các finding.** Skill này chỉ báo cáo; sửa `docs/` thuộc `tech-writer`, sửa code thuộc hai agent thi công.
-5. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1. Nói rõ cần chạy lệnh gì, người dùng tự chạy.
+5. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1.
 
 ## Đầu ra
 

@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # ADR-0022 — Seed dev không có đường code riêng: `.sql` lo dữ liệu, lệnh bootstrap lo tài khoản
 
-> **Trạng thái:** Đã chấp nhận (2026-09-12)
+> **Trạng thái:** Đã chấp nhận (2026-09-12) · Sửa một phần bởi ADR-0023 (2026-09-14)
+>
+> Sửa một phần bởi [`0023-dich-vu-tao-don-vi-dung-chung.md`](0023-dich-vu-tao-don-vi-dung-chung.md).
 >
 > **Lật [`0020-seed-dev-ba-dieu-kien-va-dau-nhan-dang.md`](0020-seed-dev-ba-dieu-kien-va-dau-nhan-dang.md).** ADR đó chọn một lệnh seed dev riêng, canh bằng ba điều kiện đồng thời và để lại dấu nhận dạng cố định. Quyết định này bỏ toàn bộ cơ chế đó.
 

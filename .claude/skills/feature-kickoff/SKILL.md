@@ -54,7 +54,7 @@ Tiêu chí ở [`../../../docs/kien-truc-core-module.md`](../../../docs/kien-tru
 | Kết luận | Đi tiếp thế nào |
 | --- | --- |
 | **Module** — nghiệp vụ riêng của một domain | Bước 3 áp dụng: bắt buộc có spec |
-| **Core** — có ý nghĩa với **mọi** sản phẩm dựng trên nền tảng | Bỏ qua bước 3, sang bước 4. Nhưng nếu là **thay đổi kiến trúc** thì phải qua `architect` trước |
+| **Core** — có ý nghĩa với **mọi** sản phẩm dựng trên nền tảng | Bỏ qua bước 3. **Luôn** chuyển cho `architect` trước bước 5 — kể cả khi trông không giống thay đổi kiến trúc; `architect` là người nói nó có phải hay không |
 | **Không chắc** | 🛑 **Dừng lại, hỏi người dùng** |
 
 Vì sao không được đoán: một thứ bị đưa nhầm vào Core sẽ được mọi module kế thừa, và gỡ ra sau đó tốn tuần chứ không tốn giờ. Ngưỡng chống Core phình to nằm ở mục 4.2 của cùng file — **mở ra đọc, đừng trả lời từ trí nhớ**.
@@ -110,14 +110,14 @@ Mang theo **đường dẫn** spec, không paste. Yêu cầu cụ thể: tìm ca
 
 ### 7. Việc chạm Core → `core-reviewer`
 
-"Chạm Core" nghĩa là sửa thành phần dùng chung, hoặc sửa một quy ước trong khu quy ước.
+> 📖 Đường dẫn nào tính là chạm Core: khối `core-paths` trong `docs/kien-truc-core-module.md`
 
-`backend-expert`/`frontend-expert` **đã tự** kích hoạt `core-reviewer` khi việc chúng làm chạm Core — xem mục tương ứng trong [`../../agents/backend-expert.md`](../../agents/backend-expert.md). Skill này không lặp lại việc đó; chỉ cần xác nhận nó đã xảy ra.
+`backend-expert`, `frontend-expert` và `test-engineer` **không tự gọi** `core-reviewer`. Việc của chúng chạm Core thì báo cáo kết thúc bằng dòng `CẦN CORE-REVIEW: BE` và/hoặc `CẦN CORE-REVIEW: FE`.
 
-Nếu phải tự gọi (ví dụ người dùng yêu cầu một lượt review riêng), dùng skill `core-review`, và tuân hai ràng buộc:
+Skill này đọc dòng cuối báo cáo của từng agent ở bước 5 và 6. Có dòng đó thì gọi `core-reviewer` qua skill `core-review` (hoặc thẳng qua `Agent`), và tuân hai ràng buộc:
 
-- **Không gửi tóm tắt việc vừa làm cho nó.** Chỉ nói phạm vi. Người kiểm nhận tóm tắt của người viết thì nó chỉ xác nhận lại thiên kiến của người viết — và đó đúng là thứ vai trò này sinh ra để chống.
-- **Một lượt = một phạm vi.** BE **hoặc** FE, không bao giờ cả hai.
+- **Chỉ truyền phạm vi.** Không gửi tóm tắt việc vừa làm, không danh sách file đã đổi, không chép lại báo cáo của agent thi công. Người kiểm nhận tóm tắt của người viết thì nó chỉ xác nhận lại thiên kiến của người viết — và đó đúng là thứ vai trò này sinh ra để chống.
+- **Một lượt = một phạm vi.** Có cả dòng BE lẫn dòng FE → hai lượt riêng, không bao giờ gộp.
 
 Không sửa code trong lúc `core-reviewer` đang chạy.
 
@@ -145,7 +145,7 @@ Ba thứ **bắt buộc** xuất hiện trong bản tổng hợp, vì chúng là
 4. **Không chắc feature có cần màn hình mới hay không** (bước 4).
 5. **Feature đòi một quyết định kiến trúc mới** — thêm project, đổi ranh giới tầng, thêm phụ thuộc ngoài, đổi cách xử lý lỗi. Chuyển cho `architect`, đừng để hai agent thi công tự quyết.
 6. **Spec mâu thuẫn với một quy tắc trong `docs/`.** Quy tắc trong `docs/` thắng. Báo mâu thuẫn, đừng tự chọn một bên.
-7. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1. Nói rõ cần chạy lệnh gì, người dùng tự chạy.
+7. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1.
 
 ## Đầu ra
 
@@ -164,7 +164,7 @@ Giai đoạn repo: có src/ · chưa có src/
 | 4 | Screen spec | có / vừa tạo / không cần |
 | 5 | BE + FE | chạy / bỏ qua vì chưa có src/ |
 | 6 | test-engineer | ca biên tìm thêm được |
-| 7 | core-reviewer | đã chạy / không chạm Core |
+| 7 | core-reviewer | đã chạy BE / đã chạy FE / không báo cáo nào có dòng CẦN CORE-REVIEW |
 | 8 | tech-writer | tài liệu cần cập nhật |
 
 ## File đã tạo hoặc sửa
@@ -182,3 +182,5 @@ Giai đoạn repo: có src/ · chưa có src/
 4. Mọi prompt giao cho agent con mang **đường dẫn**, không paste nguyên văn spec.
 5. Sửa tài liệu nào thì chạy `bash .claude/check-docs.sh`.
 6. Cổng nào của khu vừa sửa mà bị bỏ qua thì **nói ra**, đừng im lặng.
+7. Kết luận Core ở bước 2 đã qua `architect` trước bước 5.
+8. Mỗi dòng `CẦN CORE-REVIEW` trong báo cáo agent đã có đúng một lượt `core-reviewer` cho phạm vi đó — hoặc đã báo người dùng là lượt đó chưa chạy.

@@ -15,7 +15,7 @@ verified: chua-doi-chieu
 ## 1. `GET /api/v1/core/notifications`
 
 **Status:** DRAFT
-**Quyền:** `[Authorize]` — luôn trả thông báo **của chính người gọi**
+**Quyền:** `[AuthenticatedOnly("Thông báo của chính người gọi — định danh lấy từ phiên")]` — luôn trả thông báo **của chính người gọi**
 
 Danh sách thông báo của người đang đăng nhập, phân trang theo khuôn chung ([`README.md`](README.md) §8).
 
@@ -35,8 +35,8 @@ Danh sách thông báo của người đang đăng nhập, phân trang theo khu�
     "items": [
       {
         "id": "0192f3c1-8a4e-7d21-9f10-2b7c5e0a1234",
-        "typeKey": "core.user.locked",
-        "params": { "userName": "an.nv" },
+        "code": "core.user.locked",
+        "params": { "UserName": "an.nv" },
         "createdAt": "2026-09-10T03:12:44Z",
         "readAt": null
       }
@@ -46,30 +46,43 @@ Danh sách thông báo của người đang đăng nhập, phân trang theo khu�
     "pageSize": 20
   },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000041"
+  "traceId": "f7cd300bcf3662c98f017c4e82c146a9"
 }
 ```
 
-> 🛑 **`typeKey` và `params` — KHÔNG có câu đã ghép sẵn.** FE dựng câu bằng bảng dịch, đúng khuôn khoá lỗi ([`../wiki-core/be/16-i18n-va-ma-loi.md`](../wiki-core/be/16-i18n-va-ma-loi.md)). Lưu câu đã ghép thì đổi ngôn ngữ không đổi được thông báo cũ, và sửa một lỗi chính tả không sửa được cái đã gửi.
+> 🛑 **`code` và `params` — KHÔNG có câu đã ghép sẵn.** Khoá của `params` giữ PascalCase như lưu ở [`../database/schema-core.md`](../database/schema-core.md) §7.1 — cùng luật với `messageParams`. FE dựng câu bằng bảng dịch, đúng khuôn khoá lỗi ([`../wiki-core/be/16-i18n-va-ma-loi.md`](../wiki-core/be/16-i18n-va-ma-loi.md)). Lưu câu đã ghép thì đổi ngôn ngữ không đổi được thông báo cũ, và sửa một lỗi chính tả không sửa được cái đã gửi.
+
+Thông báo trả về **không** mang `severity` và `linkRoute`: hai cột đó có trong bảng nhưng **chưa dùng ở v1** ([`../database/schema-core.md`](../database/schema-core.md) §7.1).
 
 ### Lỗi
 
-| `code` | `type` | HTTP | Khi nào |
-| --- | --- | ---: | --- |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | Chưa đăng nhập |
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | Tham số phân trang ngoài khoảng hợp lệ ([`README.md`](README.md) §8) |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 
 ---
 
 ## 2. `GET /api/v1/core/notifications/unread-count`
 
 **Status:** DRAFT
-**Quyền:** `[Authorize]`
+**Quyền:** `[AuthenticatedOnly("Số thông báo chưa đọc của chính người gọi")]`
 
 Trả số thông báo chưa đọc. Đây là endpoint FE **hỏi định kỳ** để cập nhật chỉ báo trên thanh trên cùng.
 
 ### Response 200
 
 `data` là một số nguyên.
+
+### Lỗi
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 
 ### Ghi chú
 
@@ -82,14 +95,21 @@ Trả số thông báo chưa đọc. Đây là endpoint FE **hỏi định kỳ*
 ## 3. `PUT /api/v1/core/notifications/{id}/read`
 
 **Status:** DRAFT
-**Quyền:** `[Authorize]` — chỉ đánh dấu được thông báo **của chính mình**
+**Quyền:** `[AuthenticatedOnly("Chỉ đánh dấu thông báo của chính người gọi — handler kiểm chủ bản ghi")]` — chỉ đánh dấu được thông báo **của chính mình**
 
 ### Lỗi
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
 | `CORE.NOTIFICATION.NOT_FOUND` | `NotFound` | 404 | Không có, **hoặc** không phải của người gọi |
-| `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu hoặc sai `X-XSRF-TOKEN` |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 
 Thông báo của người khác trả **404**, không trả 403 — cùng khuôn luật M7.
 
@@ -98,9 +118,19 @@ Thông báo của người khác trả **404**, không trả 403 — cùng khuô
 ## 4. `PUT /api/v1/core/notifications/read-all`
 
 **Status:** DRAFT
-**Quyền:** `[Authorize]`
+**Quyền:** `[AuthenticatedOnly("Đánh dấu toàn bộ thông báo của chính người gọi")]`
 
 Đánh dấu đã đọc toàn bộ thông báo của người gọi. Không có nhánh lỗi nghiệp vụ.
+
+### Lỗi
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 
 ### Ghi chú
 

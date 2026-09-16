@@ -48,7 +48,7 @@ Hệ thống rò rỉ thông tin đó qua ba đường, và phải bịt cả ba
 
 Các luồng khác cũng phải theo nguyên tắc này:
 
-- **Quên mật khẩu**: luôn trả lời *"nếu địa chỉ này có tài khoản, chúng tôi đã gửi hướng dẫn"*, bất kể có hay không.
+- **Khôi phục mật khẩu quản trị đơn vị** qua khu hệ thống: ca "không có tài khoản đó" và ca "có nhưng không đủ điều kiện" trả về **cùng một** mã lỗi — [`../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md).
 - **Đăng ký** (nếu có): không nói thẳng "email đã tồn tại" ở màn hình công khai.
 
 **Đánh đổi phải nói rõ:** cách này làm trải nghiệm kém đi — người dùng gõ nhầm email sẽ không biết. Đây là đánh đổi có ý thức, không phải sơ suất, và người thiết kế giao diện cần biết để viết câu chữ cho hợp.
@@ -159,7 +159,8 @@ Bảo mật không chỉ là chặn người dùng — nó còn là giới hạn
 | Chỗ | Nguyên tắc quyền tối thiểu |
 | --- | --- |
 | **Tài khoản DB của ứng dụng** | Không dùng tài khoản chủ sở hữu. Ứng dụng cần đọc/ghi dữ liệu, **không** cần quyền sửa lược đồ ở môi trường thật — vì migration chạy tay bằng một tài khoản khác. Xem [`13-core-data-migration.md`](13-core-data-migration.md) §3 |
-| **Bảng nhật ký kiểm toán** | Ứng dụng chỉ cần quyền ghi thêm. Không cần quyền sửa hay xoá — đây là cách ép tính bất biến mạnh nhất, xem [`10-data-retention.md`](10-data-retention.md) |
+| **Bảng nhật ký kiểm toán** | Ứng dụng chỉ cần quyền ghi thêm. Không cần quyền sửa hay xoá — đây là cách ép tính bất biến mạnh nhất, xem [`10-data-retention.md`](10-data-retention.md). Luật M13 |
+| **Bảng danh mục quyền** | Ứng dụng chỉ đọc — dòng danh mục vào DB bằng migration, xem [`13-core-data-migration.md`](13-core-data-migration.md) §5.1. Luật M13 |
 | **Thư mục file** | Quyền ghi đúng thư mục cần, không phải cả ổ đĩa |
 | **Kết nối ra ngoài** | Chỉ tới các đích cần thiết, nếu hạ tầng cho phép giới hạn |
 
@@ -201,7 +202,7 @@ Và sau sự cố: một mục ở [`../../audit/`](../../audit/) ghi lại **c�
 | Antiforgery hai lớp | ✅ sẽ có | Bắt buộc vì phiên đi bằng cookie |
 | Tên cookie khai một chỗ + test chống trùng tên | ✅ sẽ có | Luật ở [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §7.5 |
 | CORS allowlist theo môi trường, kiểm lúc khởi động | ✅ sẽ có | |
-| Giới hạn tần suất theo IP **và** theo tên đăng nhập | ✅ sẽ có | |
+| Giới hạn tần suất theo IP **và** theo tài khoản đăng nhập (mã đơn vị + tên đăng nhập) | ✅ sẽ có | [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §6 |
 | Chống dò tài khoản: thông điệp, thời gian, mã trạng thái | ✅ sẽ có | Cả ba đường |
 | Kiểm đầu vào ở biên, giới hạn kích thước mọi chiều | ✅ sẽ có | |
 | Chống gán tràn: entity không setter công khai, kiểu đầu vào riêng | ✅ sẽ có | Luật E1 |

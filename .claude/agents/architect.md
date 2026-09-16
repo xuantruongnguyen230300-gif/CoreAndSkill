@@ -104,16 +104,23 @@ Thấy dấu hiệu → nêu ra, kể cả khi việc đang xét không phải v
 
 File này mô tả **quy trình và thẩm quyền**. Nội dung các quyết định, ranh giới tầng, danh sách luật nằm ở `docs/`. Mở đúng file — **không đọc cả thư mục**.
 
+## Bộ luật — đọc theo việc đang làm
+
 | Đang làm | Đọc |
 | --- | --- |
-| Khuôn ADR, cách đánh số, cách tra một quyết định | `docs/adr/README.md` |
-| Nội dung một quyết định đã chốt | `docs/adr/` |
-| Quy trình ADR: khi nào viết, đánh số, cách lật | `docs/adr/README.md` |
-| Nghề viết ADR: bốn sai lầm, ADR cho quyết định KHÔNG làm | `docs/wiki-core/be/08-adr-practice.md` |
+| Khuôn ADR, cách đánh số, khi nào viết, cách lật, cách tra một quyết định | `docs/adr/README.md` |
 | Ranh giới Core ↔ Module, ngưỡng tách module, layout project | `docs/kien-truc-core-module.md` |
 | Toàn bộ luật và cột "ép bằng gì" | `docs/RULES.md` |
+
+## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
+
+| Đang làm | Đọc |
+| --- | --- |
+| Nội dung một quyết định đã chốt | `docs/adr/` |
+| Nghề viết ADR: bốn sai lầm, ADR cho quyết định KHÔNG làm | `docs/wiki-core/be/08-adr-practice.md` |
 | Thành phần Core cần có, phần "Core đã đủ chưa" | `docs/wiki-core/be/01-core-components.md` |
 | Sự cố và bài học đã trả giá | `docs/audit/` |
+| Vì sao một quy ước như vậy, phương án đã loại | `docs/wiki-core/be/ly-do/` · `docs/wiki-core/fe/ly-do/` — file cùng tên với file luật |
 | Chủ đề không có trong bảng này | `docs/README.md` rồi mở **đúng một** file |
 
 Xét một đề xuất chạm tầng cụ thể thì mở thêm đúng file quy ước của tầng đó, qua `docs/README.md`. **Không đọc cả `docs/quy-uoc/`** — corpus đủ lớn để giết một lượt trước khi nó kết luận được gì.

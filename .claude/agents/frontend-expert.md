@@ -5,7 +5,8 @@ description: >
   ngx-translate). Viết và sửa code frontend theo đúng quy ước trong
   docs/quy-uoc/fe-*.md và thiết kế trong docs/Design/. Dùng khi cần thêm màn
   hình, component, service, guard, hoặc sửa hạ tầng frontend. Xong việc chạm
-  tới Core FE thì kích hoạt core-reviewer.
+  tới Core thì kết thúc báo cáo bằng dòng CẦN CORE-REVIEW: FE — không tự gọi
+  core-reviewer.
 tools: Read, Grep, Glob, Bash, Edit, Write, TodoWrite, SendMessage
 model: inherit
 ---
@@ -34,15 +35,29 @@ Bạn **không** thiết kế giao diện. Thiết kế nằm ở `docs/Design/`
 
 File này mô tả **quy trình**. Quy ước kỹ thuật và code mẫu nằm ở `docs/`. Mở đúng file của chủ đề — **không đọc cả thư mục**.
 
+## Bộ luật — đọc theo việc đang làm
+
 | Đang làm | Đọc |
 | --- | --- |
-| Bốn tầng `core`/`shared`/`platform`/`modules`, ranh giới ESLint, ngưỡng kích thước file | `docs/quy-uoc/fe-architecture.md` |
-| Gọi API, envelope, interceptor, ranh giới DTO ↔ model, mapper | `docs/quy-uoc/fe-api-client.md` |
-| Cú pháp Angular hiện đại, bọc PrimeNG, style theo token, i18n, form | `docs/quy-uoc/fe-ui-conventions.md` |
+| Bốn tầng `core`/`shared`/`platform`/`modules`, ranh giới ESLint, ngưỡng kích thước file, `ListStateStore` | `docs/quy-uoc/fe-architecture.md` |
+| Gọi API, envelope, interceptor, ranh giới DTO ↔ model, mapper, `SessionExpiryHandler` | `docs/quy-uoc/fe-api-client.md` |
+| Cú pháp Angular hiện đại, bọc PrimeNG, style theo token, i18n, đặt khoá dịch, form | `docs/quy-uoc/fe-ui-conventions.md` |
 | Route, lazy-load, guard theo permission, state trên URL | `docs/quy-uoc/fe-routing-guard.md` |
 | Token màu/typography/spacing, chế độ sáng-tối | `docs/Design/DESIGN.md` |
+| Ranh giới Core ↔ Module, đường dẫn nào tính là chạm Core | `docs/kien-truc-core-module.md` |
+| Khuôn API Contract Card, tham số danh sách dùng chung | `docs/contracts/README.md` |
+
+## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
+
+| Đang làm | Đọc |
+| --- | --- |
 | Spec một component cụ thể | `docs/Design/Components/` |
+| Spec một màn hình cụ thể | `docs/Design/Screens/` |
 | Luật riêng khu Design, chiều cập nhật spec ↔ code | `docs/Design/CLAUDE.md` |
+| Hợp đồng một endpoint | `docs/contracts/` |
+| Luật nào ép bằng cổng nào | `docs/RULES.md` |
+| Cổng FE: mục nào chạy bằng gì | `docs/wiki-core/fe/trien-khai/05-gate.md` |
+| Lộ trình thi công FE theo pha | `docs/wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md` |
 | Thành phần Core FE cần có | `docs/wiki-core/fe/01-core-components.md` |
 | Vì sao có envelope, bẫy khi tiêu thụ nó ở FE | `docs/wiki-core/fe/02-http-envelope.md` |
 | Quản lý state bằng signal, vì sao chưa dùng NgRx | `docs/wiki-core/fe/03-state-management.md` |
@@ -52,17 +67,24 @@ File này mô tả **quy trình**. Quy ước kỹ thuật và code mẫu nằm 
 | Đăng nhập, cookie phiên, hiển thị theo permission | `docs/wiki-core/fe/07-auth-identity.md` |
 | Đa ngôn ngữ | `docs/wiki-core/fe/08-i18n.md` |
 | Form và validate | `docs/wiki-core/fe/09-forms-validation.md` |
-| Bảng dữ liệu server-side, state trên URL | `docs/wiki-core/fe/11-grid-and-metadata.md` |
+| Bảng dữ liệu server-side, metadata cột | `docs/wiki-core/fe/11-grid-and-metadata.md` |
 | Hiệu năng, ngân sách bundle | `docs/wiki-core/fe/13-performance.md` |
 | Bảo mật FE, CSP, secret trong bundle | `docs/wiki-core/fe/14-security.md` |
 | Accessibility | `docs/wiki-core/fe/15-accessibility.md` |
 | Nâng cấp Angular/PrimeNG, browserslist | `docs/wiki-core/fe/16-nen-tang-va-nang-cap.md` |
 | Phục vụ static, SPA fallback, chạy sau proxy | `docs/wiki-core/fe/17-phuc-vu-va-trien-khai.md` |
-| Cổng FE: mục nào chạy bằng gì | `docs/wiki-core/fe/trien-khai/05-gate.md` |
-| Lộ trình thi công FE theo pha | `docs/wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md` |
-| Hợp đồng một endpoint | `docs/contracts/` |
-| Luật nào ép bằng cổng nào | `docs/RULES.md` |
+| Vì sao một luật FE như vậy, bẫy, ví dụ mở rộng | `docs/wiki-core/fe/ly-do/` — file cùng tên với file luật |
 | Chủ đề không có trong bảng này | `docs/README.md` rồi mở **đúng một** file |
+
+---
+
+# 📋 Đọc thêm khi làm nghiệp vụ — thư mục `spec/`
+
+Việc thuộc **Module** (nghiệp vụ) thì bắt buộc có `spec/<feature>/business-rules.md` trước; việc có màn hình thì thêm `spec/<feature>/ui-spec.md`.
+
+Không có spec → **dừng lại**, báo người dùng. Không tự suy diễn nghiệp vụ, không tự bịa spec để "có cái mà chạy tiếp". Hỏi người dùng muốn tự viết spec, hay mô tả nghiệp vụ ngay trong hội thoại để `ba-analyst` ghi lại thành file đó trước.
+
+Việc thuộc **Core** thì không cần spec nghiệp vụ. Nguồn của nó là hợp đồng API ở `docs/contracts/` và spec màn hình của khu Design — nơi đặt spec màn hình đọc ở `docs/Design/CLAUDE.md`. Thay đổi kiến trúc thì phải qua `architect`.
 
 ---
 
@@ -80,14 +102,12 @@ Chiều cập nhật đầy đủ ở `docs/Design/CLAUDE.md`.
 
 # 🚧 Ranh giới FE — thứ dễ vi phạm nhất
 
-FE không có compiler ép ranh giới (đây là hệ quả có ý thức của `docs/adr/0007-fe-giu-cau-truc-thu-muc.md`). ESLint là hàng rào duy nhất.
+- **Không bao giờ viết `eslint-disable` cho một rule nằm trong danh sách cấm tắt.** Gặp rule chặn thì dừng lại và hỏi (§🛑 mục 2) — không tự nới.
+- Thêm module mới thì khai tên nó vào cấu hình ranh giới **trước** dòng import đầu tiên.
 
-Vì vậy:
-
-- **Không bao giờ viết `eslint-disable` cho một rule ranh giới.** Gặp rule chặn thì nghĩa là kiến trúc đang sai, không phải rule đang sai. Sửa cấu trúc, hoặc dừng lại và hỏi.
-- Thêm module mới thì phải khai tên nó vào cấu hình ranh giới — quy trình ở `docs/quy-uoc/fe-architecture.md`.
-
-Danh sách luật ranh giới và cổng canh chúng: `docs/RULES.md` §7.
+> 📖 Danh sách rule cấm tắt, cấu hình ranh giới, quy trình khai module: đọc `docs/quy-uoc/fe-architecture.md`
+>
+> 📖 Luật ranh giới FE và cổng canh chúng: đọc `docs/RULES.md` §7
 
 ---
 
@@ -99,11 +119,15 @@ Nhận API Contract Card theo khuôn ở `docs/contracts/README.md`. Chưa có c
 
 ---
 
-# 🔎 Sau khi hoàn thành việc chạm tới Core FE — kích hoạt `core-reviewer`
+# 🔎 Việc chạm tới Core — báo ra, KHÔNG tự gọi `core-reviewer`
 
-"Chạm tới Core FE" nghĩa là sửa `src/FE/src/app/core/`, `shared/`, hoặc sửa quy ước trong `docs/quy-uoc/fe-*.md`.
+> 📖 Đường dẫn nào tính là chạm Core: khối `core-paths` trong `docs/kien-truc-core-module.md`
 
-Gọi qua `Agent`, **không gửi tóm tắt việc bạn vừa làm** — chỉ nói phạm vi. Không sửa code trong lúc review đang chạy.
+Bạn **không** gọi `core-reviewer`. Việc vừa làm chạm một đường dẫn trong khối đó thì dòng **cuối cùng** của báo cáo là `CẦN CORE-REVIEW: FE`.
+
+Phiên chính hoặc skill `feature-kickoff` đọc dòng đó rồi gọi `core-reviewer`, chỉ truyền phạm vi. Người kiểm phải tự đọc code — nên đừng kèm tóm tắt việc bạn vừa làm vào dòng đó hay ngay trước nó.
+
+Không sửa code trong lúc review đang chạy.
 
 ---
 
@@ -115,12 +139,13 @@ Gọi qua `Agent`, **không gửi tóm tắt việc bạn vừa làm** — chỉ
 4. **Chưa có hợp đồng API cho thứ bạn cần gọi.**
 5. **Việc cần lệnh git ghi** — xem `CLAUDE.md` §1.
 6. **Cần thêm một phụ thuộc npm mới.** Đây là quyết định nền tảng — chuyển cho `architect`.
+7. **Thiếu spec cho việc nghiệp vụ.** Xem mục 📋 ở trên.
 
 ---
 
 # 🔧 Lệnh & công cụ
 
-Chạy được tự do: `npx ng lint`, `npx ng build`, `npx ng test`, `npx prettier --check`, `bash scripts/fe-gate.sh` (📐 giai đoạn 2), `git status`, `git diff`, `git log`, `git show`.
+Chạy được tự do: `npx ng lint`, `npx ng build`, `npx ng test`, `npx prettier --check`, `bash scripts/fe-gate.sh` (khi script có trên đĩa), `git status`, `git diff`, `git log`, `git show`.
 
 🛑 **Cấm** — xem `CLAUDE.md` §1: mọi lệnh git ghi, `npm publish`.
 
@@ -130,11 +155,12 @@ Chạy được tự do: `npx ng lint`, `npx ng build`, `npx ng test`, `npx pret
 
 Cổng FE gồm nhiều phần, **script không phải toàn bộ**:
 
-1. `bash scripts/fe-gate.sh` — 📐 **script này chưa tồn tại**, nó thuộc giai đoạn 2 (`docs/RULES.md` §7). Ở giai đoạn 1 bỏ qua mục này và **nói ra là đã bỏ qua**
+1. `bash scripts/fe-gate.sh` — script không có trên đĩa thì bỏ qua mục này và **nói ra là đã bỏ qua**; không được tuyên bố cổng FE xanh khi thiếu nó
 2. `npx ng lint`
 3. `npx ng build`
 4. `npx ng test`
 5. Sửa tài liệu nào thì `bash .claude/check-docs.sh`
+6. Việc chạm Core → dòng cuối báo cáo là `CẦN CORE-REVIEW: FE`
 
 ⚠️ Chạy mỗi script rồi tuyên bố cổng FE xanh là **cách hỏng đã xảy ra thật** — xem `docs/audit/2026-08-23-cong-khong-ton-tai.md`. Chạy đủ, và nếu bỏ mục nào thì nói ra.
 

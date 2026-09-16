@@ -44,10 +44,13 @@ và luật S1/S2 ở [`../RULES.md`](../RULES.md) §6.
 
 Hai hệ quả phải thiết kế quanh, không phải phát hiện sau:
 
-1. **Ma trận rỗng nghĩa là mọi endpoint có kiểm quyền trả 403 cho mọi người.** Đây là trạng thái
-   của một database vừa dựng xong mà chưa seed. Vì vậy bước seed danh mục quyền là **bắt buộc**
-   trong runbook, không phải tuỳ chọn
-   ([`../database/script-runbook.md`](../database/script-runbook.md) §6).
+1. **Ma trận rỗng nghĩa là mọi endpoint có kiểm quyền trả 403 cho mọi người** — trừ tài khoản
+   mang `has_permission_bypass`. Đây là trạng thái của một đơn vị chưa vai trò nào được cấp quyền.
+   Danh mục quyền thì không chờ ai nạp: nó vào database **bằng migration idempotent**, cùng lượt
+   áp schema, không có script nạp riêng
+   ([`../database/migration-policy.md`](../database/migration-policy.md) §4.1). Khoá khai trong
+   code qua seam ([`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §1.1), và tiến
+   trình ứng dụng **không** ghi danh mục.
 2. **Danh sách hàng của ma trận KHÔNG được dựng từ bảng cấp quyền.** Nếu dựng từ đó, quyền chưa
    cấp cho ai sẽ **biến mất khỏi UI** — và không còn đường nào cấp nó nữa. Hàng luôn dựng từ danh
    mục quyền; ô chưa cấp hiện ra là ô trống, không phải hàng vắng mặt.
@@ -71,10 +74,15 @@ thường là nhiều ngày sau, và không ai nối được nó với thao tá
 
 ### 3.2 Cơ chế
 
-| # | Luật |
+> 📖 **Token đi trên dây theo khuôn chung của mọi endpoint ghi — `GET` trả `version`, `PUT` gửi
+> lại trong body, lệch ⇒ 409 không ghi gì: đọc
+> [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.3.**
+> Card này không tả lại; bảng dưới chỉ giữ phần **riêng** của ma trận.
+
+| # | Luật riêng của ma trận |
 | --- | --- |
-| 1 | `GET` trả kèm **`version`** — chuỗi băm của trạng thái ma trận hiện tại |
-| 2 | `PUT` gửi lại **đúng** chuỗi đó. Server tính lại từ database rồi so; lệch ⇒ **409**, **không ghi gì** |
+| 1 | `version` là băm của **cả tập** (§3.3), không phải token của một dòng |
+| 2 | Lệch `version` trả mã **riêng** `CORE.PERMISSION.VERSION_MISMATCH` (§6), không phải mã dùng chung — vì xung đột ở đây là xung đột của tập |
 | 3 | `PUT` phải **phủ đủ** mọi quyền trong danh mục. Thiếu bất kỳ phần tử nào ⇒ **400**, **không ghi gì** |
 
 **Luật 3 mạnh hơn hẳn "cấm mảng rỗng".** Một payload tải được 4 trên 7 quyền vẫn thu hồi 3 quyền
@@ -146,7 +154,7 @@ kiểm tra một mã quyền có tồn tại không.
     }
   ],
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000030"
+  "traceId": "c80f017bf6454f2342aec6c1998aab6e"
 }
 ```
 
@@ -155,14 +163,16 @@ kiểm tra một mã quyền có tồn tại không.
 | `code` | Khuôn `<resourceKey>.<action>`. Đây là chuỗi mà attribute kiểm quyền nhận |
 | `nameKey` | **Khoá i18n**, không phải câu tiếng Việt. FE tra ra câu theo ngôn ngữ đang chọn |
 | `isSystem` | Quyền do Core khai; không xoá được qua UI |
-| `moduleKey` | `null` = của Core; khác `null` = do module đó đóng góp |
+| `moduleKey` | **Suy từ `permission_resource.module_key`**, tra qua `resource_key` — bảng `core.permission` **không** có cột này ([`../database/schema-core.md`](../database/schema-core.md) §5.1, §5.2). `null` = của Core; khác `null` = do module đó đóng góp |
 
 ### Lỗi
 
-| `code` | `type` | HTTP | Khi nào |
-| --- | --- | ---: | --- |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | |
-| `CORE.AUTH.FORBIDDEN` | `Forbidden` | 403 | Thiếu `core.permission.read` |
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.FORBIDDEN` | Thiếu `core.permission.read` |
 
 ### Ghi chú
 
@@ -197,6 +207,7 @@ Ma trận đầy đủ: hàng = quyền, cột = vai trò.
         "permissionId": "0192f3d0-0001-7000-8000-000000000001",
         "code": "core.user.read",
         "resourceKey": "core.user",
+        "resourceNameKey": "resource.core.user",
         "nameKey": "permission.core.user.read",
         "grantedRoleIds": ["0192f3c2-1111-7000-8000-000000000001"]
       },
@@ -204,6 +215,7 @@ Ma trận đầy đủ: hàng = quyền, cột = vai trò.
         "permissionId": "0192f3d0-0001-7000-8000-000000000002",
         "code": "core.user.write",
         "resourceKey": "core.user",
+        "resourceNameKey": "resource.core.user",
         "nameKey": "permission.core.user.write",
         "grantedRoleIds": []
       }
@@ -211,7 +223,7 @@ Ma trận đầy đủ: hàng = quyền, cột = vai trò.
     "version": "sha256:7f3a1c9e"
   },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000031"
+  "traceId": "431c80978b79e341f1008b198d1cfb86"
 }
 ```
 
@@ -223,12 +235,19 @@ Ba tính chất FE được phép dựa vào — mỗi cái đều phải có te
 | `rows` liệt kê **mọi** quyền trong danh mục | Kể cả quyền chưa cấp cho ai (`grantedRoleIds: []`) — xem §2 |
 | `version` **luôn** có mặt | Thiếu nó, `PUT` không gọi được. Xem §3 |
 
+`resourceNameKey` là **khoá i18n của tài nguyên**, lấy từ `permission_resource.name_key`
+([`../database/schema-core.md`](../database/schema-core.md) §5.1) và tra qua `resource_key`. Nó có
+mặt để màn hình gom hàng theo tài nguyên mà **không** phải hiện chuỗi kỹ thuật `core.user` cho người
+dùng đọc; `resourceKey` vẫn giữ vai khoá gom nhóm.
+
 ### Lỗi
 
-| `code` | `type` | HTTP | Khi nào |
-| --- | --- | ---: | --- |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | |
-| `CORE.AUTH.FORBIDDEN` | `Forbidden` | 403 | Thiếu `core.permission.read` |
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.FORBIDDEN` | Thiếu `core.permission.read` |
 
 ---
 
@@ -270,7 +289,7 @@ Ba tính chất FE được phép dựa vào — mỗi cái đều phải có te
   "success": true,
   "data": { "version": "sha256:b104d2af" },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000032"
+  "traceId": "4bc61c0135830e5f663567b22dcf5c40"
 }
 ```
 
@@ -282,29 +301,46 @@ mỗi lần lưu.
 
 | `code` | `type` | HTTP | Khi nào | Khoá `fieldErrors` |
 | --- | --- | ---: | --- | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | `entries` là `null` | `Entries` |
 | `CORE.PERMISSION.ENTRIES_INCOMPLETE` | `Validation` | 400 | `entries` thiếu bất kỳ quyền nào của danh mục (kể cả `[]`) | `Entries` |
 | `CORE.PERMISSION.DUPLICATE_ENTRY` | `Validation` | 400 | Cùng một `permissionId` xuất hiện từ hai lần trở lên | `Entries` |
-| `CORE.PERMISSION.NOT_FOUND` | `Validation` | 400 | `permissionId` không tồn tại | `Entries[i].PermissionId` |
-| `CORE.PERMISSION.ROLE_NOT_FOUND` | `Validation` | 400 | `roleId` không tồn tại | `Entries[i].RoleIds[j]` |
+| `CORE.PERMISSION.NOT_FOUND` | `BusinessRule` | 422 | `permissionId` không tồn tại. `messageParams` nêu đích danh id lạ | — |
+| `CORE.PERMISSION.ROLE_NOT_FOUND` | `BusinessRule` | 422 | `roleId` không tồn tại. `messageParams` nêu đích danh id lạ | — |
 | `CORE.PERMISSION.SYSTEM_ROLE_CANNOT_LOSE_WRITE` | `BusinessRule` | 422 | Payload gỡ `core.permission.write` khỏi một vai trò `is_system` | — |
 | `CORE.PERMISSION.VERSION_MISMATCH` | `Conflict` | 409 | `version` thiếu hoặc lệch với trạng thái database | — |
-| `CORE.AUTH.FORBIDDEN` | `Forbidden` | 403 | Thiếu `core.permission.write` | — |
 
-Chỉ số trong khoá là vị trí trong mảng gửi lên (`Entries[0].PermissionId`), đủ để FE tô đỏ đúng ô.
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | `entries` là `null`. Kèm `fieldErrors["Entries"]` |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.AUTH.FORBIDDEN` | Thiếu `core.permission.write` |
+
+> **Một id trong payload trỏ tới bản ghi không tồn tại là `BusinessRule` 422, KHÔNG kèm
+> `fieldErrors`.** `Validation` theo định nghĩa là thứ tính được **từ payload, không cần DB**, mà
+> *"quyền này / vai trò này có tồn tại không"* thì bắt buộc phải đọc DB — bảng phân loại ở
+> [`../quy-uoc/be-cqrs-handler.md`](../quy-uoc/be-cqrs-handler.md) §3.2 xếp ca này vào
+> `BusinessRule`, và [`users.md`](users.md) §3 dùng đúng cách xếp đó cho `roleId`. Hệ quả cho FE:
+> hai mã này không bind được vào một ô nhập; chỗ chỉ ra id nào sai là `messageParams`.
 
 ### Ghi chú — mọi nhánh lỗi phải chặn TRƯỚC khi ghi
 
-> **Mã 400 mà bảng vẫn bị xoá là vô nghĩa.** Nếu phép kiểm nằm ở handler **sau** khi lệnh xoá
-> hàng loạt đã chạy, client nhận lỗi nhưng dữ liệu đã mất — kết quả tệ nhất trong mọi kết quả.
+> **Một mã lỗi trả về mà bảng vẫn bị xoá là vô nghĩa.** Nếu phép kiểm nằm ở handler **sau** khi
+> lệnh xoá hàng loạt đã chạy, client nhận lỗi nhưng dữ liệu đã mất — kết quả tệ nhất trong mọi
+> kết quả.
 
 Vì vậy toàn bộ phép kiểm ở bảng trên nằm ở **validator**, chạy trước handler, hoặc ở đầu handler
 trước bất kỳ thao tác ghi nào. Phép thử nghiệm thu phải kiểm **cả hai vế**: mã lỗi đúng **và**
-bảng không đổi một dòng nào — đọc bảng qua `IgnoreQueryFilters()` để thấy được cả dòng đã xoá mềm.
+bảng không đổi một dòng nào — đọc bảng qua
+`IgnoreQueryFilters([CoreQueryFilters.SoftDeleteKey])` để thấy được cả dòng đã xoá mềm. Dạng
+**không tham số** bị luật **B6** ([`../RULES.md`](../RULES.md)) cấm tuyệt đối: nó bỏ luôn cả bộ
+lọc đơn vị.
 
-> **`permissionId` lạ là 400, không phải 500.** Không chặn ở validator thì nó đi xuống tầng ghi
-> và vỡ khoá ngoại — client nhận lỗi hệ thống cho một lỗi hoàn toàn thuộc về mình. Ở dự án tiền
-> nhiệm, đúng ca này từng xảy ra ở hai endpoint và phải vá cả hai.
+> **`permissionId` lạ là 422, không phải 500.** Không chặn trước tầng ghi thì nó đi xuống và vỡ
+> khoá ngoại — client nhận lỗi hệ thống cho một lỗi hoàn toàn thuộc về mình. Ở dự án tiền nhiệm,
+> đúng ca này từng xảy ra ở hai endpoint và phải vá cả hai.
 
 > **`permissionId` trùng lặp cũng là 400.** Handler dựng `Dictionary` từ `entries` sẽ ném
 > `ArgumentException` trên khoá trùng ⇒ 500. Và đây **không** phải ca giả định: `PUT` bắt buộc
@@ -324,6 +360,9 @@ Thao tác ghi đè xoá mềm dòng cũ rồi thêm dòng mới. Hai hệ quả:
 2. Hàm băm `version` phải bỏ qua dòng đã xoá mềm — §3.3.
 
 Hai điều này đi cặp: làm đúng một, sai một, thì lỗi vẫn xảy ra, chỉ đổi triệu chứng.
+
+**Hiệu lực với phiên đang chạy:** ma trận mới áp từ request kế tiếp của mọi người mang vai trò bị
+đổi — [`users.md`](users.md) §7.
 
 ---
 
@@ -367,7 +406,7 @@ hàng có sẵn các hành động của nó.
     "version": "sha256:7f3a1c9e"
   },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000033"
+  "traceId": "5bf5d123edc71e0fb22159bd83e670b4"
 }
 ```
 
@@ -406,22 +445,27 @@ rồi trải phẳng ra `entries` khi lưu bằng `PUT /api/v1/core/permissions/
 
 | # | Bước | Vì sao |
 | --- | --- | --- |
-| 1 | Áp schema, **rồi** chạy script seed danh mục quyền | Danh mục có mặt thì màn hình mới vẽ được hàng |
+| 1 | Áp script migration — danh mục quyền vào database **cùng lượt**, không có bước nạp riêng | Danh mục có mặt thì màn hình mới vẽ được hàng |
 | 2 | **Cấp đủ** quyền cho các vai trò hiện có, theo đúng thứ họ đang làm được | Giữ nguyên hành vi trước khi có kiểm quyền |
 | 3 | Bật kiểm quyền trên endpoint | Không ai mất quyền ở bước này |
 | 4 | **Thu hẹp** dần qua màn phân quyền | Người vận hành thấy trước hệ quả mỗi lần siết |
 
-**Làm ngược lại — seed rỗng rồi cấp dần — nghĩa là mở cho người dùng một hệ thống mà không ai làm
+**Làm ngược lại — bật kiểm quyền khi chưa cấp gì rồi cấp dần — nghĩa là mở cho người dùng một hệ thống mà không ai làm
 được gì**, và mỗi lần cấp thêm một quyền là một lần phải giải thích với một người đang bị chặn.
 
 ### 8.1 🪤 Thêm quyền mới cho một tính năng mới
 
-Thêm một `[RequirePermission("core.bao-cao.read")]` mà **không** thêm dòng tương ứng vào script
-seed nghĩa là: production 403 ở đúng tính năng vừa thêm, trong khi môi trường dev chạy tốt (vì
-dev thường seed đủ). Đây là loại lỗi chỉ xuất hiện sau khi triển khai.
+Thêm một `[RequirePermission("core.bao-cao.read")]` mà **không** thêm dòng tương ứng vào migration
+seed danh mục nghĩa là attribute hỏi một khoá không có trong database, và deny-by-default trả 403
+cho **mọi** người ở đúng tính năng vừa thêm — kể cả người đã được giao việc đó.
 
-Danh mục quyền và script seed phải đổi **cùng lượt** với endpoint —
+Test CI đối chiếu **hai chiều** hằng số khoá ↔ dòng seed trong migration (luật B7) chặn ca này
+trước khi triển khai. Khoá, dòng migration và endpoint đổi **cùng lượt** —
 [`../database/migration-policy.md`](../database/migration-policy.md) §8 liệt kê danh mục việc.
+
+Khoá của **module** đi cùng đường: dòng seed nằm trong migration của chính module, theo ngoại lệ có
+tên của luật E6 ([`../database/migration-policy.md`](../database/migration-policy.md) §4.1), và
+test B7 phủ cả khoá của module.
 
 ### 8.2 Dòng cấp trỏ tới quyền đã xoá mềm
 

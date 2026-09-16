@@ -36,7 +36,7 @@ Lý do rất cụ thể — chia đôi khu này sẽ phá đúng thứ nó sinh 
 | --- | --- |
 | `Components/` | 🛑 **KHÔNG.** Chỉ component Core — thứ đi theo khi mang bộ khung sang dự án khác |
 | `DESIGN.md`, `Icons.md`, `Templates/` | 🛑 **KHÔNG.** Nền tảng dùng chung |
-| `Screens/`, `Prompts/` *(tạo khi có dự án thật)* | ✅ **CÓ.** Đây là chỗ ngoại lệ sống |
+| `Screens/` *(tạo trước pha FE có màn đó)*, `Prompts/` *(tạo khi có dự án thật)* | ✅ **CÓ.** Đây là chỗ ngoại lệ sống |
 
 Phép thử một dòng cho `Components/`: **xoá phần nghiệp vụ khỏi spec mà spec vẫn còn nghĩa → component Core. Spec sụp → component nghiệp vụ, không thuộc thư mục này.** Một ô số liệu "có nhãn, giá trị, biến động, dùng cho dashboard chỉ số" sụp ngay khi bỏ chữ "chỉ số"; một `Card` thì không.
 
@@ -223,6 +223,25 @@ bash .claude/check-docs.sh
 
 Cổng chỉ bắt được thứ máy kiểm được. Nó **không** đọc hiểu nội dung — xem [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §8 để biết ba loại lỗi nó không bao giờ bắt được.
 
+### Câu chữ chưa có nguồn — khuôn nhãn *Chờ duyệt:*
+
+Một câu hiển thị mà nguồn (card hợp đồng, luồng, spec nghiệp vụ) chỉ cho ý, không cho câu, thì `design-expert` soạn **bản đề xuất** ngay trong spec và đánh dấu bằng đúng một khuôn:
+
+| Khoản | Luật |
+| --- | --- |
+| Hình dạng | Tiền tố in nghiêng, đúng chuỗi `*Chờ duyệt:*`. Viết khác đi thì lệnh tìm dưới đây không thấy |
+| Vị trí | **Đầu ô** chứa câu, trước câu đề xuất |
+| Khi người dùng duyệt | **Xoá tiền tố**, giữ câu đã duyệt. Không thêm nhãn "đã duyệt" nào: ô không có tiền tố chính là câu đã chốt |
+| Hiệu lực | Ô còn tiền tố thì câu **chưa chốt**. Người dựng không được coi nó là câu cuối |
+
+Spec màn còn ô mang tiền tố thì mục `Cần chốt` của nó có một dòng gom việc duyệt các câu đó. Tìm bằng lệnh, không chép danh sách:
+
+```bash
+grep -rn '\*Chờ duyệt:\*' docs/Design
+```
+
+PASS trước khi dựng một màn = lệnh không in dòng nào thuộc file spec của màn đó.
+
 ---
 
 ## 9. Cấu trúc thư mục
@@ -237,11 +256,11 @@ docs/Design/
   Components/      một file một component Core
 ```
 
-Ba thư mục sau **tạo khi có dự án thật dựng trên Core**, không tạo trước ở giai đoạn 1:
+Ba thư mục sau **không tạo trước điều kiện của chính nó** — mỗi thư mục có một điều kiện tạo riêng:
 
 | Thư mục | Chứa gì | Tạo khi nào |
 | --- | --- | --- |
-| `Screens/` | Spec màn hình theo luồng. Đây là chỗ ngoại lệ Core↔nghiệp vụ ở §1 sống | Khi có màn hình thật để mô tả |
+| `Screens/` | Spec màn hình theo luồng. Đây là chỗ ngoại lệ Core↔nghiệp vụ ở §1 sống | Trước pha FE có màn đó — spec màn phải xong trước khi pha đó bắt đầu dựng màn |
 | `Prompts/` | Bộ prompt sinh màn hình | Khi screen spec của luồng đó đã xong |
 | `Assets/` | Ảnh chụp màn hình, tài sản thương hiệu | Khi có app chạy được để chụp — xem §3 |
 
@@ -249,7 +268,7 @@ Tạo trước một thư mục rỗng là tạo trước một chỗ để bị
 
 ### Khuôn nào dùng cho việc nào
 
-Trước đây khu này chỉ trỏ tới **thư mục** `Templates/`, nên một agent được bảo "viết theo mẫu" vẫn phải đoán mẫu nào — và sáu trong mười khuôn chưa từng được gọi tên ở bất kỳ đâu.
+Mỗi việc có đúng một khuôn được gọi tên. Chỉ trỏ tới **thư mục** `Templates/` thì một agent được bảo "viết theo mẫu" vẫn phải đoán mẫu nào.
 
 | Đang viết gì | Khuôn |
 | --- | --- |
@@ -278,3 +297,4 @@ Trước đây khu này chỉ trỏ tới **thư mục** `Templates/`, nên mộ
 | Ngôn ngữ | Tiếng Việt, lệch dự án tiền nhiệm (tiếng Anh). Lý do ở §8 |
 | Không có `Prototypes/` | Nguồn UI duy nhất, không có bản xem trước song song. Lý do ở §1 |
 | Bỏ mục `Normalize on redesign` ở giai đoạn 1 | Chưa có app để chê. Thay bằng `Cần chốt`. Lý do ở §2 |
+| Khuôn nhãn *Chờ duyệt:* | Câu chữ chưa có nguồn mang tiền tố in nghiêng ở đầu ô; người dùng duyệt thì xoá tiền tố. Luật ở §8 |

@@ -70,9 +70,17 @@ Sáu vùng, theo đúng thứ tự dọc này:
 | 3 | `Toolbar` | ✅ **Bắt buộc** | Xem §3 |
 | 4 | `DataTable` | ✅ **Bắt buộc** | Thân bảng là **vùng cuộn duy nhất** của màn — xem §4 |
 | 5 | Dải tổng | ⬜ Tuỳ chọn | Bật công tắc `summary`. Nhãn **phải** mang phạm vi |
-| 6 | `Pagination` | ✅ **Bắt buộc** với biến thể `paged` | Nằm **ngoài** khung bảng |
+| 6 | Dải phân trang | ✅ **Bắt buộc** với biến thể `paged` | Nằm **ngoài** khung bảng, và do `DataTable` vẽ — màn **không** tự đặt một [`../Components/Pagination.md`](../Components/Pagination.md). Hợp đồng phân trang ở [`../Components/DataTable.md`](../Components/DataTable.md) §API |
 
 🛑 **Không chèn vùng nào khác vào giữa `Toolbar` và bảng.** Mỗi thứ chen vào đó đẩy bảng xuống và ăn mất chiều cao của thứ duy nhất người dùng mở màn này để xem.
+
+### Ngoại lệ có tên — màn Core không phải màn danh sách
+
+Màn trong bảng dưới **không** phải màn danh sách, nên sáu vùng ở trên và §3 không áp cho nó; spec màn tự khai bố cục. Một màn chỉ được coi là ngoại lệ khi có dòng ở đây, kèm lý do.
+
+| Màn | Dựng bằng | Vì sao không phải màn danh sách |
+| --- | --- | --- |
+| Ma trận phân quyền — [`../Screens/12-ma-tran-phan-quyen.md`](../Screens/12-ma-tran-phan-quyen.md) | [`../Components/Table.md`](../Components/Table.md) + [`../Components/Check.md`](../Components/Check.md) | Danh mục quyền không phân trang ([`../../contracts/permissions.md`](../../contracts/permissions.md) §4) và mọi ô đều tương tác — đúng ca [`../Components/DataTable.md`](../Components/DataTable.md) loại khỏi `DataTable` |
 
 ---
 
@@ -87,8 +95,8 @@ Biến thể `Toolbar` chọn theo số **trường lọc**, không theo số b�
 | Số trường lọc | Biến thể | Panel lọc ở đâu |
 | --- | --- | --- |
 | 0 | `search` | Không có panel |
-| 1–2 | `search` | Nằm thẳng trong `Toolbar`, cùng hàng ô tìm |
-| ≥ 3 | `full` | [`../Components/Drawer.md`](../Components/Drawer.md) cỡ `lg` — xem [`../Components/Toolbar.md`](../Components/Toolbar.md) §"Panel lọc nằm ở đâu" |
+| 1–2 | `full` — khu lọc nằm thẳng trong dải | Nằm thẳng trong `Toolbar`, cùng hàng ô tìm |
+| ≥ 3 | `full` — khu lọc là nút mở panel | [`../Components/Drawer.md`](../Components/Drawer.md) cỡ `lg` — xem [`../Components/Toolbar.md`](../Components/Toolbar.md) §"Panel lọc nằm ở đâu" |
 
 Ba điều đi kèm, không bỏ được:
 
@@ -112,7 +120,7 @@ Hệ quả cho người dựng: khung ứng dụng cao trọn màn hình, `main`
 
 Đây là mục làm khuôn này có ích cho **dự án thứ hai**, không chỉ dự án đầu.
 
-**Màn danh sách của một DỰ ÁN** tự ghép component, tự quyết tất cả. **Màn danh sách của CORE** — người dùng, vai trò, phân quyền, đơn vị — thì dự án hạ nguồn chỉ đổi được qua seam `CORE_SCREEN_EXT` ([`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.7). Bảng dưới nói về ca thứ hai, ca khó:
+**Màn danh sách của một DỰ ÁN** tự ghép component, tự quyết tất cả. **Màn danh sách của CORE** — người dùng, vai trò, đơn vị — thì dự án hạ nguồn chỉ đổi được qua seam `CORE_SCREEN_EXT` ([`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.7). Bảng dưới nói về ca thứ hai, ca khó:
 
 | Dự án đổi gì | Đổi ở đâu | Có phải sửa file Core không |
 | --- | --- | --- |
@@ -148,7 +156,7 @@ Hệ quả cho người dựng: khung ứng dụng cao trọn màn hình, `main`
 
 Nói ra để không ai tưởng đã xong:
 
-- **Tầng trạng thái danh sách có hợp đồng, chưa có hiện thực.** [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.8 nay khai `GridQuery` và `ListStateStore` kèm năm luật — giữ truy vấn, đồng bộ URL, chống gọi dồn dập, huỷ đáp ứng cũ. Nhưng đó là **hợp đồng**, không phải code: người dựng màn đầu tiên vẫn là người viết hiện thực, và khuôn này không ép được chất lượng của nó.
+- **Tầng trạng thái danh sách có hợp đồng, chưa có hiện thực.** [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.8 nay khai `GridQuery` và `ListStateStore` kèm các luật của mục đó — giữ truy vấn, đồng bộ URL, chống gọi dồn dập, huỷ đáp ứng cũ. Nhưng đó là **hợp đồng**, không phải code: người dựng màn đầu tiên vẫn là người viết hiện thực, và khuôn này không ép được chất lượng của nó.
 - **Mọi màn Core phải tự đọc `CORE_SCREEN_EXT`.** Quên ở một màn thì màn đó **im lặng không mở rộng được**: dự án hạ nguồn khai cột mà cột không hiện ra, không lỗi biên dịch, không cổng nào bắt. Xem [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.7.
 
 Hai khoản này là nợ nhìn thấy được, cùng khuôn với [`../../RULES.md`](../../RULES.md) §10.

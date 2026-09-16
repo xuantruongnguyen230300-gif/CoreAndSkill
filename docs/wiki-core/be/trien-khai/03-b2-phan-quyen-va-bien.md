@@ -8,7 +8,7 @@ verified: chua-doi-chieu
 
 > 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**
 >
-> **Định nghĩa hoàn thành:** bốn card hợp đồng hiện có chạy đúng như đã khai; 403 bắn đúng chỗ và không nhầm với 401; CSRF, CORS và rate limit chặn thật, mỗi cái có một test chứng minh.
+> **Định nghĩa hoàn thành:** card `users.md`, `roles.md`, `permissions.md`, `meta-menu.md` và `auth.md` §10 chạy đúng như đã khai; 403 bắn đúng chỗ và không nhầm với 401; CSRF, CORS và rate limit chặn thật, mỗi cái có một test chứng minh.
 
 ---
 
@@ -20,7 +20,7 @@ verified: chua-doi-chieu
 | Menu động lọc theo quyền | [`../../../contracts/meta-menu.md`](../../../contracts/meta-menu.md) |
 | CSRF, CORS, cookie, rate limit | [`../../../quy-uoc/be-api-controller.md`](../../../quy-uoc/be-api-controller.md) §6, §7 |
 | Header bảo mật và các lớp còn lại | [`../09-security-beyond-auth.md`](../09-security-beyond-auth.md) |
-| Bốn card hợp đồng | [`../../../contracts/auth.md`](../../../contracts/auth.md) · [`../../../contracts/users.md`](../../../contracts/users.md) · [`../../../contracts/permissions.md`](../../../contracts/permissions.md) · [`../../../contracts/meta-menu.md`](../../../contracts/meta-menu.md) |
+| Card hợp đồng của pha | [`../../../contracts/users.md`](../../../contracts/users.md) · [`../../../contracts/roles.md`](../../../contracts/roles.md) · [`../../../contracts/permissions.md`](../../../contracts/permissions.md) · [`../../../contracts/meta-menu.md`](../../../contracts/meta-menu.md) · [`../../../contracts/auth.md`](../../../contracts/auth.md) §10 |
 
 ---
 
@@ -28,7 +28,7 @@ verified: chua-doi-chieu
 
 1. **Danh mục quyền** và cơ chế module tự khai quyền của mình.
 2. **Kiểm quyền ở biên**, mặc định **từ chối** khi chưa khai.
-3. **Các endpoint của bốn card**, viết theo đúng card — card là hợp đồng, không phải gợi ý.
+3. **Các endpoint của card thuộc pha này** (bảng §1), viết theo đúng card — card là hợp đồng, không phải gợi ý.
 4. **Menu động**, lọc theo quyền, giữ mục cha khi có con hiện.
 5. **Lớp biên**: CORS allowlist, antiforgery, rate limit theo từng chính sách.
 
@@ -50,9 +50,12 @@ verified: chua-doi-chieu
 - [ ] Chưa đăng nhập gọi endpoint → 401 JSON sạch.
 - [ ] Endpoint mới quên khai quyền → **bị từ chối**, không mở mặc định.
 - [ ] Gửi một request ghi thiếu header chống CSRF → 403, kèm đúng mã lỗi ở card.
+- [ ] Gửi một request ghi mang `Origin` ngoài allowlist **kèm token hợp lệ** → 403 `CORE.AUTH.ORIGIN_REJECTED`.
+- [ ] Phiên đã hết hạn, gửi request ghi kèm token cũ tới endpoint đòi đăng nhập → 401 `CORE.AUTH.NOT_AUTHENTICATED`, **không** 403 `CORE.AUTH.CSRF_REJECTED`.
+- [ ] Request mang phiên hợp lệ → response có `Set-Cookie` cấp lại cookie phiên với mốc hết hạn tính từ chính request đó.
 - [ ] Gọi từ một nguồn ngoài allowlist → bị CORS chặn; nguồn trong allowlist thì gửi kèm cookie được.
 - [ ] Vượt ngưỡng rate limit → 429 kèm `Retry-After`, và ngưỡng **không** lộ ra trong thông báo.
-- [ ] Mỗi phản hồi của bốn card khớp đúng khuôn đã khai, gồm cả bảng lỗi.
+- [ ] Mỗi phản hồi của card thuộc pha này khớp đúng khuôn đã khai, gồm cả bảng lỗi.
 
 ---
 

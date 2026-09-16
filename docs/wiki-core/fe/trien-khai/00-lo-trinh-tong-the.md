@@ -18,14 +18,16 @@ verified: chua-doi-chieu
 | --- | --- | --- |
 | **F0** | Nền móng | App build được, cấu trúc bốn tầng, ranh giới ESLint bật, envelope + chuỗi interceptor hoạt động: gọi một endpoint lỗi thật → hiện đúng thông điệp của BE |
 | **F1** | Design token | Token từ `Design/` vào code; thư viện UI render đúng màu token; không còn màu literal nào trong SCSS component |
-| **F2** | Auth + routing | Đăng nhập bằng cookie chạy thật; guard chặn đúng; tài khoản buộc đổi mật khẩu bị ép đúng chỗ; menu dựng theo permission |
-| **F3** | Hai màn quản trị | Quản trị người dùng và phân quyền chạy đủ vòng đời qua HTTP thật; lỗi validation bind đúng từng ô |
+| **F2** | Auth + routing | Đăng nhập bằng cookie chạy thật; guard chặn đúng; tài khoản buộc đổi mật khẩu bị ép đúng chỗ; menu dựng theo permission; hồ sơ cá nhân đọc và lưu được |
+| **F3** | Màn quản trị Core | Quản trị người dùng, vai trò và phân quyền chạy đủ vòng đời qua HTTP thật; lỗi validation bind đúng từng ô |
 
 **Cổng chạy song song từ F0**, không phải một pha riêng ở cuối. Xem [`05-gate.md`](05-gate.md).
 
 **Sau F3 — chưa cần một pha riêng, nhưng phải nằm trong kế hoạch:** khu thông báo trong ứng dụng (thành phần A16 ở [`../01-core-components.md`](../01-core-components.md) §2), component tải tệp, và nút xuất dữ liệu trên lưới. Ba thứ này ăn khớp với pha **B4** phía BE ([`../../be/trien-khai/05-b4-tep-nhap-xuat-thong-bao.md`](../../be/trien-khai/05-b4-tep-nhap-xuat-thong-bao.md)) — làm sau khi các endpoint tương ứng chạy thật, không làm trước bằng dữ liệu giả.
 
-**Khu quản trị đơn vị** (tài khoản vận hành, [`../../../contracts/tenants.md`](../../../contracts/tenants.md)) đi cùng F3: nó dùng lại đúng khuôn lưới và form của hai màn quản trị kia, chỉ khác ở đường gác — cờ thay vì ma trận quyền.
+**Khu quản trị đơn vị** (`/he-thong/don-vi` theo bản đồ route ở [`../../../quy-uoc/fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §1, tài khoản vận hành, [`../../../contracts/tenants.md`](../../../contracts/tenants.md)) — **sau F3, đóng khi B3 xong.** Dựng được ngay sau F3 trên dữ liệu giả đúng card, vì nó dùng lại khuôn lưới và form của F3 và chỉ khác ở đường gác — cờ vận hành thay vì ma trận quyền. Đóng khi endpoint của card đó chạy thật ở pha B3 ([`../../be/trien-khai/04-b3-van-hanh.md`](../../be/trien-khai/04-b3-van-hanh.md)).
+
+**Module mẫu** — sau F3, ở dự án hạ nguồn đầu tiên, **không** ở repo Core: §4.1.
 
 Mỗi pha có một file riêng với định nghĩa hoàn thành và danh sách nghiệm thu:
 [`01-f0-nen-mong.md`](01-f0-nen-mong.md) · [`02-f1-design-token.md`](02-f1-design-token.md) · [`03-f2-auth-routing.md`](03-f2-auth-routing.md) · [`04-f3-man-quan-tri.md`](04-f3-man-quan-tri.md)
@@ -49,7 +51,7 @@ Nguyên tắc cuối là lý do lộ trình này khác lộ trình của một d
 
 ```
 F0 ──► F1 ──► F2 ──► F3
- └──────┴──────┴──────┴──► Cổng (bật dần từ F0, đủ bộ ở F3)
+ └──────┴──────┴──────┴──► Cổng (bật dần từ F0)
 ```
 
 ### 3.1 F1 trước F2
@@ -60,16 +62,19 @@ Ngoại lệ nhỏ có thể chấp nhận: dựng khung màn đăng nhập ở 
 
 ### 3.2 F2 trước F3
 
-Hai màn quản trị đều nằm sau guard permission. Không có auth thì **không kiểm chứng được** chúng bị chặn đúng hay không — mà "bị chặn đúng" chính là phần dễ sai nhất của hai màn đó.
+Các màn quản trị của F3 đều nằm sau guard permission. Không có auth thì **không kiểm chứng được** chúng bị chặn đúng hay không — mà "bị chặn đúng" chính là phần dễ sai nhất của chúng.
 
 ### 3.3 Cổng không đợi tới cuối
 
-| Cổng bật ở | Vì sao đúng lúc đó |
-| --- | --- |
-| F0 | Ranh giới tầng (F1, F2, F3, F4), cú pháp (F9), ranh giới DTO (F10, F11), spec cho service (F12), `track` (F13) |
-| F1 | Màu literal (F6, F7) — lúc này token vừa có, luật mới bắt đầu có nghĩa |
-| F2 | Chữ tiếng Việt trong template (F8) — lúc này i18n vừa có |
-| F3 | Ngân sách bundle (F14) — lúc này mới có đủ màn để đo một con số có nghĩa |
+| Cổng bật ở | Nhóm luật | Vì sao đúng lúc đó |
+| --- | --- | --- |
+| F0 | Ranh giới tầng, cú pháp, ranh giới DTO, cách đọc envelope, spec cho service | Cấu trúc bốn tầng và `core/http` vừa dựng — luật có đối tượng để ép ngay |
+| F1 | Màu literal, component dumb | Token và component dùng chung vừa có, luật mới bắt đầu có nghĩa |
+| F2 | Chữ tiếng Việt trong template | i18n vừa có |
+| F3 | Ngân sách bundle | Lúc này mới có đủ màn để đo một con số có nghĩa |
+| Sau F3 | Ranh giới giữa các module | Module nghiệp vụ đầu tiên ra đời — ở dự án hạ nguồn (§4.1) |
+
+Mã luật cụ thể và pha bật của **từng** mã: cột "Bật ở pha" ở [`05-gate.md`](05-gate.md) §3 — nơi duy nhất giữ ánh xạ đó. Bảng này chỉ giữ lý do.
 
 Nguyên tắc đằng sau bảng này: **tính năng trước, cổng ngay sau** — không viết cổng cho thứ chưa tồn tại, và cũng không để tính năng chạy một thời gian dài rồi mới thêm cổng.
 
@@ -80,12 +85,27 @@ Nguyên tắc đằng sau bảng này: **tính năng trước, cổng ngay sau**
 | Trong phạm vi | Ngoài phạm vi |
 | --- | --- |
 | Bốn tầng `core/ shared/ platform/ modules/` | Bất kỳ màn nghiệp vụ nào |
-| Màn Core ở `platform/`: đăng nhập, đổi mật khẩu, trang đích, quản trị người dùng, phân quyền | Nội dung của `modules/` |
+| Màn Core ở `platform/` — danh sách ở [`../../../quy-uoc/fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.3 | Nội dung của `modules/` |
 | Hạ tầng: envelope, interceptor, guard, i18n, theme, menu | Biểu đồ, upload, xuất dữ liệu ([`../01-core-components.md`](../01-core-components.md) §3) |
 
-**`modules/` chưa có thư mục nào ở cuối F3, và đó là đúng.** Thư mục đó ra đời cùng module nghiệp vụ đầu tiên, thuộc giai đoạn nghiệp vụ. Đừng tạo sẵn thư mục rỗng: Git không theo dõi thư mục rỗng, nên nó biến mất ở bản clone kế tiếp và tạo ra một mục nghiệm thu không bao giờ tick đúng.
+**`modules/` chưa có thư mục nào ở cuối F3, và đó là đúng.** Thư mục đó ra đời cùng module nghiệp vụ đầu tiên — ở dự án hạ nguồn, không ở repo Core (§4.1). Đừng tạo sẵn thư mục rỗng: Git không theo dõi thư mục rỗng, nên nó biến mất ở bản clone kế tiếp và tạo ra một mục nghiệm thu không bao giờ tick đúng.
 
 Điều này có một hệ quả trực tiếp lên cổng F2 và F4 — xem [`05-gate.md`](05-gate.md).
+
+### 4.1 Sau F3 — module mẫu ở dự án hạ nguồn đầu tiên
+
+> 📖 Quyết định và phương án đã loại: [`../../../adr/0032-module-mau-o-du-an-ha-nguon.md`](../../../adr/0032-module-mau-o-du-an-ha-nguon.md).
+
+Repo Core **không** chứa module mẫu. Module mẫu là module nghiệp vụ đầu tiên của dự án hạ nguồn đầu tiên dựng trên Core. Skill scaffold module viết ở dự án đó, chạy thật trên chính module đó, rồi mới đưa về Core.
+
+**Định nghĩa hoàn thành:**
+
+- [ ] Module nằm ở `modules/<tên-module>/` của dự án hạ nguồn, cấu trúc theo [`../../../quy-uoc/fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §3
+- [ ] Dự án hạ nguồn không sửa file nào của Core ([`../../../adr/0016-phan-phoi-core-bang-clone.md`](../../../adr/0016-phan-phoi-core-bang-clone.md)); phần cần mở rộng ở màn Core đi qua seam ([`../../../quy-uoc/fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.5, §2.7)
+- [ ] Tên module có trong mảng module của cấu hình ranh giới; cổng F4 xanh; vùng F2 chứng minh bằng canary theo [`../../../quy-uoc/fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §4.4
+- [ ] Ít nhất một màn của module chạy qua HTTP thật tới endpoint của module phía BE
+- [ ] Toàn bộ cổng FE ([`05-gate.md`](05-gate.md)) xanh ở dự án hạ nguồn
+- [ ] Skill scaffold sinh lại được khung module đó; phần mang nghiệp vụ của dự án đã gỡ, rồi skill được đưa về repo Core theo đường của [`../../../adr/0016-phan-phoi-core-bang-clone.md`](../../../adr/0016-phan-phoi-core-bang-clone.md)
 
 ---
 
@@ -94,9 +114,13 @@ Nguyên tắc đằng sau bảng này: **tính năng trước, cổng ngay sau**
 | Pha | Cần gì từ ngoài | Chặn hay không chặn |
 | --- | --- | --- |
 | F0 | Hình dạng envelope đã chốt ở [`../../../contracts/README.md`](../../../contracts/README.md) | **Chặn** — sai envelope là sai lan ra toàn app |
+| F0 | Endpoint thử của pha B0 — trả cả nhánh thành công lẫn nhánh lỗi ([`../../be/trien-khai/01-b0-nen-mong.md`](../../be/trien-khai/01-b0-nen-mong.md)) | Chặn phần **đóng** pha: định nghĩa hoàn thành của F0 gọi đúng endpoint đó ở nhánh lỗi |
 | F1 | Token trong [`../../../Design/DESIGN.md`](../../../Design/DESIGN.md) | **Chặn** |
-| F2 | Hợp đồng [`../../../contracts/auth.md`](../../../contracts/auth.md) | Chặn phần **đóng** pha, không chặn phần dựng |
-| F3 | [`../../../contracts/users.md`](../../../contracts/users.md), [`../../../contracts/permissions.md`](../../../contracts/permissions.md), [`../../../contracts/meta-menu.md`](../../../contracts/meta-menu.md) | Như trên |
+| F2 | [`../../../contracts/auth.md`](../../../contracts/auth.md), [`../../../contracts/profile.md`](../../../contracts/profile.md), [`../../../contracts/meta-menu.md`](../../../contracts/meta-menu.md) | Chặn phần **đóng** pha, không chặn phần dựng |
+| F3 | [`../../../contracts/users.md`](../../../contracts/users.md), [`../../../contracts/roles.md`](../../../contracts/roles.md), [`../../../contracts/permissions.md`](../../../contracts/permissions.md) | Như trên |
+| Sau F3 — khu quản trị đơn vị | [`../../../contracts/tenants.md`](../../../contracts/tenants.md) | Như trên — đóng khi B3 xong |
+
+Card nào thuộc pha BE nào: [`../../be/trien-khai/00-lo-trinh-tong-the.md`](../../be/trien-khai/00-lo-trinh-tong-the.md) §1 — file đó giữ ánh xạ, bảng này chỉ nêu card FE cần.
 
 **Ý nghĩa của "chặn phần đóng, không chặn phần dựng":** khi hình dạng request và response đã cố định trong hợp đồng, FE dựng được ngay trên dữ liệu giả đúng hợp đồng. Đổi sang endpoint thật sau đó là đổi một cấu hình. Đợi BE xong mới bắt đầu là mất trắng khoảng thời gian đó.
 

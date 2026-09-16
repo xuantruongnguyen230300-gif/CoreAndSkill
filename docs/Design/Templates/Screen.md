@@ -57,11 +57,15 @@ Kèm số đo cấu trúc lấy từ token: bề rộng, chiều cao, đệm.
 
 Bảng mọi câu người dùng đọc được. **Mỗi câu phải có khoá i18n** — template không được chứa chữ tiếng Việt, cổng [`../../RULES.md`](../../RULES.md) §7 F8 bắt.
 
+Câu mà nguồn chỉ cho ý, không cho câu: soạn bản đề xuất theo khuôn nhãn *Chờ duyệt:* ở [`../CLAUDE.md`](../CLAUDE.md) §8.
+
 | Phần tử | Câu hiển thị | Khoá i18n |
 | --- | --- | --- |
 | Tiêu đề màn | Danh sách người dùng | `nguoiDung.tieuDe` |
 | Nút chính | Thêm người dùng | `nguoiDung.hanhDong.them` |
 | Thông báo lỗi | Không tải được danh sách | `nguoiDung.loi.taiThatBai` |
+
+Cột **Nguồn** (tuỳ chọn, thêm khi câu lấy từ nơi khác): link = câu lấy thẳng từ nguồn đó; *duyệt* = người dùng đã duyệt, link kèm sau (nếu có) chỉ cho ý. Câu không ghi nguồn là câu người dùng đã duyệt — spec ghi **ngày duyệt** một lần ngay dưới bảng, không lặp quy ước này.
 
 #### `### Trạng thái`
 
@@ -103,8 +107,8 @@ Chỗ cố ý để ngỏ, kèm câu hỏi cụ thể và ai trả lời đượ
 
 ```text
 - Khung ứng dụng
-  - Sidebar (240px, thu còn 64px dưới --bp-lg)
-  - Topbar (cao 56px, dính đỉnh)
+  - Sidebar (rộng --layout-sidebar-w, thu còn --layout-sidebar-w-collapsed dưới $bp-lg)
+  - Topbar (cao --layout-topbar-h, dính đỉnh)
   - main (rộng tối đa --layout-container-max, đệm --sp-8)
     - PageHeader — tiêu đề + nút "Thêm người dùng" (Button primary)
     - Card (đệm --sp-6, khe --sp-6)
@@ -113,6 +117,8 @@ Chỗ cố ý để ngỏ, kèm câu hỏi cụ thể và ai trả lời đượ
       - Pagination
   - Footer
 ```
+
+🛑 **Mọi số đo trong sơ đồ là TÊN TOKEN, không phải con số.** Giá trị của `--layout-*` đọc ở [`../DESIGN.md`](../DESIGN.md) §6.1 — chép con số vào spec màn là tạo bản sao thứ hai của một giá trị đã có chủ, và bản sao đó sẽ không được sửa cùng lúc ([`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §5).
 
 Một mục `Trạng thái` điền đúng:
 
@@ -138,6 +144,7 @@ Một mục `Trạng thái` điền đúng:
 | Bảng câu chữ có cột khoá i18n | ✅ **Bắt buộc** | |
 | Hai ca `rỗng` tách riêng | ✅ **Bắt buộc** ở màn danh sách | |
 | Số đo lấy từ token | ✅ **Bắt buộc** | Số thô là lỗi |
+| Bảng *Mã lỗi → chỗ hiện* | ✅ **Bắt buộc** khi màn gọi API | Request nào bảng bảo hiện lỗi ở `NoticeBanner` hay ở ô thì đặt cờ `BO_QUA_TOAST_LOI` ([`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §1): màn tự hiện, interceptor không toast chồng; `CORE.AUTH.FORBIDDEN` đi đường chung ([`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §8) |
 | Sơ đồ luồng giữa các màn | ⬜ Tuỳ chọn | Nên có khi luồng hơn hai màn |
 | Bảng phân quyền theo từng nút | ⬜ Tuỳ chọn | Cần khi cùng một màn hiện khác nhau theo quyền |
 | Ghi chú hiệu năng | ⬜ Tuỳ chọn | Cần khi màn tải danh sách lớn |

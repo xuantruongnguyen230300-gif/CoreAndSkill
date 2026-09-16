@@ -46,7 +46,7 @@ Chỉ hai biến thể, và không có biến thể "chỉ icon". Một hàng đ
 | `md` | `--size-control-md` (34px) | `--sp-5` | `--fs-sm` | `--icon-md` | **Mặc định.** `Toolbar`, dưới `PageHeader` |
 | `lg` | `--size-control-lg` (42px) | `--sp-6` | `--fs-md` | `--icon-md` | Bộ chọn chính của một màn, ở màn nhỏ |
 
-Máng bo `--radius-sm`; các đoạn bên trong bo theo máng ở hai đầu, vuông ở giữa. Nhãn **không xuống dòng** (`white-space: nowrap`) — một đoạn cao gấp đôi làm cả hàng lệch. Nhãn dài thì rút ngắn câu, hoặc chuyển sang ô chọn.
+Máng bo `--radius-sm`; các đoạn bên trong bo theo máng ở hai đầu, vuông ở giữa. Nhãn **không xuống dòng** (`white-space: nowrap`) — một đoạn cao gấp đôi làm cả hàng lệch. Nhãn dài thì rút ngắn câu, hoặc chuyển sang ô chọn. Đoạn đang chọn phân biệt bằng **nền lấp đầy trên máng**, không có dải accent — dải cạnh dưới là dấu hiệu của [`Tabs.md`](./Tabs.md); thứ phân biệt hai component là cái máng có viền bao quanh cả nhóm, `Tabs` không có máng.
 
 ## Trạng thái
 
@@ -54,7 +54,7 @@ Trạng thái ở đây có hai tầng: của **cả nhóm** và của **từng 
 
 | Trạng thái | Xử lý | Áp dụng |
 | --- | --- | --- |
-| `default` | Nhóm: máng `--color-surface-2`, viền `--color-border`, `--radius-sm`. Đoạn chưa chọn: nền trong suốt, chữ `--color-text-muted`, `--fw-medium`. Đoạn đang chọn: nền `--color-brand-subtle`, chữ `--color-brand-on-subtle`, `--fw-semibold`, dải dưới dày `--border-w-accent` màu `--color-brand` | Có |
+| `default` | Nhóm: máng `--color-surface-2`, viền `--color-border`, `--radius-sm`. Đoạn chưa chọn: nền trong suốt, chữ `--color-text-muted`, `--fw-medium`. Đoạn đang chọn: nền `--color-brand-subtle`, chữ `--color-brand-on-subtle`, `--fw-semibold` | Có |
 | `hover` | Đoạn chưa chọn → chữ `--color-text`, nền `--color-surface-3`. Đoạn đang chọn không đổi. `--dur-fast` với `--ease-standard`. **Bọc trong `@media (hover: hover)`** | Có |
 | `focus-visible` | `outline: var(--border-w-strong) solid var(--color-focus)`, `outline-offset: 2px` trên **đoạn** đang có focus, không trên cả máng | Có |
 | `active` | Nền `--color-surface-3`; không dịch chuyển hình — cả hàng nhích 1px trông như lỗi vẽ | Có |
@@ -69,23 +69,23 @@ Trạng thái ở đây có hai tầng: của **cả nhóm** và của **từng 
 
 | Nhóm | Token |
 | --- | --- |
-| Màu | `--color-brand`, `--color-brand-subtle`, `--color-brand-on-subtle`, `--color-text`, `--color-text-muted`, `--color-text-disabled`, `--color-surface-2`, `--color-surface-3`, `--color-border`, `--color-focus` |
+| Màu | `--color-brand-subtle`, `--color-brand-on-subtle`, `--color-text`, `--color-text-muted`, `--color-text-disabled`, `--color-surface-2`, `--color-surface-3`, `--color-border`, `--color-focus` |
 | Chữ | `--fs-xs`, `--fs-sm`, `--fs-md`, `--fw-medium`, `--fw-semibold`, `--lh-snug` |
 | Khoảng cách | `--sp-1`, `--sp-3`, `--sp-4`, `--sp-5`, `--sp-6` |
-| Hình dạng | `--radius-sm`, `--border-w`, `--border-w-strong`, `--border-w-accent` |
+| Hình dạng | `--radius-sm`, `--border-w`, `--border-w-strong` |
 | Kích thước | `--size-control-sm`, `--size-control-md`, `--size-control-lg`, `--icon-sm`, `--icon-md` |
 | Chuyển động | `--dur-fast`, `--ease-standard` |
 
-**Đoạn đang chọn có ba kênh tín hiệu chứ không một.** `--color-brand-subtle` chênh nền chỉ 1.25:1 nên [`../DESIGN.md`](../DESIGN.md) §2.4 cấm nó làm tín hiệu duy nhất. Ở đây nó đi kèm chữ `--color-brand-on-subtle` (7.47:1 sáng / 8.35:1 tối), nét chữ đậm hơn, và một dải `--border-w-accent`. Bỏ bất kỳ kênh nào trong ba là hồi quy accessibility, không phải lựa chọn thẩm mỹ.
+**Đoạn đang chọn có hai kênh, và kênh chữ là kênh gánh ngưỡng.** `--color-brand-subtle` chênh nền chỉ 1.25:1 nên [`../DESIGN.md`](../DESIGN.md) §2.4 cấm nó làm tín hiệu duy nhất; cùng mục đó chỉ đòi **một** dấu hiệu đạt 3:1 đi kèm. Ở đây dấu hiệu đó là chữ `--color-brand-on-subtle` (7.47:1 sáng / 8.35:1 tối), thêm nét `--fw-semibold`. Bỏ kênh chữ là hồi quy accessibility, không phải lựa chọn thẩm mỹ; không có dải accent để bù.
 
 ## Responsive
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Biến thể `default`, bề rộng theo nội dung, đứng cùng hàng với các control khác trong `Toolbar` |
-| `--bp-sm` … `--bp-md` | Chuyển sang `block`, các đoạn chia đều bề rộng; nhãn rút về dạng ngắn nếu có |
-| < `--bp-sm` | Vẫn `block`; cỡ tối thiểu nâng lên `md` để vùng chạm đủ rộng |
-| < `--bp-xs` | Từ ba lựa chọn trở lên và nhãn không rút ngắn được → **đổi hẳn sang ô chọn**, không cho hàng xuống dòng |
+| ≥ `$bp-md` | Biến thể `default`, bề rộng theo nội dung, đứng cùng hàng với các control khác trong `Toolbar` |
+| `$bp-sm` … `$bp-md` | Chuyển sang `block`, các đoạn chia đều bề rộng; nhãn rút về dạng ngắn nếu có |
+| < `$bp-sm` | Vẫn `block`; cỡ tối thiểu nâng lên `md` để vùng chạm đủ rộng |
+| < `$bp-xs` | Từ ba lựa chọn trở lên và nhãn không rút ngắn được → **đổi hẳn sang ô chọn**, không cho hàng xuống dòng. Ngưỡng nằm **trong component** theo đúng dòng này; nơi gọi chỉ cấp nhãn ngắn, không tự quyết |
 
 🛑 **Không bao giờ để hàng đoạn xuống dòng.** Một `SegmentedControl` vỡ thành hai dòng mất luôn thứ nó bán: hình ảnh một cái công tắc liền khối. Hai dòng trông y hệt hai nhóm khác nhau. Đổi sang ô chọn là mất một lần chạm, và đó là cái giá rẻ hơn.
 
@@ -138,6 +138,4 @@ Trạng thái ở đây có hai tầng: của **cả nhóm** và của **từng 
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Có cho mỗi đoạn mang một `Badge` đếm số không ("Đang hoạt động 12")? Nó hữu ích ở màn lọc, nhưng làm bề rộng đoạn đổi mỗi lần dữ liệu đổi, và cả hàng sẽ nhảy chỗ dưới ngón tay người dùng | Dự án đầu tiên có màn lọc theo trạng thái |
-| 2 | Ngưỡng đổi sang ô chọn ở màn nhỏ đặt cứng trong CSS hay để nơi gọi quyết? Đặt cứng thì nhất quán nhưng sai với nhãn ngắn bất thường; để nơi gọi quyết thì mỗi màn một kiểu | Người dựng component |
-| 3 | Dải `--border-w-accent` của đoạn đang chọn đặt ở cạnh dưới hay bao quanh? Cạnh dưới giống `Tabs` nên dễ bị nhầm hai component với nhau — chưa có màn thật để kiểm mức nhầm lẫn | Sau khi có màn dùng cả hai cạnh nhau |
+| 1 | Có cho mỗi đoạn mang một `Badge` đếm số không ("Đang hoạt động 12")? Nó hữu ích ở màn lọc, nhưng làm bề rộng đoạn đổi mỗi lần dữ liệu đổi, và cả hàng sẽ nhảy chỗ dưới ngón tay người dùng | Sau F3 — dự án hạ nguồn đầu tiên cần số đếm theo trạng thái (card phải trả số) |

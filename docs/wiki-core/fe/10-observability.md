@@ -224,7 +224,7 @@ Cả ba đều **không** phải điều kiện để đóng pha F0–F3. Chúng
 | Gửi nội dung form trong báo cáo lỗi | ❌ loại, không hoãn `K30` | §4.1 — có thể chứa mật khẩu người dùng gõ nhầm ô |
 | Tầng logger có mức độ riêng ở FE | ❌ loại, không hoãn `K31` | §9 — gần như luôn thành lớp bọc quanh console |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

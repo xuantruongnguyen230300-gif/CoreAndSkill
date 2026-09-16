@@ -19,17 +19,8 @@ verified: chua-doi-chieu
 
 > **Không có `Database.Migrate()` ở bất kỳ đâu trong code sản phẩm. Không auto-migrate lúc khởi
 > động. Schema áp bằng script `.sql` do con người chạy.**
-
-Ba lý do:
-
-1. **Auto-migrate biến mỗi lần khởi động thành một lần đổi schema.** Với nhiều instance, chúng
-   khởi động cùng lúc và cùng chạy migration — Postgres có khoá tư vấn nên không hỏng dữ liệu,
-   nhưng instance thua cuộc chờ, và thời gian chờ đó là downtime không ai dự kiến.
-2. **Không ai đọc thứ chạy tự động.** Một lệnh `DROP COLUMN` sinh nhầm sẽ chạy trước khi có người
-   kịp nhìn thấy nó. Ở dự án tiền nhiệm, một migration sinh tự động chứa **năm** lệnh `DropTable`
-   và lưới an toàn duy nhất là người đọc phát hiện ra kịp.
-3. **Người vận hành phải chọn được thời điểm.** Đổi schema trên dữ liệu thật là thao tác có cửa
-   sổ, có backup, có người trực. Gắn nó vào lần khởi động kế tiếp là bỏ hết ba thứ đó.
+>
+> Phía code: luật **E9** ([`../RULES.md`](../RULES.md)).
 
 Ràng buộc này được cưỡng chế bằng máy, không bằng câu văn: khối `permissions.deny` trong cấu
 hình harness chặn thẳng `dotnet ef database update`, `dotnet ef database drop`,
@@ -38,18 +29,12 @@ hình harness chặn thẳng `dotnet ef database update`, `dotnet ef database dr
 📖 Quyết định gốc và các phương án đã loại:
 [`../adr/0009-ap-schema-chay-tay.md`](../adr/0009-ap-schema-chay-tay.md).
 
-> 🛑 **Không auto-migrate ở BẤT KỲ môi trường nào — kể cả máy dev.** Đây là điểm sẽ bị đòi nới,
-> nên ghi lý do ra ngay: bật auto-migrate cho dev tạo ra **hai đường khác nhau giữa các môi
-> trường**. Đường chạy hằng ngày, được thử hàng trăm lần, là đường tự động; đường thật sự chạm
-> production là đường thủ công, và nó được thử **đúng một lần**, vào lúc căng nhất. Mọi lỗi thuộc
-> về script — sai thứ tự, thiếu một bước, câu lệnh chạy lại lần hai thì hỏng — sẽ **chỉ xảy ra ở
-> production**, vì ở dev không ai đi qua đường đó.
->
-> Nguyên tắc: đường đưa thay đổi vào database phải **giống nhau ở mọi môi trường**; chỉ khác ở
+> 🛑 **Không auto-migrate ở BẤT KỲ môi trường nào — kể cả máy dev.** Nguyên tắc: đường đưa thay đổi vào database phải **giống nhau ở mọi môi trường**; chỉ khác ở
 > người bấm nút.
 
-**Nhưng "chạy tay" không được phép có nghĩa là "mỗi người tự nghĩ ra cách".** Toàn bộ file này
-tồn tại để trả lời năm câu, mỗi câu một mục, cụ thể tới mức chép ra chạy được.
+File này trả lời năm câu, mỗi câu một mục, cụ thể tới mức chép ra chạy được.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §0
 
 ---
 
@@ -66,8 +51,6 @@ database/
     modules/
       banhang/                     ← Module `banhang` sở hữu, schema `banhang`
         0001__banhang__initial.sql
-    seed/                          ← Dữ liệu danh mục, KHÔNG phải schema
-      core-permission-catalog.sql
     README.md                      ← trỏ về chính file này, không chép nội dung
 ```
 
@@ -75,20 +58,15 @@ database/
 | --- | --- | --- |
 | `core/` | Chỉ người đang sửa `Core.Infrastructure` | **Trước** mọi script module |
 | `modules/<x>/` | Chỉ người đang sửa `Modules.<X>.Infrastructure` | Sau `core/` |
-| `seed/` | Tuỳ chủ sở hữu dữ liệu | Sau khi schema tương ứng đã áp |
 
-**Vì sao tách theo bên sở hữu chứ không gộp một thư mục phẳng.** Nó ánh xạ thẳng luật E6
-([`migration-policy.md`](migration-policy.md) §7): script chạm schema `core` mà nằm trong
-`modules/banhang/` là sai chỗ, và nhìn đường dẫn là thấy — không cần mở file. Nó cũng làm việc
-cấp số ở §2 không bao giờ va giữa hai bên.
+**Không có thư mục dữ liệu riêng.** Danh mục quyền đi trong migration, tức nằm ngay trong script
+schema ([`migration-policy.md`](migration-policy.md) §4.1). Dữ liệu của một đơn vị — vai trò mặc
+định, ánh xạ vai trò → quyền, menu — do service tạo đơn vị ghi, gọi từ lệnh bootstrap (§3.3) hoặc
+từ khu quản trị hệ thống ([`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)).
 
-**Vì sao thư mục này ở gốc repo chứ không nằm trong `src/BE/`.** Người chạy script là người vận
-hành, không nhất thiết là lập trình viên .NET. Bắt họ đi vào ba tầng thư mục project để tìm một
-file `.sql` là một rào cản không cần thiết, và là lý do thật để người ta bỏ qua quy trình.
+> 🛑 **Hai thư mục trên chỉ chứa script schema đánh số.** Vòng lặp ở §3.3 chạy glob `*.sql` **không có allowlist**.
 
-**`seed/` tách khỏi `core/` có chủ đích.** Script schema và script dữ liệu có vòng đời khác
-nhau: schema chạy một lần theo thứ tự, seed có thể chạy lại bất cứ lúc nào. Trộn chúng làm câu
-hỏi *"script này đã chạy chưa"* mất nghĩa cho một nửa số file.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §1
 
 ---
 
@@ -108,14 +86,7 @@ NNNN__<owner>__<mo-ta-ngan-khong-dau>.sql
 Ví dụ hợp lệ: `0001__core__initial.sql`, `0008__core__rename-menu-name-to-label-key.sql`,
 `0003__banhang__add-index-don-hang-ngay-tao.sql`.
 
-**Vì sao có tiền tố số thay vì dùng timestamp như EF.** Số bốn chữ số sắp xếp đúng bằng `ls`,
-đọc được bằng mắt, và **nói thẳng thứ tự** — thứ mà một chuỗi `20260908143255` nói được nhưng
-không ai đọc nổi. Người vận hành cần trả lời câu *"tôi đang ở 0006, còn thiếu mấy cái"* trong
-hai giây.
-
-**Vì sao cấp số theo owner chứ không cấp chung.** Core và module phát triển song song và không
-biết nhau. Một dãy số chung nghĩa là mỗi lần một module thêm script, Core phải đi hỏi số tiếp
-theo là bao nhiêu — một điểm phối hợp không đổi lấy gì.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §2
 
 ### 2.1 Hai người cùng thêm script — cách xử lý
 
@@ -124,18 +95,11 @@ Hai nhánh cùng tạo `0007__core__…` là chuyện sẽ xảy ra. Luật:
 > **Số thứ tự được chốt lúc MERGE, không phải lúc tạo nhánh. Ai merge sau thì đổi tên file của
 > mình.**
 
-Đổi tên là an toàn **khi và chỉ khi** script đó chưa được áp lên bất kỳ database dùng chung nào
-— và điều đó luôn đúng với script chưa merge, vì quy trình cấm chạy script từ một nhánh chưa
-vào `main` lên database dùng chung.
+Đổi tên là an toàn **khi và chỉ khi** script đó chưa được áp lên bất kỳ database dùng chung nào; quy trình cấm chạy script từ một nhánh chưa vào `main` lên database dùng chung.
 
 > 🛑 **Không bao giờ đổi tên một script đã có dòng trong `core.schema_script_history` của bất kỳ
-> database nào.** Bảng đó ghi nhận theo **tên file**. Đổi tên làm mọi database đã chạy tưởng
-> mình còn thiếu script, và lần chạy kế tiếp áp lại nó. Với script idempotent thì vô hại; với
-> một script có `INSERT` không phòng trùng thì đó là dữ liệu nhân đôi.
->
-> Nếu buộc phải đổi tên một script đã áp: `UPDATE core.schema_script_history SET script_name = …`
-> trên **mọi** database, cùng lượt. Đây là lý do luật trên tồn tại — để không bao giờ phải làm
-> việc đó.
+> database nào.** Nếu buộc phải đổi: `UPDATE core.schema_script_history SET script_name = …`
+> trên **mọi** database, cùng lượt.
 
 **Cổng CI kiểm trùng số** (thêm vào workflow ở giai đoạn 2):
 
@@ -148,6 +112,8 @@ done
 
 PASS: không in gì, thoát 0.
 
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §2.1
+
 ---
 
 ## 3. Câu 3 — Chạy theo thứ tự nào, và biết mình đang ở đâu
@@ -155,12 +121,7 @@ PASS: không in gì, thoát 0.
 ### 3.1 Bảng lịch sử áp dụng
 
 `core.schema_script_history` — định nghĩa cột đầy đủ ở [`schema-core.md`](schema-core.md) §9.1.
-Nó trả lời câu *"database này đã chạy những script nào"* cho **con người**.
-
-> **Đừng nhầm nó với `core.__ef_migrations_history`.** Bảng của EF trả lời *"EF tin migration nào
-> đã áp"*, và được ghi tự động bởi chính script sinh với `--idempotent`. Bảng này thì do **người
-> chạy script ghi**, và giữ thêm thứ EF không có: băm nội dung file, ai chạy, chạy lúc nào, mất
-> bao lâu. Hai bảng, hai câu hỏi, không suy ra nhau được.
+Nó trả lời câu *"database này đã chạy những script nào"* cho **con người**; đừng nhầm với `core.__ef_migrations_history` — hai bảng, hai câu hỏi, không suy ra nhau được.
 
 Mỗi script kết thúc bằng đúng khối này:
 
@@ -175,13 +136,9 @@ VALUES ('0002__core__add-notification.sql',
 ON CONFLICT (script_name) DO NOTHING;
 ```
 
-**`ON CONFLICT DO NOTHING` là bắt buộc**, không phải phòng xa: người vận hành sẽ chạy lại một
-file khi không chắc lần trước đã xong chưa, và đó là hành vi đúng cần được hỗ trợ chứ không phải
-hành vi cần chặn.
+**`ON CONFLICT DO NOTHING` là bắt buộc.** **Nằm trong cùng transaction cũng bắt buộc.**
 
-**Nằm trong cùng transaction cũng bắt buộc.** Ghi lịch sử ngoài transaction nghĩa là có một cửa
-sổ mà schema đã đổi nhưng lịch sử chưa ghi (hoặc ngược lại) — và cửa sổ đó, nếu tiến trình chết
-đúng lúc, để lại một database mà không ai biết nó ở đâu.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §3.1
 
 ### 3.2 Tính `checksum_sha256`
 
@@ -195,75 +152,145 @@ Trên Windows PowerShell:
 Get-FileHash database/scripts/core/0002__core__add-notification.sql -Algorithm SHA256
 ```
 
-Dán giá trị vào khối `INSERT` **trước khi** commit script. Băm bắt được đúng một ca, và là ca
-khó thấy nhất: **ai đó sửa một script đã áp**. Người sửa tin cả hệ đã có thay đổi; mọi database
-đã chạy bản cũ thì không, và không có gì báo. Câu kiểm ở §3.5 phát hiện ca này.
+Dán giá trị vào khối `INSERT` **trước khi** commit script.
 
-### 3.3 Quy trình từ database TRỐNG
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §3.2
 
-**Bốn phần, theo đúng thứ tự.** Lược đồ → danh mục dùng chung → đơn vị hệ thống và tài khoản vận hành → đơn vị nghiệp vụ đầu tiên.
+### 3.3 Quy trình từ database TRỐNG — một đường cho mọi môi trường
 
-Phần 3 và 4 là chỗ quy trình này khác một bản cài không có nhiều đơn vị: [`../adr/0017-khu-quan-tri-he-thong.md`](../adr/0017-khu-quan-tri-he-thong.md) tách hai vai không chồng lấn, và **tài khoản thứ hai chỉ ra đời sau khi tài khoản thứ nhất đăng nhập được**. Xem luồng [`../luong/V1-cai-dat-lan-dau.md`](../luong/V1-cai-dat-lan-dau.md).
+**Năm bước, theo đúng thứ tự, giống nhau ở máy dev và bản cài thật.** Chỗ khác của máy dev chỉ
+nằm ở giá trị biến và nguồn bí mật — §6.
+
+| # | Bước | Chạy bằng |
+| --- | --- | --- |
+| 1 | Tạo hai tài khoản database và database rỗng | Tài khoản quản trị cụm Postgres |
+| 2 | Áp script schema — Core rồi tới module. Script mang sẵn danh mục quyền: khoá Core trong script Core, khoá module trong script của module | `coreandskill_owner` |
+| 3 | Cấp quyền cho tài khoản ứng dụng — §3.6 | `coreandskill_owner` |
+| 4 | Đặt cấu hình cho lệnh bootstrap: hai đơn vị, hai tài khoản | Người vận hành |
+| 5 | Chạy lệnh bootstrap **một lần** | `coreandskill_app`, qua chuỗi kết nối của ứng dụng |
+
+Luồng nghiệp vụ của cả quy trình: [`../luong/V1-cai-dat-lan-dau.md`](../luong/V1-cai-dat-lan-dau.md).
+Vì sao hai tài khoản ở hai đơn vị: [`../adr/0017-khu-quan-tri-he-thong.md`](../adr/0017-khu-quan-tri-he-thong.md).
+
+Ba biến dùng xuyên suốt: `PGHOST`, `PGADMIN` (tài khoản quản trị cụm Postgres), `PGDATABASE`
+(tên database của ứng dụng).
+
+**Bước 1 — hai tài khoản database và database rỗng.**
 
 ```bash
-# 0. Tao database rong (mot lan).
-createdb -h "$PGHOST" -U "$PGUSER" coreandskill
+# Chay bang tai khoan quan tri cum. Chay lai duoc: role da co thi bo qua.
+psql -h "$PGHOST" -U "$PGADMIN" -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'coreandskill_owner') THEN
+    CREATE ROLE coreandskill_owner LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'coreandskill_app') THEN
+    CREATE ROLE coreandskill_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+  END IF;
+END $$;
+SQL
 
-# 1. Script Core, theo dung thu tu so.
-for f in database/scripts/core/*.sql; do
-  echo ">>> $f"
-  psql -h "$PGHOST" -U "$PGUSER" -d coreandskill -v ON_ERROR_STOP=1 -f "$f" || break
-done
+# Mat khau hai role: go tuong tac. KHONG dat trong tep, KHONG de lai trong lich su lenh.
+psql -h "$PGHOST" -U "$PGADMIN" -d postgres -c '\password coreandskill_owner'
+psql -h "$PGHOST" -U "$PGADMIN" -d postgres -c '\password coreandskill_app'
 
-# 2. Script tung module (chi module du an nay that su lap).
-for f in database/scripts/modules/banhang/*.sql; do
-  echo ">>> $f"
-  psql -h "$PGHOST" -U "$PGUSER" -d coreandskill -v ON_ERROR_STOP=1 -f "$f" || break
-done
-
-# 3. Danh muc quyen — DUNG CHUNG toan he, khong thuoc don vi nao.
-psql -h "$PGHOST" -U "$PGUSER" -d coreandskill -v ON_ERROR_STOP=1 \
-     -f database/scripts/seed/core-permission-catalog.sql
-
-# 4. Mat khau — nguoi van hanh tu dat, KHONG hardcode, KHONG commit.
-dotnet user-secrets set "Bootstrap:SysOpUserName" "<tu-dat>" --project src/BE/CoreAndSkill.Api
-dotnet user-secrets set "Bootstrap:SysOpPassword" "<tu-dat>" --project src/BE/CoreAndSkill.Api
-
-# 5. Don vi he thong + tai khoan van hanh. Chay mot lan roi thoat, KHONG mo cong.
-dotnet run --project src/BE/CoreAndSkill.Api -- --seed
-
-# 6. Don vi nghiep vu dau tien: KHONG lam o day.
-#    Dang nhap bang tai khoan vua tao, roi tao don vi qua khu quan tri he thong.
-#    Xem luong V2.
+# Database rong, chu so huu la coreandskill_owner.
+createdb -h "$PGHOST" -U "$PGADMIN" -O coreandskill_owner "$PGDATABASE"
 ```
 
-> 🛑 **Bước 6 cố ý không có lệnh.** Từ đơn vị thứ hai trở đi — và cả đơn vị **đầu tiên** — việc tạo đơn vị đi qua `POST /api/v1/core/system/tenants`, không qua dòng lệnh. Endpoint đó seed đủ **bốn** thứ mà một đơn vị cần và tạo tài khoản quản trị đầu tiên của nó ([`../luong/V2-tao-don-vi-moi.md`](../luong/V2-tao-don-vi-moi.md)).
->
-> Dựng đơn vị nghiệp vụ bằng SQL ở đây là tạo **đường thứ hai** cho cùng một việc, và hai đường sẽ lệch nhau ngay lần đầu có người sửa một bên.
+**Bước 2 — script schema.** Core trước, module sau; trong mỗi bên theo đúng thứ tự số.
 
-> 🛑 **`-v ON_ERROR_STOP=1` là bắt buộc.** Mặc định `psql` **chạy tiếp** sau khi một câu lệnh lỗi và thoát với mã 0. Không có cờ này, một script hỏng giữa chừng vẫn kết thúc như thành công, và database còn lại một nửa. Đây là mặc định gây bất ngờ nhất của `psql`.
+```bash
+for f in database/scripts/core/*.sql; do
+  echo ">>> $f"
+  psql -h "$PGHOST" -U coreandskill_owner -d "$PGDATABASE" -v ON_ERROR_STOP=1 -f "$f" \
+    || { echo "DUNG tai $f"; break; }
+done
 
-> **Trong DBeaver/pgAdmin:** bấm **Execute script** (`Alt+X` ở DBeaver), **không** phải `Ctrl+Enter`. `Ctrl+Enter` chỉ chạy một câu lệnh dưới con trỏ, và người chạy sẽ tưởng cả tệp đã chạy.
+# Tung module du an nay that su lap.
+for f in database/scripts/modules/banhang/*.sql; do
+  echo ">>> $f"
+  psql -h "$PGHOST" -U coreandskill_owner -d "$PGDATABASE" -v ON_ERROR_STOP=1 -f "$f" \
+    || { echo "DUNG tai $f"; break; }
+done
+```
 
-**Nghiệm thu từng phần:**
+Một vòng in `DUNG` thì **không sang bước kế**: đọc lỗi, sửa, dựng lại từ đầu. Xong bước 2 là `core.permission` đã có dòng của cả Core lẫn module ([`migration-policy.md`](migration-policy.md) §1, §4.1) — không có bước nạp danh mục quyền riêng.
+
+> 🛑 **`-v ON_ERROR_STOP=1` là bắt buộc** ở mọi lần gọi `psql -f` trong file này: mặc định `psql` **chạy tiếp** sau khi một câu lệnh lỗi và thoát với mã 0. **Trong DBeaver/pgAdmin:** bấm **Execute script** (`Alt+X` ở DBeaver), **không** phải `Ctrl+Enter`.
+
+**Bước 3 — cấp quyền cho tài khoản ứng dụng.** Chạy khối cấp quyền ở §3.6, rồi câu nghiệm thu ngay
+dưới nó.
+
+**Bước 4 — cấu hình cho lệnh bootstrap.**
+
+**Khoá cấu hình của lệnh bootstrap — định nghĩa gốc.** Mọi khoá nằm dưới tiền tố `Core:Bootstrap:`, khoá lá viết
+PascalCase; file này là chủ của tên khoá — thêm khoá thì thêm dòng vào bảng này, không khai ở chỗ khác. Nguồn giá trị
+theo môi trường: bảng *Môi trường* dưới. Tên lệnh và tham số:
+[`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §3, bảng *Lệnh của runner*.
+
+| Giá trị | Khoá | Bí mật |
+| --- | --- | --- |
+| Mã **đơn vị hệ thống**. Mã này là thứ tài khoản vận hành gõ vào ô mã đơn vị ở form đăng nhập | `Core:Bootstrap:SystemTenantCode` | Không |
+| Tên **đơn vị hệ thống** | `Core:Bootstrap:SystemTenantName` | Không |
+| Mã **đơn vị nghiệp vụ đầu tiên** | `Core:Bootstrap:FirstTenantCode` | Không |
+| Tên **đơn vị nghiệp vụ đầu tiên** | `Core:Bootstrap:FirstTenantName` | Không |
+| Tên đăng nhập **tài khoản vận hành hệ thống** (ví dụ `superadmin`) — mang `is_system_operator` và `must_change_password`, thuộc đơn vị hệ thống | `Core:Bootstrap:OperatorUserName` | Không |
+| Mật khẩu tài khoản vận hành hệ thống | `Core:Bootstrap:OperatorPassword` | **Có** |
+| Tên đăng nhập **tài khoản quản trị đơn vị** (ví dụ `admin`) — mang `has_permission_bypass` và `must_change_password`, thuộc đơn vị nghiệp vụ đầu tiên | `Core:Bootstrap:AdminUserName` | Không |
+| Mật khẩu tài khoản quản trị đơn vị | `Core:Bootstrap:AdminPassword` | **Có** |
+
+> 📖 Vì sao nhóm khoá này không gắn `ValidateOnStart`, và nó được kiểm ở mốc nào thay thế: đọc
+> [`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §4.4
+
+| Môi trường | Nguồn giá trị |
+| --- | --- |
+| Máy dev | Giá trị cột *Bí mật* = Không: `appsettings.Development.json` — tệp này vào repo và không chứa bí mật ([`../quy-uoc/repo-artifact.md`](../quy-uoc/repo-artifact.md) §6.1). Mật khẩu: `dotnet user-secrets set "Core:Bootstrap:<khoá>" "<tự đặt>" --project src/BE/CoreAndSkill.Api` — mỗi máy tự đặt, không ai gửi giá trị cho ai |
+| Bản cài thật | Nguồn bí mật của môi trường đó — [`../wiki-core/be/18-trien-khai-va-van-hanh.md`](../wiki-core/be/18-trien-khai-va-van-hanh.md) §2. `user-secrets` chỉ được nạp ở môi trường Development |
+
+Chuỗi kết nối của ứng dụng dùng `coreandskill_app`, **không** dùng `coreandskill_owner` — lý do
+ở §3.6.
+
+**Bước 5 — lệnh bootstrap.**
+
+```bash
+dotnet run --project src/BE/CoreAndSkill.Api -- core bootstrap
+```
+
+Lệnh gọi **service tạo đơn vị** — cùng service mà endpoint tạo đơn vị ở khu quản trị hệ thống gọi
+([`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md))
+— để tạo đơn vị hệ thống, đơn vị nghiệp vụ đầu tiên kèm dữ liệu mặc định của nó, và hai tài khoản
+ở bước 4. Xong thì **thoát, không mở cổng**. Bốn tính chất bắt buộc:
+
+- **Thiếu một giá trị ở bước 4 ⇒ dừng, không ghi dòng nào.**
+- **Chạy lại không nhân đôi.**
+- **Tài khoản đi qua `UserManager`, không qua SQL** ([`schema-core.md`](schema-core.md) §4.1).
+- **Tiến trình API phục vụ thật không tạo gì cả.**
+
+> 🛑 **Từ đơn vị thứ hai trở đi: không dùng dòng lệnh.** Tạo đơn vị đi qua khu quản trị hệ thống,
+> bằng tài khoản vận hành vừa tạo ([`../luong/V2-tao-don-vi-moi.md`](../luong/V2-tao-don-vi-moi.md)).
+
+Tên `superadmin` / `admin` là **dữ liệu** do người vận hành đặt, không phải vai trò (luật **S10**).
+
+**Nghiệm thu từng bước:**
 
 | Sau bước | Câu kiểm | Mong đợi |
 | --- | --- | --- |
-| 1 | Các câu kiểm ở [`schema-core.md`](schema-core.md) §11 | Đúng như "mong đợi" ghi trong từng câu |
-| 3 | `SELECT count(*) FROM core.permission` | Khác 0 |
-| 5 | `SELECT code, is_system FROM core.tenant` | Đúng **một** dòng, và `is_system` là `true` |
-| 5 | Đăng nhập bằng tài khoản vận hành | Thành công, buộc đổi mật khẩu ngay |
-| 6 | `SELECT code, is_system FROM core.tenant` | Thêm một dòng `is_system = false` |
+| 1 | `SELECT rolname, rolsuper, rolcreatedb, rolcreaterole FROM pg_roles WHERE rolname IN ('coreandskill_owner', 'coreandskill_app')` | Đúng **hai** dòng; ba cột cờ đều `false` |
+| 1 | `SELECT pg_has_role('coreandskill_app', 'coreandskill_owner', 'MEMBER')` | `false` |
+| 2 | Các câu kiểm ở [`schema-core.md`](schema-core.md) §11 | Đúng như "mong đợi" ghi trong từng câu |
+| 2 | `SELECT count(*) FROM core.permission` | Khác 0 |
+| 3 | Câu nghiệm thu quyền ở §3.6 | 0 dòng |
+| 5 | Máy dev: bỏ một giá trị ở bước 4, chạy bước 5, rồi `SELECT count(*) FROM core.tenant` | `0` — lệnh dừng mà không ghi gì |
+| 5 | `SELECT code, is_system FROM core.tenant ORDER BY is_system DESC` | Đúng **hai** dòng: mã đơn vị hệ thống với `is_system = true`, mã đơn vị nghiệp vụ đầu tiên với `false` — khớp giá trị ở bước 4 |
+| 5 | Chạy lại bước 5, rồi lặp câu kiểm trên | Vẫn đúng hai dòng |
+| 5 | Đăng nhập tài khoản quản trị đơn vị | Thành công, và `mustChangePassword` là `true` |
+| 5 | Đăng nhập tài khoản vận hành, gõ mã đơn vị hệ thống | Thành công, và `mustChangePassword` là `true` |
+| 5 | Tài khoản vận hành chưa đổi mật khẩu gọi một endpoint của khu quản trị hệ thống | **403** `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` — buộc đổi mật khẩu trước mọi thao tác |
+| 5 | Tài khoản vận hành đổi mật khẩu, rồi mở khu quản trị hệ thống | Vào được, **không** thấy dữ liệu nghiệp vụ của đơn vị nghiệp vụ đầu tiên |
 
-> **Vì sao bước 5 không làm bằng SQL.** Mật khẩu băm bằng PBKDF2 với salt ngẫu nhiên — không hàm SQL nào sinh được chuỗi băm hợp lệ ([`schema-core.md`](schema-core.md) §4.1). Thiếu secret ở bước 4 thì lệnh **cố ý dừng và không ghi dòng nào**.
-
-> 🛑 **`-v ON_ERROR_STOP=1` là bắt buộc.** Mặc định `psql` **chạy tiếp** sau khi một câu lệnh
-> lỗi và thoát với mã 0. Không có cờ này, một script hỏng giữa chừng vẫn kết thúc như thành
-> công, và database còn lại một nửa. Đây là mặc định gây bất ngờ nhất của `psql`.
-
-> **Trong DBeaver/pgAdmin:** bấm **Execute script** (`Alt+X` ở DBeaver), **không** phải
-> `Ctrl+Enter`. `Ctrl+Enter` chỉ chạy một câu lệnh dưới con trỏ, và người chạy sẽ tưởng cả file
-> đã chạy.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §3.3
 
 ### 3.4 Quy trình trên database ĐANG CÓ DỮ LIỆU
 
@@ -286,12 +313,16 @@ comm -13 /tmp/da-chay.txt /tmp/trong-repo.txt        # còn thiếu, theo đúng
 
 ```bash
 # Bước 3: chạy đúng những file ở bước 2, theo thứ tự, TỪNG FILE MỘT, đọc kết quả từng cái.
-psql -h "$PGHOST" -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 \
+psql -h "$PGHOST" -U coreandskill_owner -d "$PGDATABASE" -v ON_ERROR_STOP=1 \
      -f database/scripts/core/0007__core__add-outbox-retry-columns.sql
 ```
 
-**Từng file một, không vòng lặp**, khi database có dữ liệu thật. Vòng lặp ở §3.3 chỉ dành cho DB
-trống — nơi hỏng thì dựng lại.
+**Từng file một, không vòng lặp**, khi database có dữ liệu thật.
+
+**Bước 4: chạy lại khối cấp quyền ở §3.6, rồi câu nghiệm thu của nó.** Bảng do script vừa áp tạo
+ra chưa có quyền nào cho tài khoản ứng dụng.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §3.4
 
 ### 3.5 Ba câu kiểm sức khoẻ
 
@@ -308,8 +339,93 @@ WHERE  script_name NOT IN ( /* dán danh sách tên file từ repo vào đây */
 SELECT script_name, checksum_sha256 FROM core.schema_script_history ORDER BY script_name;
 ```
 
-Câu (3) là câu bắt được ca nguy hiểm nhất trong ba: schema thật và schema mà repo mô tả đã lệch
-nhau, mà tên file thì vẫn khớp nên không gì nghi ngờ.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §3.5
+
+### 3.6 Quyền của hai tài khoản database — định nghĩa gốc
+
+| Tài khoản | Ai dùng | Quyền |
+| --- | --- | --- |
+| `coreandskill_owner` | Người vận hành, **chỉ** để áp script schema (§3.3 bước 2, §3.4) và chạy khối cấp quyền dưới đây | Chủ database và mọi schema của ứng dụng |
+| `coreandskill_app` | Tiến trình ứng dụng — **kể cả** lệnh bootstrap (§3.3 bước 5) và lệnh khôi phục (§8) | Bảng dưới |
+
+| Bảng | `coreandskill_app` được | Vì sao |
+| --- | --- | --- |
+| `core.audit_log` | `SELECT`, `INSERT` — **không** `UPDATE`, `DELETE`, `TRUNCATE` | Nhật ký chỉ ghi thêm, và bất biến đó ép bằng quyền DB chứ không bằng quy ước ([`schema-core.md`](schema-core.md) §9.4) |
+| `core.permission`, `core.permission_resource` | Chỉ `SELECT` | Danh mục vào database bằng migration ([`migration-policy.md`](migration-policy.md) §4.1); tiến trình ứng dụng không ghi danh mục |
+| `core.schema_script_history`, và bảng lịch sử migration EF của **mọi** schema — `<schema>.__ef_migrations_history`, gồm `core.__ef_migrations_history` ([`migration-policy.md`](migration-policy.md) §1) | Chỉ `SELECT` | Hai loại bảng này nói *schema đang ở đâu*, và chỉ người vận hành áp script (§3.3 bước 2, §3.4) mới được ghi chúng. Ứng dụng cần đọc để tự từ chối khởi động khi còn thiếu migration (§5.1); ghi được thì một tiến trình lỗi tự đánh dấu một migration là đã áp |
+| Mọi bảng khác của schema `core` và của schema module | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | — |
+
+Luật **M13** ([`../RULES.md`](../RULES.md)) ép bảng trên bằng câu nghiệm thu cuối mục này, cộng một
+integration test. Ứng dụng **không** chạy bằng tài khoản chủ.
+
+**Khối cấp quyền** — chạy bằng `coreandskill_owner` ở §3.3 bước 3 và **sau MỖI lần áp script**
+(§3.4); **không** dùng `ALTER DEFAULT PRIVILEGES` thay thế. Chạy lại bao nhiêu lần cũng cho cùng một kết quả.
+
+```bash
+psql -h "$PGHOST" -U coreandskill_owner -d "$PGDATABASE" -v ON_ERROR_STOP=1 <<'SQL'
+BEGIN;
+GRANT USAGE ON SCHEMA core TO coreandskill_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA core TO coreandskill_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA core TO coreandskill_app;
+
+REVOKE UPDATE, DELETE, TRUNCATE ON core.audit_log FROM coreandskill_app;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON core.permission, core.permission_resource FROM coreandskill_app;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON core."__ef_migrations_history", core.schema_script_history FROM coreandskill_app;
+
+-- Moi schema module du an nay lap: lap lai ba dong GRANT dau voi ten schema do,
+-- roi REVOKE INSERT, UPDATE, DELETE, TRUNCATE tren <schema>."__ef_migrations_history" cua schema do.
+COMMIT;
+SQL
+```
+
+`GRANT` và `REVOKE` nằm trong **một** transaction.
+
+**Câu nghiệm thu (luật M13).** Mong đợi: **0 dòng**. Mỗi dòng là một quyền đang lệch bảng trên.
+
+```sql
+-- (a) Bảng có tên cố định
+SELECT v.bang, v.quyen, v.mong_doi
+FROM (VALUES
+  ('core.audit_log',           'SELECT',   true),
+  ('core.audit_log',           'INSERT',   true),
+  ('core.audit_log',           'UPDATE',   false),
+  ('core.audit_log',           'DELETE',   false),
+  ('core.audit_log',           'TRUNCATE', false),
+  ('core.permission',          'SELECT',   true),
+  ('core.permission',          'INSERT',   false),
+  ('core.permission',          'UPDATE',   false),
+  ('core.permission',          'DELETE',   false),
+  ('core.permission',          'TRUNCATE', false),
+  ('core.permission_resource', 'SELECT',   true),
+  ('core.permission_resource', 'INSERT',   false),
+  ('core.permission_resource', 'UPDATE',   false),
+  ('core.permission_resource', 'DELETE',   false),
+  ('core.permission_resource', 'TRUNCATE', false),
+  ('core.schema_script_history',   'SELECT',   true),
+  ('core.schema_script_history',   'INSERT',   false),
+  ('core.schema_script_history',   'UPDATE',   false),
+  ('core.schema_script_history',   'DELETE',   false),
+  ('core.schema_script_history',   'TRUNCATE', false)
+) AS v(bang, quyen, mong_doi)
+WHERE has_table_privilege('coreandskill_app', v.bang, v.quyen) IS DISTINCT FROM v.mong_doi
+UNION ALL
+-- (b) Bảng lịch sử migration EF của MỌI schema — khuôn tên ở migration-policy.md §1
+SELECT format('%I.%I', t.schemaname, t.tablename), q.quyen, q.mong_doi
+FROM pg_catalog.pg_tables t
+CROSS JOIN (VALUES ('SELECT', true), ('INSERT', false), ('UPDATE', false),
+                   ('DELETE', false), ('TRUNCATE', false)) AS q(quyen, mong_doi)
+WHERE t.tablename = '__ef_migrations_history'
+  AND has_table_privilege('coreandskill_app', format('%I.%I', t.schemaname, t.tablename), q.quyen)
+      IS DISTINCT FROM q.mong_doi
+UNION ALL
+-- (c) Chốt tập đầu vào: không thấy bảng lịch sử nào thì phần (b) đang không kiểm gì
+SELECT 'KHONG THAY __ef_migrations_history NAO', NULL, NULL
+WHERE NOT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '__ef_migrations_history');
+```
+
+Phần (c) chốt tập đầu vào — luật T6 ([`../RULES.md`](../RULES.md) §8); khuôn tên bảng lịch sử là luật ở [`migration-policy.md`](migration-policy.md) §1.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §3.6
 
 ---
 
@@ -327,14 +443,14 @@ dotnet ef migrations script AddIndexRolePermission AddNotificationRecipientTable
     --output         database/scripts/core/0009__core__add-notification-recipient.sql
 ```
 
-| Tham số | Vì sao cần |
+| Tham số | Nghĩa |
 | --- | --- |
-| `--from` (đối số thứ nhất) | Migration **đã có** trên database đích. Bỏ trống ⇒ EF sinh từ số 0, tức script dựng lại **cả** những bảng đang có dữ liệu |
+| `--from` (đối số thứ nhất) | Migration **đã có** trên database đích. Không bỏ trống |
 | `--to` (đối số thứ hai) | Migration đích. Bỏ trống ⇒ tới migration cuối cùng |
 | `--idempotent` | Xem §4.1 — bắt buộc |
 | `--project` | Nơi migration sống. Với schema `core` là `Core.Infrastructure` ([`migration-policy.md`](migration-policy.md) §1) |
 | `--startup-project` | Nơi `dotnet ef` lấy cấu hình (connection string, design-time factory) |
-| `--context` | **Bắt buộc khi có nhiều `DbContext`.** Bỏ nó, `dotnet ef` báo lỗi hoặc — tệ hơn — chọn nhầm context và sinh script cho schema khác |
+| `--context` | **Bắt buộc khi có nhiều `DbContext`** |
 
 Script của module đổi ba tham số cuối, giữ nguyên khuôn:
 
@@ -347,10 +463,11 @@ dotnet ef migrations script <từ> <tới> \
     --output         database/scripts/modules/banhang/0003__banhang__them-cot-ghi-chu.sql
 ```
 
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §4
+
 ### 4.1 Vì sao `--idempotent`
 
-Không có cờ này, script sinh ra là một dãy `ALTER`/`CREATE` trần. Có cờ này, **mỗi migration**
-được bọc trong một khối kiểm:
+Có cờ này, **mỗi migration** được bọc trong một khối kiểm:
 
 ```sql
 DO $EF$
@@ -362,30 +479,17 @@ BEGIN
 END $EF$;
 ```
 
-Bốn thứ mua được, và cả bốn đều là hệ quả trực tiếp của quyết định "chạy tay" ở §0:
+**Bảo vệ theo `migration_id`, không theo nội dung.** DDL viết tay chèn thêm vào file, **ngoài**
+khối `DO`, hoàn toàn không được bảo vệ và sẽ chạy lại mỗi lần. Chèn tay thì phải tự bọc:
 
-| # | Mua được gì |
-| --- | --- |
-| 1 | **Chạy lại an toàn.** Người vận hành không chắc lần trước đã xong chưa thì chạy lại — và đó là phản xạ đúng, không phải sai lầm cần chặn |
-| 2 | **Chạy chồng lấn an toàn.** Một script `0005→0009` chạy trên database đã ở `0007` chỉ áp phần từ `0008` |
-| 3 | **Không cần biết chính xác database đang ở đâu trước khi chạy.** Với thao tác tay, không ai bảo đảm được điều đó |
-| 4 | **`__ef_migrations_history` được ghi đúng**, nên cơ chế §5 hoạt động |
+```sql
+-- Ten bang, ten cot, ten index o day la GIA — chi minh hoa cach boc. Index that khai o schema-core.md.
+CREATE INDEX IF NOT EXISTS ix_bang_vi_du_tenant_cot_vi_du
+    ON core.bang_vi_du (tenant_id, cot_vi_du)
+    WHERE is_deleted = false;
+```
 
-**Cái giá, nói rõ để không ai bất ngờ:**
-
-- File dài gấp vài lần và khó đọc — mỗi câu lệnh nằm trong một khối `DO`. Đọc diff của một script
-  idempotent tốn công hơn hẳn.
-- **Bảo vệ theo `migration_id`, không theo nội dung.** DDL viết tay chèn thêm vào file, **ngoài**
-  khối `DO`, hoàn toàn không được bảo vệ và sẽ chạy lại mỗi lần. Chèn tay thì phải tự bọc:
-
-  ```sql
-  CREATE INDEX IF NOT EXISTS ix_notification_recipient_unread
-      ON core.notification_recipient (user_id, created_at DESC)
-      WHERE read_at IS NULL AND is_deleted = false;
-  ```
-
-- **Không phải phép thử tính đúng.** Idempotent nghĩa là chạy nhiều lần cũng như một lần; nó
-  không nói gì về việc một lần đó có đúng không.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §4.1
 
 ### 4.2 Sau khi sinh — ba việc bắt buộc
 
@@ -393,18 +497,15 @@ Bốn thứ mua được, và cả bốn đều là hệ quả trực tiếp c�
    `DropTable` hoặc `CreateTable` cho bảng đã có ⇒ **dừng**, `--from` sai hoặc snapshot lệch.
 2. **Đổi tên file theo §2** nếu `--output` chưa đúng khuôn.
 3. **Thêm khối ghi `schema_script_history`** ở cuối file (§3.1), kèm checksum tính ở §3.2.
-   Checksum tính **sau** khi đã thêm mọi thứ khác — nó là băm của file cuối cùng.
+   Checksum tính **sau** khi đã thêm mọi thứ khác.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §4.2
 
 ---
 
 ## 5. Câu 5 — Làm sao biết DB đã lệch model
 
-> **Đây là câu quan trọng nhất của cả runbook, và là thứ dự án tiền nhiệm hoàn toàn không có.**
-
-Ở đó, `dotnet ef database update` bị chặn, không code sản phẩm nào gọi `Database.Migrate()` hay
-`GetPendingMigrations()`, và `__EFMigrationsHistory` **không** được coi là nguồn sự thật. Hệ quả:
-câu hỏi *"database này đã có schema mà bản build này cần chưa"* **không có ai trả lời**. Cách duy
-nhất để biết là chạy thử và xem có nổ không.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §5
 
 ### 5.1 Cơ chế: app TỪ CHỐI KHỞI ĐỘNG khi thiếu migration
 
@@ -417,9 +518,9 @@ Lúc khởi động, với **từng** `DbContext`, so migration mà assembly bi�
 | Database **có thừa** migration mà app không biết | Schema đi trước code — trạng thái **hợp lệ** ở bước "mở rộng" của §5 [`migration-policy.md`](migration-policy.md) | ⚠️ Ghi log cảnh báo, **vẫn khởi động** |
 | Khớp | Bình thường | Khởi động |
 
-Ca thứ hai **cố ý không chặn**. Quy trình thay đổi phá vỡ bốn bước đòi schema mới lên trước code
-mới; chặn nó là chặn đúng quy trình an toàn mà ta vừa dựng ra. Nhưng nó vẫn phải **ồn ào**, vì
-nếu không phải đang deploy thì đó là dấu hiệu ai đó chạy nhầm script lên nhầm môi trường.
+Ca thứ hai **cố ý không chặn**, nhưng vẫn phải **ồn ào**.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §5.1
 
 ### 5.2 Code mẫu
 
@@ -518,52 +619,24 @@ private static async Task VerifyDatabaseSchemaAsync(this WebApplication app)
 }
 ```
 
-Ba tính chất của thông điệp lỗi, mỗi cái đều có lý do:
-
-| Tính chất | Vì sao |
-| --- | --- |
-| Nêu **đúng tên** từng migration còn thiếu | *"Database chưa cập nhật"* không giúp ai. Tên migration tra thẳng ra được script nào chứa nó |
-| Nêu **đường dẫn thư mục script** cần chạy | Người gặp lỗi này có thể là người vận hành, không phải người viết migration |
-| Nêu **file tài liệu** cần đọc tiếp | Để họ không phải hỏi ai lúc 2 giờ sáng |
+Thông điệp lỗi bắt buộc nêu **đúng tên** từng migration còn thiếu, **đường dẫn thư mục script** cần chạy, và **file tài liệu** cần đọc tiếp.
 
 Luật E8 ([`../RULES.md`](../RULES.md) §4) canh cơ chế này bằng integration test
-`Startup_Fails_When_PendingMigrationsExist`. Đây là một test **bắt buộc**: nếu bản thân phép kiểm
-hỏng thì mọi thứ trở về đúng trạng thái mà mục này sinh ra để chấm dứt, và không có gì báo.
+`Startup_Fails_When_PendingMigrationsExist` — một test **bắt buộc**.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §5.2
 
 ### 5.3 Vì sao im lặng chạy tiếp với DB lệch là cách hỏng TỆ NHẤT
 
-Ba phương án khi phát hiện lệch, xếp theo mức độ tệ:
+Ba phương án khi phát hiện lệch: tự chạy migration (đã loại ở §0), im lặng chạy tiếp (tệ nhất), **từ chối khởi động** — hỏng **ngay**, hỏng **ồn ào**, hỏng **đúng chỗ**.
 
-| Phương án | Chuyện gì xảy ra |
-| --- | --- |
-| **Tự chạy migration** | Đúng thứ §0 đã loại: đổi schema không ai đọc, không ai chọn thời điểm |
-| **Im lặng chạy tiếp** | Xem dưới — tệ nhất |
-| **Từ chối khởi động** | Hỏng **ngay**, hỏng **ồn ào**, hỏng **đúng chỗ** |
-
-Im lặng chạy tiếp hỏng theo cách tệ nhất vì lỗi **lộ ra ở chỗ ngẫu nhiên và rất xa nguyên nhân**:
-
-- App khởi động bình thường. Trang đăng nhập chạy. Mọi thứ **trông như** ổn.
-- Lỗi bật ra ở **request đầu tiên chạm đúng cột còn thiếu** — có thể là mười phút sau, có thể là
-  ba ngày sau khi có người dùng đầu tiên mở đúng màn hình đó.
-- Triệu chứng là `42703 column "label_key" does not exist` từ một endpoint không liên quan gì tới
-  lần deploy vừa rồi. Người trực nghi API vừa sửa, nghi dữ liệu, nghi cache — **không nghi rằng
-  script schema chưa chạy**, vì bước đó "đã làm rồi".
-- Trong khoảng thời gian đó, mọi request khác **vẫn ghi dữ liệu** theo hình dạng cũ. Khi cuối
-  cùng chạy được script, có thể đã có dữ liệu cần backfill mà không ai biết là cần.
-
-Từ chối khởi động biến toàn bộ chuỗi đó thành **một dòng log tại đúng giây deploy**, nêu đích
-danh cái còn thiếu. Cái giá là một lần deploy hỏng — rẻ hơn mọi phương án khác một bậc độ lớn.
-
-> **Đây cũng đúng khuôn lỗi mà [`../RULES.md`](../RULES.md) cảnh báo xuyên suốt:** hỏng im lặng
-> đắt hơn hỏng ồn ào, vì hỏng im lặng không có ai để sửa nó.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §5.3
 
 ### 5.4 Lệch chiều ngược — model đổi mà chưa sinh migration
 
-Mục 5.1 bắt ca *"code đi trước database"*. Còn ca *"model đi trước migration"* — có người sửa
-entity mà quên `migrations add` — thì cơ chế trên **không thấy**, vì mọi migration đã biết đều đã
-áp.
-
-Bắt nó ở CI, không ở lúc chạy:
+Mục 5.1 bắt ca *"code đi trước database"*. Ca *"model đi trước migration"* — có người sửa
+entity mà quên `migrations add` — bắt ở CI, không ở lúc chạy — luật **E10** ([`../RULES.md`](../RULES.md)). Job backend chạy
+`dotnet tool restore` trước để có `dotnet ef`, rồi chạy lệnh dưới cho **từng** `DbContext`:
 
 ```bash
 dotnet ef migrations has-pending-model-changes \
@@ -572,102 +645,59 @@ dotnet ef migrations has-pending-model-changes \
     --context        CoreDbContext
 ```
 
-PASS: *"No changes have been made to the model since the last migration."* Chạy lệnh này cho
-**từng** `DbContext`. Lệnh không sinh file nào nên chạy trong CI vô hại.
-
-Hai lưới bắt hai chiều lệch khác nhau, và cần cả hai:
+PASS: *"No changes have been made to the model since the last migration."*
 
 | Lệch | Ai bắt |
 | --- | --- |
-| Model → migration (quên sinh) | CI, lệnh `has-pending-model-changes` |
+| Model → migration (quên sinh) | CI, lệnh `has-pending-model-changes` — luật E10 |
 | Migration → database (quên chạy script) | Lúc khởi động, §5.1 |
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §5.4
 
 ### 5.5 Giới hạn thật của cơ chế — đừng coi nó là hàng rào chống mọi kiểu lệch
 
 Phép kiểm §5.1 đọc **bảng lịch sử migration**, không đọc cấu trúc bảng. Vì vậy nó **không** bắt
-được hai ca sau, và cả hai đều xảy ra được:
+được hai ca sau:
 
 | Ca không bắt được | Tại sao | Lưới thay thế |
 | --- | --- | --- |
 | Ai đó sửa cột **trực tiếp** trên database | Lịch sử migration vẫn đầy đủ, app vẫn khởi động | Các câu kiểm ở [`schema-core.md`](schema-core.md) §11, chạy định kỳ |
 | Ai đó **sửa nội dung** một script đã áp | Tên file không đổi nên câu đối chiếu ở §3.4 vẫn khớp | `checksum_sha256` ở §3.2 — đây chính là lý do cột đó tồn tại |
 
-> 🛑 **Bảng lịch sử migration là thứ KHÔNG được đụng tay.** Chèn một dòng vào đó để "cho app
-> khởi động" vô hiệu hoá toàn bộ cơ chế này — và sẽ có người bị cám dỗ làm thế vào lúc gấp. Nếu
+> 🛑 **Bảng lịch sử migration là thứ KHÔNG được đụng tay.** Nếu
 > app từ chối khởi động, đường đúng là **chạy script**, không phải sửa bảng lịch sử.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §5.5
 
 ---
 
-## 6. Môi trường dev — dựng database từ trống
+## 6. Môi trường dev — cùng đường với §3.3
 
-Bảy bước, không hơn. Nếu ai đó cần bước thứ tám, bước đó phải vào file này.
+**Máy dev chạy đúng năm bước của §3.3: cùng lệnh, cùng bảng nghiệm thu.** Không có tệp `.sql` dữ
+liệu riêng cho dev, không có lệnh riêng cho dev.
 
-Hai phần tách rõ, theo [`../adr/0022-seed-dev-khong-co-duong-code-rieng.md`](../adr/0022-seed-dev-khong-co-duong-code-rieng.md): **dữ liệu** đi bằng `.sql`, **tài khoản** đi bằng lệnh bootstrap. Không tệp nào trong repo chứa mật khẩu.
+| Chỗ | Máy dev |
+| --- | --- |
+| Postgres | Container dưới đây, hoặc Postgres đã cài sẵn |
+| Biến của §3.3 | `PGHOST=localhost`, `PGADMIN=postgres`, `PGDATABASE=coreandskill_dev` |
+| Nguồn giá trị ở §3.3 bước 4 | Dòng *Máy dev* của bảng nguồn giá trị ở §3.3 bước 4 |
 
 ```bash
-# 1. Container Postgres (hoac dung Postgres da cai san, bo qua buoc nay).
+# Container Postgres (dung Postgres da cai san thi bo qua dong nay).
 docker run -d --name coreandskill-db -e POSTGRES_PASSWORD=dev -p 5432:5432 postgres:17
 
-# 2. Database rong.
-createdb -h localhost -U postgres coreandskill_dev
-
-# 3. Schema Core.
-for f in database/scripts/core/*.sql; do
-  psql -h localhost -U postgres -d coreandskill_dev -v ON_ERROR_STOP=1 -f "$f" || break
-done
-
-# 4. Danh muc quyen (dung chung toan he, khong thuoc don vi nao).
-psql -h localhost -U postgres -d coreandskill_dev -v ON_ERROR_STOP=1 -f database/scripts/seed/core-permission-catalog.sql
-
-# 5. DU LIEU dev: don vi he thong + don vi DEV, vai tro, anh xa vai tro-quyen, menu.
-#    Tep nay nam TRONG src/BE/, KHONG nam trong database/scripts/ - xem canh bao duoi.
-psql -h localhost -U postgres -d coreandskill_dev -v ON_ERROR_STOP=1 -f src/BE/CoreAndSkill.Api/Seed/seed-dev-data.sql
-
-# 6. Mat khau - KHONG hardcode, KHONG commit. Moi may tu dat.
-dotnet user-secrets set "Bootstrap:AdminUserName" "admin"      --project src/BE/CoreAndSkill.Api
-dotnet user-secrets set "Bootstrap:AdminPassword" "<tu-dat>"   --project src/BE/CoreAndSkill.Api
-dotnet user-secrets set "Bootstrap:SysOpUserName" "superadmin" --project src/BE/CoreAndSkill.Api
-dotnet user-secrets set "Bootstrap:SysOpPassword" "<tu-dat>"   --project src/BE/CoreAndSkill.Api
-
-# 7. HAI tai khoan, qua UserManager.
-dotnet run --project src/BE/CoreAndSkill.Api -- --seed
+export PGHOST=localhost PGADMIN=postgres PGDATABASE=coreandskill_dev
+# Roi chay §3.3 tu buoc 1.
 ```
 
-> 🛑 **Bước 5: tệp `.sql` dev phải nằm NGOÀI `database/scripts/`.** Bước 3 và §3.3 chạy **glob** `database/scripts/core/*.sql` **không có allowlist** — một tệp seed dev rơi vào thư mục đó sẽ tự chạy trên **mọi** bản cài, kể cả bản chạy thật.
->
-> Đổi lại, tệp đó **không** được cổng checksum ở §3.4 canh. Chấp nhận được vì nó chỉ dựng dữ liệu dev, không dựng lược đồ.
+**Gộp năm bước thành một lệnh** bằng một script bọc được. Script đó chỉ gọi đúng các lệnh của
+§3.3 và **không chứa bí mật nào** — mật khẩu role gõ tương tác ở bước 1, mật khẩu tài khoản nằm ở
+`user-secrets` của từng máy.
 
-> **Vì sao hai tài khoản, không phải một.** [`../adr/0017-khu-quan-tri-he-thong.md`](../adr/0017-khu-quan-tri-he-thong.md) tách hai vai không chồng lấn: `admin` mang `has_permission_bypass`, thuộc đơn vị `DEV`, thấy mọi thứ **trong đơn vị mình**; `superadmin` mang `is_system_operator`, thuộc đơn vị hệ thống, thấy **danh sách** đơn vị nhưng không thấy dữ liệu bên trong đơn vị nào. Hai cờ loại trừ nhau bằng ràng buộc ở database ([`schema-core.md`](schema-core.md) §4.1, luật M11).
->
-> Tên `superadmin` là **dữ liệu**, không phải vai trò. Luật **S10** cấm mọi đoạn mã rẽ nhánh theo chuỗi tên đăng nhập — nên cái tên không bao giờ thành một `if`.
+**Dựng lại từ đầu khi lỡ tay:** `dropdb -h "$PGHOST" -U "$PGADMIN" "$PGDATABASE"` rồi làm lại từ
+§3.3 bước 1 — khối tạo role tự bỏ qua role đã có.
 
-> **Gộp bước 3–7 thành một lệnh** bằng một script bọc (`seed-dev.ps1` / `seed-dev.sh`). Script đó gọi `psql` và `dotnet`, và **không chứa bí mật nào** — mật khẩu vẫn nằm ở `user-secrets` của từng máy.
-
-**PASS của từng bước:**
-
-| Bước | Kiểm | Mong đợi |
-| --- | --- | --- |
-| 3 | `psql -d coreandskill_dev -c '\dt core.*'` | Liệt kê được `core.app_user` |
-| 3 | Các câu kiểm ở [`schema-core.md`](schema-core.md) §11 | Đúng như "mong đợi" ghi trong từng câu |
-| 4 | `SELECT count(*) FROM core.permission` | Khác 0 |
-| 5 | `SELECT code, is_system FROM core.tenant` | Đúng **hai** dòng: đơn vị hệ thống (`is_system = true`) và `DEV` |
-| 5 | `SELECT count(*) FROM core.role_permission` | Khác 0 — thiếu ánh xạ thì vai trò có tên mà không có quyền nào |
-| 7 | Đăng nhập `admin` | Thành công, và `mustChangePassword` là `true` |
-| 7 | Đăng nhập `superadmin` | Thành công, vào được khu quản trị hệ thống, **không** thấy dữ liệu nghiệp vụ của đơn vị `DEV` |
-
-> **Vì sao bước 6–7 tách khỏi bước 3–5, và vì sao không gộp vào script SQL.** Mật khẩu Identity
-> băm bằng PBKDF2 với salt ngẫu nhiên — **không có cách nào tạo hash hợp lệ bằng SQL thuần**
-> ([`schema-core.md`](schema-core.md) §4.1). Lệnh `--seed` gọi `UserManager.CreateAsync` thật.
->
-> Lệnh này **chạy một lần rồi thoát, không mở cổng**. Tiến trình API phục vụ thật **không seed
-> gì cả** — đó là chủ đích: seed là thao tác của người vận hành, không phải tác dụng phụ của
-> việc khởi động.
->
-> Thiếu secret ở bước 6, lệnh `--seed` **cố ý dừng và không ghi dòng nào**. Sinh một mật khẩu
-> mặc định để "cho tiện" là cách nhanh nhất để một mật khẩu mặc định đi thẳng lên production.
-
-**Dựng lại từ đầu khi lỡ tay:** `dropdb coreandskill_dev` rồi làm lại từ bước 2. Trên máy dev đó
-là thao tác rẻ nhất — đừng cố sửa một database dev đã lệch.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §6
 
 ---
 
@@ -687,9 +717,7 @@ Chạy theo thứ tự. **Không bỏ bước nào**, kể cả với script "ch
 | ☐ | Ước lượng thời gian khoá bảng | Có `ALTER COLUMN … TYPE` hoặc `SET NOT NULL` trên bảng lớn ⇒ cần cửa sổ bảo trì |
 | ☐ | Xác nhận connection string trỏ đúng database | `SELECT current_database(), inet_server_addr();` |
 
-> Dòng cuối không phải thủ tục thừa. Chạy nhầm script lên nhầm môi trường là loại sự cố xảy ra
-> với người có kinh nghiệm nhất, vì nó không đòi hỏi sai sót kỹ thuật nào — chỉ cần một cửa sổ
-> terminal còn mở từ hôm trước.
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §7
 
 ### 7.2 Trong khi chạy
 
@@ -704,6 +732,7 @@ Chạy theo thứ tự. **Không bỏ bước nào**, kể cả với script "ch
 | ☐ | Việc | PASS |
 | --- | --- | --- |
 | ☐ | `SELECT script_name, applied_at FROM core.schema_script_history ORDER BY id DESC LIMIT 5` | Có dòng của script vừa chạy |
+| ☐ | Chạy lại khối cấp quyền ở §3.6, rồi câu nghiệm thu của nó (luật M13) | 0 dòng |
 | ☐ | Các câu kiểm ở [`schema-core.md`](schema-core.md) §11 | Đúng "mong đợi" của từng câu |
 | ☐ | Khởi động lại app | Lên được — tức phép kiểm §5.1 đã qua |
 | ☐ | Gọi thử một endpoint chạm bảng vừa đổi | Trả đúng, không 500 |
@@ -716,3 +745,99 @@ Chạy theo thứ tự. **Không bỏ bước nào**, kể cả với script "ch
 | Sửa script cho khớp lỗi rồi chạy tiếp | Script trong repo và thứ đã chạy trên DB sẽ khác nhau, và checksum ở §3.2 sẽ tố cáo điều đó sau — nhưng lúc đó đã muộn |
 | Chạy `dotnet ef database update` | Bị chặn bằng máy, và đi ngược §0. Nó cũng bỏ qua bước ghi `schema_script_history` |
 | Chạy một script từ nhánh chưa merge | Nó có thể bị đổi số thứ tự lúc merge (§2.1), và khi đó database mang một tên script không tồn tại trong repo |
+
+---
+
+## 8. Khôi phục mật khẩu tài khoản vận hành hệ thống
+
+Tài khoản vận hành (`superadmin`, mang `is_system_operator`) quên mật khẩu thì **không ai trong ứng
+dụng đặt lại hộ được** ([`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md)).
+Đường duy nhất là **một lệnh chạy tay trên máy chủ** — lệnh con của cùng runner với lệnh bootstrap
+([`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)).
+
+| # | Việc |
+| --- | --- |
+| 1 | Đặt mật khẩu mới vào nguồn giá trị như §3.3 bước 4 — máy dev: `user-secrets`; bản cài thật: nguồn bí mật của môi trường. Tên khoá: cùng chỗ khai với §3.3 bước 4 |
+| 2 | Chạy lệnh dưới, một lần |
+
+```bash
+dotnet run --project src/BE/CoreAndSkill.Api -- core reset-operator-password
+```
+
+| Tính chất | Vì sao |
+| --- | --- |
+| **Thiếu mật khẩu mới ⇒ dừng, không ghi gì** | Cùng lý do với lệnh bootstrap (§3.3 bước 5) |
+| **Mật khẩu đi qua `UserManager`, không qua SQL** | Không hàm SQL nào sinh được chuỗi băm hợp lệ ([`schema-core.md`](schema-core.md) §4.1). Mật khẩu mới phải đạt chính sách mật khẩu như ở mọi môi trường (luật S9) |
+| **Chạy bằng `coreandskill_app`** | Cùng chuỗi kết nối với ứng dụng — bảng quyền ở §3.6 |
+
+Hành vi còn lại của lệnh — phiên đang mở, nhật ký kiểm toán, cờ đổi mật khẩu — theo ADR-0023.
+
+**Nghiệm thu:**
+
+| Kiểm | Mong đợi |
+| --- | --- |
+| Đăng nhập tài khoản vận hành bằng mật khẩu mới, gõ mã đơn vị hệ thống | Thành công, và `mustChangePassword` là `true` |
+| Đăng nhập bằng mật khẩu cũ | Trượt |
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §8
+
+---
+
+## 9. Seed lại dữ liệu mặc định cho mọi đơn vị — khi lắp module mới
+
+Lắp một module mới vào bản cài **đã có đơn vị**: script schema của module (§3.4) mang khoá quyền,
+nhưng vai trò, ánh xạ quyền và menu của module cho từng đơn vị do nguồn seed ghi — chỉ chạy lúc tạo
+đơn vị. Lệnh dưới chạy lại seed cho **mọi** đơn vị nghiệp vụ; định nghĩa gốc ở
+[`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §3, bảng *Lệnh của runner*.
+
+Khoá cấu hình: **không có**. Chạy sau §3.4 và sau khối cấp quyền §3.6.
+
+```bash
+dotnet run --project src/BE/CoreAndSkill.Api -- core seed-tenant-defaults
+```
+
+| Tính chất | Vì sao |
+| --- | --- |
+| **Idempotent** — vai trò, ánh xạ, menu đã có thì bỏ qua | Cùng lý do với lệnh bootstrap (§3.3 bước 5): chạy lại là phản xạ đúng |
+| **Mỗi đơn vị một transaction** | Một đơn vị hỏng không kéo đơn vị khác về nửa chừng; chạy lại thì đơn vị đã xong bị bỏ qua |
+| **Chạy bằng `coreandskill_app`** | Cùng chuỗi kết nối với ứng dụng — bảng quyền ở §3.6 |
+
+**Nghiệm thu:**
+
+| Kiểm | Mong đợi |
+| --- | --- |
+| Đăng nhập một đơn vị đã có từ trước | Menu của module mới xuất hiện với tài khoản có quyền |
+| Chạy lại lệnh, rồi `SELECT count(*) FROM core.app_role` | Không đổi so với trước lần chạy lại |
+
+---
+
+## 10. Phát lại bản ghi outbox chết
+
+Bản ghi `core.outbox_message` chạm ngưỡng thử lại mang `status = 'dead'` và bộ phát không tự chạm nữa
+([`../wiki-core/be/12-notifications.md`](../wiki-core/be/12-notifications.md) §2.5). Sau khi sửa nguyên
+nhân (đọc `last_error`), phát lại bằng lệnh dưới; định nghĩa gốc ở
+[`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §3, bảng *Lệnh của runner*.
+
+Khoá cấu hình: **không có**. Chọn đối tượng bằng tham số sau động từ.
+
+```bash
+# Một dòng
+dotnet run --project src/BE/CoreAndSkill.Api -- core outbox-replay --id <id>
+
+# Mọi dòng đang dead
+dotnet run --project src/BE/CoreAndSkill.Api -- core outbox-replay --all-dead
+```
+
+| Tính chất | Vì sao |
+| --- | --- |
+| **Chỉ chạm dòng `dead`** — `--id` trỏ dòng ở trạng thái khác ⇒ dừng, không ghi gì | Phát lại một dòng `pending` hay `done` là phát trùng |
+| **Đặt `status = 'pending'`, `attempt_count = 0`**; bộ phát nhặt ở nhịp quét kế | Không gọi bên nhận ngay trong lệnh — cùng đường phát với mọi dòng khác |
+| **Mỗi dòng phát lại một dòng nhật ký kiểm toán** | Phát lại là thao tác vận hành có hậu quả nghiệp vụ; danh sách việc phải ghi ở [`../wiki-core/be/10-data-retention.md`](../wiki-core/be/10-data-retention.md) §5.4 |
+| **Chạy bằng `coreandskill_app`** | Cùng chuỗi kết nối với ứng dụng — bảng quyền ở §3.6 |
+
+**Nghiệm thu:**
+
+| Kiểm | Mong đợi |
+| --- | --- |
+| `SELECT count(*) FROM core.outbox_message WHERE status = 'dead'` sau `--all-dead` | `0` |
+| `/health/ready` sau một nhịp quét | Không còn `Degraded` vì bản ghi `dead` |

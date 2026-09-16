@@ -42,7 +42,7 @@ Phần lớn tranh cãi về "dùng thư viện state nào" biến mất khi tá
 
 ### 2.1 Signals đã là cơ chế reactivity gốc
 
-Từ Angular 17 trở đi, signal là cơ chế reactivity của chính framework, và Angular 20 chạy được zoneless dựa trên nó. Một store viết bằng `signal()` + `computed()` không phải là "giải pháp tạm" — nó dùng đúng cơ chế mà `@if`, `@for` và change detection đang dùng.
+Signal là cơ chế reactivity của chính framework, và phiên bản Angular đã chốt ([`../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md)) chạy được zoneless dựa trên nó. Một store viết bằng `signal()` + `computed()` không phải là "giải pháp tạm" — nó dùng đúng cơ chế mà `@if`, `@for` và change detection đang dùng.
 
 ### 2.2 Cái giá của một thư viện store, nói cụ thể
 
@@ -53,7 +53,7 @@ Từ Angular 17 trở đi, signal là cơ chế reactivity của chính framewor
 | Debug | Lỗi đi qua một tầng trung gian nữa; stack trace dài hơn và ít liên quan tới code mình viết |
 | Bundle | Một phụ thuộc nữa phải nâng cấp đồng bộ với Angular ([`16-nen-tang-va-nang-cap.md`](16-nen-tang-va-nang-cap.md) §3) |
 
-Cái giá này đáng trả khi state thật sự phức tạp. Ở phạm vi Core hiện tại — hai màn quản trị, một menu, một phiên — nó **chưa đáng**.
+Cái giá này đáng trả khi state thật sự phức tạp. Ở phạm vi Core hiện tại — vài màn quản trị, một menu, một phiên — nó **chưa đáng**.
 
 ### 2.3 Điều quan trọng: quyết định này rẻ để lật
 
@@ -231,7 +231,7 @@ Không test `computed()` tầm thường (chỉ ánh xạ lại một field) —
 | Một store toàn cục dùng chung cho mọi feature | ❌ loại, không hoãn `K14` | §4.1 — đây là "god component" ở dạng state |
 | Cập nhật state bên trong `effect()` | ❌ loại, không hoãn `K15` | §6 — dùng `computed()` cho giá trị phái sinh |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

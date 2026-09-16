@@ -21,8 +21,9 @@ Nhập và sửa nhiều dòng dữ liệu ngay trên lưới, không mở hộp
 | Dùng | Không dùng |
 | --- | --- |
 | Dòng chi tiết của một chứng từ, bảng chấm công, nhập điểm, kiểm kê kho — nơi người dùng nhập hàng chục dòng liên tiếp | 🛑 Danh sách để **đọc**, sửa thì mở form → [`DataTable.md`](./DataTable.md). Xem ranh giới dưới đây |
-| Ma trận tick quyền, nơi mọi ô đều tương tác | 🛑 Sửa **một** bản ghi có nhiều trường → [`Dialog.md`](./Dialog.md) chứa [`FormRow.md`](./FormRow.md); một dòng lưới không đủ chỗ cho mười trường |
+| Ma trận đánh dấu nằm trong một bản nháp nhập liệu, nơi mọi ô đều tương tác | 🛑 Sửa **một** bản ghi có nhiều trường → [`Dialog.md`](./Dialog.md) chứa [`FormRow.md`](./FormRow.md); một dòng lưới không đủ chỗ cho mười trường |
 | Bảng nhỏ nằm trong [`Dialog.md`](./Dialog.md) hoặc [`Drawer.md`](./Drawer.md) | 🛑 Bảng tĩnh vài dòng chỉ để trình bày → [`Table.md`](./Table.md) |
+| | 🛑 Ma trận phân quyền → [`Table.md`](./Table.md) + [`Check.md`](./Check.md) — ngoại lệ có tên ở [`../Templates/ListScreen.md`](../Templates/ListScreen.md) §2 |
 
 ### Vì sao đây là component riêng, không phải biến thể của `DataTable`
 
@@ -43,8 +44,8 @@ Một component vừa phân trang phía máy chủ vừa giữ bản nháp chưa
 | Biến thể | Cách vào chế độ sửa | Dùng khi |
 | --- | --- | --- |
 | `cell` | Bấm một ô là sửa ô đó | **Mặc định.** Nhập liệu nhanh, nhiều dòng |
-| `row` | Bấm nút Sửa ở đầu dòng, cả dòng vào chế độ sửa cùng lúc | Khi các trường trong dòng phụ thuộc nhau và phải kiểm cùng lúc |
-| `matrix` | Mọi ô luôn ở chế độ sửa, không có bước "vào" | Ma trận tick quyền — ô là ô đánh dấu, không phải ô nhập |
+| `row` | Bấm nút Sửa ở đầu dòng, cả dòng vào chế độ sửa cùng lúc. Nút Sửa là phần cấu trúc của lớp bọc: thư viện vẽ, tạo hình bằng token, icon `pi-pencil` ([`../Icons.md`](../Icons.md) §5) — [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5 | Khi các trường trong dòng phụ thuộc nhau và phải kiểm cùng lúc |
+| `matrix` | Mọi ô luôn ở chế độ sửa, không có bước "vào" | Ma trận đánh dấu trong một bản nháp nhập liệu — ô là ô đánh dấu, không phải ô nhập |
 
 ## Kích thước
 
@@ -70,9 +71,9 @@ Component này có **hai tầng trạng thái**: của cả lưới, và của t
 | `focus-visible` | Ô đang được trỏ tới có `outline` `--color-focus` với `outline-offset: -2px` — offset **âm** vì vòng ngoài bị vùng cuộn cắt mất | Có |
 | `active` | Ô đang mở trình sửa: viền `--color-brand`, nền `--color-surface` | Có |
 | `disabled` | Cả lưới chỉ đọc: mọi ô thành `--color-text-muted`, không vào được chế độ sửa, hàng nút ở chân ẩn. **Vẫn đọc được** — không giảm opacity cả lưới | Có |
-| `loading` | *Nạp lần đầu:* [`SkeletonLoader.md`](./SkeletonLoader.md) dạng hàng. *Đang lưu:* phủ `--color-scrim` + khoá thao tác, giữ nguyên dữ liệu để người dùng còn thấy mình vừa nhập gì. `aria-busy` cả hai ca | Có |
-| `error` | **Hai mức.** *Mức dòng/ô:* xem bảng ô. *Mức cả lưới* (tổng không khớp, lưu hỏng): [`NoticeBanner.md`](./NoticeBanner.md) vai `danger` đặt **trên** lưới, và nút Lưu bị khoá | Có |
-| `empty` | Chưa có dòng nào: thân lưới hiện một dòng mời kèm nút "Thêm dòng", **giữ nguyên tiêu đề cột** — chúng cho biết sắp nhập cái gì | Có |
+| `loading` | *Nạp lần đầu:* thân lưới hiện `loadingTemplate` — màn ghép [`SkeletonLoader.md`](./SkeletonLoader.md) dạng hàng. *Đang lưu:* phủ `--color-scrim` + khoá thao tác, giữ nguyên dữ liệu để người dùng còn thấy mình vừa nhập gì. `aria-busy` cả hai ca | Có |
+| `error` | **Hai mức.** *Mức dòng/ô:* xem bảng ô. *Mức cả lưới* (tổng không khớp, lưu hỏng): màn đặt [`NoticeBanner.md`](./NoticeBanner.md) vai `danger` ngay **trên** lưới, ngoài component, và khoá nút Lưu | Có |
+| `empty` | Chưa có dòng nào: thân lưới hiện `emptyTemplate` — màn ghép một dòng mời kèm nút "Thêm dòng" — và **giữ nguyên tiêu đề cột**: chúng cho biết sắp nhập cái gì | Có |
 
 ### Năm trạng thái của một ô
 
@@ -82,7 +83,7 @@ Component này có **hai tầng trạng thái**: của cả lưới, và của t
 | `calc` | Chữ `--color-text-muted`, nền `--color-surface-2`, căn phải | Máy tính ra. 🛑 Phải trông khác ô nhập được, nếu không người dùng gõ vào rồi thắc mắc vì sao bị ghi đè |
 | `editing` | Viền `--color-brand`, nền `--color-surface`, có vòng focus | Đang gõ |
 | `dirty` | Nền `--color-warning-bg`, viền `--color-warning-border`, **cộng một dấu tam giác nhỏ ở góc trên trái** | Đã đổi, chưa lưu |
-| `invalid` | Nền `--color-danger-bg`, viền `--color-danger` dày `--border-w-strong`, cộng một dòng lỗi ngắn dưới ô | Sai, chặn lưu |
+| `invalid` | Nền `--color-danger-bg`, viền `--color-danger-border` dày `--border-w-strong`, cộng một dòng lỗi ngắn dưới ô | Sai, chặn lưu |
 
 **`dirty` là trạng thái không lưới đọc nào cần, và là trạng thái quan trọng nhất ở đây.** Người dùng sửa mười hai ô rồi bấm sang màn khác — không thấy ô nào đang chưa lưu thì họ mất cả mười hai. Dấu tam giác ở góc là kênh thứ hai bên cạnh màu nền, theo [`../DESIGN.md`](../DESIGN.md) §2.7.
 
@@ -102,9 +103,9 @@ Component này có **hai tầng trạng thái**: của cả lưới, và của t
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-lg` | Mọi cột hiện; cột số thứ tự và cột hành động ghim hai mép |
-| `--bp-md` … `--bp-lg` | Bắt đầu cuộn ngang, ghim cột đầu — thụt vào rồi thì không biết đang sửa dòng nào |
-| < `--bp-md` | 🛑 **Không chuyển sang dạng thẻ** như `DataTable` làm. Giữ nguyên lưới và cuộn ngang |
+| ≥ `$bp-lg` | Mọi cột hiện; cột số thứ tự và cột hành động ghim hai mép |
+| `$bp-md` … `$bp-lg` | Bắt đầu cuộn ngang, ghim cột đầu — thụt vào rồi thì không biết đang sửa dòng nào |
+| < `$bp-md` | 🛑 **Không chuyển sang dạng thẻ** như `DataTable` làm. Giữ nguyên lưới và cuộn ngang |
 
 **Vì sao không chuyển dạng thẻ:** giá trị của lưới nhập liệu nằm ở chỗ mắt so được cột này với cột kia giữa các dòng — nhìn cột Số lượng của cả mười dòng cùng lúc. Dạng thẻ phá đúng điều đó. Cái giá phải chấp nhận: **lưới nhập liệu là thứ khó dùng trên điện thoại**, và màn nào dựa hẳn vào nó thì nên nói rõ là dành cho máy tính.
 
@@ -126,12 +127,14 @@ Component này có **hai tầng trạng thái**: của cả lưới, và của t
 
 | Tên | Chiều | Kiểu | Mặc định | Ghi chú |
 | --- | --- | --- | --- | --- |
-| `columns` | input | `ReadonlyArray<EditableColumnDef<T>>` | `[]` | Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 — mở rộng của `ColumnDef` chung |
+| `columns` | input | `ReadonlyArray<EditableColumnDef<T>>` | `[]` | Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 — mở rộng của `ColumnDef` chung. `editor: 'date'` vẽ ô sửa bằng [`DatePicker.md`](./DatePicker.md) `mode = 'single'` |
 | `rows` | input | `ReadonlyArray<T>` | `[]` | Bản nháp đang sửa, không phải ảnh chụp từ máy chủ |
 | `variant` | input | `'cell' \| 'row' \| 'matrix'` | `'cell'` | |
 | `size` | input | `'sm' \| 'md'` | `'md'` | |
 | `readonly` | input | `boolean` | `false` | |
 | `loading` | input | `boolean` | `false` | |
+| `loadingTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Nội dung thân lưới khi nạp lần đầu — [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5 |
+| `emptyTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Nội dung thân lưới khi chưa có dòng nào, gồm nút "Thêm dòng" |
 | `showFooter` | input | `boolean` | `true` | Dòng tổng ở chân lưới |
 | `cellChanged` | output | `{row, column, value}` | — | Phát khi một ô rời chế độ sửa với giá trị mới |
 | `rowAdded` | output | `void` | — | |
@@ -140,7 +143,7 @@ Component này có **hai tầng trạng thái**: của cả lưới, và của t
 
 Xác thực chạy ở **ba mức, và không được trộn**: **mức ô** (số phải lớn hơn 0) chạy ngay khi rời ô; **mức dòng** (hai trường trong cùng dòng phải khớp nhau) chạy khi rời dòng; **mức lưới** (tổng phải khớp một con số bên ngoài) chạy khi bấm Lưu. Trộn hai mức làm một thì hoặc báo lỗi quá sớm lúc người ta chưa gõ xong, hoặc báo quá muộn.
 
-`EditableGrid` là component **dumb** — nó giữ bản nháp và phát sự kiện; nó **không** tự gọi API lưu ([`../COMPONENTS.md`](../COMPONENTS.md) §5).
+`EditableGrid` là component **dumb** — nó giữ bản nháp và phát sự kiện; nó **không** tự gọi API lưu ([`../COMPONENTS.md`](../COMPONENTS.md) §5). Lưu là **cả lưới một lần**, khi bấm Lưu: bản nháp sống ở trình duyệt và xác thực mức lưới chỉ chạy được trên toàn bộ dòng — lưu từng ô là bỏ mức đó.
 
 ## Do / Don't
 
@@ -157,6 +160,5 @@ Xác thực chạy ở **ba mức, và không được trộn**: **mức ô** (s
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Có hỗ trợ dán nhiều ô từ Excel không? Đây là thao tác người dùng kế toán mong đợi nhất, và cũng là phần khó nhất: phải tách chuỗi dán, khớp cột, kiểm từng ô, và báo phần không khớp | Dự án đầu tiên có màn nhập chứng từ |
-| 2 | Lưu theo từng ô hay lưu cả lưới một lần? Lưu từng ô thì không mất dữ liệu nhưng sinh rất nhiều request và không kiểm được luật mức lưới; lưu một lần thì ngược lại | `architect`, vì nó chạm cả hợp đồng API |
-| 3 | Hoàn tác một bước (`Ctrl+Z`) có làm không? Người nhập liệu mong đợi nó, nhưng nó đòi một ngăn xếp thao tác mà Core chưa có ở đâu cả | Sau khi có màn thật |
+| 1 | Có hỗ trợ dán nhiều ô từ Excel không? Đây là thao tác người dùng kế toán mong đợi nhất, và cũng là phần khó nhất: phải tách chuỗi dán, khớp cột, kiểm từng ô, và báo phần không khớp | Sau F3 — dự án hạ nguồn đầu tiên có lưới nhập liệu |
+| 2 | Hoàn tác một bước (`Ctrl+Z`) có làm không? Người nhập liệu mong đợi nó, nhưng nó đòi một ngăn xếp thao tác mà Core chưa có ở đâu cả | Sau F3 — dự án hạ nguồn đầu tiên có lưới nhập liệu |

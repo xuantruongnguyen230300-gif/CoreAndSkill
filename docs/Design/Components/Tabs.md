@@ -58,9 +58,9 @@ Nhãn tab **không xuống dòng**. Nhãn dài thì rút chữ; một dải tab 
 | `focus-visible` | `outline` `--border-w-strong` màu `--color-focus`, `outline-offset` theo [`../DESIGN.md`](../DESIGN.md) §2.6. Panel cũng nhận vòng focus khi người dùng `Tab` vào nó | Có |
 | `active` | Nền đậm thêm một bậc trong lúc nhấn; không dịch chuyển vị trí — dải tab dịch chuyển làm cả panel bên dưới trông như rung | Có |
 | `disabled` | Tab riêng lẻ mang `aria-disabled="true"`, chữ `--color-text-disabled`, **vẫn nằm trong dãy phím mũi tên** để người dùng biết nó tồn tại và vì sao khoá. Nếu tab đó vĩnh viễn không dùng được thì bỏ hẳn khỏi danh sách, đừng để nó xám mãi | Có |
-| `loading` | Dải tab **giữ nguyên và vẫn bấm được**; chỉ panel hiện [`SkeletonLoader.md`](./SkeletonLoader.md) và mang `aria-busy="true"`. Khoá cả dải tab khi một panel đang tải là giam người dùng trong tab họ vừa rời đi | Có |
-| `error` | Tải panel hỏng → [`NoticeBanner.md`](./NoticeBanner.md) **bên trong panel** kèm nút thử lại. Dải tab không tự tô đỏ; nếu một tab thật sự chứa lỗi cần chú ý thì gắn một [`Badge.md`](./Badge.md) đếm số lỗi lên nhãn tab, không đổi màu nhãn | Có |
-| `empty` | Panel không có nội dung → [`EmptyState.md`](./EmptyState.md) bên trong panel. Danh sách chỉ có **một** tab → không render dải tab, chỉ render nội dung; một tab đơn độc là một cái nhãn không bấm được | Có |
+| `loading` | Dải tab **giữ nguyên và vẫn bấm được**; chỉ panel hiện [`SkeletonLoader.md`](./SkeletonLoader.md) do màn đặt vào slot panel, và panel mang `aria-busy="true"`. Khoá cả dải tab khi một panel đang tải là giam người dùng trong tab họ vừa rời đi | Có |
+| `error` | Tải panel hỏng → màn đặt [`NoticeBanner.md`](./NoticeBanner.md) **vào slot panel** kèm nút thử lại. Dải tab không tự tô đỏ; nếu một tab thật sự chứa lỗi cần chú ý thì đặt số lỗi vào `TabItem.badge`, không đổi màu nhãn. Badge trên nhãn là phần cấu trúc của lớp bọc: thư viện vẽ, tạo hình bằng token theo hình thức của [`Badge.md`](./Badge.md) — [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5 | Có |
+| `empty` | Panel không có nội dung → màn đặt [`EmptyState.md`](./EmptyState.md) vào slot panel. Danh sách chỉ có **một** tab → không render dải tab, chỉ render nội dung; một tab đơn độc là một cái nhãn không bấm được | Có |
 
 ## Token dùng
 
@@ -77,8 +77,8 @@ Nhãn tab **không xuống dòng**. Nhãn dài thì rút chữ; một dải tab 
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Dải tab xếp ngang, khe `--sp-2`; chiều rộng theo nội dung nhãn |
-| < `--bp-md` | Dải tab **cuộn ngang** trong chính nó, không xuống dòng; tab hiện hành tự cuộn vào tầm nhìn khi đổi, và cuộn dải không kéo theo cả trang. Dưới `--bp-xs` nhãn rút gọn nhưng **không** thay bằng icon trần — một dải toàn icon buộc người dùng đoán nội dung từng panel |
+| ≥ `$bp-md` | Dải tab xếp ngang, khe `--sp-2`; chiều rộng theo nội dung nhãn |
+| < `$bp-md` | Dải tab **cuộn ngang** trong chính nó, không xuống dòng; tab hiện hành tự cuộn vào tầm nhìn khi đổi, và cuộn dải không kéo theo cả trang. Dưới `$bp-xs` nhãn rút gọn nhưng **không** thay bằng icon trần — một dải toàn icon buộc người dùng đoán nội dung từng panel |
 
 🛑 **Không tự chuyển `Tabs` thành một ô chọn thả xuống ở màn nhỏ.** Nghe hợp lý và nó phá ngữ nghĩa: `tabpanel` mất phần tử điều khiển tương ứng, và người dùng trình đọc màn hình gặp hai giao diện khác nhau tuỳ bề rộng cửa sổ. Cuộn ngang giữ nguyên cấu trúc.
 
@@ -89,7 +89,7 @@ Nhãn tab **không xuống dòng**. Nhãn dài thì rút chữ; một dải tab 
 | Thẻ | Dải tab là một phần tử mang `role="tablist"`; mỗi tab là `<button role="tab">`; mỗi panel là một phần tử mang `role="tabpanel"` |
 | Vai trò ARIA | Mỗi tab có `aria-controls` trỏ tới `id` của panel; mỗi panel có `aria-labelledby` trỏ ngược lại `id` của tab — thiếu một chiều là trình đọc màn hình mất ngữ cảnh |
 | Chọn, roving tabindex | Tab hiện hành mang `aria-selected="true"` và `tabindex="0"`; các tab khác `false` và `tabindex="-1"`. Nhờ vậy một lần `Tab` đi qua cả dải, không phải bấm `Tab` năm lần để vượt năm tab |
-| Bàn phím | Mũi tên trái/phải di chuyển giữa các tab và **vòng lại** ở hai đầu; `Home` về tab đầu; `End` tới tab cuối; `Tab` từ dải tab nhảy **vào panel** |
+| Bàn phím | Mũi tên trái/phải di chuyển giữa các tab và **vòng lại** ở hai đầu; `Home` về tab đầu; `End` tới tab cuối; `Tab` từ dải tab nhảy **vào panel**. Kích hoạt **thủ công**: mũi tên chỉ dời focus, `Enter`/`Space` mới mở tab — `lazy` mặc định dựng panel lúc mở, nên lướt phím qua bốn tab không được bắn bốn request |
 | Focus | Panel mang `tabindex="0"` để nhận được focus khi `Tab` vào, kể cả khi bên trong không có control nào |
 | Nhãn | `aria-label` trên `tablist` nói nó nhóm cái gì ("Chi tiết người dùng"); icon trên tab mang `aria-hidden="true"` vì nhãn chữ đã mang hết thông tin — [`../Icons.md`](../Icons.md) §7 |
 | Chuyển tab, chữ | Chỉ chuyển màu và hiện panel, **không** trượt panel ngang: [`../DESIGN.md`](../DESIGN.md) §7 chỉ cho animate `transform` và `opacity`, một lần đổi `opacity` trong `--dur-base` là đủ. Chữ đi qua tầng i18n — [`../../RULES.md`](../../RULES.md) §7 F8 |
@@ -104,9 +104,9 @@ Nhãn tab **không xuống dòng**. Nhãn dài thì rút chữ; một dải tab 
 | `lazy` · `keepAlive` | input | `boolean` | `true` | `lazy` chỉ dựng panel khi tab được mở lần đầu; `keepAlive` giữ panel đã dựng trong DOM khi đổi tab — xem bẫy dưới |
 | `activeKeyChanged` | output | `string` | — | Khoá tab người dùng **yêu cầu**. Không phát khi bấm lại tab đang mở |
 
-Nội dung từng panel vào qua khe nội dung, không qua dữ liệu — một panel có thể chứa bất cứ thứ gì và một input chuỗi sẽ chặn điều đó. `Tabs` là component **dumb** ([`../COMPONENTS.md`](../COMPONENTS.md) §5): nó không gọi API để tải nội dung tab, không đọc route.
+Nội dung từng panel vào qua khe nội dung, không qua dữ liệu — một panel có thể chứa bất cứ thứ gì và một input chuỗi sẽ chặn điều đó. Khung đang tải, khối lỗi, khối trống của panel cũng do màn đặt vào khe đó — `Tabs` ở tầng bọc nên không import component tự dựng ([`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5). `Tabs` là component **dumb** ([`../COMPONENTS.md`](../COMPONENTS.md) §5): nó không gọi API để tải nội dung tab, không đọc route.
 
-**Tab đang mở nên phản ánh lên URL.** Không có nó, người dùng ở tab "Lịch sử" bấm F5 sẽ quay về tab đầu, và một liên kết gửi cho đồng nghiệp luôn mở ra tab đầu chứ không mở đúng chỗ đang bàn. Cái giá: mỗi lần đổi tab sinh một mục trong lịch sử trình duyệt, và nút Back của trình duyệt trở thành nút "tab trước" — thường là đúng ý người dùng, nhưng cần thay thế mục lịch sử thay vì đẩy thêm nếu người dùng bấm qua lại nhiều lần. Việc đọc và ghi URL thuộc về trang cha; `Tabs` chỉ phát `activeKeyChanged`.
+**Tab đang mở phản ánh lên URL bằng tham số truy vấn `tab=<key>`** — không phải đoạn đường dẫn con. `tab` là tên tham số dùng chung ở [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.8: `ListStateStore` **bỏ qua** nó (không coi là bộ lọc); trang cha đọc và ghi `tab` qua `queryParams` trực tiếp, có store hay không. Không có nó, người dùng ở tab "Lịch sử" bấm F5 sẽ quay về tab đầu, và một liên kết gửi cho đồng nghiệp luôn mở ra tab đầu chứ không mở đúng chỗ đang bàn. Cái giá: mỗi lần đổi tab sinh một mục trong lịch sử trình duyệt, và nút Back của trình duyệt trở thành nút "tab trước" — thường là đúng ý người dùng, nhưng cần thay thế mục lịch sử thay vì đẩy thêm nếu người dùng bấm qua lại nhiều lần. Việc đọc và ghi URL thuộc về trang cha; `Tabs` chỉ phát `activeKeyChanged`.
 
 🛑 **Bẫy: nhồi một biểu mẫu nhiều bước vào `Tabs`.** Tabs không hứa thứ tự, không hứa lưu, và nếu `keepAlive` bị tắt thì panel bị huỷ khi đổi tab — người dùng điền nửa chừng, sang tab khác kiểm một con số, quay lại và mất sạch. Ngay cả khi `keepAlive` bật, việc kiểm tra hợp lệ vẫn rải ra nhiều panel và người dùng bấm Lưu ở tab 3 không thấy lỗi đang nằm ở tab 1. Biểu mẫu nhiều bước cần một luồng có nút Tiếp / Quay lại, có trạng thái từng bước, và có một chỗ tổng hợp lỗi.
 
@@ -114,7 +114,7 @@ Nội dung từng panel vào qua khe nội dung, không qua dữ liệu — mộ
 
 - ✅ Dùng `tablist` / `tab` / `tabpanel` thật, đủ cả `aria-controls` và `aria-labelledby`.
 - ✅ Roving tabindex — một lần `Tab` đi qua cả dải.
-- ✅ Phản ánh tab đang mở lên URL.
+- ✅ Phản ánh tab đang mở lên URL bằng `tab=<key>`.
 - ✅ Cuộn ngang dải tab ở màn nhỏ, và giữ dải tab bấm được trong lúc panel đang tải.
 - ❌ Không dùng `Tabs` để lọc cùng một tập dữ liệu.
 - ❌ Không nhồi biểu mẫu nhiều bước vào `Tabs`.
@@ -125,6 +125,4 @@ Nội dung từng panel vào qua khe nội dung, không qua dữ liệu — mộ
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Đổi tab kích hoạt ngay khi mũi tên di chuyển tới, hay chờ `Enter`/`Space`? Kích hoạt ngay nhanh hơn cho tab nhẹ, nhưng với panel phải gọi API thì lướt qua bốn tab sẽ bắn bốn request | Người dựng component, sau khi biết panel nào tải nặng |
-| 2 | Tab phản ánh lên URL bằng đoạn đường dẫn con hay bằng tham số truy vấn? Đường dẫn con hợp với tuyến con của Angular; tham số truy vấn dễ ghép với bộ lọc đang có sẵn trên URL | Người dựng khung định tuyến |
-| 3 | `keepAlive` mặc định `true` có gây tốn bộ nhớ với panel chứa bảng lớn không? Chưa có số đo; đảo mặc định sang `false` thì lại mở đúng cái bẫy mất dữ liệu ghi ở trên | Sau khi có màn chi tiết thật |
+| 1 | `keepAlive` mặc định `true` có gây tốn bộ nhớ với panel chứa bảng lớn không? Chưa có số đo; đảo mặc định sang `false` thì lại mở đúng cái bẫy mất dữ liệu ghi ở trên | F3 — khi dựng màn đầu tiên dùng `Tabs` |

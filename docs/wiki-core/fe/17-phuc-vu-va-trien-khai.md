@@ -246,7 +246,7 @@ Bước 3 trước bước 4 là để tránh khoảng thời gian mà HTML gố
 | Một bản build cho mỗi môi trường | ❌ loại, không hoãn `K48` | §5.1 — bản build cho môi trường A đem triển khai lên B là sai âm thầm |
 | Bản đồ mã nguồn công khai ở môi trường thật | ❌ loại, không hoãn `K49` | §7 |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

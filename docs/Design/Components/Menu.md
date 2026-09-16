@@ -21,11 +21,11 @@ Hiện một danh sách hành động ngắn trong một lớp nổi neo vào ph
 | Dùng | Không dùng |
 | --- | --- |
 | Gom các hành động phụ của một hàng bảng lại sau một nút, khi ba `IconButton` cạnh nhau là quá nhiều | 🛑 Chọn một **giá trị** để điền vào form → [`Input.md`](./Input.md) biến thể `select`. Menu phát ra hành động, `select` mang dữ liệu; lẫn hai thứ làm form không bind được |
-| Menu tài khoản ở [`Topbar.md`](./Topbar.md): hồ sơ, đổi mật khẩu, đăng xuất | 🛑 Chọn một nút trong cây → [`TreeSelect.md`](./TreeSelect.md); chọn từ danh mục lớn bằng cách gõ → [`Autocomplete.md`](./Autocomplete.md) |
+| Menu tài khoản ở [`Topbar.md`](./Topbar.md): hồ sơ, ngôn ngữ, đăng xuất; menu theme ở đó — chọn **một** trong vài giá trị cấu hình ngoài form, qua `selectedKey` | 🛑 Chọn một nút trong cây → [`TreeSelect.md`](./TreeSelect.md); chọn từ danh mục lớn bằng cách gõ → [`Autocomplete.md`](./Autocomplete.md) |
 | Hành động phụ của [`PageHeader.md`](./PageHeader.md) ở màn hẹp, khi không đủ chỗ cho nhiều nút | 🛑 Điều hướng chính của ứng dụng → [`Sidebar.md`](./Sidebar.md). Menu không phải chỗ giấu tuyến đi |
 | Bảng chọn cột của [`DataTable.md`](./DataTable.md) | 🛑 Nội dung dài, có form, cần đọc kỹ → [`Dialog.md`](./Dialog.md) hoặc [`Drawer.md`](./Drawer.md). Menu quá năm bảy mục là dấu hiệu chọn sai component |
 
-**Ngưỡng cứng:** quá **mười mục** thì đó không còn là menu. Lúc đó hoặc chia nhóm có tiêu đề, hoặc chuyển sang `Drawer` có ô tìm.
+**Ngưỡng cứng:** quá **mười mục** thì đó không còn là menu. Lúc đó hoặc chia nhóm có tiêu đề, hoặc chuyển sang `Drawer` có ô tìm. Không có menu nhiều cấp (mục mở ra menu con) — cần phân cấp thật là dấu hiệu nên dùng `Drawer` có ô tìm; hai lớp nổi **nối tiếp** như mục "Ngôn ngữ" ở [`Topbar.md`](./Topbar.md) thì được.
 
 ## Biến thể
 
@@ -51,7 +51,7 @@ Ba công tắc nội dung, dùng được với cả hai biến thể:
 | `sm` | `--size-control-sm` | `--sp-4` | `--fs-xs` | `--icon-sm` | Menu mở từ một control cỡ `sm` — trong hàng bảng, trong `Toolbar` |
 | `md` | `--size-control-md` | `--sp-4` | `--fs-sm` | `--icon-md` | **Mặc định.** `Topbar`, `PageHeader` |
 
-Chỉ hai cỡ. Cỡ `lg` không có nghĩa cho một danh sách hành động: chiều cao mục phải theo mật độ của chỗ gọi nó, và không chỗ nào trong Core gọi menu từ một control cỡ `lg`.
+Chỉ hai cỡ. Cỡ `lg` không có nghĩa cho một danh sách hành động: chiều cao mục phải theo mật độ của chỗ gọi nó, và không chỗ nào trong Core gọi menu từ một control cỡ `lg`. Mục cao `--size-control-lg` dưới `$bp-sm` (§Responsive) là điều chỉnh theo vùng chạm, không phải một cỡ.
 
 Bề rộng: tối thiểu bằng bề rộng phần tử neo, tối đa `--layout-sidebar-w`. Nhãn dài hơn thì **cắt bằng dấu ba chấm**, không xuống dòng — một mục menu hai dòng phá nhịp dọc và làm vùng bấm cao thấp không đều.
 
@@ -66,8 +66,8 @@ Bo góc `--radius-md`, đổ bóng `--shadow-3`, lớp `--z-popover`.
 | `focus-visible` | Mục đang được bàn phím trỏ tới dùng **cùng một hình thức với `hover`** cộng thêm `outline: var(--border-w-strong) solid var(--color-focus)`, `outline-offset: -2px`. Offset **âm** vì vòng focus vẽ sát mép menu sẽ bị đường viền menu cắt mất | Có |
 | `active` | Nền `--color-surface-3` trong lúc giữ chuột. Không dùng `transform` — mục menu không phải nút nổi, dịch nó xuống trông như lỗi vẽ | Có |
 | `disabled` | Chữ và icon `--color-text-disabled`, `aria-disabled="true"`, con trỏ `not-allowed`. **Mục bị khoá vẫn hiện và vẫn nhận focus**, kèm một dòng lý do ngắn ở mép phải — xem Do / Don't | Có |
-| `loading` | Chỉ áp cho menu có nội dung tải theo yêu cầu: thân menu thay bằng ba dòng [`SkeletonLoader.md`](./SkeletonLoader.md), `aria-busy="true"` trên hộp menu. Bề rộng menu **giữ nguyên** theo giá trị tối thiểu, nếu không menu sẽ nhảy cỡ ngay trước mắt người dùng | Có |
-| `error` | Tải danh sách mục hỏng: thân menu thay bằng một dòng chữ lỗi màu `--color-danger` kèm nút "Thử lại". Menu **không tự đóng** khi lỗi — đóng đi thì người dùng không biết vừa có chuyện gì | Có |
+| `loading` | Chỉ áp cho menu có nội dung tải theo yêu cầu: thân menu hiện `loadingTemplate` — màn ghép ba dòng [`SkeletonLoader.md`](./SkeletonLoader.md) — và `aria-busy="true"` trên hộp menu. Bề rộng menu **giữ nguyên** theo giá trị tối thiểu, nếu không menu sẽ nhảy cỡ ngay trước mắt người dùng | Có |
+| `error` | Tải danh sách mục hỏng: thân menu hiện `errorTemplate` — màn ghép một dòng chữ lỗi màu `--color-danger` kèm nút "Thử lại". Menu **không tự đóng** khi lỗi — đóng đi thì người dùng không biết vừa có chuyện gì | Có |
 | `empty` | Không mục nào khả dụng: hiện đúng một dòng chữ `--color-text-muted` nói vì sao rỗng ("Không có hành động nào cho bản ghi này"). 🛑 **Không mở một menu rỗng không chữ** — người dùng sẽ bấm lại vài lần rồi nghĩ chức năng hỏng | Có |
 
 ## Token dùng
@@ -78,7 +78,7 @@ Bo góc `--radius-md`, đổ bóng `--shadow-3`, lớp `--z-popover`.
 | Chữ | `--fs-2xs`, `--fs-xs`, `--fs-sm`, `--fw-medium`, `--fw-semibold`, `--lh-snug`, `--ls-wide` |
 | Khoảng cách | `--sp-1`, `--sp-2`, `--sp-3`, `--sp-4` |
 | Hình dạng | `--radius-sm`, `--radius-md`, `--border-w`, `--border-w-strong` |
-| Kích thước | `--size-control-sm`, `--size-control-md`, `--icon-sm`, `--icon-md`, `--layout-sidebar-w` |
+| Kích thước | `--size-control-sm`, `--size-control-md`, `--size-control-lg` (chỉ dưới `$bp-sm`, §Responsive), `--icon-sm`, `--icon-md`, `--layout-sidebar-w` |
 | Bóng, lớp | `--shadow-3`, `--z-popover` |
 | Chuyển động | `--dur-fast`, `--ease-standard` |
 
@@ -86,17 +86,19 @@ Bo góc `--radius-md`, đổ bóng `--shadow-3`, lớp `--z-popover`.
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Menu nổi, neo vào phần tử mở nó. Lật lên trên hoặc sang trái khi không đủ chỗ ở hướng mặc định |
-| `--bp-sm` … `--bp-md` | Giữ nguyên dạng nổi; cỡ mục nâng lên `md` ở mọi vị trí |
-| < `--bp-sm` | Menu **trượt lên từ đáy màn hình**, trải hết bề rộng, có một vạch kéo ở đầu. Mỗi mục cao tối thiểu `--size-control-lg` |
+| ≥ `$bp-md` | Menu nổi, neo vào phần tử mở nó. Lật lên trên hoặc sang trái khi không đủ chỗ ở hướng mặc định |
+| `$bp-sm` … `$bp-md` | Giữ nguyên dạng nổi; cỡ mục nâng lên `md` ở mọi vị trí |
+| < `$bp-sm` | **Giữ popover**, mỗi mục cao `--size-control-lg` để đủ vùng chạm; thư viện lật hướng hoặc dịch vào trong viewport khi hết chỗ. Không đổi sang [`Drawer.md`](./Drawer.md) `bottom` |
 
-**Vì sao đổi hẳn hình dạng ở màn nhỏ thay vì chỉ phóng to:** một lớp nổi neo vào nút trên màn 390px gần như luôn che mất chính hàng dữ liệu mà người dùng vừa bấm, và ngón tay thì che nốt phần còn lại. Trượt từ đáy giữ cho nội dung phía trên nhìn thấy được, và đặt các mục vào vùng ngón cái với tới. Cái giá: hai dạng hiển thị phải cùng dựng và cùng kiểm.
+**Vì sao giữ popover ở màn nhỏ, khác [`Autocomplete.md`](./Autocomplete.md) và [`TreeSelect.md`](./TreeSelect.md):** hai ô đó có bàn phím ảo đẩy lớp nổi, `Menu` không có ô gõ nên lý do đó không áp; và một menu mở từ trong `Drawer` (mục "Ngôn ngữ" ở `Topbar`, hành động trong drawer sửa) sẽ thành `Drawer` chồng `Drawer` — [`Drawer.md`](./Drawer.md) §Do / Don't cấm. Cái giá: mục cao hơn một bậc ở ngưỡng này, và nơi neo phải đủ chỗ cho tối đa mười mục.
+
+Menu mở bằng bấm và đóng bằng chọn mục, `Escape` hoặc bấm ra ngoài (§API `openChange`) — **không** đóng khi con trỏ rời menu, nên không có khoảng trễ nào phải chốt.
 
 ## Accessibility
 
 | Khoản | Yêu cầu |
 | --- | --- |
-| Vai trò | Hộp menu mang `role="menu"`; mỗi mục `role="menuitem"`. Mục bật/tắt dùng `role="menuitemcheckbox"` kèm `aria-checked` |
+| Vai trò | Hộp menu mang `role="menu"`; mỗi mục `role="menuitem"`. Mục bật/tắt dùng `role="menuitemcheckbox"` kèm `aria-checked`. Menu chọn một giá trị (`selectedKey` khác `null`): **mọi** mục `role="menuitemradio"`, mục trùng `selectedKey` mang `aria-checked="true"` và nhận focus khi menu mở |
 | Phần tử mở | Mang `aria-haspopup="menu"` và `aria-expanded` phản ánh trạng thái thật |
 | Bàn phím — mở | `Enter`, `Space`, hoặc `↓` trên phần tử neo. `↓` mở và trỏ ngay vào mục đầu; `↑` mở và trỏ vào mục cuối |
 | Bàn phím — di chuyển | `↑` `↓` giữa các mục **đang bật**, vòng lại khi hết. `Home` / `End` về đầu / cuối. Gõ một chữ cái nhảy tới mục bắt đầu bằng chữ đó |
@@ -117,7 +119,10 @@ Bo góc `--radius-md`, đổ bóng `--shadow-3`, lớp `--z-popover`.
 | `header` | input | `string \| null` | `null` | `null` = không có dòng tiêu đề |
 | `ariaLabel` | input | `string` | — | **Bắt buộc.** Không có mặc định; một menu không nhãn là một menu vô danh với trình đọc màn hình |
 | `open` | input | `boolean` | `false` | Trang cha giữ nguồn sự thật, để đóng được menu từ bên ngoài |
+| `selectedKey` | input | `string \| null` | `null` | Khác `null` → menu chọn một giá trị: mọi mục `menuitemradio`, mục trùng khoá `aria-checked="true"` (§Accessibility). `selected` không phát khi chọn lại mục đang `aria-checked`. Dùng cho `Menu` theme của [`Topbar.md`](./Topbar.md) |
 | `loading` | input | `boolean` | `false` | |
+| `loadingTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Nội dung thân menu khi `loading`. Bắt buộc khác `null` khi menu dùng `loading` |
+| `errorTemplate` | input | `TemplateRef<unknown> \| null` | `null` | Khối lỗi trong thân menu, gồm nút "Thử lại". Màn chỉ truyền khi tải mục hỏng — [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5 |
 | `selected` | output | `string` | — | Phát khoá của mục được chọn. **Không phát khi mục đang khoá** — chặn ở component, không bắt mỗi nơi gọi tự nhớ |
 | `openChange` | output | `boolean` | — | Báo ra mọi lần menu tự đóng: chọn xong, `Escape`, bấm ra ngoài |
 
@@ -139,8 +144,4 @@ Mục menu vào qua `items` chứ **không** qua slot. Lý do: hành vi bàn ph�
 
 ## Cần chốt
 
-| # | Câu hỏi | Ai trả lời được |
-| --- | --- | --- |
-| 1 | Menu nhiều cấp (mục mở ra menu con) có làm không? Hôm nay **không**, vì nó kéo theo cả một tập hành vi bàn phím và định vị mới. Nếu một màn cần phân cấp thật thì gần như luôn là dấu hiệu nên dùng `Drawer` có ô tìm | Màn đầu tiên gặp nhu cầu thật |
-| 2 | Dạng trượt từ đáy ở màn nhỏ dùng lại `Drawer` hay tự dựng? Dùng lại thì đỡ một hiện thực, nhưng `Drawer` bẫy focus còn menu thì không — hai hành vi ngược nhau | Người dựng hai component này |
-| 3 | Khoảng trễ trước khi đóng khi con trỏ rời menu là bao nhiêu? Không có trễ thì menu biến mất lúc người dùng đang với tới; trễ dài thì nó bám dai | Sau khi có màn thật để thử |
+Không còn.

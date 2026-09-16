@@ -11,6 +11,8 @@ node_modules/
 .env
 .env.local
 appsettings.Local.json
+# Chứng chỉ HTTPS dev xuất cho Angular dev server — không bao giờ commit
+src/FE/.cert/
 
 # Hệ điều hành
 Thumbs.db
@@ -18,3 +20,6 @@ Thumbs.db
 
 # Dau trang thai cua hook — cuc bo, khong commit
 .claude/.state/
+
+# Bản xem thử HTML sinh từ docs/Design/ — dùng một lần, không phải nguồn (CLAUDE.md §7), không commit
+preview/

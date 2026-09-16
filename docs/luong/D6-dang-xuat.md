@@ -27,9 +27,10 @@ Người dùng đã đăng nhập, từ menu tài khoản.
 
 | # | Ai làm | Hệ thống làm gì | Chi tiết ở |
 | --- | --- | --- | --- |
-| 1 | Người dùng | `POST /auth/logout` | [`../contracts/auth.md`](../contracts/auth.md) §4 |
-| 2 | BE | Huỷ phiếu phiên | cùng trên §1 |
+| 1 | Người dùng | `POST /api/v1/core/auth/logout` | [`../contracts/auth.md`](../contracts/auth.md) §4 |
+| 2 | BE | Huỷ phiếu của **phiên đang gọi** — phiên khác của cùng tài khoản giữ nguyên | cùng trên §4 |
 | 3 | FE | Xoá trạng thái cục bộ, quay về màn đăng nhập | |
+| 4 | FE | 🛑 **Lấy lại token chống giả mạo** — token đang giữ gắn với danh tính người vừa đăng xuất | [`../contracts/auth.md`](../contracts/auth.md) §1.1 |
 
 ### Vì sao đăng xuất là một request ghi, không phải một liên kết
 
@@ -41,11 +42,14 @@ Một người bị buộc đổi mật khẩu mà **không thoát được** l�
 
 ## 4. Hỏng ở đâu — và người dùng thấy gì
 
+> 📖 Loại lỗi và HTTP status của từng mã: [`../contracts/auth.md`](../contracts/auth.md) §4 và §11. Bảng dưới chỉ giữ `code`.
+
 | Ca | Mã lỗi | Thấy gì |
 | --- | --- | --- |
-| Chưa đăng nhập | `CORE.AUTH.NOT_AUTHENTICATED` (401) | FE nên coi là đã ở trạng thái mong muốn, không hiện lỗi |
-| Thiếu token chống giả mạo | `CORE.AUTH.CSRF_REJECTED` (403) | 🛑 Người dùng **không thoát được**, và không hiểu vì sao. FE phải lấy token trước khi gọi |
+| Chưa đăng nhập | `CORE.AUTH.NOT_AUTHENTICATED` | FE nên coi là đã ở trạng thái mong muốn, không hiện lỗi |
+| Thiếu token chống giả mạo | `CORE.AUTH.CSRF_REJECTED` | 🛑 Người dùng **không thoát được**, và không hiểu vì sao. FE phải lấy token trước khi gọi |
 | FE xoá trạng thái mà request hỏng | không có mã lỗi | Người dùng thấy mình đã đăng xuất, nhưng phiếu phiên vẫn còn hiệu lực ở server |
+| Bước 4 bị bỏ | không có mã lỗi riêng | 🛑 Lần đăng nhập kế tiếp trên cùng trang bị `CORE.AUTH.CSRF_REJECTED`, dù người dùng gõ đúng mọi ô |
 
 ## 5. Quan hệ với đơn vị
 
@@ -53,5 +57,4 @@ Một người bị buộc đổi mật khẩu mà **không thoát được** l�
 
 ## 6. Câu chưa trả lời được
 
-- **Đăng xuất có huỷ mọi phiên của người đó, hay chỉ phiên hiện tại?** Hai hành vi khác nhau và cả hai đều hợp lý; không file nào chốt. Với một người đăng nhập trên nhiều máy, câu trả lời quyết định xem "đăng xuất" có nghĩa là gì.
-- **Có đường nào để người dùng tự xem và huỷ các phiên khác của mình không?** Không endpoint nào trong `contracts/` làm việc này. Người nghi tài khoản bị chiếm hiện chỉ có một đường: nhờ quản trị đặt lại mật khẩu (luồng `D4`), vì bước 4 của luồng đó mới là thứ đá hết phiên.
+Không còn câu riêng của luồng này. Tự xem và huỷ các phiên khác của chính mình: **ngoài v1** — đá mọi phiên đi đường tự đổi mật khẩu ([`../contracts/auth.md`](../contracts/auth.md) §6).

@@ -88,6 +88,14 @@ Xem [`03-state-management.md`](03-state-management.md) §9.
 
 Rẻ, nhanh, và bắt được lỗi biên. Ưu tiên test pipe định dạng ngày, số, tiền tệ — chúng có nhiều trường hợp biên (giá trị `null`, số 0, số âm, múi giờ) hơn người ta tưởng.
 
+### 2.7 Lớp cộng tác thuần tách khỏi component/trang lớn — bắt buộc (luật F26)
+
+Khi một trang vượt ngưỡng dòng (§Ngưỡng ở [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §5), cách đúng là tách hằng số biên và hàm parse/validate ra một lớp cộng tác thuần (kiểu "flow"/"filters"/"helper") bên cạnh trang. Tách xong thì lớp đó **phải có `.spec.ts` riêng** — test tích hợp của trang (`*.page.spec.ts`) không tự động phủ được các hằng số biên nằm trong nó.
+
+**Vì sao không được coi test tích hợp của trang là đủ:** một `.page.spec.ts` dài hàng trăm dòng, hàng chục khối `it`, vẫn hoàn toàn có thể không đụng tới một hằng số biên nào của lớp vừa tách — nó test *hành vi của trang qua các đường phổ biến*, không test *từng nhánh biên của logic thuần bên trong*. Đây là bài học có thật: một module tách đúng bảy file flow/filter khỏi trang, `.page.spec.ts` 724 dòng/50 khối test không hề nhắc tới các hằng số ngưỡng năm, regex kỳ báo cáo, hay giá trị kẹp % tiến độ nằm trong đó.
+
+**Chỗ hay bị bỏ sót nhất:** input đến từ URL (tham số route, query string) và input người dùng gõ tay ở ô inline-edit — đây chính là hai loại input mà logic biên vừa tách ra tồn tại để xử lý.
+
 ---
 
 ## 3. Vì sao mọi service phải có spec cạnh nó
@@ -158,11 +166,11 @@ Mọi thứ khác kiểm bằng unit test hoặc bằng tay.
 
 ## 7. Công cụ chạy test
 
-Dùng bộ chạy test mặc định của Angular CLI (`ng test`). Lý do: nó đi kèm framework, không cần cấu hình thêm, và một cấu hình test tự chế là thứ sẽ vỡ ở lần nâng Angular kế tiếp.
+**Karma + Jasmine, chạy qua `ng test`, trình duyệt ChromeHeadless** — chốt ở [`../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md). Lý do: nó đi kèm framework, không cần cấu hình thêm, và một cấu hình test tự chế là thứ sẽ vỡ ở lần nâng Angular kế tiếp.
 
-Angular 20 có sẵn một lựa chọn thay thế nhanh hơn ở dạng thử nghiệm. **Chưa dùng ở v1** vì hai lý do: nó còn thay đổi giữa các phiên bản, và bộ test hiện chưa đủ lớn để tốc độ trở thành vấn đề. Xem lại khi thời gian chạy bộ test vượt quá mức khiến người ta ngại chạy nó trước khi commit.
+**Vitest không dùng ở v1.** Chuyển bộ chạy test đi cùng đợt nâng Angular trong kế hoạch của ADR-0028, không làm riêng lẻ — đổi bộ chạy test và đổi framework trong hai đợt tách rời là hai lần viết lại cấu hình test.
 
-Chạy trong CI ở chế độ không giám sát với trình duyệt headless. Nếu môi trường chưa trỏ được tới trình duyệt, bộ chạy sẽ hỏng với thông báo về việc không tìm thấy trình duyệt — đó là lỗi môi trường, không phải lỗi test.
+Chạy trong CI ở chế độ không giám sát với ChromeHeadless. Nếu môi trường chưa trỏ được tới trình duyệt, bộ chạy sẽ hỏng với thông báo về việc không tìm thấy trình duyệt — đó là lỗi môi trường, không phải lỗi test.
 
 ---
 
@@ -183,12 +191,7 @@ Quy trình bắt buộc cho mọi test của `core/`:
 
 ## 9. Kiểm chứng
 
-```bash
-find src/FE/src/app -name '*.service.ts'      | wc -l
-find src/FE/src/app -name '*.service.spec.ts' | wc -l   # hai số phải bằng nhau — luật F12
-```
-
-- [ ] Hai lệnh trên cho cùng một số
+- [ ] Cổng F12 xanh — lệnh ở [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §8.9. Lệnh đó in **đích danh** từng service thiếu spec: so hai tổng số thì một service thiếu spec bù bằng một spec mồ côi vẫn cho hai số bằng nhau
 - [ ] Mọi interceptor có spec phủ cả nhánh có envelope lẫn nhánh không có envelope
 - [ ] Mọi guard có spec phủ đủ nhánh, gồm nhánh chống lặp vô hạn
 - [ ] Coverage đạt sàn ở §4, đo theo **nhánh**
@@ -206,16 +209,16 @@ find src/FE/src/app -name '*.service.spec.ts' | wc -l   # hai số phải bằng
 | Spec cạnh mọi `*.service.ts` | ✅ sẽ có | Luật F12, từ pha F0 |
 | Test interceptor và guard | ✅ sẽ có | §2.2, §2.3 — hai nhóm đáng test nhất |
 | Test component `shared/` ở bốn trạng thái | ✅ sẽ có |  |
-| Sàn coverage ở §4, đo theo **nhánh** | ✅ sẽ có | **Luật F15**, nợ cổng ghi ở [`../../RULES.md`](../../RULES.md) §10; cách chạy ở [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §3.2 |
-| Bộ chạy test mặc định của Angular CLI | ✅ sẽ có | §7 |
-| Bộ chạy test thực nghiệm nhanh hơn | ❌ chưa | Điều kiện: thời gian chạy bộ test đủ lớn để người ta ngại chạy trước khi commit (§7) |
+| Sàn coverage ở §4, đo theo **nhánh** | ✅ sẽ có | **Luật F15**, nợ cổng ghi ở [`../../RULES.md`](../../RULES.md) §10; nợ cổng ở [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §3.3 |
+| Karma + Jasmine qua `ng test`, ChromeHeadless | ✅ sẽ có | §7 |
+| Vitest | ❌ chưa | Điều kiện: đợt nâng Angular theo kế hoạch ở [`../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md) (§7) |
 | Bộ E2E cho bốn luồng ở §6 | ❌ chưa | Điều kiện: có cách dựng dữ liệu thử ổn định. Thiếu điều kiện này thì E2E sẽ đỏ ngẫu nhiên rồi bị tắt |
 | Test hồi quy hình ảnh | ❌ chưa | Điều kiện: đợt nâng thư viện UI đầu tiên — [`16-nen-tang-va-nang-cap.md`](16-nen-tang-va-nang-cap.md) §4 |
 | Test đột biến | ❌ chưa | Điều kiện: bộ test ổn định và có nghi ngờ về chất lượng khẳng định |
 | Khẳng định theo chuỗi tiếng Việt hiển thị | ❌ loại, không hoãn `K21` | §2.4 — khẳng định theo khoá dịch |
 | Gom spec vào một thư mục `tests/` riêng | ❌ loại, không hoãn `K22` | §3 |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

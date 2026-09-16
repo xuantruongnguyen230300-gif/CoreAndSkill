@@ -38,37 +38,181 @@ jobs:
           test -f .claude/check-docs.sh || { echo "::error::.claude/check-docs.sh không tồn tại"; exit 1; }
           bash -n .claude/check-docs.sh || { echo "::error::check-docs.sh có lỗi cú pháp"; exit 1; }
 
-  # 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG.
-  # Hai job dưới đây được khai sẵn nhưng CỐ Ý chưa bật: repo đang ở giai đoạn 1,
-  # chưa có src/. Khai sẵn để hình dạng pipeline hoàn chỉnh là thấy được, và để
-  # người bật chúng ở giai đoạn 2 không phải thiết kế lại từ đầu.
-  #
-  # Bật bằng cách bỏ dòng `if: false` và điền đường dẫn thật.
+  # Luật S6 (docs/RULES.md): không có bí mật trong source. Chạy NGAY giai đoạn 1 —
+  # tài liệu cũng chứa chuỗi cấu hình và lệnh mẫu, và một bí mật đã vào lịch sử
+  # git thì gỡ khỏi nhánh không gỡ được khỏi lịch sử. Cấu hình: .gitleaks.toml.
+  gitleaks:
+    name: gitleaks (S6)
+    runs-on: ubuntu-latest
+    env:
+      # CLI ghim theo bản phát hành — MỘT chỗ duy nhất. Đổi phiên bản thì đổi cả
+      # sha256: lấy dòng linux_x64 trong gitleaks_<phiên bản>_checksums.txt của
+      # đúng bản phát hành đó. .gitleaks.toml dùng [[allowlists]] nên cần >= 8.25.
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Quét cả lịch sử, không chỉ commit cuối.
+          fetch-depth: 0
+
+      - name: Tải gitleaks CLI theo phiên bản ghim
+        run: |
+          set -euo pipefail
+          f="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$f" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$f"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/$f" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$f" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" version
+
+      - name: Quét toàn bộ lịch sử git
+        run: |
+          "$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --verbose --exit-code 1 .
+
+  # Hook ở .claude/hooks/ chạy bên trong mọi lượt của mọi agent, và lỗi trong một
+  # hook không hiện ra đâu cả — dấu không được ghi, cổng không chạy, lệnh cấm lọt.
+  # Bộ payload mẫu chạy lại mỗi lần đẩy, không chờ ai nhớ chạy tay.
+  hook-tests:
+    name: bộ test hook (.claude/hooks/tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Chạy bộ test hook
+        run: bash .claude/hooks/tests/run-tests.sh
+
+  # Hai cổng giai đoạn 2 BẬT THEO SỰ THẬT TRÊN ĐĨA, không theo một cờ ai phải nhớ
+  # lật: có src/BE thì chạy cổng BE, có src/FE thì chạy cổng FE. `if:` ở mức job
+  # không đọc được hệ thống tệp, nên job này checkout rồi xuất kết quả ra.
+  detect:
+    name: Có src/BE, src/FE chưa
+    runs-on: ubuntu-latest
+    outputs:
+      be: ${{ steps.d.outputs.be }}
+      fe: ${{ steps.d.outputs.fe }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - id: d
+        run: |
+          if [ -d src/BE ]; then echo "be=true" >> "$GITHUB_OUTPUT"
+          else echo "be=false" >> "$GITHUB_OUTPUT"; echo "::notice::Chưa có src/BE — cổng BE KHÔNG chạy (không phải PASS)"; fi
+          if [ -d src/FE ]; then echo "fe=true" >> "$GITHUB_OUTPUT"
+          else echo "fe=false" >> "$GITHUB_OUTPUT"; echo "::notice::Chưa có src/FE — cổng FE KHÔNG chạy (không phải PASS)"; fi
 
   backend-gate:
-    name: dotnet test (gồm ArchTests)
+    name: dotnet build/test (gồm ArchTests) + coverage + E10
+    needs: detect
+    if: needs.detect.outputs.be == 'true'
     runs-on: ubuntu-latest
-    if: false # giai đoạn 2
+    defaults:
+      run:
+        working-directory: src/BE
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet build --configuration Release
-      - run: dotnet test --configuration Release --no-build
+
+      - name: Solution .slnx — phải có đúng một
+        id: sln
+        run: |
+          shopt -s nullglob
+          s=( *.slnx )
+          [ "${#s[@]}" -eq 1 ] || { echo "::error::src/BE phải có đúng một file .slnx, thấy ${#s[@]}"; exit 1; }
+          echo "file=${s[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: dotnet tool restore
+        run: dotnet tool restore
+
+      - name: Restore
+        run: dotnet restore "${{ steps.sln.outputs.file }}"
+
+      - name: Build
+        run: dotnet build "${{ steps.sln.outputs.file }}" --configuration Release --no-restore
+
+      # Luật T3. Ngưỡng (theo dòng + nhánh) khai ở chính dự án test — nguồn cách khai:
+      # docs/wiki-core/be/04-testing-strategy.md §5. CI không chép ngưỡng vào đây;
+      # nó chỉ đòi ngưỡng PHẢI tồn tại. Không có Threshold thì coverlet đo mà không
+      # chặn gì — một cổng coverage xanh vĩnh viễn.
+      - name: T3 — ngưỡng coverage phải được khai
+        run: |
+          git ls-files -- '*.csproj' '*.props' | xargs -r grep -l '<Threshold>' > /tmp/threshold.txt || true
+          [ -s /tmp/threshold.txt ] || { echo "::error::Không thấy <Threshold> của coverlet trong .csproj/.props nào dưới src/BE — cổng coverage T3 đang không chặn gì"; exit 1; }
+          cat /tmp/threshold.txt
+
+      - name: Test (gồm ArchTests) + coverage
+        run: dotnet test "${{ steps.sln.outputs.file }}" --configuration Release --no-build -p:CollectCoverage=true
+
+      # Luật E10: model đổi mà quên sinh migration. Chạy cho TỪNG DbContext có
+      # migration. Danh sách DbContext đọc từ chính các file ModelSnapshot (thuộc
+      # tính [DbContext(typeof(X))]), project host đọc từ SDK Web — không chép
+      # tên project nào vào đây.
+      - name: E10 — has-pending-model-changes cho từng DbContext
+        run: |
+          set -euo pipefail
+          host=$(git ls-files -- '*.csproj' | xargs -r grep -l 'Sdk="Microsoft.NET.Sdk.Web"' || true)
+          nh=$(printf '%s\n' "$host" | grep -c . || true)
+          [ "$nh" -eq 1 ] || { echo "::error::Cần đúng một project host (Sdk=Microsoft.NET.Sdk.Web) làm startup project, thấy $nh"; exit 1; }
+          found=0
+          while IFS= read -r snap; do
+            [ -n "$snap" ] || continue
+            ctx=$(sed -n 's/.*\[DbContext(typeof(\([A-Za-z0-9_.]*\)))\].*/\1/p' "$snap" | head -1)
+            d=$(dirname "$snap"); proj=""
+            while [ "$d" != "." ] && [ "$d" != "/" ]; do
+              c=( "$d"/*.csproj )
+              if [ -e "${c[0]}" ]; then proj="${c[0]}"; break; fi
+              d=$(dirname "$d")
+            done
+            [ -n "$ctx" ] && [ -n "$proj" ] || { echo "::error::Không đọc được DbContext hoặc project từ $snap"; exit 1; }
+            echo "E10: $ctx — $proj"
+            dotnet ef migrations has-pending-model-changes \
+              --project "$proj" --startup-project "$host" --context "$ctx" \
+              --configuration Release --no-build
+            found=$((found+1))
+          done < <(git ls-files -- '*ModelSnapshot.cs')
+          [ "$found" -gt 0 ] || echo "::warning::Không thấy ModelSnapshot nào — E10 KHÔNG kiểm DbContext nào (chưa có migration). Đây KHÔNG phải PASS."
 
   frontend-gate:
-    name: fe-gate.sh + ng lint/build/test
+    name: fe-gate.sh + ng lint/test/build
+    needs: detect
+    if: needs.detect.outputs.fe == 'true'
     runs-on: ubuntu-latest
-    if: false # giai đoạn 2
+    defaults:
+      run:
+        working-directory: src/FE
     steps:
       - uses: actions/checkout@v4
+
+      - name: Nguồn phiên bản Node phải tồn tại
+        run: test -f .nvmrc || { echo "::error::src/FE/.nvmrc không tồn tại — nguồn phiên bản Node (docs/adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md)"; exit 1; }
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      # ⚠️ Chạy ĐỦ cả bốn lệnh. Chạy mỗi script rồi tuyên bố cổng FE xanh là cách
-      #    hỏng đã xảy ra thật — script chỉ phủ phần kiểm được bằng grep.
-      - run: bash scripts/fe-gate.sh
-      - run: npx ng lint
-      - run: npx ng build
-      - run: npx ng test --watch=false --browsers=ChromeHeadless
+          node-version-file: src/FE/.nvmrc
+          cache: npm
+          cache-dependency-path: src/FE/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      # Lệnh và thứ tự: docs/wiki-core/fe/trien-khai/05-gate.md §5–§6. Mỗi lệnh một
+      # bước — lệnh nào đỏ thì job đỏ, không có lệnh nào "trượt qua" sau một lệnh gãy.
+      - name: 0. scripts/fe-gate.sh phải tồn tại
+        working-directory: .
+        run: test -f scripts/fe-gate.sh || { echo "::error::scripts/fe-gate.sh không tồn tại — script cổng thiếu thì CI phải đỏ (05-gate.md §6)"; exit 1; }
+
+      - name: 1. fe-gate.sh
+        working-directory: .
+        run: bash scripts/fe-gate.sh
+
+      - name: 2. ng lint
+        run: npx ng lint
+
+      - name: 3. ng test
+        run: npx ng test --watch=false --browsers=ChromeHeadless
+
+      - name: 4. ng build
+        run: npx ng build

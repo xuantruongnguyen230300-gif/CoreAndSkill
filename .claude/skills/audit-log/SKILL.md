@@ -111,7 +111,7 @@ Ba khoá frontmatter theo [`../../CLAUDE.md`](../../CLAUDE.md) §9. Thêm một 
 3. **Sự cố chưa thật sự xảy ra.** Đây là rủi ro dự đoán, không phải audit — hỏi người dùng muốn ghi ở đâu.
 4. **Bản vá chưa được xác nhận là có tác dụng.** Ghi rõ trạng thái đó trong file, đừng viết như thể đã xong.
 5. **Phần 4 dẫn tới việc phải sửa một cổng đang chạy.** Sửa cổng là việc riêng — báo người dùng, đừng gộp vào lượt này.
-6. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1. Nói rõ cần chạy lệnh gì, người dùng tự chạy.
+6. **Cần lệnh git ghi** — xem [`../../CLAUDE.md`](../../CLAUDE.md) §1.
 
 ## Đầu ra
 

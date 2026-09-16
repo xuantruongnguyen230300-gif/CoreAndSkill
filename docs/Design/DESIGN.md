@@ -34,6 +34,8 @@ verified: chua-doi-chieu
 
 Chỉ những token thật sự cần alpha mới có biến kênh đi kèm — xem §2.6. Không nhân đôi cả bảng màu.
 
+**Thư viện UI không giữ bảng màu thứ hai.** Preset PrimeNG chỉ trỏ tầng semantic của thư viện vào `var(--color-*)`, không khai mã màu nào. Giá trị màu quyết ở §2; nơi áp trong code là file token SCSS — [`../quy-uoc/fe-ui-conventions.md`](../quy-uoc/fe-ui-conventions.md). Cơ chế preset ở [`../wiki-core/fe/04-design-token-system.md`](../wiki-core/fe/04-design-token-system.md).
+
 ---
 
 ## 2. Token màu
@@ -201,7 +203,7 @@ outline: 2px solid var(--color-focus);
 outline-offset: 2px;
 ```
 
-`outline-offset: 2px` đẩy vòng ra khỏi mép nút, nên nó luôn nằm trên `--color-surface` hoặc `--color-bg` — nơi tương phản là **6.85:1** (sáng) và **8.59:1** (tối). Khoảng hở 2px chính là thứ làm vòng focus hợp lệ.
+`outline-offset: 2px` đẩy vòng ra khỏi mép nút, nên nó luôn nằm trên `--color-surface` hoặc `--color-bg` — nơi tương phản là **6.85:1** (sáng) và **8.59:1** (tối). Khoảng hở 2px chính là thứ làm vòng focus hợp lệ. Control nằm trong `NoticeBanner` có vòng focus rơi lên nền `*-bg` của vai: thấp nhất **5.44:1** (sáng, `--color-danger-bg`) và **6.68:1** (tối, `--color-info-bg`) — đều qua 3:1, không cần ngoại lệ.
 
 🛑 **Cấm `outline: none` mà không thay bằng dấu hiệu focus khác.** Đây là lỗi accessibility bị bắt nhiều nhất trong mọi audit; nếu cần vòng bám sát hình dạng bo góc, dùng `box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-focus)` — vẫn có khoảng hở, vẫn đạt tỉ lệ.
 
@@ -232,7 +234,7 @@ WCAG 2.2 SC 1.4.1. Áp cho toàn Core, không có ngoại lệ:
 
 ### 2.8 Bảng màu biểu đồ
 
-Trước đây §10 để ngỏ câu hỏi *"có cần bảng màu biểu đồ không"*. Nay đã chốt là **có**, và đây là bảng đó. Mọi giá trị dưới đây chạy qua phép kiểm bằng máy ở cả hai theme — số đo ghi kèm, không ước lượng bằng mắt.
+Biểu đồ **có** bảng màu riêng, và đây là bảng đó. Mọi giá trị dưới đây chạy qua phép kiểm bằng máy ở cả hai theme — số đo ghi kèm, không ước lượng bằng mắt.
 
 **Tám màu, thứ tự cố định, gán lần lượt và không bao giờ quay vòng.** Thứ tự chính là cơ chế an toàn cho người mù màu: các cặp **kề nhau** trong thứ tự này là các cặp thật sự chạm nhau trên biểu đồ, và chúng đã được đo. Đổi thứ tự là phá cơ chế đó.
 
@@ -311,7 +313,7 @@ Bốn vai ở §2.5 là màu **dành riêng**. Một biểu đồ có chuỗi l�
 
 **Chỉ nạp bốn nét: 400, 500, 600, 700.** Mọi khai báo `font-weight` phải là một trong bốn số này. Viết `750` hay `850` trên một font tĩnh sẽ bị trình duyệt làm tròn lên nét gần nhất — hai chỗ tưởng khác nhau sẽ render **giống hệt nhau**, và không có cảnh báo nào. Đây là bẫy đã xảy ra thật ở dự án tiền nhiệm.
 
-Font **tự phục vụ** (self-host), không lấy từ CDN ngoài: lý do là quyền riêng tư và độ ổn định khi mạng nội bộ chặn ngoài. Đường dẫn file font là quyết định thi công, thuộc [`../quy-uoc/fe-ui-conventions.md`](../quy-uoc/fe-ui-conventions.md).
+Font **tự phục vụ** (self-host), không lấy từ CDN ngoài: lý do là quyền riêng tư và độ ổn định khi mạng nội bộ chặn ngoài. Đường dẫn file font là quyết định thi công, thuộc [`../quy-uoc/fe-ui-conventions.md`](../quy-uoc/fe-ui-conventions.md) §3.5.
 
 ### 3.2 Thang cỡ chữ
 
@@ -326,7 +328,7 @@ Gốc `html` là 16px. Token khai bằng `rem` để người dùng phóng chữ
 | `--fs-lg` | `1rem` | 16px | Tiêu đề `Card`, tiêu đề `Dialog` |
 | `--fs-xl` | `1.125rem` | 18px | Tiêu đề màn hình (`PageHeader`) |
 | `--fs-2xl` | `1.375rem` | 22px | Tiêu đề `AuthCard` |
-| `--fs-3xl` | `1.75rem` | 28px | Số liệu lớn, trang lỗi 404/500 |
+| `--fs-3xl` | `1.75rem` | 28px | Số liệu lớn, trang lỗi 403/404 |
 
 Thang này **cố ý đặc** ở khoảng 11–16px: Core là bộ khung cho ứng dụng quản trị, nơi một màn hình phải chứa nhiều dữ liệu. Cái giá phải trả: 11px là nhỏ, nên `--fs-2xs` **chỉ dùng cho nhãn ngắn**, không bao giờ cho một câu.
 
@@ -393,6 +395,7 @@ Quy tắc dùng:
 
 | Token | Giá trị | Dùng ở đâu |
 | --- | --- | --- |
+| `--radius-0` | `0` | Cạnh dính mép màn hình của `Drawer` — cùng vai với `--sp-0` và `--shadow-0`: giá trị 0 vẫn đi qua token |
 | `--radius-xs` | `4px` | `Check`, ô màu nhỏ, chấm trạng thái vuông |
 | `--radius-sm` | `6px` | `Button`, `IconButton`, `Input`, `SegmentedControl`, `Badge` chữ nhật |
 | `--radius-md` | `8px` | `Toolbar`, `NoticeBanner`, `Toast`, mục nav `Sidebar` |
@@ -411,7 +414,7 @@ Bóng ở theme tối **yếu hơn nhiều** và được bù bằng bề mặt 
 | --- | --- | --- | --- |
 | `--shadow-0` | `none` | `none` | Mặc định. Phần lớn bề mặt không cần bóng |
 | `--shadow-1` | `0 1px 2px rgb(var(--color-overlay-rgb) / 0.06)` | `0 1px 2px rgb(var(--color-overlay-rgb) / 0.40)` | `Card`, `Toolbar` |
-| `--shadow-2` | `0 2px 8px rgb(var(--color-overlay-rgb) / 0.10)` | `0 2px 8px rgb(var(--color-overlay-rgb) / 0.50)` | Nút khi hover, `Topbar` khi trang đã cuộn |
+| `--shadow-2` | `0 2px 8px rgb(var(--color-overlay-rgb) / 0.10)` | `0 2px 8px rgb(var(--color-overlay-rgb) / 0.50)` | Nút khi hover, `Topbar` khi trang đã cuộn, `AuthCard` |
 | `--shadow-3` | `0 8px 24px rgb(var(--color-overlay-rgb) / 0.14)` | `0 8px 24px rgb(var(--color-overlay-rgb) / 0.60)` | Menu thả xuống, popover, `Sidebar` dạng drawer |
 | `--shadow-4` | `0 16px 48px rgb(var(--color-overlay-rgb) / 0.20)` | `0 16px 48px rgb(var(--color-overlay-rgb) / 0.70)` | `Dialog`, `Toast` |
 
@@ -438,8 +441,24 @@ Bóng ở theme tối **yếu hơn nhiều** và được bù bằng bề mặt 
 | `--layout-topbar-h` | `56px` | Chiều cao `Topbar` |
 | `--layout-container-max` | `1440px` | Bề rộng tối đa của `main` |
 | `--layout-page-pad` | `var(--sp-8)` | Đệm quanh `main` ở desktop |
-| `--layout-page-pad-sm` | `var(--sp-5)` | Đệm quanh `main` dưới `--bp-md` |
+| `--layout-page-pad-sm` | `var(--sp-5)` | Đệm quanh `main` dưới `$bp-md` |
+| `--layout-dialog-w-sm` | `420px` | Bề rộng tối đa `Dialog` cỡ `sm` |
+| `--layout-dialog-w-md` | `640px` | Bề rộng tối đa `Dialog` cỡ `md` |
+| `--layout-dialog-w-lg` | `880px` | Bề rộng tối đa `Dialog` cỡ `lg` |
+| `--layout-auth-w` | `var(--layout-dialog-w-sm)` | Bề rộng cố định `AuthCard` cỡ `md` |
+| `--layout-auth-w-wide` | `var(--layout-dialog-w-md)` | Bề rộng cố định `AuthCard` cỡ `lg` (biến thể `wide`) |
+| `--layout-form-w` | `var(--layout-dialog-w-md)` | Bề rộng tối đa của khối form trong trang, ở khung ứng dụng |
+| `--layout-drawer-w-sm` | `var(--layout-dialog-w-sm)` | Bề rộng `Drawer` cỡ `sm` |
+| `--layout-drawer-w-md` | `var(--layout-dialog-w-md)` | Bề rộng `Drawer` cỡ `md` |
+| `--layout-drawer-w-lg` | `var(--layout-dialog-w-lg)` | Bề rộng `Drawer` cỡ `lg` |
+| `--layout-toast-w` | `var(--layout-dialog-w-sm)` | Bề rộng **cố định** của `Toast` |
+| `--layout-tooltip-w-max` | `240px` | Trần bề rộng `Tooltip`, mọi điểm ngắt. **Giá trị riêng**, không bí danh `--layout-sidebar-w` dù trùng số — đổi bề rộng sidebar không được kéo trần tooltip theo |
+| `--layout-popover-h-max` | `420px` | Trần chiều cao lớp nổi thả xuống của `TreeSelect`, `Autocomplete`. **Giá trị riêng**, không bí danh `--layout-dialog-w-sm` dù trùng số — chiều cao một danh sách không có lý do gì đi theo bề rộng hộp thoại |
 | `--tree-indent` | `20px` | Thụt lề **một cấp** trong lưới cha–con và trong ô chọn dạng cây |
+
+**Khung căn giữa và khối form trong trang dùng chung thang bề rộng của `Dialog`.** `--layout-auth-w`, `--layout-auth-w-wide` và `--layout-form-w` là bí danh của các bậc `Dialog`, không mang giá trị riêng: đổi một bậc `Dialog` là đổi luôn mọi chỗ dùng bí danh của bậc đó. Một khung xác thực hay một khối form rộng lệch vài pixel so với hộp thoại cùng cỡ là một bậc thứ tư không ai chủ ý tạo ra. `--layout-form-w` trỏ bậc `md` vì đó là bậc "form thông thường" của `Dialog` — form trong trang và form trong hộp thoại đọc cùng một bề rộng dòng. Dùng ở [`Components/Dialog.md`](./Components/Dialog.md), [`Components/AuthCard.md`](./Components/AuthCard.md) và spec màn có form một cột trong khung ứng dụng.
+
+Bốn bí danh lớp nổi đi cùng luật đó, mỗi cái một lý do: `Drawer` mượn đúng ba bậc `Dialog` vì cùng họ lớp nổi có đầu–thân–chân; `Toast` cố định ở bậc `sm` để ngăn xếp thẳng mép. Hai trần `--layout-tooltip-w-max` và `--layout-popover-h-max` **cố ý không là bí danh**: bí danh chỉ đúng khi hai chỗ phải đổi cùng nhau, còn trùng số mà khác lý do thì bí danh là một phụ thuộc ngầm — đổi sidebar, tooltip đổi theo mà không ai chủ ý.
 
 `--tree-indent` khai bằng `px` chứ không `rem`, cùng lý do với bo góc ở §5.1: nó là hình học của khung, không phải của chữ. Giá trị 20px là kết quả của một biên hai đầu — dưới 16px thì cấp bậc không nhìn ra, trên 24px thì tới cấp bốn là nhãn hết chỗ trong cột. Dùng ở [`Components/DataTable.md`](./Components/DataTable.md) biến thể `tree` và [`Components/TreeSelect.md`](./Components/TreeSelect.md).
 
@@ -463,29 +482,34 @@ Ba cỡ, dùng thống nhất cho `Button`, `Input`, `SegmentedControl`, ô ch�
 | `--icon-md` | `16px` | **Mặc định** — trong nút, trong ô nhập, mục nav, ô bảng |
 | `--icon-lg` | `20px` | `Topbar`, tiêu đề `Card`, icon vai của `NoticeBanner` và `Toast` |
 | `--icon-xl` | `24px` | Icon mở đầu `Dialog`, icon của `EmptyState` |
+| `--icon-circle-sm` | `var(--sp-10)` | Vòng tròn nền icon của `EmptyState` cỡ `compact` |
+| `--icon-circle-md` | `var(--sp-11)` | Vòng tròn nền icon của `EmptyState` cỡ `default` |
+| `--icon-circle-lg` | `var(--sp-12)` | Vòng tròn nền icon của `EmptyState` cỡ `page` |
 
-Icon dùng `px`, không dùng `rem` — nó là hình, không phải chữ. Cho nó phóng theo cỡ chữ hệ thống là làm nó vỡ khỏi khung nút.
+Icon dùng `px`, không dùng `rem` — nó là hình, không phải chữ. Cho nó phóng theo cỡ chữ hệ thống là làm nó vỡ khỏi khung nút. Ba vòng tròn nền là bí danh mượn ba bậc liền nhau của thang `--sp-*` — `--sp-10` vốn là đệm dọc của `EmptyState`, nên vòng tròn nhỏ nhất đi đúng nhịp đó; vòng tròn không nằm trong nút nên phóng theo chữ là được phép.
 
-> Bốn giá trị này **trước đây sống ở** [`Icons.md`](./Icons.md) §3, trong khi file bạn đang đọc tự khai là nơi duy nhất chứa số px thật — tức có hai nơi giữ cùng một loại nội dung. Nay giá trị ở đây, và `Icons.md` §3 trỏ về. Quy tắc *chọn icon nào cho việc gì* và *icon hành xử ra sao với trình đọc màn hình* vẫn thuộc `Icons.md`; chỉ con số chuyển đi.
+> Bốn giá trị này sống **ở đây**, vì file bạn đang đọc là nơi duy nhất chứa số px thật; [`Icons.md`](./Icons.md) §3 trỏ về. Quy tắc *chọn icon nào cho việc gì* và *icon hành xử ra sao với trình đọc màn hình* thuộc `Icons.md`; con số thì không.
 
 ### 6.3 Điểm ngắt
 
-| Token | Giá trị | Thiết bị điển hình |
+Điểm ngắt là **biến SCSS** (`$bp-*`), **không** phải CSS custom property: `var()` không dùng được trong điều kiện của `@media`, nên một biến khai ở `:root` không có media query nào đọc được. Giá trị **quyết** ở bảng dưới; nơi **áp** trong code là `_spacing.scss`, dùng qua mixin — [`../quy-uoc/fe-ui-conventions.md`](../quy-uoc/fe-ui-conventions.md). Không file nào khác khai lại con số.
+
+| Biến SCSS | Giá trị | Thiết bị điển hình |
 | --- | --- | --- |
-| `--bp-xs` | `480px` | Điện thoại dọc |
-| `--bp-sm` | `640px` | Điện thoại ngang |
-| `--bp-md` | `900px` | Máy tính bảng |
-| `--bp-lg` | `1200px` | Laptop |
-| `--bp-xl` | `1600px` | Màn hình rộng |
+| `$bp-xs` | `480px` | Điện thoại dọc |
+| `$bp-sm` | `640px` | Điện thoại ngang |
+| `$bp-md` | `900px` | Máy tính bảng |
+| `$bp-lg` | `1200px` | Laptop |
+| `$bp-xl` | `1600px` | Màn hình rộng |
 
 Ba mốc quyết định hình dạng khung:
 
 | Ngưỡng | Điều gì xảy ra |
 | --- | --- |
-| ≥ `--bp-lg` | `Sidebar` cố định bên trái, `main` lệch một khoảng bằng bề rộng sidebar |
-| `--bp-md` … `--bp-lg` | `Sidebar` mặc định thu gọn còn dải icon; hiện nhãn khi hover |
-| < `--bp-md` | `Sidebar` thành drawer trượt trên backdrop; `Topbar` mọc nút hamburger; lưới form về một cột; `Toolbar` xuống dòng |
-| < `--bp-xs` | Nút trong `Toolbar` giãn full width; bảng chuyển sang dạng thẻ hoặc cuộn ngang có cột đầu ghim |
+| ≥ `$bp-lg` | `Sidebar` cố định bên trái, `main` lệch một khoảng bằng bề rộng sidebar |
+| `$bp-md` … `$bp-lg` | `Sidebar` mặc định thu gọn còn dải icon; hiện nhãn khi hover |
+| < `$bp-md` | `Sidebar` thành drawer trượt trên backdrop; `Topbar` mọc nút hamburger; lưới form về một cột; `Toolbar` xuống dòng |
+| < `$bp-xs` | Nút trong `Toolbar` giãn full width; bảng chuyển sang dạng thẻ. `DataTable` còn một lựa chọn thứ hai là cuộn ngang có cột đầu ghim; `Table` thì không — nó không có cột ghim ([`Components/Table.md`](./Components/Table.md) §Responsive) |
 
 **Viết media query theo hướng mobile-first** — `min-width` là mặc định. Dùng `max-width` chỉ khi thật sự cần gỡ một hành vi chỉ có ở desktop.
 
@@ -504,6 +528,25 @@ Khai một chỗ. Số rời rạc trong component là cách một hệ có `z-i
 | `--z-popover` | `600` | Menu thả xuống, tooltip |
 | `--z-toast` | `700` | `Toast` — luôn trên cùng |
 
+### 6.5 Token tầng 3 theo component — định nghĩa gốc
+
+Giá trị px riêng của một component (tầng 3, §1) sống **ở đây**; spec component chỉ trỏ tên. Tên theo khuôn `--<component>-<thuộc tính>`.
+
+| Token | Giá trị | Component · thuộc tính |
+| --- | --- | --- |
+| `--chart-h-sm` | `120px` | `Chart` — chiều cao vùng vẽ cỡ `sm` |
+| `--chart-h-md` | `200px` | `Chart` — chiều cao vùng vẽ cỡ `md` |
+| `--chart-h-lg` | `320px` | `Chart` — chiều cao vùng vẽ cỡ `lg` |
+| `--file-upload-dropzone-h` | `140px` | `FileUpload` — chiều cao tối thiểu dropzone |
+| `--progress-bar-h-sm` | `4px` | `ProgressBar` — chiều cao máng cỡ `sm` |
+| `--progress-bar-h-md` | `8px` | `ProgressBar` — chiều cao máng cỡ `md` |
+| `--progress-bar-h-lg` | `14px` | `ProgressBar` — chiều cao máng cỡ `lg` |
+| `--stepper-dot` | `24px` | `Stepper` — đường kính chấm bước |
+| `--stepper-line-w` | `2px` | `Stepper` — độ dày vạch nối |
+| `--timeline-dot` | `var(--stepper-dot)` | `Timeline` — đường kính chấm từ `$bp-sm`. Bí danh: chấm–vạch của hai component là cùng một ngôn ngữ tiến trình, đổi cùng nhau |
+| `--timeline-dot-sm` | `16px` | `Timeline` — đường kính chấm dưới `$bp-sm` |
+| `--timeline-line-w` | `var(--stepper-line-w)` | `Timeline` — độ dày vạch nối, bí danh cùng lý do |
+
 ---
 
 ## 7. Chuyển động
@@ -514,6 +557,7 @@ Khai một chỗ. Số rời rạc trong component là cách một hệ có `z-i
 | `--dur-fast` | `120ms` | Đổi màu khi hover/focus, hiện/ẩn tooltip |
 | `--dur-base` | `200ms` | Mở/đóng `Dialog`, trượt drawer, chuyển tab |
 | `--dur-slow` | `320ms` | `Toast` bay vào, `Sidebar` thu/mở |
+| `--dur-loop` | `1600ms` | Một vòng của chỉ báo loading lặp — dải sáng `SkeletonLoader`, dải chạy `indeterminate` của `ProgressBar`. Bằng 5 × `--dur-slow`: bội của thang, và đủ chậm để một vòng lặp không nhấp nháy |
 | `--ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` | Mặc định cho mọi chuyển tiếp |
 | `--ease-decelerate` | `cubic-bezier(0, 0, 0, 1)` | Phần tử **đi vào** màn hình |
 | `--ease-accelerate` | `cubic-bezier(0.3, 0, 1, 1)` | Phần tử **rời khỏi** màn hình |
@@ -526,7 +570,7 @@ Khai một chỗ. Số rời rạc trong component là cách một hệ có `z-i
 | Nội dung bảng đổi sau khi lọc/sắp xếp | Hàng nhấp nháy làm mắt mất chỗ đang đọc. Đổi ngay, không transition |
 | Thông báo lỗi xuất hiện | Lỗi phải thấy ngay. Fade 300ms là 300ms người dùng không biết mình vừa sai |
 | Con số đang cập nhật liên tục | Đếm dần trông đẹp nhưng khiến giá trị không đọc được lúc đang chạy |
-| Bất cứ thứ gì lặp vô hạn ngoài chỉ báo loading | Chuyển động lặp là tác nhân gây khó chịu và mất tập trung |
+| Bất cứ thứ gì lặp vô hạn ngoài chỉ báo loading | Chuyển động lặp là tác nhân gây khó chịu và mất tập trung. Chỉ báo loading là ngoại lệ duy nhất, và chỉ nó được dùng `--dur-loop` |
 
 ```text
 @media (prefers-reduced-motion: reduce) {
@@ -572,10 +616,10 @@ Giá trị "theo hệ điều hành" vẫn còn trong cơ chế và người dù
 Ba điều bắt buộc trong khuôn này:
 
 1. **Mọi token có định nghĩa đầy đủ ở `:root` trần.** Một màu chỉ được khai bên trong media query hay bên trong `[data-theme]` sẽ trống rỗng ở nhánh còn lại — lỗi âm thầm, không cảnh báo.
-2. **Khối `[data-theme="dark"]` phải đứng sau và tách khỏi media query**, để lựa chọn tường minh của người dùng thắng cả hai chiều: người dùng chọn sáng trên máy đang ở chế độ tối vẫn ra sáng.
+2. **Khối `[data-theme="dark"]` phải tách khỏi media query**, để lựa chọn tường minh của người dùng thắng cả hai chiều: người dùng chọn sáng trên máy đang ở chế độ tối vẫn ra sáng.
 3. **`color-scheme: light dark` khai trên `:root`**, để thanh cuộn, ô chọn ngày và control mặc định của trình duyệt cũng đổi theo. Thiếu dòng này sẽ có một thanh cuộn trắng chói giữa giao diện tối.
 
-Lựa chọn của người dùng lưu ở `localStorage` và **áp trước khi trang vẽ lần đầu**, nếu không sẽ có một nháy sáng trước khi theme tối kịp áp. Cách áp là quyết định thi công — [`../quy-uoc/fe-ui-conventions.md`](../quy-uoc/fe-ui-conventions.md).
+Lựa chọn của người dùng lưu ở `localStorage` và **áp trước khi trang vẽ lần đầu**, nếu không sẽ có một nháy sáng trước khi theme tối kịp áp. Cách áp là quyết định thi công — [`../quy-uoc/fe-ui-conventions.md`](../quy-uoc/fe-ui-conventions.md) §3.5.
 
 ### Token nào đổi, token nào không
 
@@ -586,7 +630,8 @@ Lựa chọn của người dùng lưu ở `localStorage` và **áp trước khi
 | `--fs-*`, `--fw-*`, `--lh-*`, `--ls-*`, `--font-*` | 🛑 Không |
 | `--sp-*` | 🛑 Không |
 | `--radius-*`, `--border-w-*` | 🛑 Không |
-| `--layout-*`, `--size-*`, `--bp-*` | 🛑 Không |
+| `--layout-*`, `--size-*` | 🛑 Không |
+| `$bp-*` | 🛑 Không — biến SCSS, cố định lúc build |
 | `--z-*` | 🛑 Không |
 | `--dur-*`, `--ease-*` | 🛑 Không |
 
@@ -632,10 +677,9 @@ Bảng ở §2 phải khai đủ cả hai cột và cột tỉ lệ. Một dòng
 
 | # | Câu hỏi để ngỏ | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Biểu đồ vẽ bằng thư viện nào? Bảng màu đã chốt ở §2.8, nhưng cách vẽ thì chưa. PrimeNG đi kèm Chart.js — nó vẽ bằng canvas nên nhanh với dữ liệu lớn, đổi lại **không có gì cho trình đọc màn hình** và không kế thừa được token CSS, phải nạp màu bằng script. Hình đơn giản (thanh, bullet, chênh lệch, ô nhiệt) dựng bằng HTML/CSS thì thừa hưởng token và theme miễn phí | Người dựng [`Components/Chart.md`](./Components/Chart.md), khi có màn thật |
-| 2 | Có làm chế độ tương phản cao (`forced-colors`) không? Hôm nay chỉ đặt mục tiêu AA. Chế độ cưỡng bức màu của Windows sẽ ghi đè toàn bộ bảng màu và cần một lượt kiểm riêng | Sau khi có màn hình thật để kiểm |
-| 3 | `--layout-container-max` = 1440px hay rộng hơn? Bảng nhiều cột muốn rộng hơn; văn bản đọc thì không nên. Có thể phải cho một biến thể trang "full width" | Sau khi có `DataTable` thật |
-| 4 | Có khai token riêng cho mật độ (compact/comfortable) không? Hôm nay chỉ có một mật độ, đặc | Khi có yêu cầu thật |
+| 1 | Có làm chế độ tương phản cao (`forced-colors`) không? Hôm nay chỉ đặt mục tiêu AA. Chế độ cưỡng bức màu của Windows sẽ ghi đè toàn bộ bảng màu và cần một lượt kiểm riêng | Sau khi có màn hình thật để kiểm |
+| 2 | `--layout-container-max` = 1440px hay rộng hơn? Bảng nhiều cột muốn rộng hơn; văn bản đọc thì không nên. Có thể phải cho một biến thể trang "full width" | Sau khi có `DataTable` thật |
+| 3 | Có khai token riêng cho mật độ (compact/comfortable) không? Hôm nay chỉ có một mật độ, đặc | Khi có yêu cầu thật |
 
 ## 11. Lịch sử quyết định
 
@@ -646,13 +690,22 @@ Bảng ở §2 phải khai đủ cả hai cột và cột tỉ lệ. Một dòng
 | Ba bậc viền | Lệch dự án tiền nhiệm (hai bậc). Bậc `subtle` tách ra để không phải chọn giữa "vạch bảng quá đậm" và "viền card dưới chuẩn" |
 | Bốn nét font, không hơn | Ở dự án tiền nhiệm có khai nét không nạp, hai chỗ tưởng khác nhau render giống hệt |
 | Cỡ chữ khai bằng `rem` | Lệch dự án tiền nhiệm (`px`). `px` chặn tính năng phóng chữ của trình duyệt |
+| Viền lỗi của control nhập là `--color-danger-border` | Một token cho mọi control (`Input`, `AuthField`, `DatePicker`, `Check`, `FileUpload`); `--color-danger` dành cho chữ và icon |
 | Alpha đi qua biến kênh `*-rgb` | Cách duy nhất vừa giữ được token vừa tuân luật cấm `rgba()` literal |
-| Bảng màu biểu đồ — chốt là **có** | §10 trước đây để ngỏ. Nay khai ở §2.8: tám màu thứ tự cố định, dải mức độ, dải hai chiều, đều đã chạy qua phép kiểm bằng máy ở cả hai theme. Câu còn lại — vẽ bằng thư viện nào — vẫn ở §10 |
+| Bảng màu biểu đồ — chốt là **có** | Khai ở §2.8: tám màu thứ tự cố định, dải mức độ, dải hai chiều, đều đã chạy qua phép kiểm bằng máy ở cả hai theme. Cách vẽ khai ở [`Components/Chart.md`](./Components/Chart.md) |
+| `Chart` là component bọc PrimeNG | Dạng `line` dùng component biểu đồ của PrimeNG; bốn dạng còn lại vẽ bằng HTML/CSS trong cùng lớp bọc. Cái giá: `line` vẽ canvas, không tự kế thừa token và không để lại gì cho trình đọc màn hình — bù bằng bảng số liệu bắt buộc ở [`Components/Chart.md`](./Components/Chart.md) |
+| Bề rộng `Dialog` và `AuthCard` là token | Ba bậc `--layout-dialog-w-*` ở §6.1 lấy đúng ba bề rộng của `Dialog`. `AuthCard` không có giá trị riêng: `--layout-auth-w` là bậc `sm`, `--layout-auth-w-wide` là bậc `md` — hai khung căn giữa dùng một thang, không đẻ bậc mới |
+| Bề rộng form trong trang là bí danh | `--layout-form-w` trỏ bậc `md` của `Dialog`, bậc dành cho form thông thường. Form trong trang không có giá trị riêng — cùng thang với hộp thoại và khung xác thực, không đẻ bậc mới |
 | `--chart-1` ở theme tối **khác** `--color-brand` tối | Màu thương hiệu tối `#6ba1f0` có độ sáng 0,705, vượt dải cho phép của mark trên nền tối. Hạ một bậc thành `#3987e5`. Hai token cố ý khác nhau — xem §2.8 ràng buộc 1 |
 | Thêm bậc `hover`/`active` cho `danger` | Hai spec `Button` và `IconButton` đã khai trạng thái hover cho biến thể `danger` trong khi token chưa tồn tại. Khai ở §2.5. Ba vai trạng thái còn lại cố ý **không** có bậc hover |
 | Cặp bề mặt đảo cho `Tooltip` | Tooltip là lời chú, không phải mặt giấy để thao tác. Đảo màu thay cho thêm một đường viền nữa. Bề mặt duy nhất trong hệ được phép đảo — §2.6 |
+| Điểm ngắt là biến SCSS `$bp-*` | `var()` không đọc được trong điều kiện `@media`. Giá trị vẫn chỉ quyết ở §6.3; `_spacing.scss` là nơi áp |
 | Cỡ icon chuyển từ `Icons.md` sang đây | Bốn giá trị px sống ở hai nơi trong khi file này tự khai là nơi duy nhất giữ px thật. Nay có mốc `— định nghĩa gốc` ở §6.2 và một dòng trong [`../OWNERSHIP.md`](../OWNERSHIP.md) |
 | `--tree-indent` khai bằng `px` | Nó là hình học của khung, không phải của chữ — cùng lý do với bo góc. 20px là biên hai đầu, xem §6.1 |
 | Thang trung tính sáng nhạt đi một bậc | `bg` `#eef1f6` → `#f4f6fa`, `surface-2` `#e2e8f0` → `#eef1f6`, `surface-3` `#d5dde8` → `#e2e8f0`, `border-subtle` `#dbe1ea` → `#e4e9f0`. Thứ làm giao diện nặng là dải nền `th` và viền, không phải nền trang — nên cả thang nhấc lên cùng lúc, không chỉnh lẻ. Lý do đầy đủ và các phương án đã loại: [`../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md`](../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md) |
 | Viền chỉ nhạt được tới `#7f8da3` | `border` `#7c8ba3` → `#7f8da3`. Ngưỡng chặn là **`border` trên `bg`**, không phải trên `surface`: nhạt thêm một bậc thì viền `Card` còn 2.99:1 và vi phạm SC 1.4.11. Biên do phép đo đặt, xem §2.3 |
 | Theme mặc định là `light`, không theo hệ điều hành | Ứng dụng quản trị dùng cả ngày trong phòng sáng; cờ `prefers-color-scheme` của máy là tín hiệu yếu. Cái giá và điều kiện chấp nhận ở §8, quyết định đầy đủ ở [`../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md`](../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md) |
+| Kích thước lớp nổi và vòng tròn `EmptyState` là bí danh | `Drawer`, `Toast`, `Tooltip`, lớp nổi thả xuống mượn thang `--layout-*` (§6.1); vòng tròn nền icon mượn `--sp-*` (§6.2). Không bậc mới nào được đẻ — năm chỗ từng giữ số thô nay trỏ về thang có sẵn |
+| Thêm bậc `--dur-loop` | Thang §7 dừng ở `--dur-slow`, dành cho chuyển tiếp một lần; chỉ báo loading lặp cần thời lượng dài hơn hẳn. Việc thêm bậc do người dùng duyệt 2026-09-15; giá trị 5 × `--dur-slow` = `1600ms` chọn để giữ là bội của thang |
+| `--layout-tooltip-w-max`, `--layout-popover-h-max` về giá trị riêng | `var(--layout-sidebar-w)` → `240px`, `var(--layout-dialog-w-sm)` → `420px`. Số không đổi; bỏ bí danh vì hai trần này không có lý do đổi cùng sidebar hay hộp thoại — bí danh theo số trùng là phụ thuộc ngầm (§6.1) |
+| Token tầng 3 theo component khai ở §6.5 | Số px riêng của `Chart`, `FileUpload`, `ProgressBar`, `Stepper`, `Timeline` sống một chỗ, spec chỉ trỏ tên. `Timeline` không đọc token của `Stepper` (§1 luật cứng) — nó có bí danh riêng trỏ sang, khai tại §6.5 |

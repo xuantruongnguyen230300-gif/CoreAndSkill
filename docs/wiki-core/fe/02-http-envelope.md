@@ -197,7 +197,7 @@ Chi tiết mapper và quy ước gọi API: [`../../quy-uoc/fe-api-client.md`](.
 | Bao lỗi thủ công ở từng service | ❌ loại, không hoãn `K12` | §4.1 — mỗi service tự xử lý lỗi là ba vấn đề cùng lúc |
 | Trả 200 kèm cờ thất bại trong thân | ❌ loại, không hoãn `K13` | §3 — làm mọi công cụ hạ tầng mù |
 
-Một finding dạng *"FE thiếu X"* chỉ hợp lệ khi X mang trạng thái **✅ sẽ có** mà vắng mặt, hoặc khi điều kiện ở cột ghi chú của một dòng **❌ chưa** đã xảy ra. Dòng **❌ loại, không hoãn** chỉ đổi được bằng một ADR mới, không đổi được bằng một finding.
+> Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 

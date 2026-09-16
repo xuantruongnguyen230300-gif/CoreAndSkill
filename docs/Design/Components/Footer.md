@@ -75,11 +75,11 @@ Nền `Footer` **để trong suốt**, lấy `--color-bg` của trang. Cho nó m
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Một hàng: bản quyền và phiên bản bên trái, nhóm liên kết bên phải; đệm ngang `--layout-page-pad` |
-| < `--bp-md` | Xếp dọc, căn trái: bản quyền, rồi phiên bản, rồi liên kết; đệm ngang đổi sang `--layout-page-pad-sm` |
-| < `--bp-xs` | Nhóm liên kết xuống dòng tự do, khe dọc `--sp-3`; vùng bấm mỗi liên kết nới bằng `padding` để đạt tối thiểu |
+| ≥ `$bp-md` | Một hàng: bản quyền và phiên bản bên trái, nhóm liên kết bên phải; đệm ngang `--layout-page-pad` |
+| < `$bp-md` | Xếp dọc, căn trái: bản quyền, rồi phiên bản, rồi liên kết; đệm ngang đổi sang `--layout-page-pad-sm` |
+| < `$bp-xs` | Nhóm liên kết xuống dòng tự do, khe dọc `--sp-3`; vùng bấm mỗi liên kết nới bằng `padding` để đạt tối thiểu |
 
-Bề rộng nội dung khớp `--layout-container-max` giống `main`, để dòng bản quyền thẳng lề với nội dung phía trên chứ không dạt ra mép màn hình rộng.
+Bề rộng nội dung khớp `--layout-container-max` giống `main`, để dòng bản quyền thẳng lề với nội dung phía trên chứ không dạt ra mép màn hình rộng — không có token riêng. `Footer` có mặt ở **mọi** trang trong khung ứng dụng, kể cả màn bảng chiếm toàn màn hình: khung ở [`../Screens/00-khung-ung-dung.md`](../Screens/00-khung-ung-dung.md) đặt nó một lần cho mọi tuyến con.
 
 ## Accessibility
 
@@ -102,7 +102,7 @@ Bề rộng nội dung khớp `--layout-container-max` giống `main`, để dò
 | --- | --- | --- | --- | --- |
 | `variant` | input | `'full' \| 'compact' \| 'auth'` | `'full'` | |
 | `size` | input | `'sm' \| 'md'` | `'md'` | |
-| `version` | input | `string \| null` | `null` | Chuỗi phiên bản đã định dạng sẵn. `null` thì ẩn hẳn phần này |
+| `version` | input | `string \| null` | `null` | **Chỉ số phiên bản**, đã định dạng sẵn. Mã commit và thời điểm dựng không hiện ở đây — chúng ở health check và log. `null` thì ẩn hẳn phần này |
 | `copyright` | input | `string \| null` | `null` | Đã dịch và đã ghép năm ở nơi gọi |
 | `links` | input | `ReadonlyArray<FooterLink>` | `[]` | Chữ ký ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 |
 | `showDivider` | input | `boolean` | `true` | Biến thể `auth` đặt `false` |
@@ -123,8 +123,4 @@ Bề rộng nội dung khớp `--layout-container-max` giống `main`, để dò
 
 ## Cần chốt
 
-| # | Câu hỏi | Ai trả lời được |
-| --- | --- | --- |
-| 1 | Chuỗi phiên bản hiển thị tới mức nào — chỉ số phiên bản, hay kèm mã commit và thời điểm dựng? Kèm mã commit rất hữu ích khi gỡ lỗi nhưng lộ thông tin nội bộ ra màn hình người dùng cuối | Chủ sản phẩm cùng người vận hành |
-| 2 | `Footer` có hiện ở mọi trang không, hay ẩn ở màn có bảng chiếm toàn màn hình? Ẩn có điều kiện làm vị trí `Footer` khó đoán; hiện ở mọi trang thì trang bảng có thêm một khoảng cuộn không ai cần | Sau khi có màn danh sách thật |
-| 3 | Nội dung `Footer` nên có một token riêng cho bề rộng tối đa không, hay dùng chung `--layout-container-max` với `main`? Dùng chung là mặc định hôm nay và chưa gặp phản ví dụ | Người dựng khung ứng dụng |
+Không còn.

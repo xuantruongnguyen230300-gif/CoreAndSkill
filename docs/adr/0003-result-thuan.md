@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # ADR-0003 — Domain và Application trả `Result<T>`, không ném exception cho lỗi nghiệp vụ
 
-> **Trạng thái:** Đã chấp nhận (2026-09-08)
+> **Trạng thái:** Đã chấp nhận (2026-09-08) · Bổ sung bởi ADR-0027 (2026-09-14)
+>
+> Bổ sung bởi [`0027-errortype-unauthorized.md`](0027-errortype-unauthorized.md).
 
 ## Bối cảnh
 

@@ -15,7 +15,7 @@ verified: chua-doi-chieu
 ## 1. `POST /api/v1/core/files`
 
 **Status:** DRAFT
-**Quyền:** `[Authorize]` — quyền trên **bản ghi chủ** quyết định, xem Ghi chú
+**Quyền:** `[AuthenticatedOnly("Tệp chưa gắn bản ghi nào — quyền kiểm lúc gắn vào bản ghi chủ")]` — quyền trên **bản ghi chủ** quyết định, xem Ghi chú
 
 Nhận một tệp và trả về mã tệp để gắn vào bản ghi nghiệp vụ.
 
@@ -26,7 +26,7 @@ Nhận một tệp và trả về mã tệp để gắn vào bản ghi nghiệp 
 | Phần | Bắt buộc | Ghi chú |
 | --- | --- | --- |
 | `file` | ✅ | Nội dung tệp |
-| `purpose` | ✅ | Mục đích lưu, do module khai. Quyết định thư mục đích và giới hạn áp dụng |
+| `purpose` | ✅ | Mục đích lưu, do module khai. Quyết định thư mục đích và giới hạn áp dụng — lưu ở cột `purpose` của `core.file` ([`../database/schema-core.md`](../database/schema-core.md) §9.7) |
 
 ### Response 200
 
@@ -40,21 +40,30 @@ Nhận một tệp và trả về mã tệp để gắn vào bản ghi nghiệp 
     "sizeBytes": 284913
   },
   "error": null,
-  "traceId": "0HNO9S8JAP586:00000031"
+  "traceId": "af591861109efa327ba9d93d738c7723"
 }
 ```
 
 `originalName` là tên **người dùng đặt**, chỉ dùng để hiển thị và để đặt tên lúc tải về. Tên thật trên đĩa do hệ thống sinh và không bao giờ trả ra ngoài.
 
+Bốn field ứng với cột `id` · `original_name` · `content_type` · `size_bytes` của bảng `core.file` ([`../database/schema-core.md`](../database/schema-core.md) §9.7); `storage_key` và cặp `owner_table` / `owner_id` không đi trên dây.
+
 ### Lỗi
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.VALIDATION.FAILED` | `Validation` | 400 | Thiếu tệp, thiếu `purpose`, tệp rỗng |
 | `CORE.FILE.TOO_LARGE` | `Validation` | 400 | Vượt giới hạn dung lượng của `purpose` đó |
 | `CORE.FILE.TYPE_NOT_ALLOWED` | `Validation` | 400 | Kiểu tệp ngoài danh sách cho phép của `purpose` đó |
-| `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu hoặc sai `X-XSRF-TOKEN` |
-| `CORE.RATE_LIMIT.EXCEEDED` | — | 429 | Vượt giới hạn tần suất |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.VALIDATION.FAILED` | Thiếu tệp, thiếu `purpose`, tệp rỗng |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
+| `CORE.RATE_LIMIT.EXCEEDED` | Vượt giới hạn tần suất. Kèm header `Retry-After` |
 
 Hai mã dung lượng và kiểu tệp cố ý dùng `Validation` → **400**, không dùng mã HTTP riêng cho tệp: ánh xạ loại lỗi sang HTTP nằm ở đúng một chỗ ([`README.md`](README.md) §5), và mở ngoại lệ ở đây là mở đường cho ngoại lệ kế tiếp.
 
@@ -63,7 +72,7 @@ Hai mã dung lượng và kiểu tệp cố ý dùng `Validation` → **400**, k
 ## 2. `GET /api/v1/core/files/{id}`
 
 **Status:** DRAFT
-**Quyền:** `[Authorize]` + quyền đọc **bản ghi chủ** của tệp
+**Quyền:** `[AuthenticatedOnly("Quyền theo bản ghi chủ của tệp — handler kiểm, không có khoá quyền riêng cho tệp")]` + quyền đọc **bản ghi chủ** của tệp, kiểm trong handler
 
 Trả nội dung tệp. **Không** phải endpoint envelope: thân phản hồi là chính tệp, kèm `Content-Disposition: attachment` và tên gốc.
 
@@ -72,7 +81,12 @@ Trả nội dung tệp. **Không** phải endpoint envelope: thân phản hồi 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
 | `CORE.FILE.NOT_FOUND` | `NotFound` | 404 | Không có tệp đó, **hoặc** người gọi không có quyền đọc bản ghi chủ |
-| `CORE.AUTH.NOT_AUTHENTICATED` | `Unauthorized` | 401 | Chưa đăng nhập |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 
 Nhánh lỗi trả envelope như mọi endpoint khác; chỉ nhánh thành công là tệp thô.
 
@@ -83,7 +97,7 @@ Nhánh lỗi trả envelope như mọi endpoint khác; chỉ nhánh thành công
 ## 3. `DELETE /api/v1/core/files/{id}`
 
 **Status:** DRAFT
-**Quyền:** `[Authorize]` + quyền ghi **bản ghi chủ**
+**Quyền:** `[AuthenticatedOnly("Quyền theo bản ghi chủ của tệp — handler kiểm, không có khoá quyền riêng cho tệp")]` + quyền ghi **bản ghi chủ**, kiểm trong handler
 
 Gỡ liên kết tệp khỏi bản ghi. Tệp vật lý dọn theo chính sách vòng đời ([`../wiki-core/be/10-data-retention.md`](../wiki-core/be/10-data-retention.md)), không xoá ngay trong request.
 
@@ -92,7 +106,14 @@ Gỡ liên kết tệp khỏi bản ghi. Tệp vật lý dọn theo chính sách
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
 | `CORE.FILE.NOT_FOUND` | `NotFound` | 404 | Không có, hoặc không có quyền |
-| `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu hoặc sai `X-XSRF-TOKEN` |
+
+**Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
+
+| `code` | Khi nào |
+| --- | --- |
+| `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
+| `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
+| `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 
 ---
 

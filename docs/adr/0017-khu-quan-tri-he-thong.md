@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # ADR-0017 — Khu quản trị hệ thống và tài khoản vận hành
 
-> **Trạng thái:** Đã chấp nhận (2026-09-10)
+> **Trạng thái:** Đã chấp nhận (2026-09-10) · Bổ sung bởi ADR-0029 (2026-09-14)
+>
+> Bổ sung bởi [`0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md).
 
 ## Bối cảnh
 

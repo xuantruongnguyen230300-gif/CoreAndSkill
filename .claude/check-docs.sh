@@ -99,7 +99,12 @@ if [ ! -e .claude/settings.json ]; then
 else
   # Chỉ gỡ xuống dòng, KHÔNG gỡ dấu cách: chuỗi cần so khớp là "Bash(git add:"
   # — gỡ dấu cách biến nó thành "Bash(gitadd:" và mọi lệnh đều báo sai.
-  DENY=$(tr -d '\n' < .claude/settings.json)
+  SETTXT=$(tr -d '\n' < .claude/settings.json)
+  # Chỉ lấy MẢNG deny, không lấy cả file: `allow` cũng có mục dạng
+  # "Bash(git ...:*)", nên so trên cả file thì một lệnh CẤM mà chỉ nằm ở allow
+  # vẫn qua cổng. Chuỗi trong deny không chứa "]", nên cắt ở "]" đầu tiên là đủ.
+  DENY="${SETTXT#*\"deny\"}"
+  if [ "$DENY" = "$SETTXT" ]; then DENY=""; else DENY="${DENY%%]*}"; fi
   n=0; lay=0
   while IFS= read -r cmd; do
     [ -z "$cmd" ] && continue
@@ -129,12 +134,31 @@ else
     n=$((n+1))
   done < <({ grep -m1 'chặn thêm' .claude/CLAUDE.md; grep -m1 'dạng ghi của' .claude/CLAUDE.md; } | grep -oP "$BT\K[a-z][a-z0-9 -]+(?=$BT)")
 
+  # BA DẠNG cho mỗi mục cấm. `Bash(x:*)` so tiền tố của lệnh chạy qua công cụ
+  # Bash — công cụ PowerShell và tiền tố `rtk` không khớp nó. Đã thử thật: một
+  # lệnh cấm lọt qua cả hai đường đó. Thiếu một dạng là lệnh lọt đúng đường ấy,
+  # và cổng cũ vẫn xanh vì chỉ đối chiếu dạng Bash.
+  lay3=0
+  rest="$DENY"
+  while [ "${rest#*\"Bash(}" != "$rest" ]; do
+    rest="${rest#*\"Bash(}"
+    item="${rest%%\"*}"
+    case "$item" in *':*)') ;; *) continue ;; esac
+    x="${item%:\*)}"
+    case "$x" in 'rtk '*) continue ;; esac
+    lay3=$((lay3+1))
+    case "$DENY" in *"\"Bash(rtk $x:*)\""*) ;; *) bad "settings.json deny có 'Bash($x:*)' nhưng thiếu 'Bash(rtk $x:*)'"; n=$((n+1)) ;; esac
+    case "$DENY" in *"\"PowerShell($x:*)\""*) ;; *) bad "settings.json deny có 'Bash($x:*)' nhưng thiếu 'PowerShell($x:*)'"; n=$((n+1)) ;; esac
+  done
+
   if [ "$lay" -eq 0 ]; then
     bad "§1 KHÔNG trích được lệnh git nào từ bảng cấm — mục này đang không kiểm gì"
   elif [ "$lay2" -eq 0 ]; then
     bad "§1 KHÔNG trích được lệnh non-git nào từ CLAUDE.md §1 — nửa sau của mục này đang không kiểm gì"
+  elif [ "$lay3" -eq 0 ]; then
+    bad "§1 KHÔNG trích được mục Bash(...:*) nào từ permissions.deny — phần kiểm ba dạng đang không kiểm gì"
   elif [ "$n" -eq 0 ]; then
-    ok "mọi lệnh trong bảng cấm đều được deny chặn ($lay lệnh git, $lay2 lệnh khác)"
+    ok "mọi lệnh trong bảng cấm đều được deny chặn ($lay lệnh git, $lay2 lệnh khác); mỗi mục deny đủ ba dạng Bash / rtk / PowerShell ($lay3 mục)"
   fi
 fi
 
@@ -486,6 +510,8 @@ fi
 section "§10 Chú thích trong src/ trỏ docs/ phải tồn tại"
 if [ ! -d src ]; then
   warn "chưa có src/ — §10 KHÔNG kiểm gì (khai báo tường minh, không phải PASS)"
+elif ! git rev-parse --git-dir >/dev/null 2>&1; then
+  warn "không phải git repo — §10 KHÔNG kiểm gì vì không lọc được file bị gitignore (khai báo tường minh)"
 else
   n=0; seen=0
   while IFS= read -r hit; do
@@ -496,8 +522,16 @@ else
     [ -e "$p" ] && continue
     bad "$f:$ln — chú thích trỏ docs/ không tồn tại: $p"
     n=$((n+1))
-  done < <(grep -rnoP '(?<![A-Za-z0-9_/.-])docs/[A-Za-z0-9._/-]+' src --include='*.cs' --include='*.ts' --include='*.scss' --include='*.html' 2>/dev/null)
-  [ "$n" -eq 0 ] && ok "mọi chú thích trong src/ trỏ docs/ đều tồn tại ($seen đường dẫn)"
+  # Chỉ quét file KHÔNG bị gitignore. node_modules/, bin/, obj/, dist/, .angular/
+  # chứa hàng nghìn file sinh ra: không ai viết chú thích trỏ docs/ trong đó, và
+  # quét chúng làm cổng chậm tới mức người ta bỏ chạy. Danh sách loại trừ là
+  # chính .gitignore — hỏi git, không chép tên thư mục vào đây.
+  done < <(git ls-files -z -co --exclude-standard -- src 2>/dev/null | grep -zE '\.(cs|ts|scss|html)$' | xargs -0 -r grep -HnoP '(?<![A-Za-z0-9_/.-])docs/[A-Za-z0-9._/-]+' 2>/dev/null)
+  if [ "$seen" -eq 0 ]; then
+    warn "không có chú thích nào trong src/ trỏ docs/ — §10 KHÔNG kiểm gì (khai báo tường minh, không phải PASS)"
+  elif [ "$n" -eq 0 ]; then
+    ok "mọi chú thích trong src/ trỏ docs/ đều tồn tại ($seen đường dẫn)"
+  fi
 fi
 
 # ================================================================ §11
@@ -956,6 +990,12 @@ n=0; decl=" "; ndecl=0
 while IFS= read -r hit; do
   [ -z "$hit" ] && continue
   case "$hit" in
+    *'`K-MOI`'*)
+      # Ma GIU CHO: huong khoa moi chua duoc cap so. Van la vi pham — ma khong
+      # co so thi khong dem duoc lo trong — nhung phai noi dung ten vi pham, va
+      # khong duoc dua chuoi khong phai so vao phep so sanh so ben duoi (ban
+      # truoc do bash thoat loi "integer expression expected" giua muc).
+      bad "$hit — hướng khoá mang mã giữ chỗ ${BT}K-MOI${BT}, chưa cấp số ${BT}K##${BT}. Cấp mã kế tiếp sau mã lớn nhất (RULES.md D32)"; n=$((n+1)) ;;
     *'`K'*)
       c="${hit##*\`K}"; c="K${c%%\`*}"
       case "$decl" in
@@ -973,6 +1013,7 @@ else
   max=0
   for c in $decl; do
     v="${c#K}"; case "$v" in 0*) v="${v#0}" ;; esac
+    case "$v" in ''|*[!0-9]*) bad "mã hướng khoá không phải số: $c"; n=$((n+1)); continue ;; esac
     [ "$v" -gt "$max" ] && max="$v"
   done
   # mã được ADR trích dẫn = đã lật CÓ ghi chép, hợp lệ khi vắng mặt
@@ -1033,6 +1074,145 @@ else
     done
     [ "$n" -eq 0 ] && ok "mục lục khớp thư mục ($n_file luồng), mỗi luồng đủ sáu mục và khai quan hệ với đơn vị"
   fi
+fi
+
+# ================================================================ §23
+# Luat D36. Bo luat cua moi agent co nguong co.
+#
+# Bang dinh tuyen cua mot agent co hai phan, khai bang TIEU DE MUC:
+#   - Muc co chu "Bộ luật": file code phai tuan, agent mo theo viec dang lam.
+#     Tong co cua ca phan nay la corpus mot luot phai ganh -> co nguong.
+#     Tieu de mang "phạm vi BE" / "phạm vi FE" thi tinh rieng tung pham vi
+#     (core-reviewer: mot luot = mot pham vi); phan khong mang pham vi la chung.
+#   - Muc co chu "Tra cứu": mo dung MOT file khi chu de cham toi -> khong cong.
+# Corpus = chung + max(BE, FE). Nguong do nguoi dung chot 2026-09-15:
+# 250 KB cho agent thi cong, 400 KB cho core-reviewer.
+#
+# Mot agent khong co muc "Bộ luật" nao la mot agent khong khai corpus -> FAIL,
+# vi "khong do" khong duoc phep tron voi "dat nguong".
+section "§23 Bộ luật của mỗi agent không vượt ngưỡng cỡ"
+CORPUS_MAX=$((250*1024)); CORPUS_MAX_REVIEWER=$((400*1024))
+_rows=$(awk '
+  FNR==1 { mode="none"; scope="chung"; a=FILENAME; sub(/.*\//,"",a); sub(/\.md$/,"",a) }
+  /^#+ / { mode="none"; scope="chung"
+           if ($0 ~ /Bộ luật/) { mode="luat"; if ($0 ~ /phạm vi BE/) scope="BE"; else if ($0 ~ /phạm vi FE/) scope="FE" }
+           next }
+  mode=="luat" && /^\|/ {
+    line=$0
+    while (match(line, /`[^`]*\.md`/)) { print a, scope, substr(line, RSTART+1, RLENGTH-2); line=substr(line, RSTART+RLENGTH) }
+  }' .claude/agents/*.md 2>/dev/null | sort -u)
+declare -A CSIZE
+while read -r sz p; do [ -n "$p" ] && CSIZE[$p]=$sz; done < <(printf '%s\n' "$_rows" | awk '{print $3}' | sort -u | xargs wc -c 2>/dev/null)
+declare -A CCHUNG CBE CFE
+while read -r a sc p; do
+  [ -z "$p" ] && continue
+  sz="${CSIZE[$p]:-0}"
+  case "$sc" in
+    BE) CBE[$a]=$(( ${CBE[$a]:-0} + sz )) ;;
+    FE) CFE[$a]=$(( ${CFE[$a]:-0} + sz )) ;;
+    *)  CCHUNG[$a]=$(( ${CCHUNG[$a]:-0} + sz )) ;;
+  esac
+done < <(printf '%s\n' "$_rows")
+n=0; seen=0; summary=""
+for af in .claude/agents/*.md; do
+  a="${af##*/}"; a="${a%.md}"
+  chung="${CCHUNG[$a]:-0}"; be="${CBE[$a]:-0}"; fe="${CFE[$a]:-0}"
+  if [ "$((chung+be+fe))" -eq 0 ]; then
+    bad "$af — không có mục 'Bộ luật' nào trỏ tới file .md: corpus của agent này không đo được"
+    n=$((n+1)); continue
+  fi
+  seen=$((seen+1))
+  big=$be; [ "$fe" -gt "$big" ] && big=$fe
+  corpus=$((chung+big)); max=$CORPUS_MAX
+  [ "$a" = "core-reviewer" ] && max=$CORPUS_MAX_REVIEWER
+  summary="$summary $a=$(((corpus+1023)/1024))KB"
+  if [ "$corpus" -gt "$max" ]; then
+    bad "$af — bộ luật $(((corpus+1023)/1024)) KB vượt ngưỡng $((max/1024)) KB (chung $(((chung+1023)/1024)), BE $(((be+1023)/1024)), FE $(((fe+1023)/1024))). Rút file luật hoặc chuyển hàng sang mục 'Tra cứu' — không nới ngưỡng"
+    n=$((n+1))
+  fi
+done
+if [ "$seen" -eq 0 ] && [ "$n" -eq 0 ]; then
+  bad "§23 không thấy file agent nào — mục này đang không kiểm gì"
+elif [ "$n" -eq 0 ]; then
+  ok "bộ luật mọi agent dưới ngưỡng ($seen agent):$summary"
+fi
+
+# ================================================================ §24
+# Luat D37. Van xuoi chep lap — mot dong dai xuat hien o nhieu file.
+#
+# §15/§16/§19/§20 chi bat ban sao cua thu DA DANG KY (moc, kieu, token).
+# Muc nay bat dang con lai: mot cau van >= 100 ky tu duoc chep nguyen van sang
+# file khac. Hai file thi co the la trung hop (checklist, cau mo ta trang thai)
+# -> NOTE; tu ba file tro len la mot boilerplate dang song o nhieu cho -> FAIL:
+# chon mot file chu, cac file khac tro duong. FAIL chi khi cum co file docs/
+# (noi dung); cum thuan .claude/ (van ban quy trinh) chi NOTE — nhin thay, khong chan.
+#
+# Mien tru (deu la thu KHONG phai noi dung): dong bang, blockquote, tieu de,
+# code block, dong tho dau (ASCII/so do), dong mang nhan trang thai (bat buoc
+# o moi file), dong tro duong (co link va phan chu con lai ngan), file lich su.
+section "§24 Văn xuôi không được chép nguyên văn sang file khác"
+_dup=$(find docs .claude -name '*.md' -print0 2>/dev/null | xargs -0 awk -v hist="$HIST_FILES" '
+  FNR==1 { inblk=0; skip=(index(hist, " " FILENAME " ")>0) }
+  skip { next }
+  FNR<=6 && /^kind: lich-su/ { skip=1; next }
+  /^[ \t]*```/ { inblk=!inblk; next }
+  inblk { next }
+  { line=$0; sub(/[ \t]+$/,"",line) }
+  line ~ /^(\||>|#|---|[ \t])/ { next }
+  line ~ /[│┌└├┐┘┤─┬┴▼►]/ { next }
+  line ~ /ĐÍCH ĐẾN — CHƯA THI CÔNG|ĐÃ CHỐT — ĐANG THI CÔNG|CÓ THẬT/ { next }
+  {
+    bare=line; gsub(/\[[^]]*\]\([^)]*\)/,"",bare); gsub(/`[^`]*`/,"",bare)
+    if (index(line,"](")>0 && length(bare)<60) next
+    if (length(line) < 100) next
+    print FILENAME "\t" line
+  }' | sort -u | awk -F'\t' '{ n[$2]++; f[$2]=f[$2] " " $1 } END { for (k in n) if (n[k]>1) print n[k] "\t" k "\t" f[k] }' | sort -rn)
+_seen=$(find docs .claude -name '*.md' 2>/dev/null | wc -l)
+n=0; w=0
+while IFS=$'\t' read -r cnt text files; do
+  [ -z "$cnt" ] && continue
+  short="${text:0:90}"
+  case "$files" in *" docs/"*) indocs=1 ;; *) indocs=0 ;; esac
+  if [ "$cnt" -ge 3 ] && [ "$indocs" -eq 1 ]; then
+    bad "$cnt file cùng một câu — chọn một file chủ, còn lại trỏ đường:$files ↦ \"$short…\""
+    n=$((n+1))
+  else
+    warn "$cnt file cùng một câu:$files ↦ \"$short…\""
+    w=$((w+1))
+  fi
+done < <(printf '%s\n' "$_dup")
+if [ "$_seen" -lt "$MIN_DOCS" ]; then
+  bad "§24 chỉ thấy $_seen file — mục này đang không kiểm gì"
+elif [ "$n" -eq 0 ]; then
+  ok "không câu nào trong docs/ bị chép sang ≥3 file ($_seen file đã quét, $w cụm ở dạng NOTE)"
+fi
+
+# ================================================================ §25
+# Luat D38. File luat qua co thi tach ly do — canh bao mem.
+#
+# §23 canh TONG bo luat cua mot agent; muc nay canh TUNG file luat, de phinh lo
+# ra o dung file truoc khi §23 do. Nguong 50 KB: cac file luat lon nhat sau dot
+# tach 2026-09-16 nam o 46–50 KB. Vuot nguong khong chan — NOTE, vi them mot
+# luat quan trong van phai duoc phep; cach dung la doi phan "vi sao / bay / vi
+# du mo rong" sang wiki-core/{be,fe}/ly-do/<cung ten>.md, khong bo luat.
+section "§25 File luật vượt cỡ thì tách lý do (cảnh báo mềm)"
+LUAT_MAX=$((50*1024))
+# schema-core.md khong tinh: no la bang dinh nghia (cot, index, SQL kiem), khong phai van xuoi
+# luat; co cua no do so bang quyet, va §23 van canh no trong bo luat cua core-reviewer.
+set -- docs/quy-uoc/*.md docs/kien-truc-core-module.md docs/database/script-runbook.md
+n_luat=0; w=0
+while read -r sz f; do
+  [ -z "$f" ] && continue
+  n_luat=$((n_luat+1))
+  if [ "$sz" -gt "$LUAT_MAX" ]; then
+    warn "$f — $(((sz+1023)/1024)) KB > $((LUAT_MAX/1024)) KB: dời 'vì sao / bẫy / ví dụ mở rộng' sang wiki-core/*/ly-do/ (luật D38)"
+    w=$((w+1))
+  fi
+done < <(wc -c "$@" 2>/dev/null | grep -v ' total$')
+if [ "$n_luat" -eq 0 ]; then
+  bad "§25 không đo được file luật nào — mục này đang không kiểm gì"
+else
+  ok "đã đo $n_luat file luật, $w file trên $((LUAT_MAX/1024)) KB (NOTE, không chặn)"
 fi
 
 # ================================================================ kết luận

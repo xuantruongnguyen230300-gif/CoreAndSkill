@@ -24,6 +24,8 @@ Nhiệm vụ duy nhất: đối chiếu phần Core thật với quy tắc trong
 
 "Core" nghĩa là thành phần dùng chung, nền tảng — **không phải** logic nghiệp vụ của một feature. Một entity nghiệp vụ chỉ thuộc phạm vi review khi đang xét **cách nó dùng** thành phần Core, không phải bản thân luật nghiệp vụ của nó.
 
+> 🛑 **ArchTest theo tên/AST không bắt được DỮ LIỆU nghiệp vụ nằm trong Core** — chỉ bắt định danh khớp mẫu (tên kiểu, tên tầng). Một seeder hay catalog trong Core chứa nội dung đặc thù sản phẩm (chuỗi tiếng Việt, danh mục nghiệp vụ cụ thể) vẫn qua mọi ArchTest nếu không dùng tên bị cấm. Khi review file chạm Core, tự hỏi thêm: *file này có đang mang theo DỮ LIỆU của một sản phẩm cụ thể không, dù tên gọi vẫn trung tính?* — loại vi phạm này chỉ người/agent review bắt được.
+
 ---
 
 # STEP -1 — Resolve root (BẮT BUỘC chạy đầu tiên)
@@ -48,45 +50,62 @@ Nhiệm vụ duy nhất: đối chiếu phần Core thật với quy tắc trong
 
 **Chỉ đọc file mà bảng định tuyến dưới đây chỉ ra.** Không "đọc hết cho chắc" — corpus đầy đủ đủ lớn để giết một lượt review trước khi nó kết luận được gì. Ở dự án tiền nhiệm, corpus bắt buộc từng lên tới ~780 KB và ba lượt review liên tiếp chết giữa chừng; một lượt còn để lại lỗi cố ý trong code mà không phát hiện ra.
 
-## Đọc bắt buộc — mọi lượt (chỉ 2 mục lục)
-
-1. **`docs/README.md`** — mục lục cấp cao nhất, kèm **bảng trạng thái cấp khu**. Đọc bảng đó **trước khi chấm bất cứ mục nào** — nó là thứ ngăn bạn báo finding cho một khu đang cố ý dở dang.
-2. **`docs/wiki-core/README.md`** — mục lục kiến thức nền.
-
-## Đọc theo nhu cầu, KHÔNG phải mọi lượt
-
-`docs/kien-truc-core-module.md` — chỉ mở khi lượt review **đụng tới cấu trúc project/thư mục**. Với một lượt soát envelope hay validator, cả file về ranh giới Core↔Module là thuần chi phí.
-
-## Bảng định tuyến — review cái gì thì đọc file nào
+## Bộ luật — mọi phạm vi
 
 | Đang soát | Đọc |
 | --- | --- |
-| Layer, dependency, project layout, host mỏng | `docs/quy-uoc/be-architecture.md` |
-| Entity, soft delete, factory trả `Result`, concurrency | `docs/quy-uoc/be-entity-domain.md` + `docs/database/schema-core.md` |
+| Bảng trạng thái cấp khu — đọc **trước khi chấm bất cứ mục nào**: nó ngăn bạn báo finding cho một khu đang cố ý dở dang | `docs/README.md` |
+| Chấm điểm: cái gì là finding | `docs/quy-uoc/tieu-chi-review.md` |
+| Luật nào ép bằng cổng nào, mã luật để trích trong finding | `docs/RULES.md` |
+
+## Bộ luật — phạm vi BE
+
+| Đang soát | Đọc |
+| --- | --- |
+| Layer, dependency, project layout, host mỏng, lệnh của runner | `docs/quy-uoc/be-architecture.md` |
+| Entity, soft delete, factory trả `Result`, concurrency, `IAuditableEntity` | `docs/quy-uoc/be-entity-domain.md` |
 | Command/Handler/Validator, `Result<T>`, pipeline behavior | `docs/quy-uoc/be-cqrs-handler.md` |
-| Controller, envelope, ánh xạ `Result` → HTTP | `docs/quy-uoc/be-api-controller.md` |
+| Controller, envelope, ánh xạ `Result` → HTTP, antiforgery, phân quyền | `docs/quy-uoc/be-api-controller.md` |
 | Query, index, N+1, phân trang, cache | `docs/quy-uoc/be-performance.md` |
+| Schema `core`: bảng, cột, index, khoá quyền | `docs/database/schema-core.md` |
+| Chính sách migration | `docs/database/migration-policy.md` |
+
+## Bộ luật — phạm vi FE
+
+| Đang soát | Đọc |
+| --- | --- |
+| Ranh giới tầng FE, `ListStateStore` | `docs/quy-uoc/fe-architecture.md` |
+| Envelope FE, DTO, mapper, `SessionExpiryHandler` | `docs/quy-uoc/fe-api-client.md` |
+| Component, style theo token, i18n | `docs/quy-uoc/fe-ui-conventions.md` |
+| Route, guard | `docs/quy-uoc/fe-routing-guard.md` |
+| Giá trị token, chế độ sáng-tối | `docs/Design/DESIGN.md` |
+
+## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
+
+| Đang soát | Đọc |
+| --- | --- |
+| Cấu trúc project/thư mục, đường dẫn nào tính là chạm Core | `docs/kien-truc-core-module.md` |
+| Mục lục kiến thức nền — vào đây để tìm file `wiki-core/` của chủ đề | `docs/wiki-core/README.md` |
 | Kỷ luật đo, ngưỡng đáng nghi, nghẽn ở tầng kết nối | `docs/wiki-core/be/11-performance-caching.md` |
 | Đăng nhập, phiên, khoá tài khoản, phân quyền | `docs/wiki-core/be/02-identity-auth.md` + `docs/wiki-core/be/09-security-beyond-auth.md` |
 | Test, ArchTest, meta-test | `docs/wiki-core/be/04-testing-strategy.md` |
 | Vì sao cần token đồng thời, xử lý xung đột, khi nào cần khoá bi quan | `docs/wiki-core/be/06-concurrency-control.md` |
-| Migration, schema theo module | `docs/wiki-core/be/13-core-data-migration.md` + `docs/database/migration-policy.md` |
+| Migration: ai sở hữu, schema theo module | `docs/wiki-core/be/13-core-data-migration.md` |
 | Ranh giới BE/FE sở hữu gì trong thông điệp, ngày giờ & số theo văn hoá | `docs/wiki-core/be/16-i18n-va-ma-loi.md` |
-| Ranh giới tầng FE, cổng FE | `docs/quy-uoc/fe-architecture.md` + `docs/wiki-core/fe/trien-khai/05-gate.md` |
-| Envelope FE, DTO, mapper | `docs/quy-uoc/fe-api-client.md` + `docs/wiki-core/fe/02-http-envelope.md` |
-| Component, token, UI | `docs/quy-uoc/fe-ui-conventions.md` + `docs/wiki-core/fe/05-component-library.md` + `docs/Design/DESIGN.md` |
-| Route, guard | `docs/quy-uoc/fe-routing-guard.md` |
-| Chấm điểm: cái gì là finding | `docs/quy-uoc/tieu-chi-review.md` |
-| Luật nào ép bằng cổng nào | `docs/RULES.md` |
+| Cổng FE | `docs/wiki-core/fe/trien-khai/05-gate.md` |
+| Vì sao có envelope, bẫy khi tiêu thụ nó ở FE | `docs/wiki-core/fe/02-http-envelope.md` |
+| Thư viện component, dumb vs smart | `docs/wiki-core/fe/05-component-library.md` |
+| Spec một component / một màn hình | `docs/Design/Components/` · `docs/Design/Screens/` |
+| Hợp đồng một endpoint | `docs/contracts/` |
+| Vì sao một luật như vậy, bẫy, ví dụ mở rộng | `docs/wiki-core/be/ly-do/` · `docs/wiki-core/fe/ly-do/` — file cùng tên với file luật |
 | Bài học sự cố đã có | `docs/audit/` |
-
-Chủ đề không có trong bảng → tra `docs/README.md` rồi mở **đúng một** file.
+| Chủ đề không có trong bảng | `docs/README.md` rồi mở **đúng một** file |
 
 ## Vì sao phải đọc `quy-uoc/` cùng với `wiki-core/`
 
 `docs/quy-uoc/` là quy ước **thi công hiện tại** mà `backend-expert`/`frontend-expert` đang theo. `docs/wiki-core/` là **kiến thức nền**, có thể vượt nhu cầu dự án.
 
-Cần cả hai để phân biệt *"lệch khỏi wiki vì cố ý đơn giản hoá đã thống nhất"* (**không phải finding**) với *"lệch vì thiếu sót thật"* (**là finding**).
+Cần cả hai để phân biệt *"lệch khỏi wiki vì cố ý đơn giản hoá đã thống nhất"* (**không phải finding**) với *"lệch vì thiếu sót thật"* (**là finding**) — nên khi một finding nói "thiếu X", mở file `wiki-core/` của chủ đề X trước khi kết luận.
 
 **Và chính `quy-uoc/` cũng là đối tượng review.** Rule sai không nằm yên — nó sinh ra code sai.
 
@@ -142,7 +161,7 @@ Báo cáo xong thì gửi cho agent đã gọi bạn qua `SendMessage`. **Bạn 
 
 # 🔧 Lệnh & công cụ
 
-Chạy được (chỉ đọc): `dotnet build`, `dotnet test`, `npx ng lint`, `npx ng build`, `bash scripts/fe-gate.sh` (📐 giai đoạn 2 — chưa tồn tại), `bash .claude/check-docs.sh`, `git status`, `git diff`, `git log`, `git show`.
+Chạy được (chỉ đọc): `dotnet build`, `dotnet test`, `npx ng lint`, `npx ng build`, `bash scripts/fe-gate.sh` (khi script có trên đĩa), `bash .claude/check-docs.sh`, `git status`, `git diff`, `git log`, `git show`.
 
 🛑 **Cấm**: mọi lệnh git ghi (xem `CLAUDE.md` §1) và mọi thao tác sửa file.
 

@@ -10,6 +10,8 @@ verified: chua-doi-chieu
 
 **Nền:** bọc PrimeNG — theo [`../COMPONENTS.md`](../COMPONENTS.md) §4, phân trang thuộc nhóm hành vi khó: tính dãy số trang có dấu lược, đồng bộ với phân trang phía máy chủ, giữ đúng chỉ số khi tổng số bản ghi đổi giữa hai lần tải. Đây cũng là component đi cặp với [`DataTable.md`](./DataTable.md), vốn đã bọc cùng thư viện — dùng hai nguồn khác nhau cho hai nửa của một cơ chế là cách chúng lệch nhau.
 
+🛑 **Ở màn danh sách, `Pagination` là component `DataTable` dùng BÊN TRONG — màn không tự đặt nó.** [`DataTable.md`](./DataTable.md) là chủ hợp đồng phân trang của màn: `page`, `pageSize`, `totalRecords` và sự kiện đổi trang vào ra qua API của nó, và nó vẽ dải này ngay dưới khung bảng ở biến thể `paged`. File bạn đang đọc khai **hình thức, trạng thái và accessibility của chính dải** — không khai lại hợp đồng của màn. Màn tự đặt `Pagination` chỉ ở danh sách **không** phải `DataTable`: danh sách thẻ, danh sách bản ghi vẽ tay có phân trang phía máy chủ.
+
 ---
 
 ## Mục đích
@@ -20,9 +22,10 @@ Cho người dùng đi giữa các trang của một danh sách và chọn số 
 
 | Dùng | Không dùng |
 | --- | --- |
-| Dưới một [`DataTable.md`](./DataTable.md) hoặc [`Table.md`](./Table.md) có nhiều trang | 🛑 Danh sách ngắn, vừa hết một trang → không render gì; thêm phân trang vào một danh sách năm dòng là thêm nhiễu |
-| Danh sách thẻ, danh sách bản ghi phân trang phía máy chủ | 🛑 Chuyển giữa các phần nội dung khác nhau → [`Tabs.md`](./Tabs.md) |
-| Chỗ người dùng cần biết mình đang ở đâu trong tổng thể | 🛑 Tìm, lọc, hành động của danh sách → [`Toolbar.md`](./Toolbar.md); 🛑 cuộn vô hạn — một cơ chế khác, và nó không cùng tồn tại với phân trang trên một danh sách |
+| Bên trong [`DataTable.md`](./DataTable.md) biến thể `paged` — lớp bọc vẽ, màn không đặt | 🛑 Danh sách ngắn, vừa hết một trang → không render gì; thêm phân trang vào một danh sách năm dòng là thêm nhiễu |
+| Danh sách thẻ, danh sách bản ghi phân trang phía máy chủ mà màn tự vẽ | 🛑 Màn có `DataTable` → **không** đặt thêm một dải thứ hai; hợp đồng ở [`DataTable.md`](./DataTable.md) §API. 🛑 Dưới một [`Table.md`](./Table.md) → `Table` không phân trang, cần phân trang là cần `DataTable` |
+| Chỗ người dùng cần biết mình đang ở đâu trong tổng thể | 🛑 Chuyển giữa các phần nội dung khác nhau → [`Tabs.md`](./Tabs.md) |
+| | 🛑 Tìm, lọc, hành động của danh sách → [`Toolbar.md`](./Toolbar.md); 🛑 cuộn vô hạn — một cơ chế khác, và nó không cùng tồn tại với phân trang trên một danh sách |
 
 ## Biến thể
 
@@ -38,6 +41,8 @@ Cho người dùng đi giữa các trang của một danh sách và chọn số 
 | --- | --- | --- | --- | --- | --- |
 | `sm` | `--size-control-sm` (28px) | `--sp-2` | `--fs-xs` | `--icon-sm` | Trong `Dialog`, trong `Card` hẹp |
 | `md` | `--size-control-md` (34px) | `--sp-3` | `--fs-sm` | `--icon-md` | **Mặc định.** Dưới bảng toàn trang |
+
+**Vị trí: đúng một dải, nằm DƯỚI bảng, ngoài khung bảng.** Không có dải thứ hai ở trên. Quyết định này đã khai ở [`../Templates/ListScreen.md`](../Templates/ListScreen.md) §2 (vùng 6) và mọi spec màn danh sách hiện có đều theo. Lý do giữ một dải: hai dải là hai landmark điều hướng phải đồng bộ, và ở màn danh sách thì thân bảng là vùng cuộn duy nhất nên dải dưới không bao giờ trôi khỏi màn.
 
 Nút số trang là hình vuông với bề rộng tối thiểu bằng chiều cao — số trang lên ba chữ số vẫn không được làm nút phình ngang và đẩy các nút bên cạnh nhảy chỗ.
 
@@ -69,9 +74,9 @@ Nút số trang là hình vuông với bề rộng tối thiểu bằng chiều 
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-lg` | Một hàng: chỉ báo "x–y trên tổng z" bên trái, dãy nút giữa, ô chọn số dòng bên phải |
-| `--bp-md` … `--bp-lg` | Dãy số trang rút bớt: giữ trang đầu, trang cuối, trang hiện hành và một trang liền kề mỗi bên; phần bị lược thay bằng dấu lược |
-| < `--bp-md` | Chuyển sang biến thể `compact`: chỉ trước/sau kèm chỉ báo; ô chọn số dòng xuống hàng dưới. Dưới `--bp-xs` chỉ báo rút gọn còn "trang m / n" và hai nút giãn ra để đạt vùng chạm thoải mái |
+| ≥ `$bp-lg` | Một hàng: chỉ báo "x–y trên tổng z" bên trái, dãy nút giữa, ô chọn số dòng bên phải |
+| `$bp-md` … `$bp-lg` | Dãy số trang rút bớt: giữ trang đầu, trang cuối, trang hiện hành và một trang liền kề mỗi bên; phần bị lược thay bằng dấu lược |
+| < `$bp-md` | Chuyển sang biến thể `compact`: chỉ trước/sau kèm chỉ báo; ô chọn số dòng xuống hàng dưới. Dưới `$bp-xs` chỉ báo rút gọn còn "trang m / n" và hai nút giãn ra để đạt vùng chạm thoải mái |
 
 ## Accessibility
 
@@ -96,7 +101,7 @@ Nút số trang là hình vuông với bề rộng tối thiểu bằng chiều 
 | `size` | input | `'sm' \| 'md'` | `'md'` | |
 | `page` | input | `number` | `1` | Trang hiện hành, đếm từ 1. Trang cha giữ nguồn sự thật |
 | `pageSize` | input | `number` | — | Bắt buộc. Phải là một giá trị có trong `pageSizeOptions` |
-| `pageSizeOptions` | input | `number[]` | — | Bắt buộc. Danh sách lựa chọn số dòng mỗi trang |
+| `pageSizeOptions` | input | `number[]` | — | Bắt buộc. Danh sách lựa chọn số dòng mỗi trang — **giá trị khai một chỗ** trong bảng tham số danh sách dùng chung ở [`../../contracts/README.md`](../../contracts/README.md) §8; `Pagination` không giữ mặc định riêng, nơi gọi truyền từ nguồn đó |
 | `totalRecords` | input | `number` | `0` | Tổng số bản ghi **sau khi đã lọc**, không phải tổng của cả bảng |
 | `disabled` · `loading` | input | `boolean` | `false` | `loading` khoá cả dải và giữ nguyên chỉ số trang |
 | `showPageSize` | input | `boolean` | `true` | Chỉ có nghĩa với `variant = 'full'` |
@@ -104,6 +109,8 @@ Nút số trang là hình vuông với bề rộng tối thiểu bằng chiều 
 | `pageSizeChanged` | output | `{ pageSize: number; page: number }` | — | Phát kèm `page` đã đưa về `1` — xem dưới |
 
 **`Pagination` chỉ phát sự kiện, không tự gọi API.** Đây là component **dumb** ([`../COMPONENTS.md`](../COMPONENTS.md) §5, ca thứ ba trong bảng "dễ nhầm"): trang cha nghe sự kiện, gọi API, rồi truyền `page` và `totalRecords` mới xuống. Cái giá là một vòng đi vòng lại và một khoảng thời gian ngắn mà chỉ số trang hiển thị chưa khớp ý định người dùng — chính là lý do dòng `loading` ở trên bắt giữ nguyên trang cũ. Cái mua được: cùng một `Pagination` chạy với dữ liệu từ máy chủ, từ bộ nhớ tạm, hay từ một mảng dựng sẵn trong test, mà không sửa một dòng nào.
+
+**`Pagination` không đọc và không ghi URL.** Số trang sống trên URL cùng sắp xếp, từ khoá và bộ lọc; ở màn danh sách, chủ hợp đồng đó là [`DataTable.md`](./DataTable.md) §API — file này không khai lại.
 
 🛑 **Bẫy: đổi số dòng mỗi trang phải đưa về trang 1.** Người dùng đang ở trang 8 với 10 dòng mỗi trang, đổi sang 100 dòng mỗi trang — trang 8 của khổ mới cần tới 800 bản ghi, và danh sách chỉ có 90. Kết quả là một trang trống, không có thông báo lỗi nào, và người dùng tưởng dữ liệu vừa biến mất. Vì vậy `pageSizeChanged` phát **cả hai** giá trị cùng lúc, với `page` đã đưa về `1`; nơi gọi không phải nhớ luật này, và không nơi gọi nào quên được nó.
 
@@ -120,11 +127,8 @@ Nút số trang là hình vuông với bề rộng tối thiểu bằng chiều 
 - ❌ Không ẩn nút điều hướng ở trang đầu/cuối — cho chúng `disabled`.
 - ❌ Không để lọt kiểu dữ liệu PrimeNG ra API, và không tạo hình bằng `::ng-deep`.
 - ❌ Không đặt `Pagination` vào trong [`Toolbar.md`](./Toolbar.md).
+- ❌ Không đặt thêm một `Pagination` cạnh một [`DataTable.md`](./DataTable.md) — lớp bọc đã vẽ dải đó, và hai dải là hai nguồn cho cùng một chỉ số trang.
 
 ## Cần chốt
 
-| # | Câu hỏi | Ai trả lời được |
-| --- | --- | --- |
-| 1 | Danh sách `pageSizeOptions` mặc định gồm những giá trị nào, và ai quyết? Đặt ở mỗi màn thì mỗi màn một kiểu; đặt cứng ở Core thì màn có dòng rất cao sẽ không hợp | Chủ sản phẩm cùng người dựng khung |
-| 2 | Số trang có phản ánh lên URL không? Có thì người dùng chia sẻ được liên kết tới đúng trang và F5 không mất chỗ; nhưng nó kéo theo cả bộ lọc phải lên URL, nếu không thì trang 8 của một bộ lọc khác là vô nghĩa | Người dựng khung định tuyến |
-| 3 | `Pagination` đặt trên bảng, dưới bảng, hay cả hai? Cả hai tiện với bảng dài nhưng nhân đôi landmark điều hướng và phải đồng bộ hai dải | Sau khi có `DataTable` thật |
+Không còn. Giá trị của `pageSizeOptions` thuộc [`../../contracts/README.md`](../../contracts/README.md) §8 — hỏi ở đó, không ở đây.

@@ -28,8 +28,8 @@ FE, khi mở một màn được khai là "sinh từ metadata" thay vì dựng t
 
 | # | Ai làm | Hệ thống làm gì | Chi tiết ở |
 | --- | --- | --- | --- |
-| 1 | FE | `GET /meta/grid/{key}` để lấy mô tả lưới | [`../contracts/meta-menu.md`](../contracts/meta-menu.md) §3 |
-| 2 | FE | `GET /meta/form/{key}` để lấy mô tả form | cùng trên |
+| 1 | FE | `GET /api/v1/core/meta/grid/{key}` để lấy mô tả lưới | [`../contracts/meta-menu.md`](../contracts/meta-menu.md) §3 |
+| 2 | FE | `GET /api/v1/core/meta/form/{key}` để lấy mô tả form | cùng trên |
 | 3 | FE | Dựng lưới và form từ mô tả đó | [`../Design/COMPONENTS.md`](../Design/COMPONENTS.md) |
 
 ### Ranh giới đã chốt, và nó hẹp hơn người ta tưởng

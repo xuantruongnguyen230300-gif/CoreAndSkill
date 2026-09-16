@@ -63,13 +63,20 @@ Một spec bịa nguy hiểm hơn một spec trống. Spec trống làm người
 
 File này mô tả **quy trình**. Khuôn tài liệu, hợp đồng API, tiêu chí phân loại Core ↔ Module nằm ở `docs/`. Mở đúng file — **không đọc cả thư mục**.
 
+## Bộ luật — đọc theo việc đang làm
+
 | Đang làm | Đọc |
 | --- | --- |
 | Khuôn spec nghiệp vụ (US, AC, BR, màn hình) | `spec/_template/` |
 | Khuôn nào dùng cho loại tài liệu thiết kế nào | `docs/Design/CLAUDE.md` §9 |
-| Hợp đồng API đã có — để biết dữ liệu nào hệ thống đã cung cấp | `docs/contracts/` |
 | Tiêu chí phân loại Core ↔ Module, ngưỡng tách module | `docs/kien-truc-core-module.md` |
 | Mục lục toàn bộ tri thức, bảng trạng thái cấp khu | `docs/README.md` |
+
+## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
+
+| Đang làm | Đọc |
+| --- | --- |
+| Hợp đồng API đã có — để biết dữ liệu nào hệ thống đã cung cấp | `docs/contracts/` |
 | Chủ đề không có trong bảng này | `docs/README.md` rồi mở **đúng một** file |
 
 Bảng này cố ý ngắn. Bạn không cần biết handler trả gì hay envelope hình dạng ra sao — **đó là lý do vai trò này tồn tại tách khỏi dev**. Đọc thêm chỉ khi câu hỏi nghiệp vụ thật sự phụ thuộc vào một ràng buộc kỹ thuật đã chốt.

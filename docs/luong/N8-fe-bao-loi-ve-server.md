@@ -28,7 +28,7 @@ FE, tự động, khi bắt được một lỗi chưa xử lý trong trình duy
 | # | Ai làm | Hệ thống làm gì | Chi tiết ở |
 | --- | --- | --- | --- |
 | 1 | FE | Bắt lỗi chưa xử lý ở lớp xử lý lỗi toàn cục | [`../quy-uoc/fe-api-client.md`](../quy-uoc/fe-api-client.md) |
-| 2 | FE | `POST /client-errors` với thông điệp, dấu vết ngăn xếp, đường dẫn màn, mã lần gọi | [`../contracts/client-errors.md`](../contracts/client-errors.md) §1 |
+| 2 | FE | `POST /api/v1/core/client-errors` với thông điệp, dấu vết ngăn xếp, đường dẫn màn, mã lần gọi | [`../contracts/client-errors.md`](../contracts/client-errors.md) §1 |
 | 3 | BE | Kiểm hợp lệ và **áp hạn mức theo nhịp gọi** | cùng trên |
 | 4 | BE | Ghi vào log cùng mã lần gọi | [`../wiki-core/be/07-observability.md`](../wiki-core/be/07-observability.md) |
 
@@ -42,11 +42,13 @@ Thân request do trình duyệt soạn, và trình duyệt nằm dưới quyền
 
 ## 4. Hỏng ở đâu — và ai thấy gì
 
+> 📖 Loại lỗi và HTTP status của từng mã: [`../contracts/client-errors.md`](../contracts/client-errors.md) §1. Bảng dưới chỉ giữ `code`.
+
 | Ca | Mã lỗi | Thấy gì |
 | --- | --- | --- |
-| Thiếu trường bắt buộc | `CORE.VALIDATION.FAILED` (400) | Người dùng **không thấy gì** — đây là luồng chạy ngầm, không được hiện lỗi lên màn |
-| Thiếu token chống giả mạo | `CORE.AUTH.CSRF_REJECTED` (403) | |
-| Vượt hạn mức | `CORE.RATE_LIMIT.EXCEEDED` (429) kèm `Retry-After` | FE **phải dừng gửi**, không thử lại ngay — thử lại ngay là cách biến hạn mức thành một vòng lặp |
+| Thiếu trường bắt buộc | `CORE.VALIDATION.FAILED` | Người dùng **không thấy gì** — đây là luồng chạy ngầm, không được hiện lỗi lên màn |
+| Thiếu token chống giả mạo | `CORE.AUTH.CSRF_REJECTED` | |
+| Vượt hạn mức | `CORE.RATE_LIMIT.EXCEEDED` kèm `Retry-After` | FE **phải dừng gửi**, không thử lại ngay — thử lại ngay là cách biến hạn mức thành một vòng lặp |
 | Bản thân việc báo lỗi lại gây lỗi | không có mã lỗi | 🛑 Vòng lặp vô hạn: lỗi → gửi báo cáo → gửi hỏng → sinh lỗi mới → gửi báo cáo. Lớp xử lý lỗi toàn cục phải tự loại trừ chính nó |
 
 ## 5. Quan hệ với đơn vị
@@ -59,6 +61,4 @@ Hệ quả: bản ghi log phải chịu được `tenant_id` rỗng, và **khôn
 
 ## 6. Câu chưa trả lời được
 
-- **Lỗi báo về lưu ở đâu, giữ bao lâu?** [`../contracts/client-errors.md`](../contracts/client-errors.md) mô tả endpoint nhưng không nói đích đến là log hay một bảng. Nếu là bảng thì nó cần một chính sách giữ dữ liệu ở [`../wiki-core/be/10-data-retention.md`](../wiki-core/be/10-data-retention.md); hiện chưa có.
-- **Dấu vết ngăn xếp có thể chứa dữ liệu người dùng.** [`../wiki-core/be/07-observability.md`](../wiki-core/be/07-observability.md) §5 có danh sách "không được log cái gì", nhưng nội dung ở đây do trình duyệt soạn, nên danh sách đó **không tự áp được** — cần một bước lọc phía server.
-- **Ai đọc những lỗi này?** Không endpoint nào đọc lại, cùng tình trạng với nhật ký kiểm toán ở luồng `N6` §6.
+Không còn câu riêng của luồng này. Đích là log có cấu trúc (giữ theo chính sách log), BE cắt `stack` và lọc trường nhạy cảm trước khi ghi, chỉ người vận hành đọc ở log — [`../contracts/client-errors.md`](../contracts/client-errors.md) §1, Ghi chú.

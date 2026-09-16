@@ -8,7 +8,9 @@ verified: chua-doi-chieu
 
 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**
 
-> Hệ **không có đăng ký**, nên đây là đường tự phục vụ duy nhất của người dùng. Nếu nó hỏng, mọi việc quên mật khẩu đều rơi xuống quản trị (luồng `D4`).
+> 🛑 **Luồng này NGOÀI PHẠM VI v1** ([`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md)). Ở v1, người quên mật khẩu liên hệ quản trị đơn vị bên ngoài hệ thống, và quản trị đặt lại hộ theo luồng `D4`; tài khoản quản trị mang cờ đặc quyền thì đi luồng `V4`.
+>
+> File này tồn tại để ranh giới đó **nhìn thấy được**, và để lần đưa luồng vào một phiên bản sau bắt đầu từ các câu ở §6 — không phải để thi công.
 
 ---
 
@@ -28,11 +30,11 @@ Người dùng **chưa đăng nhập**, từ liên kết "Quên mật khẩu" tr
 
 | # | Ai làm | Hệ thống làm gì | Chi tiết ở |
 | --- | --- | --- | --- |
-| 1 | Người dùng | `POST /auth/forgot-password` với `(mã đơn vị, email)` | [`../contracts/auth.md`](../contracts/auth.md) §8 |
+| 1 | Người dùng | `POST /api/v1/core/auth/forgot-password` với `(mã đơn vị, email)` | [`../contracts/auth.md`](../contracts/auth.md) §8 |
 | 2 | BE | Tra đơn vị, nạp ngữ cảnh, rồi mới tra tài khoản | [`../wiki-core/be/02-identity-auth.md`](../wiki-core/be/02-identity-auth.md) §6.2 |
 | 3 | BE | Sinh token đặt lại gắn với **đúng một** tài khoản, gửi qua kênh đã cấu hình | cùng trên |
 | 4 | BE | Trả về **cùng một phản hồi** dù email có tồn tại hay không | [`../contracts/auth.md`](../contracts/auth.md) §8 |
-| 5 | Người dùng | Mở liên kết, `POST /auth/reset-password` với token và mật khẩu mới | cùng trên §9 |
+| 5 | Người dùng | Mở liên kết, `POST /api/v1/core/auth/reset-password` với token và mật khẩu mới | cùng trên §9 |
 | 6 | BE | Kiểm token, đổi mật khẩu | |
 
 ### Vì sao hỏi mã đơn vị, không chỉ hỏi email
@@ -47,10 +49,12 @@ Phân biệt được "email này có tài khoản" với "email này không có
 
 ## 4. Hỏng ở đâu — và người dùng thấy gì
 
+> 📖 Loại lỗi và HTTP status của từng mã: [`../contracts/auth.md`](../contracts/auth.md) §8 và §9. Bảng dưới chỉ giữ `code`.
+
 | Ca | Biểu hiện |
 | --- | --- |
 | Email không tồn tại trong đơn vị đó | **Cùng phản hồi** với ca thành công. Người gõ nhầm sẽ đợi một email không bao giờ tới — đó là cái giá đã chấp nhận để đổi lấy việc không rò danh sách tài khoản |
-| Gõ sai quá nhiều lần | `CORE.RATE_LIMIT.EXCEEDED` (429) kèm `Retry-After` |
+| Gõ sai quá nhiều lần | `CORE.RATE_LIMIT.EXCEEDED` kèm `Retry-After` |
 | Token hết hạn hoặc đã dùng | Mã lỗi ở [`../contracts/auth.md`](../contracts/auth.md) §9 |
 | Kênh gửi chết | 🛑 **Không ai thấy gì.** Phản hồi vẫn là "đã gửi nếu email tồn tại", và người dùng đợi mãi. Cùng lớp lỗi với tiến trình phát nền ở luồng `N5` |
 
@@ -61,6 +65,8 @@ Phân biệt được "email này có tài khoản" với "email này không có
 Bỏ bước đó thì việc tra email chạy trên phạm vi sai: hoặc không thấy ai, hoặc thấy tài khoản trùng email **ở đơn vị khác** — và gửi liên kết đặt lại mật khẩu cho nhầm người.
 
 ## 6. Câu chưa trả lời được
+
+> 🛑 **Luồng này ngoài phạm vi v1.** Các câu dưới đây phải trả lời **trước khi** đưa nó vào một phiên bản sau — không phải trong v1.
 
 - **Kênh gửi là kênh nào, và ai cấu hình nó?** Không file nào trong `contracts/` hay `wiki-core/be/` khai kênh gửi email của luồng này. Với một hệ nội bộ, giả định "có SMTP" là một giả định lớn.
 - **Token đặt lại sống bao lâu, và dùng được mấy lần?** Identity có cơ chế sẵn, nhưng giá trị cụ thể chưa khai ở đâu.

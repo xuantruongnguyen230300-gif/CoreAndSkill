@@ -15,6 +15,7 @@ verified: chua-doi-chieu
 > | Bốn file `00-overview/` là kế hoạch **đang thực hiện** | Kế hoạch đã thực thi xong; hiện trạng đọc ở `docs/README.md` |
 > | Bảy luật nêu ở đây là dự kiến | Luật thật ở `docs/RULES.md`, kèm cột *Ép bằng gì* |
 > | Mô hình phục vụ FE↔API | **Hai origin khác nhau** — [`../adr/0015-fe-va-api-khac-nguon.md`](../adr/0015-fe-va-api-khac-nguon.md) |
+> | Bảng *MỘT PHẦN ĐÃ BỊ THAY THẾ* ngay dưới: các mục ghi *Còn đúng — dùng tiếp*, và §6 Lộ trình trỏ sang `lo-trinh-va-nguon.md` §3 | **Không còn hiệu lực** — lộ trình thi công: [`../wiki-core/be/trien-khai/00-lo-trinh-tong-the.md`](../wiki-core/be/trien-khai/00-lo-trinh-tong-the.md) · [`../wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md`](../wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md) |
 >
 > Nguồn sống: [`../README.md`](../README.md) · [`../RULES.md`](../RULES.md) · [`../adr/README.md`](../adr/README.md)
 

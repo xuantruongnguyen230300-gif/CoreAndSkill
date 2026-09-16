@@ -8,7 +8,7 @@ verified: chua-doi-chieu
 
 > 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
 >
-> **Máy chủ chạy Linux (chốt 2026-09-10); cách chạy cụ thể chưa chốt.** File này khai **nguyên tắc trung lập nền tảng** — đúng dù chạy trên máy chủ riêng, container hay dịch vụ lưu trữ. Khi chốt nền tảng, phần cụ thể thêm vào §7, không sửa các nguyên tắc ở §1–§6.
+> **Máy chủ chạy Linux (chốt 2026-09-10); cách chạy, nguồn bí mật và cơ chế job nền chốt ở §7 (2026-09-15).** File này khai **nguyên tắc trung lập nền tảng** ở §1–§6 — đúng dù chạy trên máy chủ riêng, container hay dịch vụ lưu trữ; phần cụ thể chỉ nằm ở §7.
 >
 > Phía FE: [`../fe/17-phuc-vu-va-trien-khai.md`](../fe/17-phuc-vu-va-trien-khai.md).
 
@@ -27,7 +27,7 @@ Build riêng cho từng môi trường nghĩa là thứ đã thử ở môi trư
 | Bí mật **không** nằm trong repo, kể cả tệp cấu hình theo môi trường | [`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md) §6 |
 | Ở môi trường thật, bí mật đến từ **nguồn ngoài cây làm việc** do nền tảng cấp — biến môi trường hoặc kho bí mật | Đổi bí mật không cần build lại, và artifact rò ra ngoài không mang bí mật theo |
 | Thứ tự ưu tiên của framework: tệp mặc định → tệp theo môi trường → **biến môi trường thắng** | Người vận hành ghi đè được mọi giá trị mà không sửa tệp đã đóng gói |
-| Thiếu một giá trị bắt buộc thì app **không khởi động** | [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §4 — hỏng lúc triển khai, không hỏng lúc người dùng chạm tới |
+| Thiếu một giá trị bắt buộc thì app **không khởi động** — ở **mọi** môi trường, kể cả máy dev | [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §4 — hỏng lúc triển khai, không hỏng lúc người dùng chạm tới |
 
 Danh sách giá trị bắt buộc **không** chép vào đây — nó là tập các lớp cấu hình có kiểm lúc khởi động, đọc bằng lệnh khi có `src/`:
 
@@ -73,6 +73,8 @@ v1 chạy **một instance** nên mỗi lần triển khai có gián đoạn ng�
 | Một artifact cho mọi môi trường | ✅ sẽ có | §1 |
 | Bí mật ngoài repo, không khởi động khi thiếu | ✅ sẽ có | §2 |
 | Triển khai theo thứ tự schema → app, quay lui không đụng DB | ✅ sẽ có | §4 |
-| **Hệ điều hành máy chủ** | ✅ Linux — chốt 2026-09-10 | Còn mở: chạy bằng dịch vụ hệ thống hay bằng container; có dùng cloud hay không |
-| **Kho bí mật cụ thể** | ❌ chưa chốt | Đi cùng quyết định cách chạy. Tới lúc đó: biến môi trường, theo §2 |
+| **Hệ điều hành máy chủ** | ✅ Linux — chốt 2026-09-10 | |
+| **Cách chạy bản thật** | ✅ Docker Compose — chốt 2026-09-15 | Một máy chủ Linux, không cloud ở v1 |
+| **Nguồn bí mật ở bản thật** | ✅ Biến môi trường do Compose cấp từ tệp `.env` **ngoài repo** — chốt 2026-09-15 | Cùng khoá cấu hình với `user-secrets` ở máy dev; không Vault ở v1. Tệp `.env` không commit ([`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md) §6) |
+| **Cơ chế job nền** | ✅ `BackgroundService` của .NET, không thư viện — chốt 2026-09-15 | Sau seam `IBackgroundJobScheduler` ([`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1). Xem lại (Quartz.NET) chỉ khi cần lịch cron do người dùng cấu hình |
 | **Triển khai không gián đoạn** | ❌ chưa | Cần nhiều instance — điều kiện ở ADR-0014 |

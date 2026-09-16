@@ -47,7 +47,7 @@ Bước 2 đặt trước bước 3 có chủ đích: nếu để sau, bộ Arch
 | --- | --- |
 | **Ánh xạ lỗi → HTTP bằng phản chiếu** | Đổi tên một kiểu là hỏng im lặng, không lỗi biên dịch. Luật R5 cấm; sự cố gốc ở [`../../../adr/0003-result-thuan.md`](../../../adr/0003-result-thuan.md) |
 | **Đưa hạ tầng web vào host thay vì `Core.Web`** | Dự án thứ hai phải chép lại toàn bộ. Đây là bệnh mà [`../../../kien-truc-core-module.md`](../../../kien-truc-core-module.md) §2.2 tồn tại để trị |
-| **Cấu hình thiếu thì app vẫn chạy** | Lỗi rơi vào lúc người dùng chạm tính năng, không phải lúc triển khai. Luật A9 |
+| **Cấu hình thiếu thì app vẫn chạy** | Lỗi rơi vào lúc người dùng chạm tính năng, không phải lúc triển khai. Luật A8 |
 
 ---
 
@@ -59,6 +59,8 @@ Bước 2 đặt trước bước 3 có chủ đích: nếu để sau, bộ Arch
 - [ ] Xoá một giá trị cấu hình bắt buộc → app **không khởi động**, thông báo nói rõ thiếu khoá nào.
 - [ ] `/health/live` và `/health/ready` trả khác nhau khi chưa nối được database.
 - [ ] Mỗi detector của ArchTest có một meta-test đi kèm.
+- [ ] Gỡ `ManagePackageVersionsCentrally=true` khỏi `Directory.Packages.props` → test canh thuộc tính đó đỏ; trả lại → xanh. Phần hở của luật A14 ở [`../../../RULES.md`](../../../RULES.md) §10.
+- [ ] Endpoint thử ném một exception ngoài dự kiến → 500 mang envelope có `code`, không lộ stack trace; gỡ `UseExceptionHandler()` hoặc lời đăng ký `IExceptionHandler` → test đó đỏ. Phần hở của luật A9 ở [`../../../RULES.md`](../../../RULES.md) §10.
 - [ ] `bash .claude/check-docs.sh` xanh.
 
 ---

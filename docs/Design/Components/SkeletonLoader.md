@@ -60,7 +60,7 @@ Giữ chỗ đúng hình dạng của nội dung sắp hiện, trong lúc dữ l
 | `focus-visible` | **Không áp dụng.** Không nhận focus, không có `tabindex`. Skeleton nằm trong thứ tự Tab là bẫy: người dùng bàn phím Tab vào một ô trống rồi không hiểu mình đang ở đâu | — |
 | `active` | **Không áp dụng.** Cùng lý do với `hover` | — |
 | `disabled` | **Không áp dụng.** Không có gì để vô hiệu hoá | — |
-| `loading` | **Đây là trạng thái duy nhất.** Nền `--color-surface-3`; dải sáng chạy từ `--color-surface-3` sang `--color-surface-2` rồi về, lặp lại. Vùng chứa mang `aria-busy="true"` | Có |
+| `loading` | **Đây là trạng thái duy nhất.** Nền `--color-surface-3`; dải sáng chạy từ `--color-surface-3` sang `--color-surface-2` rồi về, lặp lại, mỗi vòng `--dur-loop`. Vùng chứa mang `aria-busy="true"` | Có |
 | `error` | Tải hỏng → skeleton **biến mất ngay**, thay bằng [`NoticeBanner.md`](./NoticeBanner.md) kèm nút thử lại. 🛑 Bẫy: để skeleton chạy tiếp khi request đã hỏng — người dùng ngồi chờ một thứ sẽ không bao giờ tới | Có |
 | `empty` | Dữ liệu về nhưng rỗng → skeleton biến mất, thay bằng [`EmptyState.md`](./EmptyState.md). Skeleton **không bao giờ** là trạng thái cuối của một màn | Có |
 
@@ -71,15 +71,15 @@ Giữ chỗ đúng hình dạng của nội dung sắp hiện, trong lúc dữ l
 | Màu | `--color-surface-3` (nền, đúng vai đã khai ở [`../DESIGN.md`](../DESIGN.md) §2.1), `--color-surface-2` (đỉnh của dải sáng chạy). Hai màu chỉ chênh 1.11:1 sáng và 1.18:1 tối — **chủ đích**: skeleton không mang thông tin nên không có ngưỡng tương phản phải đạt, và một dải sáng tương phản cao sẽ nhấp nháy kéo mắt về đúng chỗ chưa có gì để đọc |
 | Chữ | `--fs-xs`, `--fs-md`, `--fs-lg`, `--lh-normal` — chỉ để **tính chiều cao vạch**, không có chữ nào được vẽ |
 | Khoảng cách, hình dạng | `--sp-2`, `--sp-3`, `--sp-6`, `--radius-sm`, `--radius-md`, `--radius-full` |
-| Kích thước, chuyển động | `--size-control-sm`, `--size-control-md`, `--size-control-lg`, `--icon-lg`, `--ease-standard` |
+| Kích thước, chuyển động | `--size-control-sm`, `--size-control-md`, `--size-control-lg`, `--icon-lg`, `--dur-loop`, `--ease-standard` |
 
 ## Responsive
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Số khối giữ chỗ khớp số phần tử thật sẽ hiện ở ngưỡng này |
-| < `--bp-md` | Biến thể `group` bỏ bớt các khối tương ứng với cột bị ẩn ở màn nhỏ. Vẽ đủ mọi cột rồi để bảng đổi sang một cột là tạo ra đúng cú nhảy bố cục mà skeleton sinh ra để tránh |
-| < `--bp-xs` | `text` giảm còn hai vạch; bề rộng chuyển hết sang mức `full` |
+| ≥ `$bp-md` | Số khối giữ chỗ khớp số phần tử thật sẽ hiện ở ngưỡng này |
+| < `$bp-md` | Biến thể `group` bỏ bớt các khối tương ứng với cột bị ẩn ở màn nhỏ. Vẽ đủ mọi cột rồi để bảng đổi sang một cột là tạo ra đúng cú nhảy bố cục mà skeleton sinh ra để tránh |
+| < `$bp-xs` | `text` giảm còn hai vạch; bề rộng chuyển hết sang mức `full` |
 
 **Số dòng skeleton nên khớp số dòng thật sắp hiện.** Vẽ mười dòng rồi nhận về ba là một cú nhảy; vẽ ba rồi nhận về mười cũng vậy. Với danh sách phân trang, con số đúng là **số dòng mỗi trang** đang chọn — nó đã biết trước, không phải đoán.
 
@@ -106,7 +106,7 @@ Giữ chỗ đúng hình dạng của nội dung sắp hiện, trong lúc dữ l
 | `size` | input | `'sm' \| 'md' \| 'lg'` | `'md'` | |
 | `width` | input | `'full' \| 'wide' \| 'half' \| 'short'` | `'full'` | Bốn mức đặt sẵn, không nhận số tự do — số tự do là cách một hệ có hai mươi bề rộng skeleton mà không cái nào khớp nội dung thật |
 | `lines` · `repeat` | input | `number` | `1` | `lines` chỉ có nghĩa với `variant = 'text'`, dòng cuối tự rút ngắn; `repeat` là số lần lặp cả cụm, dùng cho danh sách và hàng bảng |
-| `preset` | input | `string \| null` | `null` | Chỉ có nghĩa với `variant = 'group'`; tên khuôn ghép sẵn |
+| `preset` | input | `string \| null` | `null` | Chỉ có nghĩa với `variant = 'group'`; tên khuôn ghép sẵn. Danh sách khuôn sống **ở bảng này**, không ở màn nào — xem `Cần chốt` #2 |
 | `rounded` | input | `boolean` | `false` | Ép `--radius-full` cho `block` khi nó giữ chỗ cho một chip |
 
 Không có `output()` nào: skeleton không tương tác, không có gì để báo ra ngoài. Đây là component **dumb** ([`../COMPONENTS.md`](../COMPONENTS.md) §5) ở mức triệt để nhất trong bảng — nó không biết mình đang chờ cái gì, không biết request nào đang bay. Ràng buộc đi kèm: nơi gọi **phải** tắt skeleton ở cả nhánh thành công lẫn nhánh lỗi; chỉ tắt ở nhánh thành công là cách một màn treo vĩnh viễn ở trạng thái đang tải.
@@ -125,6 +125,5 @@ Không có `output()` nào: skeleton không tương tác, không có gì để b
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Thời lượng một vòng sáng chạy chưa có token. [`../DESIGN.md`](../DESIGN.md) §7 dừng ở `--dur-slow`, vốn dành cho chuyển tiếp một lần; một vòng lặp cần thời lượng dài hơn hẳn và thuộc một nhóm khác | Người dựng hệ token |
-| 2 | Có ngưỡng thời gian tối thiểu trước khi hiện skeleton không? Dữ liệu về sau một khoảng rất ngắn sẽ tạo ra cú nháy skeleton còn khó chịu hơn là không có gì; nhưng ngưỡng chờ lại làm màn có vẻ đơ ở đầu | Sau khi đo thời gian phản hồi thật |
-| 3 | Danh sách khuôn `group` gồm những gì, và ai giữ nó? Để mỗi màn tự ghép khối là quay lại đúng vấn đề bề rộng tự do | Sau khi có `DataTable` và `Card` thật |
+| 1 | Có ngưỡng thời gian tối thiểu trước khi hiện skeleton không? Dữ liệu về sau một khoảng rất ngắn sẽ tạo ra cú nháy skeleton còn khó chịu hơn là không có gì; nhưng ngưỡng chờ lại làm màn có vẻ đơ ở đầu | F3 — khi đo được thời gian phản hồi qua HTTP thật |
+| 2 | Danh sách khuôn `group` gồm những gì? Để mỗi màn tự ghép khối là quay lại đúng vấn đề bề rộng tự do | F1 — khi dựng `SkeletonLoader`, sau `DataTable` và `Card` |

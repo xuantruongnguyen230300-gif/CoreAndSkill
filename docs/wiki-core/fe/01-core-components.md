@@ -44,9 +44,9 @@ Ngưỡng định lượng giữ nguyên như BE: **code chỉ được nâng l�
 | A5 | **Menu động theo quyền** | `core/menu` | Sản phẩm khác có tập màn khác. Menu hardcode nghĩa là Core biết tên nghiệp vụ — vi phạm ranh giới | [`07-auth-identity.md`](07-auth-identity.md) §6 |
 | A6 | **Hệ design token** | `core/theme` + stylesheet toàn cục | Không có token thì mỗi màn tự chọn màu, và đổi thương hiệu cho sản phẩm thứ hai là sửa hàng trăm chỗ | [`04-design-token-system.md`](04-design-token-system.md) |
 | A7 | **Lớp bọc thư viện UI** | `shared/ui` | Đổi hoặc nâng thư viện UI mà không phải sửa mọi màn nghiệp vụ | [`05-component-library.md`](05-component-library.md) |
-| A8 | **Bộ component dùng chung** | `shared/components` | Bảng dữ liệu, form field, modal, confirm, toast, empty state, skeleton, page header | [`05-component-library.md`](05-component-library.md) §3 |
+| A8 | **Bộ component dùng chung** | `shared/ui` (Nền "bọc PrimeNG") + `shared/components` (Nền "tự dựng") — thư mục theo cột Nền ở [`05-component-library.md`](05-component-library.md) §3 | Form field, modal, confirm, toast, empty state, skeleton, page header | [`05-component-library.md`](05-component-library.md) §3 |
 | A9 | **Hạ tầng form** | `shared/forms` (có trong sơ đồ `shared/` ở [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.2) | Typed reactive form, hiển thị lỗi theo ô, bind `fieldErrors` từ BE | [`09-forms-validation.md`](09-forms-validation.md) |
-| A10 | **Bảng dữ liệu server-side** | `shared/components/data-grid` | Phân trang, sắp xếp, lọc ở server là mặc định của hệ quản trị; làm sai chỗ này thì mọi màn danh sách đều chậm | [`11-grid-and-metadata.md`](11-grid-and-metadata.md) |
+| A10 | **Bảng dữ liệu server-side** | `shared/ui/data-table` (`DataTable`) | Phân trang, sắp xếp, lọc ở server là mặc định của hệ quản trị; làm sai chỗ này thì mọi màn danh sách đều chậm | [`11-grid-and-metadata.md`](11-grid-and-metadata.md) |
 | A11 | **Đa ngôn ngữ** | `core/i18n` | Không phải vì hôm nay cần hai thứ tiếng, mà vì câu chữ phải nằm ngoài template — xem §5.1 | [`08-i18n.md`](08-i18n.md) |
 | A12 | **Layout shell** | `platform/shell` | Topbar, sidebar, breadcrumb, vùng nội dung; cờ tắt shell cho màn đăng nhập | [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) |
 | A13 | **Màn quản trị Core** | `platform/*` | Danh sách đầy đủ và nguồn duy nhất của nó: [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.3. Gồm cả **hồ sơ cá nhân**, **quản trị vai trò** và **khu quản trị đơn vị** cho tài khoản vận hành ([`../../contracts/tenants.md`](../../contracts/tenants.md)), tách hẳn khỏi các màn nghiệp vụ | [`trien-khai/04-f3-man-quan-tri.md`](trien-khai/04-f3-man-quan-tri.md) |
@@ -71,10 +71,10 @@ Nhóm B khác Nhóm A ở một điểm: **thiếu chúng thì app vẫn chạy 
 | B4 | **Tải tệp lên** | Khi màn nghiệp vụ đầu tiên cần đính kèm. **Phía BE đã thuộc v1** ([`../../contracts/files.md`](../../contracts/files.md)), nên phần còn thiếu chỉ là component tải lên và hiển thị danh sách tệp | [`05-component-library.md`](05-component-library.md) §7 |
 | B5 | **Virtual scroll** | Khi một bảng thật sự phải hiển thị hàng nghìn dòng cùng lúc mà không phân trang được | [`13-performance.md`](13-performance.md) §6 |
 | B6 | **Đồng bộ giữa nhiều tab** | Khi có luồng thật mở hai tab song song và dữ liệu lệch gây hậu quả | [`03-state-management.md`](03-state-management.md) §7 |
-| B7 | **Feature flag** | Khi cần bật/tắt tính năng theo môi trường mà không deploy lại | chưa chốt |
+| B7 | **Feature flag** | Khi cần bật/tắt tính năng theo môi trường mà không deploy lại | ngoài v1 |
 | B8 | **Store chuyên dụng (NgRx)** | Khi thoả ngưỡng khai ở [`03-state-management.md`](03-state-management.md) §3 | [`03-state-management.md`](03-state-management.md) |
 | B9 | **Xuất dữ liệu phía client** | Khi cần xuất thứ server không dựng được (ví dụ đúng cột đang hiển thị) | [`11-grid-and-metadata.md`](11-grid-and-metadata.md) §8 |
-| B10 | **PWA / hoạt động ngoại tuyến** | Khi có người dùng thật làm việc ở nơi mất mạng | chưa chốt |
+| B10 | **PWA / hoạt động ngoại tuyến** | Khi có người dùng thật làm việc ở nơi mất mạng | ngoài v1 |
 
 ---
 
@@ -94,15 +94,15 @@ Nhóm B khác Nhóm A ở một điểm: **thiếu chúng thì app vẫn chạy 
 | A3, A4, A5 — phiên, guard, menu | ✅ sẽ có | F2 | Permission-based, **không** role-based |
 | A11 — i18n | ✅ sẽ có | F2 | Hạ tầng bật từ F2; bản dịch thứ hai có thể về sau |
 | A12 — layout shell | ✅ sẽ có | F2 | Cùng lúc với màn đăng nhập, vì màn đó cần cờ tắt shell |
-| A8, A9, A10 — component, form, grid | ✅ sẽ có | F3 | Sinh ra từ nhu cầu thật của hai màn quản trị |
-| A13 — màn quản trị Core | ✅ sẽ có | F3 | Người dùng + phân quyền |
+| A8, A9, A10 — component, form, grid | ✅ sẽ có | F3 | Sinh ra từ nhu cầu thật của các màn quản trị F3 |
+| A13 — màn Core ở `platform/` | ✅ sẽ có | F2, F3, sau F3 | Hồ sơ cá nhân ở F2; người dùng, vai trò, phân quyền ở F3; khu quản trị đơn vị sau F3, đóng khi B3 xong — [`trien-khai/00-lo-trinh-tong-the.md`](trien-khai/00-lo-trinh-tong-the.md) §1 |
 
 ### 4.2 Cố ý chưa làm ở v1 — kèm lý do và điều kiện mở lại
 
 | Hạng mục | Trạng thái | Vì sao | Điều kiện mở lại |
 | --- | --- | --- | --- |
 | **NgRx / store chuyên dụng** (B8) | ❌ chưa | Signals đã là cơ chế reactivity gốc của Angular. Thêm một tầng store nữa nghĩa là mỗi dev phải học hai mô hình, và mỗi thay đổi state đi qua ba file thay vì một | Thoả ngưỡng khai ở [`03-state-management.md`](03-state-management.md) §3 |
-| **Thư viện biểu đồ** (B3) | ❌ chưa | Mọi biến thể của `Chart` trừ `line` tự dựng bằng HTML/CSS, không cần thư viện nào. Cài sẵn là gánh bundle cho phần lớn dự án không chạm tới biến thể `line` | Màn đầu tiên dùng biến thể `line`, và khi đó **nạp theo yêu cầu** — [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md) ràng buộc 1 |
+| **Thư viện biểu đồ** (B3) | ❌ chưa | Mọi biến thể của `Chart` trừ `line` vẽ bằng HTML/CSS bên trong lớp bọc `shared/ui/chart`, không cần thư viện biểu đồ nào. Cài sẵn là gánh bundle cho phần lớn dự án không chạm tới biến thể `line` | Màn đầu tiên dùng biến thể `line`, và khi đó **nạp theo yêu cầu** — [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md) ràng buộc 1 |
 | **Sink lỗi runtime bên ngoài** (B1) | ❌ chưa | Chưa có môi trường thật, chưa có người dùng thật. Gắn sớm là gắn vào một hộp không ai mở | Có môi trường staging dùng thật, hoặc lỗi đầu tiên không tái hiện được |
 | **Đo Web Vitals tự động** (B2) | ❌ chưa | Đo được thì phải có người đọc số. Chưa có ai đọc và chưa có ngưỡng để so | Có ngân sách bundle đã chốt bằng số đo thật ([`13-performance.md`](13-performance.md) §4) |
 | **Cache phía client theo thời gian sống** | ❌ chưa | Cùng lý do với quyết định hoãn Redis phía BE: chưa có số đo nào cho thấy đang chậm. Cache sai là dữ liệu cũ hiển thị như dữ liệu mới — sai kiểu khó phát hiện nhất | Có số đo cho thấy một endpoint bị gọi lặp và tốn |

@@ -64,7 +64,7 @@ Bo góc `--radius-pill`. Đệm ngang `--sp-4`, khe giữa nhãn và nút gỡ `
 | `hover` | Nền đậm hơn một bậc. Riêng nút gỡ có vùng hover của chính nó: nền `--color-surface-2` dạng tròn. **Bọc trong `@media (hover: hover)`** | Có |
 | `focus-visible` | `outline: var(--border-w-strong) solid var(--color-focus)`, `outline-offset: 2px`. Nhãn chip và nút gỡ là **hai điểm dừng Tab riêng** ở biến thể `applied` | Có |
 | `active` | Nền `--color-brand-subtle` đậm thêm một bậc; không dùng `transform` — chip nhỏ, dịch nó xuống trông như rung | Có |
-| `disabled` | Chỉ có ở biến thể `readonly`: chữ `--color-text-muted`, không có nút gỡ, con trỏ `default` chứ không phải `not-allowed` — nó không phải một thứ hỏng, nó là một thứ cố định. Kèm icon khoá và `Tooltip` nói lý do | Có |
+| `disabled` | Chỉ có ở biến thể `readonly`: chữ `--color-text-muted`, không có nút gỡ, con trỏ `default` chứ không phải `not-allowed` — nó không phải một thứ hỏng, nó là một thứ cố định. **Không icon** — chỉ bỏ nút gỡ; `Tooltip` nói lý do | Có |
 | `loading` | **Không áp dụng.** Chip không tự tải gì. Việc lọc lại danh sách sau khi gỡ chip là trạng thái `loading` của [`DataTable.md`](./DataTable.md), và ô tìm trong `Toolbar` là nơi hiện vòng quay | — |
 | `error` | **Không áp dụng.** Một điều kiện lọc không hợp lệ thì không bao giờ được tạo thành chip. Lỗi thuộc về panel lọc, nơi người dùng nhập điều kiện | — |
 | `empty` | Không điều kiện nào bật → **cả hàng chip biến mất hẳn**, không để lại một hàng cao rỗng. `Toolbar.md` đã ghi luật này ở dòng `empty` của nó | Có |
@@ -78,16 +78,15 @@ Bo góc `--radius-pill`. Đệm ngang `--sp-4`, khe giữa nhãn và nút gỡ `
 | Khoảng cách | `--sp-2`, `--sp-3`, `--sp-4` |
 | Hình dạng | `--radius-pill`, `--radius-full`, `--border-w`, `--border-w-strong` |
 | Kích thước | `--size-control-sm`, `--icon-sm` |
-| Icon | `pi-times` để gỡ, `pi-lock` cho `readonly` — [`../Icons.md`](../Icons.md) §5 |
+| Icon | `pi-times` để gỡ — [`../Icons.md`](../Icons.md) §5; `readonly` không có icon |
 | Chuyển động | `--dur-fast`, `--ease-standard` |
 
 ## Responsive
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-md` | Chip xếp thành hàng, xuống dòng khi hết chỗ, khe `--sp-3` |
-| `--bp-sm` … `--bp-md` | Giữ nguyên. Nhãn chip dài cắt bằng dấu ba chấm ở phần **giá trị**, giữ nguyên phần tên điều kiện |
-| < `--bp-sm` | Chip **cuộn ngang trong một dải riêng** thay vì xuống nhiều dòng, theo đúng luật đã ghi ở [`Toolbar.md`](./Toolbar.md). Vùng cuộn phải nhận được focus |
+| ≥ `$bp-md` | Chip xếp thành hàng, xuống dòng khi hết chỗ, khe `--sp-3` |
+| < `$bp-md` | Chip **cuộn ngang trong một dải riêng** thay vì xuống nhiều dòng — cùng ngưỡng với hàng chip ở [`Toolbar.md`](./Toolbar.md) §Responsive. Vùng cuộn phải nhận được focus. Nhãn chip dài cắt bằng dấu ba chấm ở phần **giá trị**, giữ nguyên phần tên điều kiện |
 
 **Vì sao cắt phần giá trị chứ không cắt phần tên:** một chip ghi "Trạng thái: Hoạt đ…" vẫn nói được nó đang lọc theo cái gì; một chip ghi "Trạ…: Hoạt động" thì không. Khi phải bỏ bớt, giữ lại cái trả lời câu *"đây là điều kiện gì"*.
 
@@ -117,7 +116,7 @@ Bo góc `--radius-pill`. Đệm ngang `--sp-4`, khe giữa nhãn và nút gỡ `
 | `removed` | output | `string` | — | Phát `key`. **Không phát ở biến thể `readonly`** — chặn ở component, không bắt mỗi nơi gọi tự nhớ |
 | `toggled` | output | `boolean` | — | Chỉ phát ở biến thể `toggle` |
 
-`FilterChip` là component **dumb** — nó không biết điều kiện này lọc ra bao nhiêu bản ghi, và không tự gọi lại danh sách ([`../COMPONENTS.md`](../COMPONENTS.md) §5).
+`FilterChip` là component **dumb** — nó không biết điều kiện này lọc ra bao nhiêu bản ghi, và không tự gọi lại danh sách ([`../COMPONENTS.md`](../COMPONENTS.md) §5). Chip vẽ từ trạng thái danh sách của màn, và trạng thái đó sống trên URL ([`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.8): điều kiện đến từ tham số URL hiện thành chip như mọi điều kiện khác; gỡ chip → `removed` → tầng trạng thái ghi lại URL. Nút xoá tất cả điều kiện thuộc [`Toolbar.md`](./Toolbar.md) (`filtersCleared`), không đứng cuối hàng chip.
 
 ## Do / Don't
 
@@ -132,8 +131,4 @@ Bo góc `--radius-pill`. Đệm ngang `--sp-4`, khe giữa nhãn và nút gỡ `
 
 ## Cần chốt
 
-| # | Câu hỏi | Ai trả lời được |
-| --- | --- | --- |
-| 1 | Nhiều giá trị của cùng một trường gộp thành một chip hay tách nhiều chip? Gộp thì hàng chip gọn nhưng phải mở panel mới biết gồm những gì; tách thì thấy ngay nhưng năm giá trị là năm chip | Dự án đầu tiên có bộ lọc nhiều trường |
-| 2 | Có cần nút "Xoá tất cả điều kiện" ở cuối hàng chip không? Nó tiện nhưng dễ bấm nhầm và không hoàn tác được | Sau khi có màn danh sách thật |
-| 3 | Chip có phản ánh được điều kiện đến từ tham số trên URL không, và gỡ nó thì URL đổi theo thế nào? Liên quan tới cách [`DataTable.md`](./DataTable.md) giữ trạng thái trên URL | Người dựng màn danh sách đầu tiên |
+Không còn.

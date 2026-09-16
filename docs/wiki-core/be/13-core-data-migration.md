@@ -153,28 +153,33 @@ Có ba loại thay đổi dữ liệu, và chúng phải được đối xử kh
 
 ### 5.1 Dữ liệu tham chiếu (seed)
 
-Dữ liệu mà **hệ thống không chạy được nếu thiếu**: danh mục quyền của Core, cây menu của Core.
+Dữ liệu mà **hệ thống không chạy được nếu thiếu**: danh mục quyền (`core.permission`, `core.permission_resource`) — khoá của Core do migration của Core ghi, khoá của module do migration của **chính module** ghi theo ngoại lệ có tên của luật E6 ([`../../database/migration-policy.md`](../../database/migration-policy.md) §1). **Chỉ** danh mục quyền đi cùng migration. Menu mang `tenant_id` nên không nằm ở đây — nó sinh cho từng đơn vị lúc tạo đơn vị, qua seam `ITenantSeedSource` ([`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md), [`17-multi-tenant.md`](17-multi-tenant.md) §11.4).
 
 | Quy tắc | Vì sao |
 | --- | --- |
+| Khoá khai trong code qua `IPermissionCatalogSource`, kiểm lúc khởi động; migration chỉ đưa dòng vào DB | Seam và phép kiểm lúc khởi động: [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1 |
 | Đi cùng migration | Nó là một phần của định nghĩa hệ thống, không phải dữ liệu người dùng |
-| **Ghi có điều kiện** — có rồi thì bỏ qua, chưa có thì thêm | Migration có thể chạy trên DB đã có dữ liệu |
+| **Ghi có điều kiện** — `INSERT … ON CONFLICT … DO NOTHING` | Migration có thể chạy trên DB đã có dữ liệu |
 | **Không xoá tự động** những mục không còn trong danh sách | Một khoá quyền biến mất làm mọi dòng phân quyền trỏ tới nó thành rác âm thầm. Đánh dấu ngừng dùng, dọn bằng một bước có chủ đích |
 | Định danh **cố định**, không sinh ngẫu nhiên | Sinh ngẫu nhiên thì mỗi môi trường một giá trị, và không tham chiếu chéo được |
+| Test CI đối chiếu **hai chiều** hằng số khoá trong code ↔ dòng seed trong migration — luật B7, phủ cả khoá của module | Khoá có trong code mà thiếu trong DB thì deny-by-default trả 403 cho mọi người, kể cả tài khoản đủ quyền |
+| Tiến trình ứng dụng **không** ghi danh mục, lúc khởi động hay lúc chạy; tài khoản DB của ứng dụng chỉ `SELECT` trên hai bảng — luật M13 | Hướng đã khoá, lý do ở §8 |
 
 Dòng cuối rẻ khi làm từ đầu và rất đắt khi sửa sau — lúc đó dữ liệu thật đã trỏ vào các định danh khác nhau ở mỗi môi trường.
 
 ### 5.2 Dữ liệu bootstrap
 
-Tài khoản đầu tiên, để có người đăng nhập được vào một hệ thống vừa cài. Xem [`02-identity-auth.md`](02-identity-auth.md) §3.6.
+Hai đơn vị và hai tài khoản đầu tiên, để có người đăng nhập được vào một hệ thống vừa cài. Xem [`02-identity-auth.md`](02-identity-auth.md) §3.6 · [`17-multi-tenant.md`](17-multi-tenant.md) §10.
 
 | Quy tắc | Vì sao |
 | --- | --- |
-| **Không** nằm trong migration chạy ở môi trường thật | Một migration tạo tài khoản có mật khẩu biết trước là một cửa sau đi theo mọi lần triển khai |
-| Là một **lệnh riêng**, chạy có chủ đích khi cài đặt | Người vận hành quyết định thời điểm và mật khẩu |
-| Bắt buộc đổi mật khẩu ở lần đăng nhập đầu | |
+| **Không** nằm trong migration | Một migration tạo tài khoản có mật khẩu biết trước là một cửa sau đi theo mọi lần triển khai |
+| Là một **lệnh riêng**, chạy có chủ đích khi cài đặt, gọi service tạo đơn vị dùng chung | Người vận hành quyết định thời điểm và mật khẩu; endpoint tạo đơn vị về sau đi đúng đường đó — [`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md) |
+| Máy dev và bản thật dùng **cùng một** lệnh; không có tệp `.sql` dữ liệu riêng cho dev | Đường cài đặt thật được chạy mỗi ngày trên máy dev, thay vì chỉ chạy một lần trên bản cài thật |
+| Mã, tên đơn vị và thông tin tài khoản đọc từ cấu hình và `user-secrets`; thiếu một giá trị thì lệnh dừng, **không ghi dòng nào** | Không có đường code nào chứa sẵn mật khẩu, nên không cần rào theo môi trường — [`../../adr/0022-seed-dev-khong-co-duong-code-rieng.md`](../../adr/0022-seed-dev-khong-co-duong-code-rieng.md) |
+| Chạy lại không nhân đôi | Lệnh chạy lại được sau một lần hỏng giữa chừng mà không cần dọn tay |
+| Cả tài khoản vận hành lẫn tài khoản quản trị đơn vị bắt buộc đổi mật khẩu ở lần đăng nhập đầu | Mật khẩu ban đầu nằm trong kho cấu hình của máy chạy lệnh — [`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md) §3 |
 | Ghi vào nhật ký kiểm toán | |
-| Ở môi trường phát triển, **dữ liệu** được phép seed sẵn cho tiện; **tài khoản thì không** | Dữ liệu đi bằng một tệp `.sql`, tài khoản đi bằng chính lệnh bootstrap với mật khẩu từ `user-secrets` — [`../../adr/0022-seed-dev-khong-co-duong-code-rieng.md`](../../adr/0022-seed-dev-khong-co-duong-code-rieng.md). Không có đường code nào chứa sẵn mật khẩu, nên không cần rào theo môi trường |
 
 ### 5.3 Lấp dữ liệu cũ (backfill)
 
@@ -257,7 +262,9 @@ Thứ tự áp là cố định và không có ngoại lệ: môi trường phá
 
 ## 7. Cửa thoát hiểm
 
-Có những tình huống phải chạm thẳng vào DB môi trường thật: dữ liệu hỏng do một lỗi đã sửa, một bản ghi kẹt chặn cả hệ, một tài khoản quản trị bị khoá hết.
+Có những tình huống phải chạm thẳng vào DB môi trường thật: dữ liệu hỏng do một lỗi đã sửa, một bản ghi kẹt chặn cả hệ.
+
+Mất quyền truy cập tài khoản quản trị **không** đi cửa này: quản trị đơn vị được khôi phục qua khu hệ thống, tài khoản vận hành bằng lệnh chạy tay — [`02-identity-auth.md`](02-identity-auth.md) §4.4.
 
 Đây là **lưới an toàn cuối**, không phải quy trình vận hành. Điều kiện:
 
@@ -277,13 +284,14 @@ Có những tình huống phải chạm thẳng vào DB môi trường thật: d
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
 | Core sở hữu migration schema `core` | 📐 quyết định đã chốt | [`../../adr/0008-core-so-huu-migration.md`](../../adr/0008-core-so-huu-migration.md) |
-| Mỗi module sở hữu migration của mình | ✅ sẽ có | Luật E6 |
+| Mỗi module sở hữu migration của mình | ✅ sẽ có | Luật E6 — ngoại lệ có tên duy nhất: khoá quyền của module ([`../../database/migration-policy.md`](../../database/migration-policy.md) §1) |
 | Lịch sử migration tách riêng theo phía | ✅ sẽ có | Không trộn vào một bảng lịch sử chung |
 | Cấm khoá ngoại vật lý xuyên schema | 📐 luật | Luật E5 |
 | App từ chối khởi động khi còn migration chưa áp | ✅ sẽ có | Luật E8 |
 | Áp lược đồ chạy tay, có đường dẫn và thứ tự cố định | ✅ sẽ có | [`../../database/script-runbook.md`](../../database/script-runbook.md) |
-| Seed danh mục quyền và menu của Core | ✅ sẽ có | Định danh cố định, ghi có điều kiện, không xoá tự động |
-| Lệnh bootstrap riêng cho tài khoản đầu tiên | ✅ sẽ có | Không nằm trong migration của môi trường thật |
+| Seed danh mục quyền bằng migration — khoá Core ở migration Core, khoá module ở migration module | ✅ sẽ có | Định danh cố định, `ON CONFLICT … DO NOTHING`, không xoá tự động, test hai chiều (B7). Menu sinh theo đơn vị qua `ITenantSeedSource` — [`17-multi-tenant.md`](17-multi-tenant.md) §11.4 |
+| Lệnh bootstrap riêng cho hai đơn vị và hai tài khoản đầu tiên, dùng chung cho dev và bản thật | ✅ sẽ có | Không nằm trong migration. [`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md) |
+| **Tiến trình ứng dụng ghi danh mục quyền vào DB lúc khởi động hoặc lúc chạy** | ❌ loại, không hoãn `K52` | Bốn lý do: tiến trình ứng dụng phải có quyền ghi vào bảng danh mục; nhiều tiến trình đồng bộ đua nhau; lỗi đồng bộ bị nuốt thành cảnh báo; khoá có trong code mà không vào DB. Dòng danh mục vào DB bằng migration — §5.1 |
 | **Job đối soát tham chiếu xuyên schema** | ❌ chưa | Cần khi có module thứ hai |
 | **Tự động áp migration lúc khởi động** | ❌ **không làm** | Lý do ở §3.1 — đây là quyết định về hướng |
 | **Backfill trong migration** | ❌ **không làm** | Backfill lớn là script riêng, chạy theo lô |

@@ -31,7 +31,7 @@ Mỗi hộp xác nhận là một cú bấm thêm cho **mọi** lần dùng, k�
 
 Thứ tự ưu tiên khi thiết kế:
 
-1. **Làm cho hoàn tác được** → làm luôn, cho `Toast` kèm nút "Hoàn tác". Đây là lựa chọn tốt nhất.
+1. **Làm cho hoàn tác được** → làm luôn, cho `Toast` kèm nút "Hoàn tác". Đây là lựa chọn tốt nhất — nhưng chỉ mở khi card của thao tác có endpoint hoàn tác; điều kiện ghi ở [`Toast.md`](./Toast.md) §API.
 2. **Không hoàn tác được nhưng ít hậu quả** → làm luôn, không hỏi.
 3. **Không hoàn tác được và có hậu quả** → mới dùng component này.
 
@@ -51,7 +51,7 @@ Icon nằm trong một vòng tròn `--radius-full` nền là token `*-bg` tươn
 
 | Khoản | Giá trị |
 | --- | --- |
-| Bề rộng | Luôn `sm` của [`Dialog.md`](./Dialog.md) (420px). **Không có biến thể rộng hơn** — một câu hỏi cần rộng hơn thế thì nó không phải một câu hỏi |
+| Bề rộng | Luôn `sm` của [`Dialog.md`](./Dialog.md) — `--layout-dialog-w-sm`. **Không có biến thể rộng hơn** — một câu hỏi cần rộng hơn thế thì nó không phải một câu hỏi |
 | Đệm | `--sp-6` |
 | Khe icon → nội dung | `--sp-5` |
 | Khe tiêu đề → mô tả | `--sp-3` |
@@ -84,7 +84,7 @@ Icon nằm trong một vòng tròn `--radius-full` nền là token `*-bg` tươn
 | Chữ | `--fs-lg`, `--fs-sm`, `--fw-bold`, `--fw-regular`, `--lh-tight`, `--lh-normal` |
 | Khoảng cách | `--sp-3`, `--sp-4`, `--sp-5`, `--sp-6` |
 | Hình dạng | `--radius-lg`, `--radius-full`, `--border-w` |
-| Kích thước | `--size-control-lg`, `--icon-lg` |
+| Kích thước | `--size-control-lg`, `--icon-lg`, `--layout-dialog-w-sm` |
 | Bóng | `--shadow-4` |
 | Lớp | `--z-dialog`, `--z-backdrop` |
 
@@ -92,8 +92,8 @@ Icon nằm trong một vòng tròn `--radius-full` nền là token `*-bg` tươn
 
 | Ngưỡng | Hành vi |
 | --- | --- |
-| ≥ `--bp-sm` | Icon bên trái, nội dung bên phải; hai nút xếp ngang, ghim mép phải |
-| < `--bp-sm` | Icon lên trên, căn giữa; hai nút xếp dọc, **nút xác nhận lên trên**; cả hai nút `block` |
+| ≥ `$bp-sm` | Icon bên trái, nội dung bên phải; hai nút xếp ngang, ghim mép phải |
+| < `$bp-sm` | Icon lên trên, căn giữa; hai nút xếp dọc, **nút xác nhận lên trên**; cả hai nút `block` |
 
 Thứ tự trong DOM giữ nguyên (huỷ trước, xác nhận sau) và đảo bằng `order` của flex ở màn nhỏ — cùng cách xử lý với [`Button.md`](./Button.md).
 
@@ -125,7 +125,7 @@ Thứ tự trong DOM giữ nguyên (huỷ trước, xác nhận sau) và đảo 
 | `message` | input | `string` | — | Bắt buộc. `alertdialog` cần cả nhãn lẫn mô tả |
 | `confirmLabel` | input | `string` | — | Bắt buộc. **Không có mặc định "Đồng ý"** — bắt nơi gọi phải nghĩ ra một nhãn nói được hành động |
 | `cancelLabel` | input | `string \| null` | `null` | `null` thì dùng nhãn huỷ chung từ i18n |
-| `requireAcknowledge` | input | `string \| null` | `null` | Chuỗi là nhãn của một ô đánh dấu bắt buộc tick trước khi xác nhận bật lên. Chỉ dùng cho ca thật sự nặng |
+| `requireAcknowledge` | input | `string \| null` | `null` | Chuỗi là nhãn của một ô đánh dấu bắt buộc tick trước khi xác nhận bật lên. Chỉ dùng cho ca thật sự nặng. Là input, không phải biến thể — hộp thêm đúng một dòng `Check`, không đổi bố cục |
 | `loading` | input | `boolean` | `false` | |
 | `error` | input | `string \| null` | `null` | |
 | `confirmed` | output | `void` | — | Hộp **không tự đóng** sau khi phát. Nơi gọi đóng sau khi thao tác xong |
@@ -154,6 +154,4 @@ Thứ tự trong DOM giữ nguyên (huỷ trước, xác nhận sau) và đảo 
 
 | # | Câu hỏi | Ai trả lời được |
 | --- | --- | --- |
-| 1 | Có làm kiểu "gõ tên bản ghi để xác nhận" cho ca nặng nhất không? Nó chặn được thao tác nhầm rất tốt nhưng gây khó chịu, và người dùng thành thạo sẽ ghét | Dự án đầu tiên có thao tác xoá hàng loạt |
-| 2 | `requireAcknowledge` là ô đánh dấu trong hộp hay là một biến thể riêng? Hôm nay để là một input, có thể làm hộp phình | Người dựng component |
-| 3 | Nút "Hoàn tác" trong `Toast` (con đường được khuyến khích hơn hỏi xác nhận) cần hạ tầng gì phía máy chủ? Đây là câu hỏi cho phía backend chứ không phải Design, nhưng nó quyết định lựa chọn số 1 ở §Khi nào dùng có khả thi không | Người thiết kế tầng dữ liệu |
+| 1 | Có làm kiểu "gõ tên bản ghi để xác nhận" cho ca nặng nhất không? Nó chặn được thao tác nhầm rất tốt nhưng gây khó chịu, và người dùng thành thạo sẽ ghét | Sau F3 — dự án hạ nguồn đầu tiên có thao tác xoá hàng loạt |
