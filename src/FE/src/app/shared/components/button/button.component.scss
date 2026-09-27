@@ -1,0 +1,109 @@
+// Design/Components/Button.md — token dùng liệt kê ở §Token dùng của file đó.
+.nut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  border: var(--border-w) solid transparent;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: none;
+  }
+}
+
+.nut--sm {
+  height: var(--size-control-sm);
+  padding: 0 var(--sp-4);
+  font-size: var(--fs-xs);
+}
+
+.nut--md {
+  height: var(--size-control-md);
+  padding: 0 var(--sp-5);
+  font-size: var(--fs-sm);
+}
+
+.nut--lg {
+  height: var(--size-control-lg);
+  padding: 0 var(--sp-6);
+  font-size: var(--fs-md);
+}
+
+.nut--block {
+  width: 100%;
+}
+
+.nut--primary {
+  background: var(--color-brand);
+  color: var(--color-text-on-brand);
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--color-brand-hover);
+      box-shadow: var(--shadow-2);
+    }
+  }
+
+  &:active:not(:disabled) {
+    background: var(--color-brand-active);
+  }
+}
+
+.nut--secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--color-surface-2);
+      border-color: var(--color-border-strong);
+      box-shadow: var(--shadow-2);
+    }
+  }
+}
+
+.nut--ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--color-surface-2);
+      color: var(--color-text);
+    }
+  }
+}
+
+.nut--danger {
+  background: var(--color-danger);
+  color: var(--color-text-on-brand);
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--color-danger-hover);
+      box-shadow: var(--shadow-2);
+    }
+  }
+
+  &:active:not(:disabled) {
+    background: var(--color-danger-active);
+  }
+}

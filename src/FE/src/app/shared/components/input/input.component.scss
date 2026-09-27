@@ -1,0 +1,85 @@
+// Design/Components/Input.md — token dùng liệt kê ở §Token dùng của file đó.
+.input-wrap {
+  position: relative;
+  display: block;
+}
+
+.input {
+  display: block;
+  width: 100%;
+  background: var(--color-surface);
+  border: var(--border-w) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  padding: 0 var(--sp-4);
+  transition: border-color var(--dur-fast) var(--ease-standard);
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      border-color: var(--color-border-strong);
+    }
+  }
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: 2px;
+    border-color: var(--color-brand);
+  }
+
+  &:disabled {
+    background: var(--color-surface-3);
+    color: var(--color-text-disabled);
+    cursor: not-allowed;
+  }
+}
+
+.input--sm {
+  height: var(--size-control-sm);
+  font-size: var(--fs-xs);
+}
+
+.input--md {
+  height: var(--size-control-md);
+  font-size: var(--fs-sm);
+}
+
+.input--lg {
+  height: var(--size-control-lg);
+  font-size: var(--fs-md);
+}
+
+.input--full {
+  width: 100%;
+}
+
+.input--error {
+  border-width: var(--border-w-strong);
+  border-color: var(--color-danger-border);
+}
+
+.nut-hien-an {
+  position: absolute;
+  top: 50%;
+  right: var(--sp-3);
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}

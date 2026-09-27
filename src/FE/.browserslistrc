@@ -1,0 +1,17 @@
+# Khai tường minh dù giá trị bằng đúng mặc định của Angular 20.3 — lý do:
+# docs/wiki-core/fe/16-nen-tang-va-nang-cap.md §5.2 ("do đội quyết định", không để mặc định
+# trôi im lặng theo mỗi lần nâng framework).
+#
+# Nguồn: node_modules/@angular/build/.browserslistrc của bản Angular đã ghim (đọc bằng lệnh,
+# không chép số phiên bản — §8 cùng file). Đây CHÍNH LÀ chính sách hỗ trợ trình duyệt tối thiểu
+# của Angular 20.3, sao chép nguyên trạng — không tự nới hay siết.
+#
+# Điều kiện siết lại: có số liệu người dùng thật (§5.5 cùng file).
+
+Chrome >= 107
+ChromeAndroid >= 107
+Edge >= 107
+Firefox >= 104
+FirefoxAndroid >= 104
+Safari >= 16
+iOS >= 16

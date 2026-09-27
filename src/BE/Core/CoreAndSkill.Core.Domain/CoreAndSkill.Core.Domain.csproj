@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>CoreAndSkill.Core.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Zero package reference — luật A1 ở docs/RULES.md §3. Không thêm PackageReference nào ở đây. -->
+
+</Project>

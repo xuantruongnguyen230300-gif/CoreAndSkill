@@ -1,0 +1,153 @@
+<app-page-header [title]="'donVi.tieuDe' | translate" [description]="'donVi.moTa' | translate">
+  <app-button variant="primary" icon="plus" (clicked)="moHopTao()">{{
+    'donVi.hanhDong.tao' | translate
+  }}</app-button>
+</app-page-header>
+
+<app-toolbar
+  variant="search"
+  [searchValue]="list.query().searchText ?? ''"
+  [searchLabel]="'donVi.timKiem.nhan' | translate"
+  [loading]="list.state() === 'loading'"
+  (searchChanged)="list.setSearchText($event)"
+/>
+
+<app-data-table
+  [rows]="list.rows()"
+  [columns]="columns()"
+  [caption]="'donVi.bang.caption' | translate"
+  rowKey="id"
+  [state]="list.state()"
+  [totalRecords]="list.totalCount()"
+  [page]="list.query().page"
+  [pageSize]="list.query().pageSize"
+  [paginationAriaLabel]="'donVi.bang.caption' | translate"
+  [sortBy]="list.query().sortBy ?? null"
+  [sortDescending]="list.query().sortDescending ?? false"
+  (pageChange)="list.setPage($event.page, $event.pageSize)"
+  (sortChange)="list.setSort($event.sortBy, $event.sortDescending)"
+  [emptyTemplate]="tplRong"
+  [loadingTemplate]="tplDangTai"
+  [errorTemplate]="tplLoi"
+/>
+
+<ng-template #colMa let-dv>{{ dv.code }}</ng-template>
+<ng-template #colTen let-dv>{{ dv.name }}</ng-template>
+
+<ng-template #colTrangThai let-dv>
+  @if (dv.isActive) {
+    <app-badge variant="success">{{ 'donVi.trangThai.hoatDong' | translate }}</app-badge>
+  } @else {
+    <app-badge variant="danger">{{ 'donVi.trangThai.ngung' | translate }}</app-badge>
+  }
+</ng-template>
+
+<ng-template #colNgayTao let-dv>{{
+  dv.createdAt ? (dv.createdAt | date: 'short') : '—'
+}}</ng-template>
+
+<ng-template #colHanhDong let-dv>
+  <app-icon-button
+    icon="ellipsis-v"
+    size="sm"
+    variant="ghost"
+    [ariaLabel]="'donVi.menu.moMenu' | translate: { ten: dv.name }"
+    (click)="onMoMenu($event, dv)"
+  />
+  <app-menu
+    [open]="mucMoMenuId() === dv.id"
+    [anchorEvent]="suKienMoMenu()"
+    [items]="mucMenu(dv)"
+    size="sm"
+    [header]="dv.name"
+    [ariaLabel]="'donVi.menu.moMenu' | translate: { ten: dv.name }"
+    (selected)="onChonMenu($event, dv)"
+    (openChange)="onDongMenu(dv.id)"
+  />
+</ng-template>
+
+<ng-template #tplDangTai>
+  <app-skeleton-loader variant="text" width="full" />
+</ng-template>
+
+<ng-template #tplLoi>
+  <app-empty-state
+    variant="error"
+    size="compact"
+    [title]="'donVi.loi.taiThatBai' | translate"
+    actionLabel="{{ 'chung.thuLai' | translate }}"
+    (actionClicked)="list.reload()"
+  />
+</ng-template>
+
+<ng-template #tplRong let-ca>
+  @if (ca === 'empty') {
+    <app-empty-state
+      variant="first-use"
+      size="compact"
+      [title]="'donVi.trong.tieuDe' | translate"
+      [description]="'donVi.trong.moTa' | translate"
+      [actionLabel]="'donVi.hanhDong.tao' | translate"
+      (actionClicked)="moHopTao()"
+    />
+  } @else {
+    <app-empty-state
+      variant="no-results"
+      size="compact"
+      [title]="'donVi.khongKetQua.tieuDe' | translate: { tuKhoa: list.query().searchText ?? '' }"
+      [description]="'donVi.khongKetQua.moTa' | translate"
+      [actionLabel]="'chung.xoaBoLoc' | translate"
+      (actionClicked)="list.setSearchText('')"
+    />
+  }
+</ng-template>
+
+<app-hop-tao-don-vi
+  [hienThi]="taoHop.hienThi()"
+  [form]="taoHop.form"
+  [loiTruong]="taoHop.loiTruong()"
+  [loiChung]="taoHop.loiChung()"
+  [dangLuu]="taoHop.dangLuu()"
+  [hienThiXacNhanHuy]="taoHop.hienThiXacNhanHuy()"
+  [lanGuiSai]="taoHop.lanGuiSai()"
+  (submitted)="guiTao()"
+  (closed)="taoHop.dongHop()"
+  (dismissAttempted)="taoHop.onDismissAttempted()"
+  (discardConfirmed)="taoHop.xacNhanHuy()"
+  (discardCancelled)="taoHop.huyXacNhanHuy()"
+  (maBlurred)="taoHop.chuanHoaMa()"
+/>
+
+<app-hop-quan-tri-don-vi
+  [dangMo]="quanTriHop.dangMo()"
+  [donVi]="quanTriHop.donViDangThaoTac()"
+  [formKhoiPhuc]="quanTriHop.formKhoiPhuc"
+  [formTaoQuanTri]="quanTriHop.formTaoQuanTri"
+  [loiTruong]="quanTriHop.loiTruong()"
+  [loiChung]="quanTriHop.loiChung()"
+  [dangGui]="quanTriHop.dangGui()"
+  [hienThiXacNhanHuy]="quanTriHop.hienThiXacNhanHuy()"
+  [lanGuiSai]="quanTriHop.lanGuiSai()"
+  (submittedKhoiPhuc)="guiKhoiPhuc()"
+  (submittedTaoQuanTri)="guiTaoQuanTri()"
+  (closed)="quanTriHop.dongHop()"
+  (dismissAttempted)="quanTriHop.onDismissAttempted()"
+  (discardConfirmed)="quanTriHop.xacNhanHuy()"
+  (discardCancelled)="quanTriHop.huyXacNhanHuy()"
+/>
+
+<!-- ConfirmDialog "Ngưng hoạt động" — severity warning (Design/Screens/20-don-vi.md). -->
+<app-confirm-dialog
+  [open]="donViDangNgung() !== null"
+  severity="warning"
+  [title]="
+    'donVi.ngung.tieuDe'
+      | translate: { ten: donViDangNgung()?.name ?? '', ma: donViDangNgung()?.code ?? '' }
+  "
+  [message]="'donVi.ngung.moTa' | translate"
+  [confirmLabel]="'donVi.ngung.xacNhan' | translate"
+  [loading]="dangXacNhanNgung()"
+  [error]="loiXacNhanNgung()"
+  (confirmed)="xacNhanNgung()"
+  (cancelled)="dongXacNhanNgung()"
+/>

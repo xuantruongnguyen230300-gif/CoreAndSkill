@@ -1,0 +1,68 @@
+<ng-template #noiDungThe>
+  @if (heading()) {
+    <div class="card__dau">
+      <div class="card__dau-chu">
+        @switch (headingLevel()) {
+          @case (3) {
+            <h3 class="card__tieu-de" [id]="idTieuDe">{{ heading() }}</h3>
+          }
+          @case (4) {
+            <h4 class="card__tieu-de" [id]="idTieuDe">{{ heading() }}</h4>
+          }
+          @default {
+            <h2 class="card__tieu-de" [id]="idTieuDe">{{ heading() }}</h2>
+          }
+        }
+        @if (description()) {
+          <p class="card__mo-ta">{{ description() }}</p>
+        }
+      </div>
+      <div class="card__dau-hanh-dong">
+        <ng-content select="[slot=header-actions]"></ng-content>
+      </div>
+    </div>
+  }
+
+  <div class="card__than" [attr.aria-busy]="loading() ? 'true' : null">
+    <ng-content></ng-content>
+  </div>
+
+  <div class="card__chan">
+    <ng-content select="[slot=footer]"></ng-content>
+  </div>
+</ng-template>
+
+@if (variant() === 'interactive') {
+  <button
+    type="button"
+    class="card card--interactive"
+    [class.card--sm]="size() === 'sm'"
+    [class.card--lg]="size() === 'lg'"
+    [disabled]="disabled()"
+    [attr.aria-disabled]="disabled() ? 'true' : null"
+    [attr.aria-labelledby]="heading() ? idTieuDe : null"
+    [attr.aria-busy]="loading() ? 'true' : null"
+    (click)="kichHoat()"
+  >
+    <ng-container [ngTemplateOutlet]="noiDungThe"></ng-container>
+  </button>
+} @else if (heading()) {
+  <section
+    class="card"
+    [class.card--sm]="size() === 'sm'"
+    [class.card--lg]="size() === 'lg'"
+    [class.card--flat]="variant() === 'flat'"
+    [attr.aria-labelledby]="idTieuDe"
+  >
+    <ng-container [ngTemplateOutlet]="noiDungThe"></ng-container>
+  </section>
+} @else {
+  <div
+    class="card"
+    [class.card--sm]="size() === 'sm'"
+    [class.card--lg]="size() === 'lg'"
+    [class.card--flat]="variant() === 'flat'"
+  >
+    <ng-container [ngTemplateOutlet]="noiDungThe"></ng-container>
+  </div>
+}

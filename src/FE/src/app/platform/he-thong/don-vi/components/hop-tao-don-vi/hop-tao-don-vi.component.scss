@@ -1,0 +1,26 @@
+// Design/Screens/20-don-vi.md — hộp "Tạo đơn vị" chia hai nhóm trường; khe giữa hai nhóm là
+// --sp-7 (FormRow.md §Kích thước, "Khe giữa hai nhóm trường"). `<fieldset>`/`<legend>` — không
+// phải biến thể `group` của FormRow (đó là MỘT nhãn cho NHIỀU control con của MỘT trường, khác
+// hẳn: đây là nhiều FormRow độc lập gom dưới một tiêu đề nhóm).
+.don-vi-form-nhom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-7);
+}
+
+.don-vi-form-nhom__khoi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    width: 100%;
+    padding: 0 0 var(--sp-3);
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-semibold);
+    color: var(--color-text);
+  }
+}

@@ -1,0 +1,46 @@
+<app-auth-card
+  [title]="'xacThuc.dangNhap.tieuDe' | translate"
+  [errorMessage]="loiChung()"
+  [loading]="dangGui()"
+>
+  <form [formGroup]="form" (ngSubmit)="gui()">
+    <app-auth-field
+      #oMaDonVi
+      variant="tenantCode"
+      controlId="dang-nhap-ma-don-vi"
+      [label]="'xacThuc.dangNhap.maDonVi' | translate"
+      autocomplete="organization"
+      [formControl]="form.controls.tenantCode"
+      [errorMessage]="loiCua('tenantCode')"
+    />
+
+    <app-auth-field
+      variant="identifier"
+      controlId="dang-nhap-ten-dang-nhap"
+      [label]="'xacThuc.dangNhap.tenDangNhap' | translate"
+      autocomplete="username"
+      [formControl]="form.controls.userName"
+      [errorMessage]="loiCua('userName')"
+    />
+
+    <app-auth-field
+      variant="password"
+      controlId="dang-nhap-mat-khau"
+      [label]="'xacThuc.dangNhap.matKhau' | translate"
+      autocomplete="current-password"
+      [formControl]="form.controls.password"
+      [errorMessage]="loiCua('password')"
+    />
+
+    <app-button variant="primary" size="lg" [block]="true" type="submit" [loading]="dangGui()">
+      {{ 'xacThuc.dangNhap.nutGui' | translate }}
+    </app-button>
+  </form>
+</app-auth-card>
+
+<app-footer
+  variant="auth"
+  size="sm"
+  [showDivider]="false"
+  [copyright]="'chung.chanTrang.banQuyen' | translate: { nam: namHienTai, tenHeThong: tenHeThong }"
+/>

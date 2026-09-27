@@ -1,0 +1,54 @@
+<app-dialog
+  [open]="hienThi()"
+  size="sm"
+  [title]="'nguoiDung.form.tieuDeSua' | translate: { tenDangNhap: tenDangNhap() }"
+  [dirty]="form().dirty"
+  [loading]="dangGui()"
+  [loadingBlocksClose]="dangGui()"
+  (closed)="closed.emit()"
+  (dismissAttempted)="dismissAttempted.emit()"
+>
+  <app-banner-loi-hop [xungDot]="xungDot()" [loiChung]="loiChung()" (thuLai)="thuLai.emit()" />
+  <form #formEl [formGroup]="form()" (ngSubmit)="submitted.emit()">
+    <app-form-row [label]="'nguoiDung.cot.tenDangNhap' | translate" controlId="ndsua-ten"
+      ><app-input id="ndsua-ten" type="text" [readonly]="true" [value]="tenDangNhap()"
+    /></app-form-row>
+    @let loiEmail = loiTruong().email;
+    <app-form-row
+      [label]="'nguoiDung.form.email' | translate"
+      [required]="true"
+      controlId="ndsua-email"
+      [error]="loiEmail"
+    >
+      <app-input
+        id="ndsua-email"
+        type="text"
+        inputmode="email"
+        [formControl]="form().controls.email"
+        [describedBy]="loiEmail !== null ? 'ndsua-email-error' : null"
+      />
+    </app-form-row>
+    @let loiHoTen = loiTruong().fullName;
+    <app-form-row
+      [label]="'nguoiDung.form.hoTen' | translate"
+      [required]="true"
+      controlId="ndsua-ho-ten"
+      [error]="loiHoTen"
+    >
+      <app-input
+        id="ndsua-ho-ten"
+        type="text"
+        [formControl]="form().controls.fullName"
+        [describedBy]="loiHoTen !== null ? 'ndsua-ho-ten-error' : null"
+      />
+    </app-form-row>
+  </form>
+  <div slot="footer">
+    <app-button variant="secondary" (clicked)="closed.emit()">{{
+      'chung.huy' | translate
+    }}</app-button>
+    <app-button variant="primary" [loading]="dangGui()" (clicked)="submitted.emit()">{{
+      'chung.luu' | translate
+    }}</app-button>
+  </div>
+</app-dialog>

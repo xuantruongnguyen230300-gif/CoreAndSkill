@@ -1,0 +1,117 @@
+<app-page-header
+  [title]="'phanQuyen.tieuDe' | translate"
+  [description]="'phanQuyen.moTa' | translate"
+>
+  @if (coQuyenGhi()) {
+    <app-button
+      variant="secondary"
+      icon="refresh"
+      [disabled]="!coDoi() || dangTaiLaiMaTran()"
+      (clicked)="huyThayDoi()"
+      >{{ 'phanQuyen.hanhDong.huyThayDoi' | translate }}</app-button
+    >
+    <app-button
+      variant="primary"
+      icon="save"
+      [disabled]="!coDoi() || dangTaiLaiMaTran() || choVersionMoi()"
+      [loading]="dangLuu()"
+      (clicked)="bamLuu()"
+      >{{ 'phanQuyen.hanhDong.luu' | translate }}</app-button
+    >
+  }
+</app-page-header>
+
+@if (!coQuyenGhi() && !dangTai() && !loiTai()) {
+  <app-notice-banner severity="info">{{ 'phanQuyen.chiXem' | translate }}</app-notice-banner>
+}
+
+@if (xungDotVersion()) {
+  <app-notice-banner severity="danger">
+    <strong>{{ 'phanQuyen.xungDot.tieuDe' | translate }}</strong> —
+    {{ 'phanQuyen.xungDot.noiDung' | translate }}
+    <div>
+      <app-button variant="secondary" size="sm" icon="refresh" (clicked)="taiLaiSauXungDot()">{{
+        'phanQuyen.hanhDong.taiLai' | translate
+      }}</app-button>
+    </div>
+  </app-notice-banner>
+} @else if (loiLuu()) {
+  <app-notice-banner severity="danger">{{ loiLuu() }}</app-notice-banner>
+}
+
+@if (!dangTai() && maTran()?.rows?.length === 0) {
+  <app-empty-state
+    variant="not-configured"
+    size="page"
+    [title]="'phanQuyen.trong.tieuDe' | translate"
+  />
+} @else if (!dangTai() && maTran()?.roles?.length === 0) {
+  <app-empty-state
+    variant="first-use"
+    size="page"
+    [title]="'phanQuyen.trongVaiTro.tieuDe' | translate"
+    [actionLabel]="
+      auth.coQuyen('core.role.write') ? ('phanQuyen.trongVaiTro.hanhDong' | translate) : null
+    "
+    actionRoute="/quan-tri/vai-tro"
+  />
+} @else {
+  <app-table
+    [columns]="columns()"
+    [rows]="hangHienThi()"
+    [caption]="'phanQuyen.bang.caption' | translate"
+    rowKeyField="permissionId"
+    groupBy="resourceName"
+    [emptyGroupLabel]="'chung.nhom.trong' | translate"
+    variant="bordered"
+    size="sm"
+    [stickyHeader]="true"
+    [cardLayout]="false"
+    [loading]="dangTai() || dangTaiLaiMaTran()"
+    [errorHeading]="loiTai() ? ('phanQuyen.loi.taiThatBai' | translate) : null"
+    [errorMessage]="loiTai()?.than ?? null"
+    [retryLabel]="'chung.thuLai' | translate"
+    (retry)="thuLaiTai()"
+  />
+}
+
+<ng-template #colQuyen let-hang>
+  <app-tooltip [text]="hang.code">
+    <span>{{ dichTenQuyen(hang) }}</span>
+  </app-tooltip>
+</ng-template>
+
+<ng-template #colVaiTro let-hang let-cot="column">
+  <span class="ma-tran__o" [class.ma-tran__o--da-doi]="daDoiO(hang.permissionId, cot.key)">
+    <app-tooltip
+      #tipO="appTooltip"
+      variant="hint"
+      [text]="oBiKhoa(hang, cot.key) ? ('phanQuyen.o.lyDoKhoaHeThong' | translate) : ''"
+    >
+      <app-check
+        type="checkbox"
+        size="sm"
+        [checked]="daCap(hang.permissionId, cot.key)"
+        [disabled]="oBiKhoa(hang, cot.key)"
+        [describedBy]="tipO.idMoTa"
+        [ariaLabel]="
+          'phanQuyen.o.nhan' | translate: { quyen: dichTenQuyen(hang), vaiTro: tenVaiTro(cot.key) }
+        "
+        (checkedChange)="toggleO(hang.permissionId, cot.key, hang)"
+      />
+    </app-tooltip>
+    @if (daDoiO(hang.permissionId, cot.key)) {
+      <span class="sr-only">{{ 'phanQuyen.o.daDoi' | translate }}</span>
+    }
+  </span>
+</ng-template>
+
+<app-confirm-dialog
+  [open]="hienThiXacNhanLuu()"
+  severity="warning"
+  [title]="'phanQuyen.xacNhanGo.tieuDe' | translate: { soLuong: soLuongGo() }"
+  [message]="'phanQuyen.xacNhanGo.moTa' | translate"
+  [confirmLabel]="'phanQuyen.xacNhanGo.xacNhan' | translate"
+  (confirmed)="xacNhanLuu()"
+  (cancelled)="huyXacNhanLuu()"
+/>

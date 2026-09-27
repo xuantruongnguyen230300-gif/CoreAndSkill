@@ -1,0 +1,53 @@
+// Design/Components/Footer.md
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-6) var(--layout-page-pad);
+  border-top: var(--border-w) solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-regular);
+}
+
+.footer--sm {
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.footer--auth {
+  justify-content: center;
+  text-align: center;
+}
+
+.footer--khong-vach {
+  border-top: none;
+}
+
+.footer__trai {
+  display: flex;
+  gap: var(--sp-5);
+}
+
+.footer__lien-ket {
+  display: flex;
+  gap: var(--sp-5);
+
+  a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+
+    @media (hover: hover) {
+      &:hover {
+        color: var(--color-brand);
+        text-decoration: underline;
+      }
+    }
+
+    &:focus-visible {
+      outline: var(--border-w-strong) solid var(--color-focus);
+      outline-offset: 2px;
+    }
+  }
+}

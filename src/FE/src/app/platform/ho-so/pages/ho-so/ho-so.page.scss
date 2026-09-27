@@ -1,0 +1,24 @@
+.cot-noi-dung {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  max-width: var(--layout-form-w);
+}
+
+.form-thong-tin,
+.form-mat-khau {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+}
+
+// Giữ đúng khe --sp-6 giữa các FormRow thật (form-row.component.scss) và ô nhập cao --size-control-md.
+.hang-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+
+  &:not(:last-child) {
+    margin-bottom: var(--sp-6);
+  }
+}

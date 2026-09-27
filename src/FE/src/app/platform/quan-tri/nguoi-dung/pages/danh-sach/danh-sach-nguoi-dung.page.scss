@@ -1,0 +1,15 @@
+.danh-sach-nguoi-dung__loc {
+  display: flex;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.danh-sach-nguoi-dung__vai-tro-rong {
+  color: var(--color-text-muted);
+}
+
+.danh-sach-nguoi-dung__loi-tim {
+  padding: var(--sp-3);
+  color: var(--color-danger);
+  font-size: var(--fs-xs);
+}

@@ -1,0 +1,113 @@
+<app-dialog
+  [open]="hienThi()"
+  size="md"
+  [title]="'nguoiDung.form.tieuDeTao' | translate"
+  [dirty]="form().dirty"
+  [loading]="dangLuu()"
+  [loadingBlocksClose]="dangLuu()"
+  (closed)="closed.emit()"
+  (dismissAttempted)="dismissAttempted.emit()"
+>
+  @if (loiChung()) {
+    <app-notice-banner severity="danger" size="sm">{{ loiChung() }}</app-notice-banner>
+  }
+  <form #formEl [formGroup]="form()" (ngSubmit)="submitted.emit()" class="form-grid">
+    @let loiTen = loiTruong().userName;
+    <app-form-row
+      [label]="'nguoiDung.form.tenDangNhap' | translate"
+      [required]="true"
+      controlId="nd-tao-ten"
+      [error]="loiTen"
+    >
+      <app-input
+        id="nd-tao-ten"
+        type="text"
+        autocomplete="off"
+        [formControl]="form().controls.userName"
+        [describedBy]="loiTen !== null ? 'nd-tao-ten-error' : null"
+      />
+    </app-form-row>
+
+    @let loiEmail = loiTruong().email;
+    <app-form-row
+      [label]="'nguoiDung.form.email' | translate"
+      [required]="true"
+      controlId="nd-tao-email"
+      [error]="loiEmail"
+    >
+      <app-input
+        id="nd-tao-email"
+        type="text"
+        inputmode="email"
+        autocomplete="off"
+        [formControl]="form().controls.email"
+        [describedBy]="loiEmail !== null ? 'nd-tao-email-error' : null"
+      />
+    </app-form-row>
+
+    @let loiHoTen = loiTruong().fullName;
+    <app-form-row
+      [label]="'nguoiDung.form.hoTen' | translate"
+      [required]="true"
+      controlId="nd-tao-ho-ten"
+      [error]="loiHoTen"
+    >
+      <app-input
+        id="nd-tao-ho-ten"
+        type="text"
+        [formControl]="form().controls.fullName"
+        [describedBy]="loiHoTen !== null ? 'nd-tao-ho-ten-error' : null"
+      />
+    </app-form-row>
+
+    @let loiMk = loiTruong().tempPassword;
+    <app-form-row
+      [label]="'nguoiDung.form.matKhauTam' | translate"
+      [required]="true"
+      [hint]="loiMk === null ? ('xacThuc.matKhauTam.goiY' | translate) : null"
+      controlId="nd-tao-mk"
+      [error]="loiMk"
+    >
+      <app-input
+        id="nd-tao-mk"
+        type="password"
+        autocomplete="new-password"
+        [formControl]="form().controls.tempPassword"
+        [describedBy]="loiMk !== null ? 'nd-tao-mk-error' : 'nd-tao-mk-hint'"
+      />
+    </app-form-row>
+
+    @if (coQuyenGanVaiTro()) {
+      <!-- users.md §5: roleIds quá 50 → fieldErrors["RoleIds"]; 10-nguoi-dung.md: dòng lỗi dưới ô -->
+      <app-form-row
+        [label]="'nguoiDung.form.vaiTro' | translate"
+        controlId="nd-tao-vai-tro"
+        [error]="loiTruong().roleIds"
+      >
+        <app-autocomplete
+          inputId="nd-tao-vai-tro"
+          [options]="vaiTro().options"
+          [value]="vaiTro().selected"
+          variant="multiple"
+          [loading]="vaiTro().loading"
+          [placeholder]="'nguoiDung.vaiTro.goiYTim' | translate"
+          [errorTemplate]="vaiTro().error ? tplLoiTim : null"
+          (search)="timKiem.emit($event)"
+          (valueChange)="chon.emit($event)"
+        />
+      </app-form-row>
+    }
+  </form>
+  <div slot="footer">
+    <app-button variant="secondary" (clicked)="closed.emit()">{{
+      'chung.huy' | translate
+    }}</app-button>
+    <app-button variant="primary" [loading]="dangLuu()" (clicked)="submitted.emit()">{{
+      'nguoiDung.form.xacNhanTao' | translate
+    }}</app-button>
+  </div>
+</app-dialog>
+
+<ng-template #tplLoiTim>
+  <p class="hop-tao-nguoi-dung__loi-tim">{{ vaiTro().error }}</p>
+</ng-template>

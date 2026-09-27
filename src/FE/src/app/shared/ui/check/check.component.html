@@ -1,0 +1,31 @@
+<label
+  class="check"
+  [class.check--sm]="size() === 'sm'"
+  [class.check--disabled]="voHieuHoa"
+  [for]="inputId()"
+>
+  @if (type() === 'radio') {
+    <p-radioButton
+      [inputId]="inputId()"
+      [name]="name() ?? ''"
+      [value]="value()"
+      [ngModel]="giaTriCVA()"
+      (ngModelChange)="chonRadio()"
+      [disabled]="voHieuHoa"
+      [invalid]="loi"
+      [pt]="ptO()"
+    />
+  } @else {
+    <p-checkbox
+      [inputId]="inputId()"
+      [binary]="true"
+      [ngModel]="daChon"
+      (ngModelChange)="doiGiaTriCheckbox($event)"
+      [disabled]="voHieuHoa"
+      [invalid]="loi"
+      [indeterminate]="indeterminate()"
+      [pt]="ptO()"
+    />
+  }
+  <span class="check__nhan"><ng-content /></span>
+</label>

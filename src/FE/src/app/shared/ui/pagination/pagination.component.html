@@ -1,0 +1,15 @@
+<nav class="pagination" [attr.aria-label]="ariaLabel()">
+  @if (totalRecords() > 0) {
+    <span class="pagination__khoang" aria-live="polite">{{
+      'chung.phanTrang.khoang' | translate: thamSoKhoang()
+    }}</span>
+    <p-paginator
+      [class.pagination__paginator--disabled]="disabled() || loading()"
+      [first]="first()"
+      [rows]="pageSize()"
+      [totalRecords]="totalRecords()"
+      [rowsPerPageOptions]="tuyChonSoDongMutable()"
+      (onPageChange)="onPageChange($event)"
+    />
+  }
+</nav>

@@ -1,0 +1,27 @@
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  cursor: pointer;
+  padding: var(--sp-2);
+  margin: calc(var(--sp-2) * -1);
+  border-radius: var(--radius-sm);
+
+  &--disabled {
+    cursor: not-allowed;
+  }
+}
+
+.check__nhan {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  color: var(--color-text);
+
+  .check--disabled & {
+    color: var(--color-text-disabled);
+  }
+}
+
+.check--sm .check__nhan {
+  font-size: var(--fs-xs);
+}

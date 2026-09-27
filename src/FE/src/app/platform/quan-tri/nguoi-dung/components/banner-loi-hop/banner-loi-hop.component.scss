@@ -1,0 +1,4 @@
+// Không thêm hộp bao quanh: banner nằm trong dòng chảy của hộp thoại y như khi còn viết thẳng ở page.
+:host {
+  display: contents;
+}

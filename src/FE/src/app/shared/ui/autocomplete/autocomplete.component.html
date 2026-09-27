@@ -1,0 +1,32 @@
+<p-autoComplete
+  [suggestions]="dsGoiY()"
+  optionLabel="label"
+  [ngModel]="gtHienTai()"
+  (ngModelChange)="onModelChange($event)"
+  [multiple]="variant() === 'multiple'"
+  [minQueryLength]="minChars()"
+  [delay]="debounceMs()"
+  [disabled]="disabled()"
+  [placeholder]="placeholder()"
+  [inputId]="inputId() ?? undefined"
+  [dropdown]="false"
+  [forceSelection]="true"
+  styleClass="app-autocomplete"
+  [inputStyleClass]="'app-autocomplete__o app-autocomplete__o--' + size()"
+  [panelStyleClass]="'app-autocomplete__lop-noi'"
+  [ariaLabelledBy]="describedBy() ?? undefined"
+  (completeMethod)="onComplete($event)"
+>
+  <ng-template let-tuyChon #item>
+    <span class="app-autocomplete__muc-nhan">{{ tuyChon.label }}</span>
+    @if (tuyChon.hint) {
+      <span class="app-autocomplete__muc-goi-y">{{ tuyChon.hint }}</span>
+    }
+  </ng-template>
+</p-autoComplete>
+
+@if (errorTemplate()) {
+  <div class="app-autocomplete__loi">
+    <ng-container [ngTemplateOutlet]="errorTemplate()" />
+  </div>
+}

@@ -1,0 +1,21 @@
+// Design/Components/Autocomplete.md. Cỡ ô nhập và bề rộng lớp nổi chạm DOM do PrimeNG dựng — hai
+// override đó nằm ở src/styles/_thu-vien.scss. Khối dòng gợi ý dưới đây thuộc chính template của
+// component này (nội dung `<ng-template #item>`), Angular vẫn scope được bình thường.
+
+.app-autocomplete__muc-nhan {
+  display: block;
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+}
+
+.app-autocomplete__muc-goi-y {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+.app-autocomplete__loi {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--color-danger);
+}

@@ -1,0 +1,36 @@
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+#
+# /dist, /node_modules, .angular/cache, Thumbs.db, .DS_Store đã bị .gitignore GỐC loại —
+# không lặp lại ở đây (docs/quy-uoc/repo-artifact.md §9). File này chỉ giữ thứ ĐẶC THÙ của FE.
+
+/tmp
+/out-tsc
+/bazel-out
+npm-debug.log
+yarn-error.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# Test và build phụ trợ của Angular CLI
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+__screenshots__/

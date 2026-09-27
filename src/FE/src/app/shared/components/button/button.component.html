@@ -1,0 +1,26 @@
+<button
+  class="nut"
+  [class.nut--primary]="variant() === 'primary'"
+  [class.nut--secondary]="variant() === 'secondary'"
+  [class.nut--ghost]="variant() === 'ghost'"
+  [class.nut--danger]="variant() === 'danger'"
+  [class.nut--sm]="size() === 'sm'"
+  [class.nut--md]="size() === 'md'"
+  [class.nut--lg]="size() === 'lg'"
+  [class.nut--block]="block()"
+  [type]="type()"
+  [disabled]="disabled() || loading()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-busy]="loading() ? 'true' : null"
+  (click)="onClick()"
+>
+  @if (loading()) {
+    <i class="pi pi-spinner pi-spin" aria-hidden="true"></i>
+  } @else if (icon() && iconPosition() === 'leading') {
+    <i class="pi" [class]="'pi-' + icon()" aria-hidden="true"></i>
+  }
+  <ng-content></ng-content>
+  @if (!loading() && icon() && iconPosition() === 'trailing') {
+    <i class="pi" [class]="'pi-' + icon()" aria-hidden="true"></i>
+  }
+</button>

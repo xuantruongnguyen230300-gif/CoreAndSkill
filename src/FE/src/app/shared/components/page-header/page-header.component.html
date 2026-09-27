@@ -1,0 +1,45 @@
+<div class="page-header">
+  @if (breadcrumbs().length > 0) {
+    <nav class="page-header__duong-dan" [attr.aria-label]="'chung.duongDan.nhan' | translate">
+      <ol>
+        @for (bc of breadcrumbs(); track bc.label; let cuoi = $last) {
+          <li>
+            @if (bc.route && !cuoi) {
+              <a [routerLink]="[bc.route]">{{ bc.label }}</a>
+            } @else {
+              <span [attr.aria-current]="cuoi ? 'page' : null">{{ bc.label }}</span>
+            }
+          </li>
+        }
+      </ol>
+    </nav>
+  }
+
+  <div class="page-header__hang">
+    <div class="page-header__khoi-chu">
+      <div class="page-header__tieu-de-hang">
+        @if (backRoute()) {
+          <a
+            class="page-header__quay-lai"
+            [routerLink]="[backRoute() ?? '']"
+            [attr.aria-label]="backLabel()"
+          >
+            <i class="pi pi-arrow-left" aria-hidden="true"></i>
+          </a>
+        }
+        @if (loading()) {
+          <app-skeleton-loader variant="text" size="lg" width="half" />
+        } @else {
+          <h1 [id]="headingId()" class="page-header__tieu-de">{{ title() }}</h1>
+        }
+        <ng-content select="[slot=badge]"></ng-content>
+      </div>
+      @if (description()) {
+        <p class="page-header__mo-ta">{{ description() }}</p>
+      }
+    </div>
+    <div class="page-header__hanh-dong">
+      <ng-content></ng-content>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,106 @@
+// Design/Components/AuthField.md
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.auth-field__nhan {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--color-text);
+}
+
+.auth-field__khung {
+  position: relative;
+  display: block;
+}
+
+.auth-field__icon {
+  position: absolute;
+  top: 50%;
+  left: var(--sp-5);
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+}
+
+.auth-field__input {
+  display: block;
+  width: 100%;
+  height: var(--size-control-lg);
+  background: var(--color-surface);
+  border: var(--border-w) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  padding: 0 var(--sp-5);
+  transition: border-color var(--dur-fast) var(--ease-standard);
+
+  &--co-icon {
+    padding-left: calc(var(--sp-5) + var(--icon-md) + var(--sp-4));
+  }
+
+  &--md {
+    height: var(--size-control-md);
+    font-size: var(--fs-sm);
+  }
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: 2px;
+    border-color: var(--color-brand);
+  }
+
+  &:disabled {
+    background: var(--color-surface-3);
+    color: var(--color-text-disabled);
+    cursor: not-allowed;
+  }
+}
+
+.auth-field__khung--loi .auth-field__input {
+  border-width: var(--border-w-strong);
+  border-color: var(--color-danger-border);
+}
+
+.auth-field__nut-hien-an {
+  position: absolute;
+  top: 50%;
+  right: var(--sp-4);
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.auth-field__loi {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--fs-xs);
+}
+
+.auth-field__goi-y {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+}

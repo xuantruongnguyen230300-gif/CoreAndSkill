@@ -1,0 +1,52 @@
+<app-auth-card
+  [title]="'xacThuc.doiMatKhauBatBuoc.tieuDe' | translate"
+  [description]="'xacThuc.doiMatKhauBatBuoc.moTa' | translate: { tenDangNhap }"
+  [errorMessage]="loiChung()"
+  [loading]="dangGui()"
+>
+  <form [formGroup]="form" (ngSubmit)="gui()">
+    <app-auth-field
+      #oMatKhauHienTai
+      variant="password"
+      controlId="doi-mat-khau-bat-buoc-hien-tai"
+      [label]="'xacThuc.matKhau.hienTai' | translate"
+      autocomplete="current-password"
+      [formControl]="form.controls.currentPassword"
+      [errorMessage]="loiCua('currentPassword')"
+    />
+
+    <app-auth-field
+      variant="password"
+      controlId="doi-mat-khau-bat-buoc-moi"
+      [label]="'xacThuc.matKhau.moi' | translate"
+      autocomplete="new-password"
+      [hint]="'xacThuc.matKhau.goiYChinhSach' | translate"
+      [formControl]="form.controls.newPassword"
+      [errorMessage]="loiCua('newPassword')"
+    />
+
+    <app-auth-field
+      variant="password"
+      controlId="doi-mat-khau-bat-buoc-nhap-lai"
+      [label]="'xacThuc.matKhau.nhapLai' | translate"
+      autocomplete="new-password"
+      [formControl]="form.controls.confirmNewPassword"
+      [errorMessage]="loiCua('confirmNewPassword')"
+    />
+
+    <app-button variant="primary" size="lg" [block]="true" type="submit" [loading]="dangGui()">
+      {{ 'xacThuc.matKhau.nutDoi' | translate }}
+    </app-button>
+  </form>
+
+  <app-button variant="ghost" type="button" (clicked)="dangXuat()">
+    {{ 'xacThuc.dangXuat' | translate }}
+  </app-button>
+</app-auth-card>
+
+<app-footer
+  variant="auth"
+  size="sm"
+  [showDivider]="false"
+  [copyright]="'chung.chanTrang.banQuyen' | translate: { nam: namHienTai, tenHeThong: tenHeThong }"
+/>

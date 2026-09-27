@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Core/">
+    <Project Path="Core/CoreAndSkill.Core.Application/CoreAndSkill.Core.Application.csproj" />
+    <Project Path="Core/CoreAndSkill.Core.Contracts/CoreAndSkill.Core.Contracts.csproj" />
+    <Project Path="Core/CoreAndSkill.Core.Domain/CoreAndSkill.Core.Domain.csproj" />
+    <Project Path="Core/CoreAndSkill.Core.Infrastructure/CoreAndSkill.Core.Infrastructure.csproj" />
+    <Project Path="Core/CoreAndSkill.Core.Web/CoreAndSkill.Core.Web.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/CoreAndSkill.ArchTests/CoreAndSkill.ArchTests.csproj" />
+    <Project Path="Tests/CoreAndSkill.Core.IntegrationTests/CoreAndSkill.Core.IntegrationTests.csproj" />
+    <Project Path="Tests/CoreAndSkill.Core.UnitTests/CoreAndSkill.Core.UnitTests.csproj" />
+  </Folder>
+  <Project Path="CoreAndSkill.Api/CoreAndSkill.Api.csproj" />
+</Solution>

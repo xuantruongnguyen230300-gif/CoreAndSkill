@@ -1,0 +1,208 @@
+<app-page-header [title]="'hoSo.tieuDe' | translate" />
+
+<div class="cot-noi-dung">
+  @if (hoSo()?.coDacQuyen) {
+    <app-notice-banner severity="warning" [heading]="'hoSo.coDacQuyen.nhac.tieuDe' | translate">
+      {{ 'hoSo.coDacQuyen.nhac.noiDung' | translate }}
+    </app-notice-banner>
+  }
+
+  <app-card [heading]="'hoSo.thongTin.tieuDe' | translate" [loading]="dangTaiHoSo()">
+    @if (dangTaiHoSo()) {
+      <span class="sr-only" aria-live="polite">{{ 'chung.dangTai' | translate }}</span>
+      @for (hang of nhieuHangSkeleton; track hang) {
+        <div class="hang-skeleton">
+          <app-skeleton-loader variant="text" size="sm" width="short" />
+          <app-skeleton-loader variant="block" width="full" />
+        </div>
+      }
+    } @else if (loiTaiHoSo(); as loi) {
+      <app-notice-banner severity="danger" [heading]="'hoSo.loi.taiThatBai' | translate">
+        @if (loi.than) {
+          {{ loi.than }}
+        }
+        <div>
+          <app-button variant="secondary" size="sm" (clicked)="thuLaiTaiHoSo()">{{
+            'chung.thuLai' | translate
+          }}</app-button>
+        </div>
+      </app-notice-banner>
+    } @else {
+      @if (xungDotDongThoi()) {
+        <app-notice-banner severity="warning">
+          {{ 'loi.CORE.CONCURRENCY.CONFLICT' | translate }}
+          <div>
+            <app-button variant="secondary" size="sm" (clicked)="thuLaiTaiHoSo()">{{
+              'hoSo.hanhDong.taiLai' | translate
+            }}</app-button>
+          </div>
+        </app-notice-banner>
+      } @else if (loiLuuThongTin()) {
+        <app-notice-banner severity="danger">{{ loiLuuThongTin() }}</app-notice-banner>
+      }
+
+      <form
+        #formThongTinEl
+        class="form-thong-tin"
+        [formGroup]="formThongTin"
+        (ngSubmit)="luuThongTin()"
+      >
+        <app-form-row
+          [label]="'hoSo.truong.tenDangNhap' | translate"
+          controlId="ho-so-ten-dang-nhap"
+        >
+          <app-input
+            id="ho-so-ten-dang-nhap"
+            type="text"
+            [readonly]="true"
+            [value]="hoSo()?.userName ?? ''"
+          />
+        </app-form-row>
+
+        <app-form-row
+          [label]="'hoSo.truong.email' | translate"
+          [hint]="'hoSo.goiY.doiQuaQuanTri' | translate"
+          controlId="ho-so-email"
+        >
+          <app-input id="ho-so-email" type="text" [readonly]="true" [value]="hoSo()?.email ?? ''" />
+        </app-form-row>
+
+        @let loiHoTen = loiThongTin('fullName');
+        <app-form-row
+          [label]="'hoSo.truong.hoTen' | translate"
+          [required]="true"
+          controlId="ho-so-ho-ten"
+          [error]="loiHoTen"
+        >
+          <app-input
+            id="ho-so-ho-ten"
+            type="text"
+            autocomplete="name"
+            [formControl]="formThongTin.controls.fullName"
+            [describedBy]="loiHoTen !== null ? 'ho-so-ho-ten-error' : null"
+          />
+        </app-form-row>
+
+        @let loiSdt = loiThongTin('phoneNumber');
+        <app-form-row
+          [label]="'hoSo.truong.soDienThoai' | translate"
+          controlId="ho-so-so-dien-thoai"
+          [error]="loiSdt"
+        >
+          <app-input
+            id="ho-so-so-dien-thoai"
+            type="text"
+            autocomplete="tel"
+            inputmode="tel"
+            [formControl]="formThongTin.controls.phoneNumber"
+            [describedBy]="loiSdt !== null ? 'ho-so-so-dien-thoai-error' : null"
+          />
+        </app-form-row>
+
+        @let loiNgonNgu = loiThongTin('preferredLanguage');
+        <app-form-row
+          [label]="'hoSo.truong.ngonNguUaThich' | translate"
+          controlId="ho-so-ngon-ngu"
+          [error]="loiNgonNgu"
+        >
+          <app-input
+            id="ho-so-ngon-ngu"
+            type="select"
+            [options]="tuyChonNgonNgu"
+            [formControl]="formThongTin.controls.preferredLanguage"
+            [describedBy]="loiNgonNgu !== null ? 'ho-so-ngon-ngu-error' : null"
+          />
+        </app-form-row>
+
+        <app-button variant="primary" type="submit" [loading]="dangLuuThongTin()">{{
+          'chung.luu' | translate
+        }}</app-button>
+      </form>
+    }
+  </app-card>
+
+  <app-card [heading]="'hoSo.doiMatKhau.tieuDe' | translate">
+    @if (loiDoiMatKhau()) {
+      <app-notice-banner severity="danger">{{ loiDoiMatKhau() }}</app-notice-banner>
+    }
+
+    <form #formMatKhauEl class="form-mat-khau" [formGroup]="formMatKhau" (ngSubmit)="doiMatKhau()">
+      @let loiHienTai = loiMatKhau('currentPassword');
+      <app-form-row
+        [label]="'xacThuc.matKhau.hienTai' | translate"
+        [required]="true"
+        controlId="ho-so-mat-khau-hien-tai"
+        [error]="loiHienTai"
+      >
+        <app-input
+          id="ho-so-mat-khau-hien-tai"
+          type="password"
+          autocomplete="current-password"
+          [formControl]="formMatKhau.controls.currentPassword"
+          [describedBy]="loiHienTai !== null ? 'ho-so-mat-khau-hien-tai-error' : null"
+        />
+      </app-form-row>
+
+      @let loiMoi = loiMatKhau('newPassword');
+      <app-form-row
+        [label]="'xacThuc.matKhau.moi' | translate"
+        [required]="true"
+        [hint]="loiMoi === null ? ('xacThuc.matKhau.goiYChinhSach' | translate) : null"
+        controlId="ho-so-mat-khau-moi"
+        [error]="loiMoi"
+      >
+        <app-input
+          id="ho-so-mat-khau-moi"
+          type="password"
+          autocomplete="new-password"
+          [formControl]="formMatKhau.controls.newPassword"
+          [describedBy]="loiMoi !== null ? 'ho-so-mat-khau-moi-error' : 'ho-so-mat-khau-moi-hint'"
+        />
+      </app-form-row>
+
+      @let loiNhapLai = loiMatKhau('confirmNewPassword');
+      <app-form-row
+        [label]="'xacThuc.matKhau.nhapLai' | translate"
+        [required]="true"
+        controlId="ho-so-mat-khau-nhap-lai"
+        [error]="loiNhapLai"
+      >
+        <app-input
+          id="ho-so-mat-khau-nhap-lai"
+          type="password"
+          autocomplete="new-password"
+          [formControl]="formMatKhau.controls.confirmNewPassword"
+          [describedBy]="loiNhapLai !== null ? 'ho-so-mat-khau-nhap-lai-error' : null"
+        />
+      </app-form-row>
+
+      <app-button variant="primary" type="submit" [loading]="dangDoiMatKhau()">{{
+        'xacThuc.matKhau.nutDoi' | translate
+      }}</app-button>
+    </form>
+  </app-card>
+
+  @if (hoSo()?.coDacQuyen) {
+    <app-card [heading]="'hoSo.coDacQuyen.tieuDe' | translate">
+      <p>{{ 'hoSo.coDacQuyen.moTa' | translate }}</p>
+
+      <div slot="footer">
+        <app-button variant="secondary" (clicked)="moHopXacNhanTuBo()">{{
+          'hoSo.coDacQuyen.nutTuBo' | translate
+        }}</app-button>
+      </div>
+    </app-card>
+  }
+</div>
+
+<app-confirm-dialog
+  [open]="hienHopXacNhanTuBo()"
+  severity="danger"
+  [title]="'hoSo.coDacQuyen.xacNhan.tieuDe' | translate"
+  [message]="'hoSo.coDacQuyen.xacNhan.noiDung' | translate"
+  [confirmLabel]="'hoSo.coDacQuyen.xacNhan.nut' | translate"
+  [loading]="dangTuBo()"
+  [error]="loiTuBo()"
+  (confirmed)="xacNhanTuBoCoDacQuyen()"
+  (cancelled)="dongHopXacNhanTuBo()"
+/>

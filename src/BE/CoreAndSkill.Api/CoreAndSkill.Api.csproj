@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>CoreAndSkill.Api</RootNamespace>
+    <UserSecretsId>4cc79a6c-431b-4773-98f1-045330051cea</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\CoreAndSkill.Core.Web\CoreAndSkill.Core.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- `dotnet ef` đòi startup project tham chiếu gói này để nạp design-time services — chỉ dùng
+         lúc sinh migration (docs/database/script-runbook.md §4), không chạy ở production. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

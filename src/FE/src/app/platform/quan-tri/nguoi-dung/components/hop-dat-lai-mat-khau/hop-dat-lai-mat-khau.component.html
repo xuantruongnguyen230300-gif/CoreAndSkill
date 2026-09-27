@@ -1,0 +1,41 @@
+<app-dialog
+  [open]="hienThi()"
+  size="sm"
+  [title]="'nguoiDung.datLai.tieuDe' | translate: { tenDangNhap: tenDangNhap() }"
+  [dirty]="form().dirty"
+  [loading]="dangGui()"
+  [loadingBlocksClose]="dangGui()"
+  (closed)="closed.emit()"
+  (dismissAttempted)="dismissAttempted.emit()"
+>
+  <app-notice-banner severity="warning" size="sm">{{
+    'nguoiDung.datLai.canhBao' | translate: { tenDangNhap: tenDangNhap() }
+  }}</app-notice-banner>
+  <app-banner-loi-hop [xungDot]="xungDot()" [loiChung]="loiChung()" (thuLai)="thuLai.emit()" />
+  <form #formEl [formGroup]="form()" (ngSubmit)="submitted.emit()">
+    @let loiMk = loiMatKhau();
+    <app-form-row
+      [label]="'nguoiDung.form.matKhauTam' | translate"
+      [required]="true"
+      [hint]="loiMk === null ? ('xacThuc.matKhauTam.goiY' | translate) : null"
+      controlId="nddat-mk"
+      [error]="loiMk"
+    >
+      <app-input
+        id="nddat-mk"
+        type="password"
+        autocomplete="new-password"
+        [formControl]="form().controls.tempPassword"
+        [describedBy]="loiMk !== null ? 'nddat-mk-error' : 'nddat-mk-hint'"
+      />
+    </app-form-row>
+  </form>
+  <div slot="footer">
+    <app-button variant="secondary" (clicked)="closed.emit()">{{
+      'chung.huy' | translate
+    }}</app-button>
+    <app-button variant="primary" [loading]="dangGui()" (clicked)="submitted.emit()">{{
+      'nguoiDung.datLai.xacNhan' | translate
+    }}</app-button>
+  </div>
+</app-dialog>

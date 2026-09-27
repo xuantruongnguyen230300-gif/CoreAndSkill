@@ -1,0 +1,48 @@
+<app-dialog
+  [open]="hienThi()"
+  size="md"
+  [title]="'nguoiDung.ganVaiTro.tieuDe' | translate: { tenDangNhap: tenDangNhap() }"
+  [dirty]="dirty()"
+  [loading]="dangGui()"
+  [loadingBlocksClose]="dangGui()"
+  (closed)="closed.emit()"
+  (dismissAttempted)="dismissAttempted.emit()"
+>
+  <app-banner-loi-hop [xungDot]="xungDot()" [loiChung]="loiChung()" (thuLai)="thuLai.emit()" />
+  <app-form-row [label]="'nguoiDung.form.vaiTro' | translate" controlId="ndgan-vai-tro">
+    <app-autocomplete
+      inputId="ndgan-vai-tro"
+      [options]="vaiTro().options"
+      [value]="vaiTro().selected"
+      variant="multiple"
+      [loading]="vaiTro().loading"
+      [placeholder]="'nguoiDung.vaiTro.goiYTim' | translate"
+      [errorTemplate]="vaiTro().error ? tplLoiTim : null"
+      (search)="timKiem.emit($event)"
+      (valueChange)="chon.emit($event)"
+    />
+  </app-form-row>
+  @if (heThongCuaMinh().length > 0) {
+    <app-form-row
+      [label]="'nguoiDung.ganVaiTro.vaiTroHeThongCuaBan' | translate"
+      layout="inline"
+      controlId="ndgan-he-thong"
+    >
+      @for (vt of heThongCuaMinh(); track vt.id) {
+        <app-badge variant="neutral" size="sm">{{ vt.name }}</app-badge>
+      }
+    </app-form-row>
+  }
+  <div slot="footer">
+    <app-button variant="secondary" (clicked)="closed.emit()">{{
+      'chung.huy' | translate
+    }}</app-button>
+    <app-button variant="primary" [loading]="dangGui()" (clicked)="submitted.emit()">{{
+      'nguoiDung.ganVaiTro.xacNhan' | translate
+    }}</app-button>
+  </div>
+</app-dialog>
+
+<ng-template #tplLoiTim>
+  <p class="hop-gan-vai-tro__loi-tim">{{ vaiTro().error }}</p>
+</ng-template>

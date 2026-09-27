@@ -1,0 +1,43 @@
+@for (lap of danhSachLap(); track lap) {
+  @switch (variant()) {
+    @case ('text') {
+      <span class="skeleton-loader__nhom-dong" aria-hidden="true">
+        @for (dong of danhSachDong(); track dong) {
+          <span
+            class="skeleton-loader skeleton-loader--text"
+            [class.skeleton-loader--sm]="size() === 'sm'"
+            [class.skeleton-loader--lg]="size() === 'lg'"
+            [class.skeleton-loader--dong-cuoi]="
+              dong === danhSachDong().length - 1 && danhSachDong().length > 1
+            "
+            [class.skeleton-loader--full]="width() === 'full'"
+            [class.skeleton-loader--wide]="width() === 'wide'"
+            [class.skeleton-loader--half]="width() === 'half'"
+            [class.skeleton-loader--short]="width() === 'short'"
+          ></span>
+        }
+      </span>
+    }
+    @case ('circle') {
+      <span
+        class="skeleton-loader skeleton-loader--circle"
+        [class.skeleton-loader--sm]="size() === 'sm'"
+        [class.skeleton-loader--lg]="size() === 'lg'"
+        aria-hidden="true"
+      ></span>
+    }
+    @case ('block') {
+      <span
+        class="skeleton-loader skeleton-loader--block"
+        [class.skeleton-loader--sm]="size() === 'sm'"
+        [class.skeleton-loader--lg]="size() === 'lg'"
+        [class.skeleton-loader--full]="width() === 'full'"
+        [class.skeleton-loader--wide]="width() === 'wide'"
+        [class.skeleton-loader--half]="width() === 'half'"
+        [class.skeleton-loader--short]="width() === 'short'"
+        [class.skeleton-loader--rounded]="rounded()"
+        aria-hidden="true"
+      ></span>
+    }
+  }
+}

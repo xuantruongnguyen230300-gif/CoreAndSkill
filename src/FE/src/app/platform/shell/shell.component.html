@@ -1,0 +1,27 @@
+<a class="bo-qua" href="#noi-dung-chinh">{{ 'khung.boQuaNoiDung' | translate }}</a>
+
+<app-sidebar
+  [items]="navItems()"
+  [activeRoute]="activeRoute()"
+  [state]="menu.state()"
+  (retry)="thuLaiTaiMenu()"
+/>
+
+<app-topbar
+  [title]="tieuDeTuyen()"
+  [user]="nguoiDungTopbar()"
+  [tenantName]="nguoiDung()?.tenantName ?? ''"
+  [menuItems]="taiKhoanMenuItems()"
+  (menuItemSelected)="khiChonMucTaiKhoan($event)"
+/>
+
+<main id="noi-dung-chinh" class="noi-dung">
+  <router-outlet></router-outlet>
+</main>
+
+<app-footer
+  variant="full"
+  [copyright]="
+    'chung.chanTrang.banQuyen' | translate: { nam: namHienTai, tenHeThong: branding.name }
+  "
+/>

@@ -1,0 +1,21 @@
+<div class="form-row" [class.form-row--disabled]="disabled()">
+  <label class="form-row__nhan" [for]="controlId()">
+    {{ label() }}
+    @if (required()) {
+      <span aria-hidden="true">*</span>
+    }
+  </label>
+
+  <div class="form-row__o">
+    <ng-content></ng-content>
+  </div>
+
+  @if (coLoi()) {
+    <p class="form-row__loi" [id]="idLoi()" role="alert">
+      <i class="pi pi-times-circle" aria-hidden="true"></i>
+      {{ error() }}
+    </p>
+  } @else if (hint()) {
+    <p class="form-row__goi-y" [id]="idGoiY()">{{ hint() }}</p>
+  }
+</div>

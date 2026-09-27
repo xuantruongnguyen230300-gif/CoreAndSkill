@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>CoreAndSkill.Core.Web</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreAndSkill.Core.Domain\CoreAndSkill.Core.Domain.csproj" />
+    <ProjectReference Include="..\CoreAndSkill.Core.Application\CoreAndSkill.Core.Application.csproj" />
+    <ProjectReference Include="..\CoreAndSkill.Core.Infrastructure\CoreAndSkill.Core.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Cho phép test đụng thẳng filter/middleware `internal sealed` (vd. RequirePermissionFilter) —
+         không đổi bề mặt public, không nới ranh giới kiến trúc, chỉ mở khả năng kiểm thử. Cùng khuôn
+         InternalsVisibleTo của Core.Application.csproj / Core.Infrastructure.csproj. -->
+    <InternalsVisibleTo Include="CoreAndSkill.Core.IntegrationTests" />
+    <InternalsVisibleTo Include="CoreAndSkill.ArchTests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,196 @@
+<!-- Hộp thoại "Khôi phục quản trị" — Dialog sm (Design/Screens/20-don-vi.md). -->
+<app-dialog
+  [open]="dangMo() === 'khoi-phuc'"
+  size="sm"
+  [title]="'donVi.khoiPhuc.tieuDe' | translate: { ten: donVi()?.name ?? '' }"
+  [dirty]="formKhoiPhuc().dirty"
+  [loading]="dangGui()"
+  [loadingBlocksClose]="dangGui()"
+  (closed)="closed.emit()"
+  (dismissAttempted)="dismissAttempted.emit()"
+>
+  <app-notice-banner severity="info" size="sm">{{ 'donVi.khoiPhuc.ghiChu' | translate }}</app-notice-banner>
+  @if (loiChung()) {
+    <app-notice-banner severity="danger" size="sm">{{ loiChung() }}</app-notice-banner>
+  }
+  <form #formKhoiPhucEl [formGroup]="formKhoiPhuc()" (ngSubmit)="submittedKhoiPhuc.emit()">
+    @let loiTenDangNhapKp = loiTruong().khoiPhuc.userName;
+    <app-form-row
+      [label]="'donVi.khoiPhuc.tenDangNhap' | translate"
+      [required]="true"
+      controlId="dv-kp-ten-dang-nhap"
+      [error]="loiTenDangNhapKp"
+    >
+      <app-input
+        id="dv-kp-ten-dang-nhap"
+        type="text"
+        autocomplete="off"
+        [formControl]="formKhoiPhuc().controls.userName"
+        [describedBy]="loiTenDangNhapKp !== null ? 'dv-kp-ten-dang-nhap-error' : null"
+      />
+    </app-form-row>
+
+    @let loiMkKp = loiTruong().khoiPhuc.tempPassword;
+    <app-form-row
+      [label]="'donVi.khoiPhuc.matKhauTam' | translate"
+      [required]="true"
+      [hint]="loiMkKp === null ? ('xacThuc.matKhauTam.goiY' | translate) : null"
+      controlId="dv-kp-mk"
+      [error]="loiMkKp"
+    >
+      <app-input
+        id="dv-kp-mk"
+        type="password"
+        autocomplete="new-password"
+        [formControl]="formKhoiPhuc().controls.tempPassword"
+        [describedBy]="loiMkKp !== null ? 'dv-kp-mk-error' : 'dv-kp-mk-hint'"
+      />
+    </app-form-row>
+
+    @let loiGoLaiMaKp = loiTruong().khoiPhuc.goLaiMa;
+    <app-form-row
+      [label]="'donVi.khoiPhuc.goLaiMa' | translate"
+      [required]="true"
+      [hint]="
+        loiGoLaiMaKp === null
+          ? ('donVi.khoiPhuc.goiYGoLaiMa' | translate: { ma: donVi()?.code ?? '' })
+          : null
+      "
+      controlId="dv-kp-go-lai-ma"
+      [error]="loiGoLaiMaKp"
+    >
+      <app-input
+        id="dv-kp-go-lai-ma"
+        type="text"
+        autocomplete="off"
+        [formControl]="formKhoiPhuc().controls.goLaiMa"
+        [describedBy]="loiGoLaiMaKp !== null ? 'dv-kp-go-lai-ma-error' : 'dv-kp-go-lai-ma-hint'"
+      />
+    </app-form-row>
+  </form>
+  <div slot="footer">
+    <app-button variant="secondary" (clicked)="closed.emit()">{{ 'chung.huy' | translate }}</app-button>
+    <app-button variant="primary" [loading]="dangGui()" (clicked)="submittedKhoiPhuc.emit()">{{
+      'donVi.khoiPhuc.xacNhan' | translate
+    }}</app-button>
+  </div>
+</app-dialog>
+
+<!-- Hộp thoại "Tạo quản trị mới" — Dialog sm (Design/Screens/20-don-vi.md). -->
+<app-dialog
+  [open]="dangMo() === 'tao-quan-tri'"
+  size="sm"
+  [title]="'donVi.taoQuanTri.tieuDe' | translate: { ten: donVi()?.name ?? '' }"
+  [dirty]="formTaoQuanTri().dirty"
+  [loading]="dangGui()"
+  [loadingBlocksClose]="dangGui()"
+  (closed)="closed.emit()"
+  (dismissAttempted)="dismissAttempted.emit()"
+>
+  @if (loiChung()) {
+    <app-notice-banner severity="danger" size="sm">{{ loiChung() }}</app-notice-banner>
+  }
+  <form #formTaoQuanTriEl [formGroup]="formTaoQuanTri()" (ngSubmit)="submittedTaoQuanTri.emit()">
+    @let loiTenDangNhapTq = loiTruong().taoQuanTri.userName;
+    <app-form-row
+      [label]="'donVi.form.tenDangNhap' | translate"
+      [required]="true"
+      controlId="dv-tq-ten-dang-nhap"
+      [error]="loiTenDangNhapTq"
+    >
+      <app-input
+        id="dv-tq-ten-dang-nhap"
+        type="text"
+        autocomplete="off"
+        [formControl]="formTaoQuanTri().controls.userName"
+        [describedBy]="loiTenDangNhapTq !== null ? 'dv-tq-ten-dang-nhap-error' : null"
+      />
+    </app-form-row>
+
+    @let loiEmailTq = loiTruong().taoQuanTri.email;
+    <app-form-row
+      [label]="'donVi.form.email' | translate"
+      [required]="true"
+      controlId="dv-tq-email"
+      [error]="loiEmailTq"
+    >
+      <app-input
+        id="dv-tq-email"
+        type="text"
+        inputmode="email"
+        autocomplete="off"
+        [formControl]="formTaoQuanTri().controls.email"
+        [describedBy]="loiEmailTq !== null ? 'dv-tq-email-error' : null"
+      />
+    </app-form-row>
+
+    @let loiHoTenTq = loiTruong().taoQuanTri.fullName;
+    <app-form-row
+      [label]="'donVi.form.hoTen' | translate"
+      [required]="true"
+      controlId="dv-tq-ho-ten"
+      [error]="loiHoTenTq"
+    >
+      <app-input
+        id="dv-tq-ho-ten"
+        type="text"
+        [formControl]="formTaoQuanTri().controls.fullName"
+        [describedBy]="loiHoTenTq !== null ? 'dv-tq-ho-ten-error' : null"
+      />
+    </app-form-row>
+
+    @let loiMkTq = loiTruong().taoQuanTri.tempPassword;
+    <app-form-row
+      [label]="'donVi.form.matKhauTam' | translate"
+      [required]="true"
+      [hint]="loiMkTq === null ? ('xacThuc.matKhauTam.goiY' | translate) : null"
+      controlId="dv-tq-mk"
+      [error]="loiMkTq"
+    >
+      <app-input
+        id="dv-tq-mk"
+        type="password"
+        autocomplete="new-password"
+        [formControl]="formTaoQuanTri().controls.tempPassword"
+        [describedBy]="loiMkTq !== null ? 'dv-tq-mk-error' : 'dv-tq-mk-hint'"
+      />
+    </app-form-row>
+
+    @let loiGoLaiMaTq = loiTruong().taoQuanTri.goLaiMa;
+    <app-form-row
+      [label]="'donVi.khoiPhuc.goLaiMa' | translate"
+      [required]="true"
+      [hint]="
+        loiGoLaiMaTq === null
+          ? ('donVi.khoiPhuc.goiYGoLaiMa' | translate: { ma: donVi()?.code ?? '' })
+          : null
+      "
+      controlId="dv-tq-go-lai-ma"
+      [error]="loiGoLaiMaTq"
+    >
+      <app-input
+        id="dv-tq-go-lai-ma"
+        type="text"
+        autocomplete="off"
+        [formControl]="formTaoQuanTri().controls.goLaiMa"
+        [describedBy]="loiGoLaiMaTq !== null ? 'dv-tq-go-lai-ma-error' : 'dv-tq-go-lai-ma-hint'"
+      />
+    </app-form-row>
+  </form>
+  <div slot="footer">
+    <app-button variant="secondary" (clicked)="closed.emit()">{{ 'chung.huy' | translate }}</app-button>
+    <app-button variant="primary" [loading]="dangGui()" (clicked)="submittedTaoQuanTri.emit()">{{
+      'donVi.taoQuanTri.xacNhan' | translate
+    }}</app-button>
+  </div>
+</app-dialog>
+
+<app-confirm-dialog
+  [open]="hienThiXacNhanHuy()"
+  severity="ask"
+  [title]="'chung.roiTrang.tieuDe' | translate"
+  [message]="'chung.roiTrang.moTa' | translate"
+  [confirmLabel]="'chung.roiTrang.xacNhan' | translate"
+  (confirmed)="discardConfirmed.emit()"
+  (cancelled)="discardCancelled.emit()"
+/>

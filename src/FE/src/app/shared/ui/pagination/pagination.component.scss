@@ -1,0 +1,19 @@
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.pagination__khoang {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+
+// `p-paginator` (bản cài) không có input `disabled` công khai — khoá bằng CSS thay vì input.
+.pagination__paginator--disabled {
+  pointer-events: none;
+  opacity: 0.6;
+}

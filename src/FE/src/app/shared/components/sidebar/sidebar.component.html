@@ -1,0 +1,76 @@
+<nav class="sidebar" [attr.aria-label]="'khung.dieuHuong.nhan' | translate">
+  @switch (state()) {
+    @case ('loading') {
+      <p class="sidebar__trang-thai">{{ 'chung.dangTai' | translate }}</p>
+    }
+    @case ('error') {
+      <p class="sidebar__trang-thai">{{ 'khung.dieuHuong.loiTai' | translate }}</p>
+      <app-button variant="secondary" size="sm" (clicked)="retry.emit()">{{
+        'chung.thuLai' | translate
+      }}</app-button>
+    }
+    @case ('empty') {
+      <p class="sidebar__trang-thai">{{ 'khung.dieuHuong.trong' | translate }}</p>
+    }
+    @default {
+      <ul>
+        @for (muc of items(); track muc.id) {
+          <li>
+            @if (muc.route) {
+              <a
+                class="sidebar__muc"
+                [routerLink]="muc.disabled ? null : [muc.route]"
+                [class.sidebar__muc--active]="dangOCha(muc)"
+                [class.sidebar__muc--disabled]="muc.disabled"
+                [attr.aria-current]="dangOCha(muc) ? 'page' : null"
+                [attr.aria-disabled]="muc.disabled ? 'true' : null"
+              >
+                @if (muc.icon) {
+                  <i class="pi {{ muc.icon }}" aria-hidden="true"></i>
+                }
+                {{ muc.label }}
+              </a>
+            } @else {
+              <span class="sidebar__nhom">
+                @if (muc.icon) {
+                  <i class="pi {{ muc.icon }}" aria-hidden="true"></i>
+                }
+                {{ muc.label }}
+              </span>
+            }
+            @if (coCon(muc)) {
+              <ul>
+                @for (con of muc.children ?? []; track con.id) {
+                  <li>
+                    @if (con.route) {
+                      <a
+                        class="sidebar__muc"
+                        [routerLink]="con.disabled ? null : [con.route]"
+                        [class.sidebar__muc--active]="dangO(con.route)"
+                        [class.sidebar__muc--disabled]="con.disabled"
+                        [attr.aria-current]="dangO(con.route) ? 'page' : null"
+                        [attr.aria-disabled]="con.disabled ? 'true' : null"
+                      >
+                        @if (con.icon) {
+                          <i class="pi {{ con.icon }}" aria-hidden="true"></i>
+                        }
+                        {{ con.label }}
+                      </a>
+                    } @else {
+                      <span class="sidebar__nhom">
+                        @if (con.icon) {
+                          <i class="pi {{ con.icon }}" aria-hidden="true"></i>
+                        }
+                        {{ con.label }}
+                      </span>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+</nav>

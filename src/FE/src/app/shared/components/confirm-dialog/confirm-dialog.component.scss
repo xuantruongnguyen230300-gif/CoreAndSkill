@@ -1,0 +1,106 @@
+// Design/Components/ConfirmDialog.md
+@use 'spacing' as s;
+
+.confirm-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-backdrop);
+  background: var(--color-overlay);
+  border: none;
+  padding: 0;
+  cursor: default;
+}
+
+.confirm-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--z-dialog);
+  width: min(var(--layout-dialog-w-sm), calc(100vw - var(--sp-8)));
+  max-height: calc(100vh - var(--sp-8));
+  overflow-y: auto;
+  padding: var(--sp-6);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-5);
+  text-align: center;
+
+  @include s.tu-man-hinh(s.$bp-sm) {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+.confirm-dialog__icon-vong {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-lg);
+  height: var(--size-control-lg);
+  border-radius: var(--radius-full);
+  font-size: var(--icon-lg);
+}
+
+.confirm-dialog--ask .confirm-dialog__icon-vong {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.confirm-dialog--warning .confirm-dialog__icon-vong {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.confirm-dialog--danger .confirm-dialog__icon-vong {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.confirm-dialog__noi-dung {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.confirm-dialog__tieu-de {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  color: var(--color-text);
+}
+
+.confirm-dialog__mo-ta {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  line-height: var(--lh-normal);
+}
+
+.confirm-dialog__xac-nhan {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.confirm-dialog__hanh-dong {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--sp-4);
+  margin-top: var(--sp-2);
+
+  @include s.tu-man-hinh(s.$bp-sm) {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}

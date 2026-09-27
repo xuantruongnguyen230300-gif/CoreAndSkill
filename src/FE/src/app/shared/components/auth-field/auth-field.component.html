@@ -1,0 +1,44 @@
+<div class="auth-field">
+  <label class="auth-field__nhan" [for]="controlId()">{{ label() }}</label>
+
+  <div class="auth-field__khung" [class.auth-field__khung--loi]="errorMessage() !== null">
+    @if (icon()) {
+      <i class="pi pi-{{ icon() }} auth-field__icon" aria-hidden="true"></i>
+    }
+    <input
+      #oNhap
+      class="auth-field__input"
+      [class.auth-field__input--co-icon]="icon() !== null"
+      [class.auth-field__input--md]="size() === 'md'"
+      [id]="controlId()"
+      [type]="kieuThat"
+      [placeholder]="placeholder()"
+      [disabled]="voHieuHoa()"
+      [autocomplete]="autocomplete()"
+      [attr.aria-invalid]="errorMessage() !== null ? 'true' : null"
+      [attr.aria-describedby]="describedBy()"
+      [value]="gia()"
+      (input)="doiGia($any($event.target).value)"
+      (blur)="chamVao()"
+    />
+    @if (variant() === 'password' && revealable()) {
+      <button
+        type="button"
+        class="auth-field__nut-hien-an"
+        [attr.aria-label]="(hienMatKhau() ? 'xacThuc.matKhau.an' : 'xacThuc.matKhau.hien') | translate"
+        (click)="toggleHienMatKhau()"
+      >
+        <i class="pi" [class.pi-eye]="!hienMatKhau()" [class.pi-eye-slash]="hienMatKhau()" aria-hidden="true"></i>
+      </button>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <p class="auth-field__loi" [id]="idLoi()" role="alert">
+      <i class="pi pi-times-circle" aria-hidden="true"></i>
+      {{ errorMessage() }}
+    </p>
+  } @else if (hint()) {
+    <p class="auth-field__goi-y" [id]="idGoiY()">{{ hint() }}</p>
+  }
+</div>

@@ -1,0 +1,23 @@
+<app-card [heading]="'nguoiDung.chiTietTrang.theVaiTro' | translate">
+  @if (roles().length > 0) {
+    @for (vt of roles(); track vt.id) {
+      <app-badge variant="neutral">{{ vt.name }}</app-badge>
+      @if (vt.isSystem) {
+        <app-badge variant="outline">{{ 'vaiTro.loai.heThong' | translate }}</app-badge>
+      }
+    }
+  } @else {
+    <app-empty-state
+      variant="not-configured"
+      size="compact"
+      [title]="'nguoiDung.vaiTro.chuaCo' | translate"
+    />
+  }
+  @if (coQuyenGan()) {
+    <div slot="footer">
+      <app-button variant="secondary" (clicked)="gan.emit()">{{
+        'nguoiDung.hanhDong.ganVaiTro' | translate
+      }}</app-button>
+    </div>
+  }
+</app-card>

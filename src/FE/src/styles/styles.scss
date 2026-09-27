@@ -1,0 +1,117 @@
+// src/styles/styles.scss — điểm vào của stylesheet toàn cục (fe-ui-conventions.md §4.1).
+// Đăng ký ở angular.json (`architect.build.options.styles`, `architect.test.options.styles`).
+//
+// @use bốn tệp token — thứ tự không quan trọng với custom property, nhưng giữ đúng thứ tự khai
+// ở fe-ui-conventions.md §4.1 để dễ đối chiếu.
+@use 'tokens';
+@use 'typography';
+@use 'spacing';
+@use 'thu-vien';
+
+// Bộ icon PrimeIcons (Design/Icons.md §1) — nạp ĐÚNG MỘT LẦN ở điểm vào này (ADR-0061 quyết định 3):
+// không ở `styleUrl` của component nào, không ở `_thu-vien.scss` (chỗ đè, không phải chỗ nạp).
+// Phiên bản ghim chính xác ở package.json — nguồn duy nhất, tài liệu không chép số.
+@use 'primeicons/primeicons.css';
+
+// ================================================================== Reset tối thiểu
+// Không dựng một hệ reset lớn — chỉ đủ để thang token có nghĩa (box-sizing nhất quán, bỏ margin
+// mặc định của trình duyệt để thang khoảng cách của Design là nguồn duy nhất).
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+ul[class],
+ol[class] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+img,
+picture {
+  max-width: 100%;
+  display: block;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-normal);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+// ================================================================== Trạng thái focus — luật chung
+// Định nghĩa MỘT LẦN ở đây (fe-ui-conventions.md §2.4 của trien-khai/02-f1-design-token.md);
+// component không tự vẽ lại vòng focus của riêng nó trừ khi hình dạng đặc biệt cần box-shadow
+// (DESIGN.md §2.6). `outline-offset` là phần bắt buộc — thiếu nó vòng focus trên nút primary
+// (nền `--color-brand`) trùng màu `--color-focus` ở theme sáng, tương phản 1:1, coi như vô hình.
+:focus-visible {
+  outline: var(--border-w-strong) solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+// Chuột bấm không hiện vòng — chỉ bàn phím. Trình duyệt không hỗ trợ :focus-visible (hiếm) vẫn
+// còn outline mặc định của chính nó, không bị quy tắc này xoá.
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// ================================================================== Giảm chuyển động — DESIGN.md §7
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// ================================================================== Lớp tiện ích toàn cục
+// Tập nhỏ, KHÔNG dựng hệ tiện ích song song với hệ token (fe-ui-conventions.md §4.3).
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media print {
+  // !important: đây là lớp TIỆN ÍCH — việc của nó là thắng bất kỳ display nào component đã đặt.
+  // Không có độ ưu tiên chọn lọc nào thay được vai trò này của một lớp tiện ích ẩn khi in.
+  .u-hide-print {
+    display: none !important;
+  }
+}

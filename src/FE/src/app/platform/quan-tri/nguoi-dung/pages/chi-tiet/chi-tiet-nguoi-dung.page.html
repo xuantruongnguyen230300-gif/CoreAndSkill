@@ -1,0 +1,201 @@
+@if (khongTimThay()) {
+  <app-page-header
+    [title]="'nguoiDung.chiTiet' | translate"
+    backRoute=".."
+    [backLabel]="'nguoiDung.chiTietTrang.quayLai' | translate"
+  />
+  <app-empty-state
+    variant="record-not-found"
+    size="page"
+    [headingLevel]="2"
+    [title]="'nguoiDung.chiTietTrang.khongTimThay' | translate"
+    [description]="'nguoiDung.chiTietTrang.khongTimThayMoTa' | translate"
+    [actionLabel]="'nguoiDung.chiTietTrang.veDanhSach' | translate"
+    actionRoute=".."
+  />
+} @else {
+  <app-page-header
+    [title]="nguoiDung()?.fullName ?? ('nguoiDung.chiTiet' | translate)"
+    [loading]="dangTai()"
+    backRoute=".."
+    [backLabel]="'nguoiDung.chiTietTrang.quayLai' | translate"
+  >
+    @if (nguoiDung(); as nd) {
+      <span slot="badge">
+        @if (nd.isLocked) {
+          <app-badge variant="danger">{{ 'nguoiDung.trangThai.daKhoa' | translate }}</app-badge>
+        } @else {
+          <app-badge variant="success">{{ 'nguoiDung.trangThai.hoatDong' | translate }}</app-badge>
+        }
+      </span>
+    }
+    @if (nguoiDung(); as nd) {
+      <app-button
+        *appHasPermission="'core.user.write'"
+        variant="primary"
+        icon="pencil"
+        (clicked)="moHopSua()"
+        >{{ 'nguoiDung.hanhDong.sua' | translate }}</app-button
+      >
+      @if (!laChinhMinh()) {
+        <app-button
+          *appHasPermission="'core.user.reset-password'"
+          variant="secondary"
+          icon="key"
+          (clicked)="hop.moHopDatLai()"
+          >{{ 'nguoiDung.hanhDong.datLaiMatKhau' | translate }}</app-button
+        >
+        @if (!nd.isLocked) {
+          <app-button
+            *appHasPermission="'core.user.lock'"
+            variant="secondary"
+            icon="lock"
+            (clicked)="hop.moXacNhanKhoa()"
+            >{{ 'nguoiDung.hanhDong.khoa' | translate }}</app-button
+          >
+        }
+      }
+      @if (nd.isLocked) {
+        <app-button
+          *appHasPermission="'core.user.lock'"
+          variant="secondary"
+          icon="lock-open"
+          [loading]="hop.dangGui()"
+          (clicked)="moKhoa()"
+          >{{ 'nguoiDung.hanhDong.moKhoa' | translate }}</app-button
+        >
+      }
+    }
+  </app-page-header>
+
+  @if (loiTai(); as loi) {
+    <app-card [heading]="'nguoiDung.chiTietTrang.theThongTin' | translate">
+      <ng-container
+        [ngTemplateOutlet]="khoiLoiTai"
+        [ngTemplateOutletContext]="{ $implicit: loi }"
+      />
+    </app-card>
+    <app-card [heading]="'nguoiDung.chiTietTrang.theVaiTro' | translate">
+      <ng-container
+        [ngTemplateOutlet]="khoiLoiTai"
+        [ngTemplateOutletContext]="{ $implicit: loi }"
+      />
+    </app-card>
+  } @else if (nguoiDung(); as nd) {
+    @if (nd.mustChangePassword) {
+      <app-notice-banner severity="warning">{{
+        'nguoiDung.chiTietTrang.bannerDoiMatKhau' | translate
+      }}</app-notice-banner>
+    }
+
+    <app-the-thong-tin-nguoi-dung [nguoiDung]="nd" />
+
+    <app-the-vai-tro-nguoi-dung
+      [roles]="nd.roles"
+      [coQuyenGan]="coQuyenGanVaiTro()"
+      (gan)="moHopGanVaiTro()"
+    />
+  }
+}
+
+<!-- Card `error` (Card.md §Trạng thái): thân là NoticeBanner danger + Thử lại, dùng cho cả hai thẻ. -->
+<ng-template #khoiLoiTai let-loi>
+  <app-notice-banner severity="danger" [heading]="'nguoiDung.chiTietTrang.loiTai' | translate">
+    @if (loi.than) {
+      {{ loi.than }}
+    }
+    <div>
+      <app-button variant="secondary" size="sm" icon="refresh" (clicked)="thuLaiTaiChiTiet()">{{
+        'chung.thuLai' | translate
+      }}</app-button>
+    </div>
+  </app-notice-banner>
+</ng-template>
+
+<app-hop-sua-nguoi-dung
+  [hienThi]="hop.hopDangMo() === 'sua'"
+  [tenDangNhap]="nguoiDung()?.userName ?? ''"
+  [form]="hop.formSua"
+  [loiTruong]="hop.loiSua()"
+  [xungDot]="hop.xungDot()"
+  [loiChung]="hop.loiHop()"
+  [dangGui]="hop.dangGui()"
+  [lanGuiSai]="hop.lanGuiSai()"
+  (submitted)="guiSua()"
+  (closed)="hop.dong()"
+  (dismissAttempted)="hop.onDismissAttempted()"
+  (thuLai)="thuLaiSauXungDot()"
+/>
+
+<app-hop-gan-vai-tro
+  [hienThi]="hop.hopDangMo() === 'gan-vai-tro'"
+  [tenDangNhap]="nguoiDung()?.userName ?? ''"
+  [dirty]="ganVaiTro.dirty()"
+  [vaiTro]="{
+    options: ganVaiTro.timVaiTro.options(),
+    loading: ganVaiTro.timVaiTro.loading(),
+    error: ganVaiTro.timVaiTro.error(),
+    selected: ganVaiTro.dangChon(),
+  }"
+  [heThongCuaMinh]="ganVaiTro.heThongCuaMinh()"
+  [xungDot]="hop.xungDot()"
+  [loiChung]="hop.loiHop()"
+  [dangGui]="hop.dangGui()"
+  (submitted)="guiGanVaiTro()"
+  (closed)="hop.dong()"
+  (dismissAttempted)="hop.onDismissAttempted()"
+  (thuLai)="thuLaiSauXungDot()"
+  (timKiem)="ganVaiTro.timKiem($event)"
+  (chon)="ganVaiTro.chon($event)"
+/>
+
+<app-confirm-dialog
+  [open]="hop.hopXacNhanGo() !== null"
+  severity="warning"
+  [title]="
+    'nguoiDung.goVaiTro.tieuDe'
+      | translate: { soLuong: hop.hopXacNhanGo(), tenDangNhap: nguoiDung()?.userName ?? '' }
+  "
+  [message]="'nguoiDung.goVaiTro.moTa' | translate"
+  [confirmLabel]="'nguoiDung.goVaiTro.xacNhan' | translate"
+  (confirmed)="hop.xacNhanGoVaiTro()"
+  (cancelled)="hop.huyXacNhanGo()"
+/>
+
+<app-hop-dat-lai-mat-khau
+  [hienThi]="hop.hopDangMo() === 'dat-lai'"
+  [tenDangNhap]="nguoiDung()?.userName ?? ''"
+  [form]="hop.formDatLai"
+  [loiMatKhau]="hop.loiMatKhau()"
+  [xungDot]="hop.xungDot()"
+  [loiChung]="hop.loiHop()"
+  [dangGui]="hop.dangGui()"
+  [lanGuiSai]="hop.lanGuiSai()"
+  (submitted)="guiDatLai()"
+  (closed)="hop.dong()"
+  (dismissAttempted)="hop.onDismissAttempted()"
+  (thuLai)="thuLaiSauXungDot()"
+/>
+
+<app-confirm-dialog
+  [open]="hop.hienThiXacNhanKhoa()"
+  severity="warning"
+  [title]="'nguoiDung.khoa.tieuDe' | translate: { tenDangNhap: nguoiDung()?.userName ?? '' }"
+  [message]="'nguoiDung.khoa.moTa' | translate"
+  [confirmLabel]="'nguoiDung.khoa.xacNhan' | translate"
+  [loading]="hop.dangGui()"
+  [error]="hop.loiHop()"
+  (confirmed)="xacNhanKhoa()"
+  (cancelled)="hop.huyXacNhanKhoa()"
+/>
+
+<!-- Dùng chung cho cả ba hộp thoại form phía trên — chỉ một hộp mở tại một thời điểm (hopDangMo). -->
+<app-confirm-dialog
+  [open]="hop.hienThiXacNhanHuy()"
+  severity="ask"
+  [title]="'chung.roiTrang.tieuDe' | translate"
+  [message]="'chung.roiTrang.moTa' | translate"
+  [confirmLabel]="'chung.roiTrang.xacNhan' | translate"
+  (confirmed)="hop.xacNhanHuy()"
+  (cancelled)="hop.huyXacNhanHuy()"
+/>

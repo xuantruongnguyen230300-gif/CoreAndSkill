@@ -1,0 +1,548 @@
+{
+  "chung": {
+    "luu": "Lưu",
+    "huy": "Huỷ",
+    "thuLai": "Thử lại",
+    "dangTai": "Đang tải…",
+    "ngonNgu": "Ngôn ngữ",
+    "dong": "Đóng",
+    "co": "Có",
+    "khong": "Không",
+    "xoaBoLoc": "Xoá bộ lọc",
+    "duongDan": {
+      "nhan": "Đường dẫn"
+    },
+    "loc": {
+      "donViHienHanh": "Đơn vị: {{tenDonVi}}",
+      "lyDoDonVi": "Danh sách chỉ gồm dữ liệu của đơn vị bạn đang đăng nhập."
+    },
+    "locChip": {
+      "go": "Gỡ lọc {{nhan}}: {{giaTri}}"
+    },
+    "nhom": {
+      "trong": "(Trống)"
+    },
+    "roiTrang": {
+      "tieuDe": "Rời trang?",
+      "moTa": "Thay đổi chưa lưu sẽ mất.",
+      "xacNhan": "Rời đi"
+    },
+    "thongBao": {
+      "loi": "Lỗi"
+    },
+    "chanTrang": {
+      "banQuyen": "© {{nam}} {{tenHeThong}}"
+    },
+    "phanTrang": {
+      "khoang": "{{tu}}–{{den}} trên tổng {{tong}}"
+    }
+  },
+  "xacThuc": {
+    "dangXuat": "Đăng xuất",
+    "dangNhap": {
+      "tieuDe": "Đăng nhập",
+      "maDonVi": "Mã đơn vị",
+      "tenDangNhap": "Tên đăng nhập",
+      "matKhau": "Mật khẩu",
+      "nutGui": "Đăng nhập"
+    },
+    "doiMatKhauBatBuoc": {
+      "tieuDe": "Đặt mật khẩu mới",
+      "moTa": "Tài khoản {{tenDangNhap}} đang dùng mật khẩu tạm. Đặt mật khẩu mới để tiếp tục dùng hệ thống."
+    },
+    "matKhau": {
+      "hien": "Hiện mật khẩu",
+      "an": "Ẩn mật khẩu",
+      "hienTai": "Mật khẩu hiện tại",
+      "moi": "Mật khẩu mới",
+      "nhapLai": "Nhập lại mật khẩu mới",
+      "nutDoi": "Đổi mật khẩu",
+      "goiYChinhSach": "Mật khẩu mới phải khác mật khẩu hiện tại và đạt chính sách mật khẩu của hệ thống. Chưa đạt điều gì, hệ thống sẽ nêu cụ thể."
+    },
+    "matKhauTam": {
+      "goiY": "Mật khẩu tạm phải đạt chính sách mật khẩu của hệ thống. Người nhận phải đổi nó ở lần đăng nhập đầu."
+    }
+  },
+  "hoSo": {
+    "tieuDe": "Hồ sơ cá nhân",
+    "thongTin": {
+      "tieuDe": "Thông tin cá nhân"
+    },
+    "truong": {
+      "tenDangNhap": "Tên đăng nhập",
+      "email": "Email",
+      "hoTen": "Họ tên",
+      "soDienThoai": "Số điện thoại",
+      "ngonNguUaThich": "Ngôn ngữ ưa thích"
+    },
+    "goiY": {
+      "doiQuaQuanTri": "Muốn đổi email, liên hệ quản trị viên của đơn vị."
+    },
+    "ngonNgu": {
+      "macDinhHeThong": "Theo mặc định của hệ thống"
+    },
+    "thongBao": {
+      "luuThanhCong": "Đã lưu hồ sơ."
+    },
+    "loi": {
+      "taiThatBai": "Không tải được hồ sơ"
+    },
+    "hanhDong": {
+      "taiLai": "Tải lại"
+    },
+    "doiMatKhau": {
+      "tieuDe": "Đổi mật khẩu",
+      "thongBao": {
+        "thanhCong": "Đã đổi mật khẩu. Các phiên đăng nhập khác của tài khoản sẽ bị đăng xuất."
+      }
+    },
+    "coDacQuyen": {
+      "tieuDe": "Cờ đặc quyền",
+      "moTa": "Từ bỏ cờ thì tài khoản chỉ còn quyền đến từ vai trò của nó. Chỉ từ bỏ được khi đơn vị còn ít nhất một tài khoản khác, không bị khoá, có quyền sửa phân quyền qua vai trò.",
+      "nutTuBo": "Từ bỏ cờ đặc quyền",
+      "nhac": {
+        "tieuDe": "Tài khoản đang mang cờ đặc quyền",
+        "noiDung": "Tài khoản này có mọi quyền mà không cần vai trò. Khi đơn vị đã có người khác quản trị phân quyền qua vai trò, hãy từ bỏ cờ ở khối Cờ đặc quyền."
+      },
+      "xacNhan": {
+        "tieuDe": "Từ bỏ cờ đặc quyền?",
+        "noiDung": "Không bật lại được cờ này. Mọi phiên đăng nhập khác của tài khoản sẽ bị đăng xuất; phiên đang dùng được giữ.",
+        "nut": "Từ bỏ cờ đặc quyền"
+      },
+      "thongBao": {
+        "thanhCong": "Đã từ bỏ cờ đặc quyền."
+      }
+    }
+  },
+  "trangChu": {
+    "tieuDe": "Trang chủ",
+    "loiChao": "Xin chào, {{hoTen}}",
+    "tenDonVi": "{{tenDonVi}}"
+  },
+  "trangLoi": {
+    "khongCoQuyen": {
+      "tieuDe": "Không có quyền truy cập",
+      "moTa": "Tài khoản của bạn không có quyền mở trang này. Liên hệ quản trị viên của đơn vị để được cấp quyền.",
+      "diTiep": "Về trang chủ"
+    },
+    "khongTimThay": {
+      "tieuDe": "Không tìm thấy trang",
+      "moTa": "Đường dẫn bạn mở không khớp trang nào của hệ thống.",
+      "diTiep": "Về trang chủ"
+    }
+  },
+  "khung": {
+    "boQuaNoiDung": "Bỏ qua tới nội dung chính",
+    "dieuHuong": {
+      "nhan": "Điều hướng chính",
+      "loiTai": "Không tải được menu.",
+      "trong": "Tài khoản chưa được cấp chức năng nào. Liên hệ quản trị viên của đơn vị."
+    }
+  },
+  "menu": {
+    "trang-chu": "Trang chủ",
+    "quan-tri": "Quản trị",
+    "quan-tri-nguoi-dung": "Người dùng",
+    "quan-tri-vai-tro": "Vai trò",
+    "quan-tri-phan-quyen": "Phân quyền"
+  },
+  "nguoiDung": {
+    "tieuDe": "Người dùng",
+    "moTa": "Tài khoản của đơn vị: tạo mới, gán vai trò, khoá và đặt lại mật khẩu.",
+    "chiTiet": "Chi tiết người dùng",
+    "hanhDong": {
+      "them": "Thêm người dùng",
+      "sua": "Sửa",
+      "datLaiMatKhau": "Đặt lại mật khẩu",
+      "khoa": "Khoá tài khoản",
+      "moKhoa": "Mở khoá",
+      "ganVaiTro": "Gán vai trò"
+    },
+    "timKiem": {
+      "nhan": "Tìm theo tên đăng nhập, họ tên hoặc email"
+    },
+    "loc": {
+      "vaiTro": "Vai trò",
+      "trangThai": "Trạng thái"
+    },
+    "vaiTro": {
+      "goiYTim": "Gõ tên vai trò để tìm",
+      "chuaCo": "Chưa có vai trò"
+    },
+    "trangThai": {
+      "tatCa": "Tất cả",
+      "hoatDong": "Hoạt động",
+      "daKhoa": "Đã khoá"
+    },
+    "bang": {
+      "caption": "Danh sách người dùng"
+    },
+    "cot": {
+      "tenDangNhap": "Tên đăng nhập",
+      "hoTen": "Họ tên",
+      "email": "Email",
+      "vaiTro": "Vai trò",
+      "trangThai": "Trạng thái",
+      "ngayTao": "Ngày tạo"
+    },
+    "form": {
+      "tieuDeTao": "Thêm người dùng",
+      "tieuDeSua": "Sửa người dùng {{tenDangNhap}}",
+      "tenDangNhap": "Tên đăng nhập",
+      "email": "Email",
+      "hoTen": "Họ tên",
+      "matKhauTam": "Mật khẩu tạm",
+      "vaiTro": "Vai trò",
+      "xacNhanTao": "Tạo người dùng"
+    },
+    "thongBao": {
+      "taoThanhCong": "Đã tạo tài khoản {{tenDangNhap}}. Chuyển mật khẩu tạm cho người dùng, và gán vai trò nếu chưa gán.",
+      "suaThanhCong": "Đã lưu thông tin người dùng.",
+      "ganVaiTroThanhCong": "Đã cập nhật vai trò của {{tenDangNhap}}.",
+      "khoaThanhCong": "Đã khoá tài khoản {{tenDangNhap}}.",
+      "moKhoaThanhCong": "Đã mở khoá tài khoản {{tenDangNhap}}.",
+      "datLaiThanhCong": "Đã đặt mật khẩu tạm cho {{tenDangNhap}}."
+    },
+    "trong": {
+      "tieuDe": "Chưa có người dùng nào",
+      "moTa": "Thêm người dùng đầu tiên của đơn vị."
+    },
+    "khongKetQua": {
+      "tieuDe": "Không có người dùng nào khớp bộ lọc hiện tại",
+      "moTa": "Đổi từ khoá hoặc xoá bộ lọc để xem lại toàn bộ danh sách."
+    },
+    "loi": {
+      "taiThatBai": "Không tải được danh sách người dùng"
+    },
+    "chiTietTrang": {
+      "quayLai": "Quay lại danh sách người dùng",
+      "bannerDoiMatKhau": "Người dùng này phải đổi mật khẩu ở lần đăng nhập kế tiếp.",
+      "theThongTin": "Thông tin tài khoản",
+      "theVaiTro": "Vai trò",
+      "khoa": "Khoá",
+      "buocDoiMatKhau": "Buộc đổi mật khẩu",
+      "loiTai": "Không tải được thông tin người dùng",
+      "khongTimThay": "Không tìm thấy người dùng này.",
+      "khongTimThayMoTa": "Đường dẫn có thể đã cũ. Quay lại danh sách để tìm người dùng.",
+      "veDanhSach": "Về danh sách người dùng"
+    },
+    "khoa": {
+      "boiQuanTri": "Quản trị khoá",
+      "tuDong": "Tự khoá tới {{lockoutEnd}}",
+      "tieuDe": "Khoá tài khoản {{tenDangNhap}}?",
+      "moTa": "Tài khoản sẽ không đăng nhập được. Phiên đang mở của tài khoản bị chấm dứt ở thao tác kế tiếp của người đó. Mở khoá được bất cứ lúc nào.",
+      "xacNhan": "Khoá tài khoản"
+    },
+    "ganVaiTro": {
+      "tieuDe": "Gán vai trò cho {{tenDangNhap}}",
+      "xacNhan": "Lưu vai trò",
+      "vaiTroHeThongCuaBan": "Vai trò hệ thống của bạn"
+    },
+    "goVaiTro": {
+      "tieuDe": "Gỡ {{soLuong}} vai trò của {{tenDangNhap}}?",
+      "moTa": "Người dùng mất quyền của các vai trò bị gỡ từ thao tác kế tiếp của họ.",
+      "xacNhan": "Lưu và gỡ vai trò"
+    },
+    "datLai": {
+      "tieuDe": "Đặt lại mật khẩu cho {{tenDangNhap}}",
+      "canhBao": "Phiên đang mở của {{tenDangNhap}} bị chấm dứt ở thao tác kế tiếp của người đó. Người dùng phải đổi mật khẩu tạm ở lần đăng nhập đầu.",
+      "xacNhan": "Đặt mật khẩu tạm"
+    }
+  },
+  "vaiTro": {
+    "tieuDe": "Vai trò",
+    "moTa": "Vai trò gom các quyền để gán cho người dùng của đơn vị.",
+    "hanhDong": {
+      "them": "Thêm vai trò",
+      "moMaTran": "Ma trận phân quyền",
+      "taiLai": "Tải lại"
+    },
+    "timKiem": {
+      "nhan": "Tìm theo tên vai trò"
+    },
+    "tim": {
+      "loi": "Không tìm được vai trò."
+    },
+    "loai": {
+      "heThong": "Vai trò hệ thống"
+    },
+    "bang": {
+      "caption": "Danh sách vai trò"
+    },
+    "cot": {
+      "ten": "Tên vai trò",
+      "loai": "Loại",
+      "soNguoiDung": "Số người dùng",
+      "ngayTao": "Ngày tạo",
+      "hanhDong": "Hành động"
+    },
+    "menu": {
+      "moMenu": "Hành động cho vai trò {{ten}}",
+      "doiTen": "Đổi tên",
+      "xoa": "Xoá",
+      "lyDoHeThong": "Vai trò hệ thống không đổi tên hay xoá được.",
+      "lyDoDangDung": "Còn {{soNguoi}} người dùng mang vai trò này."
+    },
+    "form": {
+      "tieuDeTao": "Thêm vai trò",
+      "tieuDeDoiTen": "Đổi tên vai trò",
+      "ten": "Tên vai trò"
+    },
+    "thongBao": {
+      "taoThanhCong": "Đã tạo vai trò {{ten}}. Vai trò mới chưa có quyền nào — cấp quyền ở Ma trận phân quyền.",
+      "doiTenThanhCong": "Đã đổi tên vai trò.",
+      "xoaThanhCong": "Đã xoá vai trò {{ten}}."
+    },
+    "xoa": {
+      "tieuDe": "Xoá vai trò {{ten}}?",
+      "moTa": "Không khôi phục được vai trò sau khi xoá.",
+      "xacNhan": "Xoá vai trò"
+    },
+    "trong": {
+      "tieuDe": "Chưa có vai trò nào",
+      "moTa": "Tạo vai trò đầu tiên để bắt đầu cấp quyền cho người dùng."
+    },
+    "khongKetQua": {
+      "tieuDe": "Không có vai trò nào khớp \"{{tuKhoa}}\"",
+      "moTa": "Thử từ khoá khác hoặc xoá từ khoá đang tìm."
+    },
+    "loi": {
+      "taiThatBai": "Không tải được danh sách vai trò"
+    }
+  },
+  "donVi": {
+    "tieuDe": "Đơn vị",
+    "moTa": "Các đơn vị dùng hệ thống. Người vận hành không xem được dữ liệu bên trong đơn vị.",
+    "hanhDong": {
+      "tao": "Tạo đơn vị"
+    },
+    "timKiem": {
+      "nhan": "Tìm theo mã hoặc tên đơn vị"
+    },
+    "bang": {
+      "caption": "Danh sách đơn vị"
+    },
+    "cot": {
+      "ma": "Mã đơn vị",
+      "ten": "Tên đơn vị",
+      "trangThai": "Trạng thái",
+      "ngayTao": "Ngày tạo",
+      "hanhDong": "Hành động"
+    },
+    "trangThai": {
+      "hoatDong": "Đang hoạt động",
+      "ngung": "Ngưng hoạt động"
+    },
+    "menu": {
+      "moMenu": "Hành động cho đơn vị {{ten}}",
+      "ngung": "Ngưng hoạt động",
+      "batLai": "Bật lại hoạt động",
+      "khoiPhuc": "Khôi phục quản trị",
+      "taoQuanTri": "Tạo quản trị mới"
+    },
+    "form": {
+      "tieuDe": "Tạo đơn vị",
+      "nhomDonVi": "Đơn vị",
+      "nhomQuanTri": "Tài khoản quản trị đầu tiên",
+      "ma": "Mã đơn vị",
+      "ten": "Tên đơn vị",
+      "tenDangNhap": "Tên đăng nhập",
+      "email": "Email",
+      "hoTen": "Họ tên",
+      "matKhauTam": "Mật khẩu tạm",
+      "goiYMa": "Chữ in hoa, chữ số, dấu gạch ngang và gạch dưới; bắt đầu bằng chữ hoặc số. Người dùng của đơn vị gõ mã này khi đăng nhập.",
+      "xacNhan": "Tạo đơn vị"
+    },
+    "thongBao": {
+      "taoThanhCong": "Đã tạo đơn vị {{ten}}. Chuyển mật khẩu tạm cho quản trị của đơn vị.",
+      "ngungThanhCong": "Đơn vị {{ten}} đã ngưng hoạt động.",
+      "batLaiThanhCong": "Đơn vị {{ten}} hoạt động trở lại.",
+      "khoiPhucThanhCong": "Đã đặt mật khẩu tạm.",
+      "taoQuanTriThanhCong": "Đã tạo tài khoản quản trị {{tenDangNhap}}. Chuyển mật khẩu tạm cho người nhận."
+    },
+    "ngung": {
+      "tieuDe": "Ngưng hoạt động đơn vị {{ten}} ({{ma}})?",
+      "moTa": "Mọi tài khoản của đơn vị sẽ không đăng nhập được, và phiên đang mở bị chặn ở thao tác kế tiếp. Bật lại được bất cứ lúc nào.",
+      "xacNhan": "Ngưng hoạt động"
+    },
+    "khoiPhuc": {
+      "tieuDe": "Khôi phục quản trị — {{ten}}",
+      "ghiChu": "Chỉ đặt được mật khẩu tạm cho tài khoản đang mang cờ đặc quyền hoặc đang giữ vai trò hệ thống của đơn vị này.",
+      "tenDangNhap": "Tên đăng nhập",
+      "matKhauTam": "Mật khẩu tạm",
+      "goLaiMa": "Gõ lại mã đơn vị để xác nhận",
+      "goiYGoLaiMa": "Gõ mã {{ma}} của đơn vị này.",
+      "xacNhan": "Đặt mật khẩu tạm"
+    },
+    "taoQuanTri": {
+      "tieuDe": "Tạo quản trị mới — {{ten}}",
+      "xacNhan": "Tạo tài khoản"
+    },
+    "trong": {
+      "tieuDe": "Chưa có đơn vị nào",
+      "moTa": "Tạo đơn vị đầu tiên cùng tài khoản quản trị của nó."
+    },
+    "khongKetQua": {
+      "tieuDe": "Không có đơn vị nào khớp \"{{tuKhoa}}\"",
+      "moTa": "Thử từ khoá khác hoặc xoá từ khoá đang tìm."
+    },
+    "loi": {
+      "taiThatBai": "Không tải được danh sách đơn vị"
+    }
+  },
+  "phanQuyen": {
+    "tieuDe": "Phân quyền",
+    "moTa": "Tick để cấp quyền cho vai trò. Thay đổi chỉ có hiệu lực sau khi lưu.",
+    "hanhDong": {
+      "huyThayDoi": "Huỷ thay đổi",
+      "luu": "Lưu ma trận",
+      "taiLai": "Tải lại ma trận"
+    },
+    "chiXem": "Bạn đang xem ma trận ở chế độ chỉ đọc. Cần quyền sửa phân quyền để thay đổi.",
+    "bang": {
+      "caption": "Ma trận vai trò và quyền"
+    },
+    "cot": {
+      "quyen": "Quyền"
+    },
+    "o": {
+      "nhan": "Cấp quyền {{quyen}} cho vai trò {{vaiTro}}",
+      "daDoi": "đã đổi, chưa lưu",
+      "lyDoKhoaHeThong": "Vai trò hệ thống luôn giữ quyền sửa phân quyền."
+    },
+    "xacNhanGo": {
+      "tieuDe": "Gỡ {{soLuong}} quyền đã cấp?",
+      "moTa": "Người dùng mang các vai trò này mất quyền tương ứng từ thao tác kế tiếp của họ.",
+      "xacNhan": "Lưu và gỡ quyền"
+    },
+    "thongBao": {
+      "luuThanhCong": "Đã lưu ma trận phân quyền."
+    },
+    "xungDot": {
+      "tieuDe": "Dữ liệu đã thay đổi",
+      "noiDung": "Người khác vừa lưu ma trận. Tải lại để xem dữ liệu mới; các ô bạn đã đổi được áp lại để bạn xem trước khi lưu lần nữa."
+    },
+    "trong": {
+      "tieuDe": "Chưa có quyền nào trong danh mục"
+    },
+    "trongVaiTro": {
+      "tieuDe": "Đơn vị chưa có vai trò nào",
+      "hanhDong": "Tạo vai trò"
+    },
+    "loi": {
+      "taiThatBai": "Không tải được ma trận phân quyền"
+    }
+  },
+  "loi": {
+    "CORE": {
+      "CLIENT": {
+        "NO_CONNECTION": "Không kết nối được tới máy chủ. Kiểm tra mạng rồi thử lại.",
+        "SERVER_UNAVAILABLE": "Máy chủ tạm thời không phản hồi, vui lòng thử lại sau.",
+        "VALIDATION_REQUIRED": "Trường này là bắt buộc.",
+        "VALIDATION_EMAIL": "Email chưa đúng định dạng.",
+        "VALIDATION_MAXLENGTH": "Nội dung vượt quá độ dài cho phép.",
+        "VALIDATION_MISMATCH": "Nội dung nhập lại không khớp.",
+        "VALIDATION_PATTERN": "Định dạng chưa đúng."
+      },
+      "VALIDATION": {
+        "FAILED": "Dữ liệu chưa hợp lệ. Kiểm tra lại các trường được đánh dấu.",
+        "REQUIRED": "Trường này là bắt buộc.",
+        "MAX_LENGTH": "Vượt quá {{MaxLength}} ký tự.",
+        "MAX_ITEMS": "Tối đa {{MaxItems}} phần tử."
+      },
+      "AUTH": {
+        "INVALID_CREDENTIALS": "Mã đơn vị, tên đăng nhập hoặc mật khẩu không đúng.",
+        "LOCKED_OUT": "Tài khoản đang bị khoá. Liên hệ quản trị viên của đơn vị để được mở khoá.",
+        "PASSWORD_MISMATCH": "Mật khẩu hiện tại không đúng.",
+        "PASSWORD_TOO_SHORT": "Mật khẩu phải từ {{MinLength}} ký tự.",
+        "PASSWORD_REQUIRES_DIGIT": "Mật khẩu phải có ít nhất một chữ số.",
+        "NEW_PASSWORD_SAME_AS_CURRENT": "Mật khẩu mới phải khác mật khẩu hiện tại.",
+        "CHANGE_PASSWORD_FAILED": "Đổi mật khẩu thất bại.",
+        "FORBIDDEN": "Bạn không có quyền thực hiện thao tác này.",
+        "CSRF_REJECTED": "Phiên xác thực đã hết hạn. Tải lại trang rồi thử lại.",
+        "ORIGIN_REJECTED": "Yêu cầu bị từ chối do nguồn gốc không hợp lệ. Vui lòng tải lại trang.",
+        "NOT_AUTHENTICATED": "Bạn cần đăng nhập để tiếp tục."
+      },
+      "PROFILE": {
+        "NO_OTHER_PERMISSION_ADMIN": "Chưa từ bỏ được: đơn vị cần ít nhất một tài khoản khác, không bị khoá, có quyền sửa phân quyền qua vai trò.",
+        "PERMISSION_BYPASS_NOT_HELD": "Tài khoản không còn mang cờ đặc quyền."
+      },
+      "USER": {
+        "USERNAME_DUPLICATED": "Tên đăng nhập {{UserName}} đã tồn tại.",
+        "USERNAME_RESERVED": "Tên đăng nhập này được hệ thống giữ riêng.",
+        "EMAIL_DUPLICATED": "Email {{Email}} đã tồn tại.",
+        "ROLE_NOT_FOUND": "Một vai trò trong yêu cầu không còn tồn tại.",
+        "CREATE_FAILED": "Tạo người dùng thất bại.",
+        "UPDATE_FAILED": "Cập nhật người dùng thất bại.",
+        "NOT_FOUND": "Không tìm thấy người dùng.",
+        "ROLE_ESCALATION_FORBIDDEN": "Bạn không đủ quyền để gán hoặc gỡ vai trò này.",
+        "SELF_SYSTEM_ROLE_REMOVAL_FORBIDDEN": "Không thể tự gỡ vai trò hệ thống của chính mình.",
+        "CANNOT_LOCK_SELF": "Không thể tự khoá tài khoản của chính mình.",
+        "SYSTEM_ROLE_LOCK_FORBIDDEN": "Bạn không đủ quyền để khoá tài khoản này.",
+        "LOCK_FAILED": "Thao tác khoá/mở khoá thất bại.",
+        "RESET_PASSWORD_TARGET_FORBIDDEN": "Bạn không đủ quyền để đặt lại mật khẩu của tài khoản này.",
+        "CANNOT_RESET_OWN_PASSWORD": "Không thể tự đặt lại mật khẩu của chính mình bằng chức năng này.",
+        "RESET_PASSWORD_FAILED": "Đặt lại mật khẩu thất bại.",
+        "DUPLICATE_ROLE_ENTRY": "Danh sách vai trò có mục trùng lặp."
+      },
+      "ROLE": {
+        "NAME_DUPLICATE": "Tên vai trò đã tồn tại trong đơn vị.",
+        "NOT_FOUND": "Không tìm thấy vai trò.",
+        "SYSTEM_IMMUTABLE": "Vai trò hệ thống không đổi tên hay xoá được.",
+        "IN_USE": "Vai trò còn {{Count}} người dùng."
+      },
+      "PERMISSION": {
+        "VERSION_MISMATCH": "Dữ liệu đã thay đổi. Tải lại ma trận rồi thử lại.",
+        "SYSTEM_ROLE_CANNOT_LOSE_WRITE": "Vai trò hệ thống luôn giữ quyền sửa phân quyền.",
+        "ENTRIES_INCOMPLETE": "Danh sách quyền gửi lên chưa đủ so với danh mục.",
+        "DUPLICATE_ENTRY": "Danh sách quyền có mục trùng lặp.",
+        "NOT_FOUND": "Một quyền trong yêu cầu không còn tồn tại.",
+        "ROLE_NOT_FOUND": "Một vai trò trong yêu cầu không còn tồn tại."
+      },
+      "TENANT": {
+        "CODE_DUPLICATE": "Mã đơn vị đã tồn tại.",
+        "ADMIN_CREATE_FAILED": "Tạo tài khoản quản trị thất bại.",
+        "SEED_FAILED": "Tạo đơn vị thất bại. Kiểm tra dữ liệu rồi thử lại.",
+        "NOT_FOUND": "Không tìm thấy đơn vị.",
+        "SYSTEM_IMMUTABLE": "Không thể ngưng hoạt động đơn vị hệ thống.",
+        "RECOVERY_TARGET_NOT_ELIGIBLE": "Không tìm thấy tài khoản đủ điều kiện khôi phục trong đơn vị này.",
+        "RECOVERY_RESET_FAILED": "Đặt mật khẩu tạm thất bại."
+      },
+      "RATE_LIMIT": {
+        "EXCEEDED": "Bạn thao tác quá nhanh. Vui lòng thử lại sau {{RetryAfterSeconds}} giây."
+      },
+      "CONCURRENCY": {
+        "CONFLICT": "Người khác vừa đổi bản ghi này. Tải lại rồi nhập lại."
+      },
+      "SYSTEM": {
+        "UNEXPECTED": "Lỗi hệ thống. Vui lòng thử lại; nếu lặp lại, báo mã theo dõi cho quản trị."
+      }
+    }
+  },
+  "thuVienUi": {
+    "emptyMessage": "Không có lựa chọn nào",
+    "emptySearchMessage": "Không tìm thấy kết quả",
+    "emptyFilterMessage": "Không tìm thấy kết quả",
+    "searchMessage": "Có {0} kết quả",
+    "selectionMessage": "Đã chọn {0} mục",
+    "emptySelectionMessage": "Chưa chọn mục nào",
+    "aria": {
+      "close": "Đóng",
+      "firstPageLabel": "Trang đầu",
+      "prevPageLabel": "Trang trước",
+      "previousPageLabel": "Trang trước",
+      "nextPageLabel": "Trang sau",
+      "lastPageLabel": "Trang cuối",
+      "pageLabel": "Trang {page}",
+      "rowsPerPageLabel": "Số dòng mỗi trang",
+      "jumpToPageDropdownLabel": "Chọn trang",
+      "jumpToPageInputLabel": "Nhập số trang",
+      "listLabel": "Danh sách lựa chọn",
+      "removeLabel": "Gỡ",
+      "selectAll": "Đã chọn tất cả",
+      "unselectAll": "Đã bỏ chọn tất cả",
+      "selectRow": "Đã chọn dòng",
+      "unselectRow": "Đã bỏ chọn dòng"
+    }
+  }
+}

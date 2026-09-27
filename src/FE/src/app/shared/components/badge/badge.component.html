@@ -1,0 +1,17 @@
+<span
+  class="badge"
+  [class.badge--sm]="size() === 'sm'"
+  [class.badge--square]="shape() === 'square'"
+  [class.badge--outline]="variant() === 'outline'"
+  [class.badge--success]="variant() === 'success'"
+  [class.badge--warning]="variant() === 'warning'"
+  [class.badge--danger]="variant() === 'danger'"
+  [class.badge--info]="variant() === 'info'"
+  [class.badge--on-surface-2]="onSurface2()"
+  [class.badge--uppercase]="uppercase()"
+>
+  @if (icon()) {
+    <i class="pi" [class]="'pi-' + icon()" aria-hidden="true"></i>
+  }
+  <ng-content />
+</span>

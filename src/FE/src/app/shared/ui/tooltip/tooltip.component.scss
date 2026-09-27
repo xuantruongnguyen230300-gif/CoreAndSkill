@@ -1,0 +1,8 @@
+// Design/Components/Tooltip.md §Hình dạng, ràng buộc 2: host PHẢI có hộp riêng. Thư viện căn vị
+// trí hộp nổi bằng hình chữ nhật của chính host, mà phần tử `display: contents` không sinh hộp —
+// hình chữ nhật rỗng thì hộp nổi rơi về góc màn hình. `inline-flex` ôm sát nội dung chiếu vào và
+// không đổi chiều dòng chữ quanh nó.
+:host {
+  display: inline-flex;
+  align-items: center;
+}

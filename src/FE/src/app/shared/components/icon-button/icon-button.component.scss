@@ -1,0 +1,103 @@
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+  padding: var(--sp-4);
+  border-radius: var(--radius-sm);
+  border: var(--border-w) solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-standard);
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--color-surface-2);
+      color: var(--color-text);
+    }
+  }
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  &:active:not(:disabled) {
+    background: var(--color-surface-3);
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    color: var(--color-text-disabled);
+    cursor: not-allowed;
+  }
+
+  &--sm {
+    width: var(--size-control-sm);
+    height: var(--size-control-sm);
+    padding: var(--sp-3);
+  }
+
+  &--lg {
+    width: var(--size-control-lg);
+    height: var(--size-control-lg);
+    padding: var(--sp-5);
+  }
+
+  &--secondary {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-text);
+
+    @media (hover: hover) {
+      &:hover:not(:disabled) {
+        border-color: var(--color-border-strong);
+      }
+    }
+  }
+
+  &--primary {
+    background: var(--color-brand);
+    color: var(--color-text-on-brand);
+
+    @media (hover: hover) {
+      &:hover:not(:disabled) {
+        background: var(--color-brand-hover);
+      }
+    }
+
+    &:active:not(:disabled) {
+      background: var(--color-brand-active);
+    }
+  }
+
+  &--danger {
+    color: var(--color-danger);
+
+    @media (hover: hover) {
+      &:hover:not(:disabled) {
+        background: var(--color-surface-2);
+      }
+    }
+  }
+
+  // `pressed` (aria-pressed="true") — mục dùng chọn một trong vài giá trị (ví dụ theme ở Topbar).
+  &[aria-pressed='true'] {
+    background: var(--color-brand-subtle);
+    color: var(--color-brand-on-subtle);
+  }
+
+  .pi {
+    font-size: var(--icon-md);
+  }
+
+  &--sm .pi {
+    font-size: var(--icon-sm);
+  }
+
+  &--lg .pi {
+    font-size: var(--icon-lg);
+  }
+}

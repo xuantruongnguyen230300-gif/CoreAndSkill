@@ -1,0 +1,91 @@
+<div
+  class="table-vung-cuon"
+  [class.table-vung-cuon--bordered]="variant() === 'bordered'"
+  tabindex="0"
+  role="region"
+  [attr.aria-label]="caption()"
+>
+  <table
+    class="table"
+    [class.table--sm]="size() === 'sm'"
+    [class.table--lg]="size() === 'lg'"
+    [class.table--zebra]="variant() === 'zebra'"
+    [class.table--sticky]="stickyHeader()"
+    [attr.aria-busy]="loading() ? 'true' : null"
+  >
+    <caption [class.sr-only]="!captionVisible()">
+      {{
+        caption()
+      }}
+    </caption>
+    <thead>
+      <tr>
+        @for (cot of columns(); track cot.key) {
+          <th
+            scope="col"
+            [class.table__o--end]="cot.align === 'end'"
+            [style.width]="cot.width ?? null"
+          >
+            {{ cot.header }}
+          </th>
+        }
+      </tr>
+    </thead>
+
+    @if (dangTaiLanDau()) {
+      <tbody>
+        @for (i of [0, 1, 2, 3, 4]; track i) {
+          <tr>
+            <td [attr.colspan]="columns().length"><span class="table__skeleton"></span></td>
+          </tr>
+        }
+      </tbody>
+    } @else if (coLoi()) {
+      <tbody>
+        <tr>
+          <td [attr.colspan]="columns().length">
+            <app-notice-banner severity="danger" [heading]="errorHeading()">
+              @if (errorMessage()) {
+                {{ errorMessage() }}
+              }
+            </app-notice-banner>
+            <app-button variant="secondary" icon="refresh" (clicked)="retry.emit()">{{
+              retryLabel()
+            }}</app-button>
+          </td>
+        </tr>
+      </tbody>
+    } @else if (rows().length === 0) {
+      <tbody>
+        <tr>
+          <td [attr.colspan]="columns().length">{{ emptyLabel() }}</td>
+        </tr>
+      </tbody>
+    } @else {
+      @for (nhom of nhomHang(); track nhom.nhan) {
+        <tbody>
+          @if (coNhom()) {
+            <tr class="table__hang-nhom">
+              <th scope="rowgroup" [attr.colspan]="columns().length">{{ nhom.nhan }}</th>
+            </tr>
+          }
+          @for (hang of nhom.hang; track khoaHang($index, hang)) {
+            <tr>
+              @for (cot of columns(); track cot.key) {
+                <td [class.table__o--end]="cot.align === 'end'">
+                  <ng-container
+                    [ngTemplateOutlet]="cot.cell"
+                    [ngTemplateOutletContext]="{ $implicit: hang, column: cot }"
+                  />
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      }
+    }
+  </table>
+  @if (dangTaiLai()) {
+    <div class="table__phu-tai" aria-hidden="true"></div>
+  }
+</div>

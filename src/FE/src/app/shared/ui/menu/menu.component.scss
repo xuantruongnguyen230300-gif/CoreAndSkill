@@ -1,0 +1,12 @@
+// Design/Components/Menu.md. Cỡ mục và mục `danger` chạm DOM do PrimeNG dựng (mục `p-menu`,
+// ngoài encapsulation của component này) — hai override đó nằm ở src/styles/_thu-vien.scss.
+// Khối tiêu đề dưới đây thuộc chính template của component này (nội dung của `<ng-template #start>`
+// LÀ một phần template của component — Angular vẫn scope được, dù PrimeNG gắn nó vào DOM overlay).
+
+.app-menu__tieu-de {
+  padding: var(--sp-3) var(--sp-4);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-muted);
+  border-bottom: var(--border-w) solid var(--color-border-subtle);
+}

@@ -1,0 +1,56 @@
+@if (open()) {
+  <button
+    type="button"
+    class="confirm-dialog__backdrop"
+    tabindex="-1"
+    aria-hidden="true"
+    (click)="onBackdrop()"
+  ></button>
+  <div
+    #hopThoai
+    class="confirm-dialog"
+    [class.confirm-dialog--ask]="severity() === 'ask'"
+    [class.confirm-dialog--warning]="severity() === 'warning'"
+    [class.confirm-dialog--danger]="severity() === 'danger'"
+    role="alertdialog"
+    [attr.aria-labelledby]="idTieuDe"
+    [attr.aria-describedby]="idNoiDung"
+    [attr.aria-busy]="loading() ? 'true' : null"
+    (keydown)="onKeydown($event)"
+  >
+    <div class="confirm-dialog__icon-vong" aria-hidden="true">
+      <i class="pi pi-{{ icon() }}"></i>
+    </div>
+
+    <div class="confirm-dialog__noi-dung">
+      <h2 class="confirm-dialog__tieu-de" [id]="idTieuDe">{{ title() }}</h2>
+      <p class="confirm-dialog__mo-ta" [id]="idNoiDung">{{ message() }}</p>
+
+      @if (requireAcknowledge()) {
+        <label class="confirm-dialog__xac-nhan">
+          <input type="checkbox" [checked]="daDanhDau()" (change)="daDanhDau.set(!daDanhDau())" />
+          {{ requireAcknowledge() }}
+        </label>
+      }
+
+      @if (error()) {
+        <app-notice-banner severity="danger">{{ error() }}</app-notice-banner>
+      }
+
+      <div class="confirm-dialog__hanh-dong">
+        <app-button variant="secondary" type="button" [disabled]="loading()" (clicked)="huy()">
+          {{ cancelLabel() ?? ('chung.huy' | translate) }}
+        </app-button>
+        <app-button
+          [variant]="severity() === 'danger' ? 'danger' : 'primary'"
+          type="button"
+          [loading]="loading()"
+          [disabled]="khoaXacNhan()"
+          (clicked)="xacNhan()"
+        >
+          {{ confirmLabel() }}
+        </app-button>
+      </div>
+    </div>
+  </div>
+}

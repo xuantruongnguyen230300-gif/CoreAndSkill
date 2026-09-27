@@ -1,0 +1,191 @@
+<app-page-header [title]="'vaiTro.tieuDe' | translate" [description]="'vaiTro.moTa' | translate">
+  <a
+    *appHasPermission="'core.permission.read'"
+    class="nut-lien-ket"
+    routerLink="/quan-tri/phan-quyen"
+    >{{ 'vaiTro.hanhDong.moMaTran' | translate }}</a
+  >
+  <app-button
+    *appHasPermission="'core.role.write'"
+    variant="primary"
+    icon="plus"
+    (clicked)="hop.moHopTao()"
+    >{{ 'vaiTro.hanhDong.them' | translate }}</app-button
+  >
+</app-page-header>
+
+<app-toolbar
+  variant="search"
+  [searchValue]="list.query().searchText ?? ''"
+  [searchLabel]="'vaiTro.timKiem.nhan' | translate"
+  [readonlyChips]="chipDonVi()"
+  [loading]="list.state() === 'loading'"
+  (searchChanged)="list.setSearchText($event)"
+/>
+
+<app-data-table
+  [rows]="rows()"
+  [columns]="columns()"
+  [caption]="'vaiTro.bang.caption' | translate"
+  rowKey="id"
+  [state]="list.state()"
+  [totalRecords]="list.totalCount()"
+  [page]="list.query().page"
+  [pageSize]="list.query().pageSize"
+  [paginationAriaLabel]="'vaiTro.bang.caption' | translate"
+  [sortBy]="list.query().sortBy ?? null"
+  [sortDescending]="list.query().sortDescending ?? false"
+  (pageChange)="list.setPage($event.page, $event.pageSize)"
+  (sortChange)="list.setSort($event.sortBy, $event.sortDescending)"
+  [emptyTemplate]="tplRong"
+  [loadingTemplate]="tplDangTai"
+  [errorTemplate]="tplLoi"
+/>
+
+<ng-template #colTen let-vt>{{ vt.name }}</ng-template>
+
+<ng-template #colLoai let-vt>
+  @if (vt.isSystem) {
+    <app-badge variant="neutral">{{ 'vaiTro.loai.heThong' | translate }}</app-badge>
+  } @else {
+    <span aria-hidden="true">—</span>
+  }
+</ng-template>
+
+<ng-template #colSoNguoiDung let-vt>{{ vt.userCount }}</ng-template>
+
+<ng-template #colNgayTao let-vt>{{
+  vt.createdAt ? (vt.createdAt | date: 'short') : '—'
+}}</ng-template>
+
+<ng-template #colHanhDong let-vt>
+  <app-icon-button
+    icon="ellipsis-v"
+    size="sm"
+    variant="ghost"
+    [ariaLabel]="'vaiTro.menu.moMenu' | translate: { ten: vt.name }"
+    (click)="onMoMenu($event, vt)"
+  />
+  <app-menu
+    [open]="mucMoMenuId() === vt.id"
+    [anchorEvent]="suKienMoMenu()"
+    [items]="mucMenu(vt)"
+    size="sm"
+    [header]="vt.name"
+    [ariaLabel]="'vaiTro.menu.moMenu' | translate: { ten: vt.name }"
+    (selected)="onChonMenu($event, vt)"
+    (openChange)="onDongMenu(vt.id)"
+  />
+</ng-template>
+
+<ng-template #tplDangTai>
+  <app-skeleton-loader variant="text" width="full" />
+</ng-template>
+
+<ng-template #tplLoi>
+  <app-empty-state
+    variant="error"
+    size="compact"
+    [title]="'vaiTro.loi.taiThatBai' | translate"
+    actionLabel="{{ 'chung.thuLai' | translate }}"
+    (actionClicked)="list.reload()"
+  />
+</ng-template>
+
+<ng-template #tplRong let-ca>
+  @if (ca === 'empty') {
+    <app-empty-state
+      variant="first-use"
+      size="compact"
+      [title]="'vaiTro.trong.tieuDe' | translate"
+      [description]="'vaiTro.trong.moTa' | translate"
+      [actionLabel]="auth.coQuyen('core.role.write') ? ('vaiTro.hanhDong.them' | translate) : null"
+      (actionClicked)="hop.moHopTao()"
+    />
+  } @else {
+    <app-empty-state
+      variant="no-results"
+      size="compact"
+      [title]="'vaiTro.khongKetQua.tieuDe' | translate: { tuKhoa: list.query().searchText ?? '' }"
+      [description]="'vaiTro.khongKetQua.moTa' | translate"
+      [actionLabel]="'chung.xoaBoLoc' | translate"
+      (actionClicked)="list.setSearchText('')"
+    />
+  }
+</ng-template>
+
+<app-dialog
+  [open]="hop.hienThi()"
+  size="sm"
+  [title]="hop.tieuDe()"
+  [dirty]="hop.form.dirty"
+  [loading]="hop.dangLuu()"
+  [loadingBlocksClose]="hop.dangLuu()"
+  (closed)="hop.dong()"
+  (dismissAttempted)="hop.onDismissAttempted()"
+>
+  @if (hop.xungDot()) {
+    <app-notice-banner severity="warning" size="sm"
+      >{{ 'loi.CORE.CONCURRENCY.CONFLICT' | translate }}
+      <div>
+        <app-button
+          variant="secondary"
+          size="sm"
+          icon="refresh"
+          (clicked)="hop.taiLaiSauXungDot(taiLaiDanhSach)"
+          >{{ 'vaiTro.hanhDong.taiLai' | translate }}</app-button
+        >
+      </div></app-notice-banner
+    >
+  } @else if (hop.loi()) {
+    <app-notice-banner severity="danger" size="sm">{{ hop.loi() }}</app-notice-banner>
+  }
+  <form [formGroup]="hop.form" (ngSubmit)="hop.gui(xongHop)">
+    @let loi = hop.loiTen();
+    <app-form-row
+      [label]="'vaiTro.form.ten' | translate"
+      [required]="true"
+      controlId="vai-tro-ten"
+      [error]="loi"
+    >
+      <app-input
+        #oTen
+        id="vai-tro-ten"
+        type="text"
+        autocomplete="off"
+        [formControl]="hop.form.controls.name"
+        [describedBy]="loi !== null ? 'vai-tro-ten-error' : null"
+      />
+    </app-form-row>
+  </form>
+  <div slot="footer">
+    <app-button variant="secondary" (clicked)="hop.dong()">{{
+      'chung.huy' | translate
+    }}</app-button>
+    <app-button variant="primary" [loading]="hop.dangLuu()" (clicked)="hop.gui(xongHop)">{{
+      'chung.luu' | translate
+    }}</app-button>
+  </div>
+</app-dialog>
+
+<app-confirm-dialog
+  [open]="vaiTroDangXoa() !== null"
+  severity="danger"
+  [title]="'vaiTro.xoa.tieuDe' | translate: { ten: vaiTroDangXoa()?.name ?? '' }"
+  [message]="'vaiTro.xoa.moTa' | translate"
+  [confirmLabel]="'vaiTro.xoa.xacNhan' | translate"
+  [loading]="dangXoa()"
+  [error]="loiXoa()"
+  (confirmed)="xacNhanXoa()"
+  (cancelled)="dongHopXoa()"
+/>
+
+<app-confirm-dialog
+  [open]="hop.hienThiXacNhanHuy()"
+  severity="ask"
+  [title]="'chung.roiTrang.tieuDe' | translate"
+  [message]="'chung.roiTrang.moTa' | translate"
+  [confirmLabel]="'chung.roiTrang.xacNhan' | translate"
+  (confirmed)="hop.xacNhanHuy()"
+  (cancelled)="hop.huyXacNhanHuy()"
+/>

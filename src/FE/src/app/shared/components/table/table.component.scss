@@ -1,0 +1,107 @@
+.table-vung-cuon {
+  position: relative;
+  overflow-x: auto;
+
+  &--bordered {
+    border: var(--border-w) solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: -2px;
+  }
+}
+
+// Tải lại trên dữ liệu cũ (dangTaiLai) — phủ MỌI ô, chặn tương tác. KHÔNG pointer-events:none:
+// mục đích của lớp phủ này là khoá thao tác trong lúc GET đang chạy (Table.md §Trạng thái
+// `loading`; ma-tran-phan-quyen.page.ts còn tự khoá thêm ở oBiKhoa() để chắc chắn không lọt ô nào).
+.table__phu-tai {
+  position: absolute;
+  inset: 0;
+  background: var(--color-scrim);
+  cursor: wait;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+  font-size: var(--fs-sm);
+
+  &--sm {
+    font-size: var(--fs-xs);
+  }
+
+  &--lg {
+    font-size: var(--fs-sm);
+  }
+
+  &--sticky thead th {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+  }
+
+  th,
+  td {
+    padding: var(--sp-3) var(--sp-5);
+    text-align: left;
+    border-bottom: var(--border-w) solid var(--color-border-subtle);
+  }
+
+  thead th {
+    background: var(--color-surface-2);
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-semibold);
+    color: var(--color-text);
+    white-space: nowrap;
+  }
+
+  &--zebra tbody tr:nth-child(even) {
+    background: var(--color-surface-2);
+  }
+
+  tbody tr {
+    @media (hover: hover) {
+      &:hover {
+        background: var(--color-surface-2);
+      }
+    }
+  }
+
+  &--zebra tbody tr {
+    @media (hover: hover) {
+      &:hover {
+        background: var(--color-surface-3);
+      }
+    }
+  }
+}
+
+.table__o--end {
+  text-align: right;
+}
+
+.table__hang-nhom th {
+  background: var(--color-surface-2);
+  font-weight: var(--fw-semibold);
+}
+
+.table__skeleton {
+  display: block;
+  height: var(--sp-5);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  animation: table-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes table-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}

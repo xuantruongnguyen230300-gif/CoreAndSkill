@@ -1,0 +1,29 @@
+// "Ma trận phân quyền" là điều hướng, không hành động — <a>, không <app-button> (Button.md
+// "Khi nào dùng": điều hướng là liên kết). Mượn hình thức nút secondary cỡ md của Button.md,
+// vì ButtonComponent không có chế độ routerLink (Design/Screens/11-vai-tro.md).
+.nut-lien-ket {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-control-md);
+  padding: 0 var(--sp-5);
+  border-radius: var(--radius-sm);
+  border: var(--border-w) solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--color-surface-2);
+      border-color: var(--color-border-strong);
+    }
+  }
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}

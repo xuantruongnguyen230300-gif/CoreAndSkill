@@ -1,0 +1,37 @@
+// Design/Components/FormRow.md
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.form-row__nhan {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--color-text);
+
+  span {
+    color: var(--color-danger);
+  }
+}
+
+.form-row--disabled .form-row__nhan {
+  color: var(--color-text-disabled);
+}
+
+.form-row__loi {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+}
+
+.form-row__goi-y {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+}

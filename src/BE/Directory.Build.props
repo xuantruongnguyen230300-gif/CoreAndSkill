@@ -1,0 +1,15 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- CS8524: cảnh báo cho giá trị enum không tên trong switch expression.
+         Tắt riêng vì ResultToHttpMapper cố ý không có nhánh "_" — thiếu nhánh phải là lỗi biên dịch
+         (CS8509), không phải cảnh báo im lặng. Xem docs/quy-uoc/be-api-controller.md §1.2. -->
+    <NoWarn>$(NoWarn);CS8524</NoWarn>
+  </PropertyGroup>
+
+</Project>

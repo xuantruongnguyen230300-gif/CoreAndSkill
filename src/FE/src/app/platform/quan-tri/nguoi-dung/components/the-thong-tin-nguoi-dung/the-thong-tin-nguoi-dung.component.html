@@ -1,0 +1,57 @@
+@let nd = nguoiDung();
+<app-card [heading]="'nguoiDung.chiTietTrang.theThongTin' | translate">
+  <app-form-row
+    [label]="'nguoiDung.cot.tenDangNhap' | translate"
+    layout="inline"
+    controlId="ndct-ten"
+    ><app-input id="ndct-ten" type="text" [readonly]="true" [value]="nd.userName"
+  /></app-form-row>
+  <app-form-row [label]="'nguoiDung.cot.email' | translate" layout="inline" controlId="ndct-email"
+    ><app-input id="ndct-email" type="text" [readonly]="true" [value]="nd.email ?? ''"
+  /></app-form-row>
+  <app-form-row [label]="'nguoiDung.cot.hoTen' | translate" layout="inline" controlId="ndct-ho-ten"
+    ><app-input id="ndct-ho-ten" type="text" [readonly]="true" [value]="nd.fullName"
+  /></app-form-row>
+  @if (nd.isLocked) {
+    <app-form-row
+      [label]="'nguoiDung.chiTietTrang.khoa' | translate"
+      layout="inline"
+      controlId="ndct-khoa"
+    >
+      <app-input
+        id="ndct-khoa"
+        type="text"
+        [readonly]="true"
+        [value]="
+          nd.lockedByAdmin
+            ? ('nguoiDung.khoa.boiQuanTri' | translate)
+            : ('nguoiDung.khoa.tuDong' | translate: { lockoutEnd: (nd.lockoutEnd | date: 'short') })
+        "
+      />
+    </app-form-row>
+  }
+  <app-form-row
+    [label]="'nguoiDung.chiTietTrang.buocDoiMatKhau' | translate"
+    layout="inline"
+    controlId="ndct-buoc-doi"
+  >
+    <app-input
+      id="ndct-buoc-doi"
+      type="text"
+      [readonly]="true"
+      [value]="(nd.mustChangePassword ? 'chung.co' : 'chung.khong') | translate"
+    />
+  </app-form-row>
+  <app-form-row
+    [label]="'nguoiDung.cot.ngayTao' | translate"
+    layout="inline"
+    controlId="ndct-ngay-tao"
+  >
+    <app-input
+      id="ndct-ngay-tao"
+      type="text"
+      [readonly]="true"
+      [value]="nd.createdAt ? (nd.createdAt | date: 'short') : '—'"
+    />
+  </app-form-row>
+</app-card>

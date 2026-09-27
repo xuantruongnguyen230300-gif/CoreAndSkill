@@ -1,0 +1,19 @@
+<div
+  class="notice-banner"
+  [class.notice-banner--info]="severity() === 'info'"
+  [class.notice-banner--success]="severity() === 'success'"
+  [class.notice-banner--warning]="severity() === 'warning'"
+  [class.notice-banner--danger]="severity() === 'danger'"
+  [class.notice-banner--sm]="size() === 'sm'"
+  [attr.role]="role()"
+>
+  <i class="pi pi-{{ icon() }} notice-banner__icon" aria-hidden="true"></i>
+  <div class="notice-banner__noi-dung">
+    @if (heading()) {
+      <strong class="notice-banner__tieu-de">{{ heading() }}</strong>
+    }
+    <div class="notice-banner__than">
+      <ng-content></ng-content>
+    </div>
+  </div>
+</div>

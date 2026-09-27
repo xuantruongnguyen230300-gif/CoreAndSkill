@@ -1,0 +1,42 @@
+<p-dialog
+  [visible]="hienThi()"
+  [modal]="true"
+  [closable]="closable()"
+  [dismissableMask]="maskDongDuoc()"
+  [closeOnEscape]="!khoaDong()"
+  [focusOnShow]="true"
+  [focusTrap]="true"
+  [blockScroll]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [transitionOptions]="transitionOptions"
+  [styleClass]="'app-dialog ' + bienTheKhoRong()"
+  [attr.aria-busy]="loading() ? 'true' : null"
+  [closeAriaLabel]="'chung.dong' | translate"
+  (visibleChange)="onVisibleChange($event)"
+>
+  <ng-template #header>
+    <div class="app-dialog__dau">
+      <h2 class="app-dialog__tieu-de">{{ title() }}</h2>
+      @if (description()) {
+        <p class="app-dialog__mo-ta">{{ description() }}</p>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #content>
+    @if (loading()) {
+      <div class="app-dialog__phu-tai" aria-hidden="true"></div>
+    }
+    @if (errorTemplate()) {
+      <div class="app-dialog__loi">
+        <ng-container [ngTemplateOutlet]="errorTemplate()" />
+      </div>
+    }
+    <ng-content />
+  </ng-template>
+
+  <ng-template #footer>
+    <ng-content select="[slot=footer]" />
+  </ng-template>
+</p-dialog>

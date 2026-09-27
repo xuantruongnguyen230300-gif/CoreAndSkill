@@ -1,0 +1,55 @@
+// Design/Components/AuthCard.md
+.auth-card-vung {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--sp-6);
+  background: var(--color-bg);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: var(--layout-auth-w);
+  padding: var(--sp-11);
+  background: var(--color-surface);
+  border: var(--border-w) solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+}
+
+.auth-card__tieu-de {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  color: var(--color-text);
+  letter-spacing: var(--ls-tight);
+}
+
+.auth-card__mo-ta {
+  margin: calc(var(--sp-3) * -1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-md);
+}
+
+.auth-card__khu-loi {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  background: var(--color-danger-bg);
+  border: var(--border-w) solid var(--color-danger-border);
+  border-left-width: var(--border-w-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  // Giữ ngắt dòng của chuỗi: mỗi mã một dòng (quy-uoc/fe-ui-conventions.md §6.2).
+  white-space: pre-line;
+
+  i {
+    color: var(--color-danger);
+  }
+}

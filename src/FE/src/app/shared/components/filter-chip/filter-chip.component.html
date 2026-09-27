@@ -1,0 +1,38 @@
+@switch (variant()) {
+  @case ('toggle') {
+    <button
+      type="button"
+      class="filter-chip filter-chip--toggle"
+      [class.filter-chip--pressed]="pressed()"
+      [attr.aria-pressed]="pressed()"
+      (click)="onToggle()"
+    >
+      <span class="filter-chip__nhan">{{ label() }}</span>
+    </button>
+  }
+  @case ('readonly') {
+    <app-tooltip [text]="lockReason() ?? ''" variant="hint">
+      <span class="filter-chip filter-chip--readonly" tabindex="0" aria-disabled="true">
+        <span class="filter-chip__nhan">{{ label() }}</span>
+        @if (value()) {
+          <span class="filter-chip__gia-tri">{{ value() }}</span>
+        }
+      </span>
+    </app-tooltip>
+  }
+  @default {
+    <span class="filter-chip">
+      <span class="filter-chip__nhan">{{ label() }}</span>
+      @if (value()) {
+        <span class="filter-chip__gia-tri">{{ value() }}</span>
+      }
+      <app-icon-button
+        icon="times"
+        size="sm"
+        variant="ghost"
+        [ariaLabel]="'chung.locChip.go' | translate: nhanNutGo()"
+        (clicked)="onRemove()"
+      />
+    </span>
+  }
+}

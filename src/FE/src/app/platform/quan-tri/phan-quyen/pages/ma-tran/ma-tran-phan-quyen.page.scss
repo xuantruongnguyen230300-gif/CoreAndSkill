@@ -1,0 +1,12 @@
+// Ô "đã đổi" — dải mép trái + chữ chỉ-đọc-lên, không CHỈ màu (Design/Screens/12 sơ đồ bố cục).
+// Style khối projected VÀO ô của Table (nội dung template của chính trang này), không style
+// thẳng <td> của Table — Table là component riêng, không đè bằng ::ng-deep (fe-ui-conventions.md §4.2).
+.ma-tran__o {
+  display: inline-flex;
+  align-items: center;
+  padding-left: var(--sp-2);
+}
+
+.ma-tran__o--da-doi {
+  box-shadow: inset var(--border-w-accent) 0 0 0 var(--color-brand);
+}

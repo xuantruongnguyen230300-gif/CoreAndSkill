@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>CoreAndSkill.Core.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreAndSkill.Core.Domain\CoreAndSkill.Core.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Cho phép unit test đụng thẳng handler/validator/behavior `internal sealed`
+         (docs/quy-uoc/be-architecture.md §9.1) — không đổi bề mặt public, không nới ranh giới kiến
+         trúc, chỉ mở khả năng kiểm thử. -->
+    <InternalsVisibleTo Include="CoreAndSkill.Core.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- MediatR + FluentValidation là bề mặt CQRS của Application — docs/quy-uoc/be-cqrs-handler.md §1, §6.
+         KHÔNG EF Core, KHÔNG ASP.NET Core ở project này (luật A2). -->
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <!-- IOptions<T> cho các POCO cấu hình (CoreAuthOptions…) — không phải IConfiguration trực tiếp
+         (docs/quy-uoc/be-architecture.md §4.1). -->
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <!-- Log có cấu trúc trong handler — docs/wiki-core/be/07-observability.md §2. Abstraction
+         thuần (không ASP.NET Core, không nhà cung cấp log cụ thể) — luật A2 vẫn giữ. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+</Project>

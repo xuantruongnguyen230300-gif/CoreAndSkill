@@ -1,0 +1,45 @@
+// Design/Screens/00-khung-ung-dung.md
+:host {
+  display: grid;
+  grid-template-columns: var(--layout-sidebar-w) 1fr;
+  grid-template-rows: var(--layout-topbar-h) 1fr auto;
+  grid-template-areas:
+    'sidebar topbar'
+    'sidebar noi-dung'
+    'sidebar chan-trang';
+  min-height: 100dvh;
+}
+
+.bo-qua {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: var(--z-toast);
+  padding: var(--sp-4);
+  background: var(--color-surface);
+  color: var(--color-text);
+
+  &:focus {
+    left: var(--sp-4);
+    top: var(--sp-4);
+  }
+}
+
+app-sidebar {
+  grid-area: sidebar;
+}
+
+app-topbar {
+  grid-area: topbar;
+}
+
+.noi-dung {
+  grid-area: noi-dung;
+  max-width: var(--layout-container-max);
+  width: 100%;
+  padding: var(--layout-page-pad);
+}
+
+app-footer {
+  grid-area: chan-trang;
+}

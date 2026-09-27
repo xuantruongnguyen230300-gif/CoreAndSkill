@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>CoreAndSkill.Core.Contracts</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Không tham chiếu ai (docs/kien-truc-core-module.md §2). Trống ở B0 — chưa module nào cần
+       integration event hay DTO dùng chung; nội dung đầu tiên tới cùng module đầu tiên. -->
+
+</Project>

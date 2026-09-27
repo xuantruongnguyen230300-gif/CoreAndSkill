@@ -1,0 +1,92 @@
+// src/styles/_spacing.scss — thang khoảng cách, breakpoint (fe-ui-conventions.md §4.1), và mọi
+// token kích thước/khung khác không thuộc màu, chữ hay override thư viện: layout, chiều cao
+// control, cỡ icon, token tầng 3 theo component (DESIGN.md §6). Giá trị chép nguyên văn từ
+// docs/Design/DESIGN.md — không có nhóm tệp riêng cho "khung/kích thước" trong bốn tệp đã chốt
+// ở fe-ui-conventions.md §4.1, và các token này đều là số đo hình học tĩnh, không phải màu hay
+// chữ — cùng họ với thang khoảng cách hơn bất kỳ tệp nào khác trong bốn tệp đó.
+
+// ============================================================== Điểm ngắt — DESIGN.md §6.3
+// Biến SCSS, KHÔNG phải custom property: var() không đọc được trong điều kiện @media.
+$bp-xs: 480px;
+$bp-sm: 640px;
+$bp-md: 900px;
+$bp-lg: 1200px;
+$bp-xl: 1600px;
+
+/// Mixin duy nhất cho responsive theo hướng mobile-first — component `@use 'spacing' as s;`
+/// rồi `@include s.tu-man-hinh(s.$bp-md) { … }` (fe-ui-conventions.md §7).
+@mixin tu-man-hinh($nguong) {
+  @media (min-width: $nguong) {
+    @content;
+  }
+}
+
+:root {
+  // ==================================================== Khoảng cách — DESIGN.md §4. Bội số 4px.
+  --sp-0: 0;
+  --sp-1: 0.125rem;
+  --sp-2: 0.25rem;
+  --sp-3: 0.375rem;
+  --sp-4: 0.5rem;
+  --sp-5: 0.75rem;
+  --sp-6: 1rem;
+  --sp-7: 1.25rem;
+  --sp-8: 1.5rem;
+  --sp-9: 2rem;
+  --sp-10: 2.5rem;
+  --sp-11: 3rem;
+  --sp-12: 4rem;
+
+  // ==================================================== Kích thước khung — DESIGN.md §6.1
+  --layout-sidebar-w: 240px;
+  --layout-sidebar-w-collapsed: 64px;
+  --layout-topbar-h: 56px;
+  --layout-container-max: 1440px;
+  --layout-page-pad: var(--sp-8);
+  --layout-page-pad-sm: var(--sp-5);
+  --layout-dialog-w-sm: 420px;
+  --layout-dialog-w-md: 640px;
+  --layout-dialog-w-lg: 880px;
+  // Bí danh của thang Dialog — KHÔNG mang giá trị riêng (DESIGN.md §6.1).
+  --layout-auth-w: var(--layout-dialog-w-sm);
+  --layout-auth-w-wide: var(--layout-dialog-w-md);
+  --layout-form-w: var(--layout-dialog-w-md);
+  --layout-drawer-w-sm: var(--layout-dialog-w-sm);
+  --layout-drawer-w-md: var(--layout-dialog-w-md);
+  --layout-drawer-w-lg: var(--layout-dialog-w-lg);
+  --layout-toast-w: var(--layout-dialog-w-sm);
+  // Hai trần dưới đây CỐ Ý KHÔNG là bí danh — trùng số với sidebar/dialog nhưng khác lý do đổi.
+  --layout-tooltip-w-max: 240px;
+  --layout-popover-h-max: 420px;
+  --tree-indent: 20px;
+
+  // ==================================================== Chiều cao control — DESIGN.md §6.2
+  --size-control-sm: 28px;
+  --size-control-md: 34px;
+  --size-control-lg: 42px;
+
+  // ==================================================== Cỡ icon — DESIGN.md §6.2
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 20px;
+  --icon-xl: 24px;
+  // Bí danh mượn ba bậc liền nhau của --sp-* — không phải giá trị riêng.
+  --icon-circle-sm: var(--sp-10);
+  --icon-circle-md: var(--sp-11);
+  --icon-circle-lg: var(--sp-12);
+
+  // ==================================================== Token tầng 3 theo component — DESIGN.md §6.5
+  --chart-h-sm: 120px;
+  --chart-h-md: 200px;
+  --chart-h-lg: 320px;
+  --file-upload-dropzone-h: 140px;
+  --progress-bar-h-sm: 4px;
+  --progress-bar-h-md: 8px;
+  --progress-bar-h-lg: 14px;
+  --stepper-dot: 24px;
+  --stepper-line-w: 2px;
+  // Bí danh sang Stepper — cùng ngôn ngữ tiến trình, đổi cùng nhau (DESIGN.md §6.5).
+  --timeline-dot: var(--stepper-dot);
+  --timeline-dot-sm: 16px;
+  --timeline-line-w: var(--stepper-line-w);
+}

@@ -1,0 +1,165 @@
+<app-page-header
+  [title]="'nguoiDung.tieuDe' | translate"
+  [description]="'nguoiDung.moTa' | translate"
+>
+  <app-button
+    *appHasPermission="'core.user.write'"
+    variant="primary"
+    icon="plus"
+    (clicked)="tao.moHop()"
+    >{{ 'nguoiDung.hanhDong.them' | translate }}</app-button
+  >
+</app-page-header>
+
+<app-toolbar
+  variant="full"
+  [searchValue]="list.query().searchText ?? ''"
+  [searchLabel]="'nguoiDung.timKiem.nhan' | translate"
+  [readonlyChips]="readonlyChips()"
+  [chips]="chips()"
+  [clearAllLabel]="'chung.xoaBoLoc' | translate"
+  [loading]="list.state() === 'loading'"
+  (searchChanged)="list.setSearchText($event)"
+  (chipRemoved)="onChipRemoved($event)"
+  (filtersCleared)="onFiltersCleared()"
+>
+  <div toolbarFilters class="danh-sach-nguoi-dung__loc">
+    @if (coQuyenXemVaiTro()) {
+      <app-autocomplete
+        [options]="timVaiTroLoc.options()"
+        [value]="giaTriLocVaiTro()"
+        variant="single"
+        [loading]="timVaiTroLoc.loading()"
+        [placeholder]="'nguoiDung.vaiTro.goiYTim' | translate"
+        [errorTemplate]="timVaiTroLoc.error() ? tplLoiTimVaiTro : null"
+        (search)="timVaiTroLoc.timKiem($event)"
+        (valueChange)="onChonVaiTroLoc($event)"
+      />
+    }
+    <app-input type="select" [options]="tuyChonTrangThai" [formControl]="filterTrangThai" />
+  </div>
+</app-toolbar>
+
+<app-data-table
+  [rows]="list.rows()"
+  [columns]="columns()"
+  [caption]="'nguoiDung.bang.caption' | translate"
+  rowKey="id"
+  [state]="list.state()"
+  [totalRecords]="list.totalCount()"
+  [page]="list.query().page"
+  [pageSize]="list.query().pageSize"
+  [paginationAriaLabel]="'nguoiDung.bang.caption' | translate"
+  [sortBy]="list.query().sortBy ?? null"
+  [sortDescending]="list.query().sortDescending ?? false"
+  (pageChange)="list.setPage($event.page, $event.pageSize)"
+  (sortChange)="list.setSort($event.sortBy, $event.sortDescending)"
+  [emptyTemplate]="tplRong"
+  [loadingTemplate]="tplDangTai"
+  [errorTemplate]="tplLoi"
+/>
+
+<ng-template #colTen let-nd
+  ><a [routerLink]="[nd.id]">{{ nd.userName }}</a></ng-template
+>
+<ng-template #colHoTen let-nd>{{ nd.fullName }}</ng-template>
+<ng-template #colEmail let-nd>{{ nd.email ?? '—' }}</ng-template>
+<ng-template #colVaiTro let-nd>
+  @if (nd.roles.length > 0) {
+    {{ tenVaiTro(nd) }}
+  } @else {
+    <span class="danh-sach-nguoi-dung__vai-tro-rong">{{
+      'nguoiDung.vaiTro.chuaCo' | translate
+    }}</span>
+  }
+</ng-template>
+<ng-template #colTrangThai let-nd>
+  @if (nd.isLocked) {
+    <app-badge variant="danger">{{ 'nguoiDung.trangThai.daKhoa' | translate }}</app-badge>
+  } @else {
+    <app-badge variant="success">{{ 'nguoiDung.trangThai.hoatDong' | translate }}</app-badge>
+  }
+</ng-template>
+<ng-template #colNgayTao let-nd>{{
+  nd.createdAt ? (nd.createdAt | date: 'short') : '—'
+}}</ng-template>
+
+<ng-template #tplLoiTimVaiTro>
+  <p class="danh-sach-nguoi-dung__loi-tim">{{ timVaiTroLoc.error() }}</p>
+</ng-template>
+
+<ng-template #tplDangTai>
+  <app-skeleton-loader variant="text" width="full" />
+</ng-template>
+
+<ng-template #tplLoi>
+  @if (roleIdDangLoc()) {
+    <!-- ListStateStore không giữ mã lỗi (fe-architecture.md §2.8) — roleId ĐÃ GỬI LÊN là dấu hiệu
+         suy luận CORE.USER.ROLE_NOT_FOUND (users.md §3); toast của interceptor đã mang câu cụ thể. -->
+    <app-empty-state
+      variant="error"
+      size="compact"
+      [title]="'nguoiDung.loi.taiThatBai' | translate"
+      [actionLabel]="'chung.xoaBoLoc' | translate"
+      (actionClicked)="onFiltersCleared()"
+    />
+  } @else {
+    <app-empty-state
+      variant="error"
+      size="compact"
+      [title]="'nguoiDung.loi.taiThatBai' | translate"
+      [actionLabel]="'chung.thuLai' | translate"
+      (actionClicked)="list.reload()"
+    />
+  }
+</ng-template>
+
+<ng-template #tplRong let-ca>
+  @if (ca === 'empty') {
+    <app-empty-state
+      variant="first-use"
+      size="compact"
+      [title]="'nguoiDung.trong.tieuDe' | translate"
+      [description]="'nguoiDung.trong.moTa' | translate"
+      [actionLabel]="
+        auth.coQuyen('core.user.write') ? ('nguoiDung.hanhDong.them' | translate) : null
+      "
+      (actionClicked)="tao.moHop()"
+    />
+  } @else {
+    <app-empty-state
+      variant="no-results"
+      size="compact"
+      [title]="'nguoiDung.khongKetQua.tieuDe' | translate"
+      [description]="'nguoiDung.khongKetQua.moTa' | translate"
+      [actionLabel]="'chung.xoaBoLoc' | translate"
+      (actionClicked)="onFiltersCleared()"
+    />
+  }
+</ng-template>
+
+<app-hop-tao-nguoi-dung
+  [hienThi]="tao.hienThi()"
+  [form]="tao.form"
+  [loiTruong]="tao.loiTruong()"
+  [loiChung]="tao.loiChung()"
+  [dangLuu]="tao.dangLuu()"
+  [coQuyenGanVaiTro]="coQuyenGanVaiTro()"
+  [vaiTro]="tao.vaiTroChon()"
+  [lanGuiSai]="tao.lanGuiSai()"
+  (submitted)="guiTao()"
+  (closed)="tao.dongHop()"
+  (dismissAttempted)="tao.onDismissAttempted()"
+  (timKiem)="tao.timVaiTro.timKiem($event)"
+  (chon)="tao.chonVaiTro($event)"
+/>
+
+<app-confirm-dialog
+  [open]="tao.hienThiXacNhanHuy()"
+  severity="ask"
+  [title]="'chung.roiTrang.tieuDe' | translate"
+  [message]="'chung.roiTrang.moTa' | translate"
+  [confirmLabel]="'chung.roiTrang.xacNhan' | translate"
+  (confirmed)="tao.xacNhanHuy()"
+  (cancelled)="tao.huyXacNhanHuy()"
+/>

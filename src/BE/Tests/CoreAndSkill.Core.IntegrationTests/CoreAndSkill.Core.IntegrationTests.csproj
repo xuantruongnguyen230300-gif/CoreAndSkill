@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>CoreAndSkill.Core.IntegrationTests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\CoreAndSkill.Api\CoreAndSkill.Api.csproj" />
+    <ProjectReference Include="..\..\Core\CoreAndSkill.Core.Web\CoreAndSkill.Core.Web.csproj" />
+  </ItemGroup>
+
+  <!-- Mã test dùng chung — docs/adr/0070-ma-test-dung-chung-la-tep-nguon-noi-vao-hai-project.md.
+       Cùng TỆP NGUỒN với CoreAndSkill.Core.UnitTests, không phải bản chép: sửa nó là sửa mã của cả
+       hai project, và trình biên dịch chỉ báo khi build cả hai. Khai tay từng tệp, không ký tự đại diện. -->
+  <ItemGroup>
+    <Compile Include="..\Shared\MeterProbe.cs" Link="Support\MeterProbe.cs" />
+  </ItemGroup>
+
+</Project>

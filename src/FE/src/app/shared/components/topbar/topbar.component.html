@@ -1,0 +1,34 @@
+<header class="topbar" role="banner">
+  @if (title()) {
+    <span class="topbar__tieu-de">{{ title() }}</span>
+  }
+
+  <div class="topbar__tai-khoan">
+    <span class="topbar__avatar" aria-hidden="true">{{ chuCaiDau() }}</span>
+
+    @if (state() !== 'error') {
+      <span class="topbar__ten-khoi">
+        <span class="topbar__ten">{{ user()?.fullName }}</span>
+        @if (tenantName()) {
+          <span class="topbar__don-vi">{{ tenantName() }}</span>
+        }
+      </span>
+    }
+
+    @for (muc of menuItems(); track muc.key) {
+      <button
+        type="button"
+        class="topbar__muc"
+        [class.topbar__muc--danger]="muc.danger"
+        [disabled]="muc.disabled ?? false"
+        [attr.title]="muc.disabledReason ?? null"
+        (click)="menuItemSelected.emit(muc.key)"
+      >
+        @if (muc.icon) {
+          <i class="pi pi-{{ muc.icon }}" aria-hidden="true"></i>
+        }
+        {{ muc.label }}
+      </button>
+    }
+  </div>
+</header>

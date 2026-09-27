@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <!--
+      Script nội tuyến DUY NHẤT — đặt TRƯỚC mọi <link rel="stylesheet"> (kể cả bundle style toàn
+      cục do Angular tự chèn khi build). Đọc lựa chọn theme đã lưu và đặt data-theme trên <html>
+      TRƯỚC khung hình đầu tiên — thiếu bước này người dùng chọn tối sẽ thấy một nháy sáng trước
+      khi theme tối kịp áp (fe-ui-conventions.md §3.5, DESIGN.md §8).
+      Giá trị lưu → thuộc tính: 'light'/'dark' → đặt nguyên; 'system' → BỎ thuộc tính (theo hệ
+      điều hành); vắng hoặc giá trị lạ → 'light' (mặc định — KHÔNG đọc prefers-color-scheme).
+      CSP cho script này đi qua hash 'sha256-…' trong script-src (đặt ở tầng phục vụ, chưa tới pha
+      này) — đổi một ký tự trong script thì hash phải tính lại.
+    -->
+    <script>
+      (function () {
+        var t = null;
+        try {
+          t = localStorage.getItem('theme');
+        } catch (e) {}
+        if (t === 'system') {
+          return;
+        }
+        document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+      })();
+    </script>
+    <meta charset="utf-8" />
+    <!--
+      Tiêu đề TĨNH — thứ tab hiển thị trước khi Angular khởi động xong. `CoreTitleStrategy` chỉ đặt
+      tiêu đề sau khi router chạy lần đầu, mà app.config.ts chặn render tới khi hai GET khởi động
+      về, nên giá trị này ở trên màn suốt vòng khứ hồi đầu tiên — và ở lại VĨNH VIỄN nếu bootstrap
+      hỏng.
+      🛑 KHÔNG đặt tên sản phẩm vào đây: `core/` không được biết tên sản phẩm, và nơi khai tên là
+      seam CORE_BRANDING (core/config/core-branding.ts) — nó chỉ đọc được SAU khi có injector, tức
+      không bao giờ kịp cho tệp này. Giá trị phải trung lập với mọi dự án dùng Core.
+      Câu này không qua i18n được vì chưa có gì chạy để dịch; `lang="vi"` ở trên cũng đang tĩnh
+      cùng lý do.
+    -->
+    <title>Đang tải…</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  </head>
+  <body>
+    <app-root></app-root>
+  </body>
+</html>

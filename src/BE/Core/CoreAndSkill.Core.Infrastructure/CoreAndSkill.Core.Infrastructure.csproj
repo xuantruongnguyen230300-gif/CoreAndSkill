@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>CoreAndSkill.Core.Infrastructure</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreAndSkill.Core.Domain\CoreAndSkill.Core.Domain.csproj" />
+    <ProjectReference Include="..\CoreAndSkill.Core.Application\CoreAndSkill.Core.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Cho phép test đụng thẳng helper `internal static` (vd. IdentityConcurrency.DetectConflict) —
+         không đổi bề mặt public, không nới ranh giới kiến trúc, chỉ mở khả năng kiểm thử (cùng khuôn
+         với InternalsVisibleTo của Core.Application.csproj). Nhắm vào CoreAndSkill.Core.IntegrationTests
+         chứ KHÔNG phải CoreAndSkill.Core.UnitTests: Core.UnitTests chỉ ràng buộc Domain + Application
+         (docs/quy-uoc/be-architecture.md §9.1), Core.Infrastructure nằm ngoài ranh giới đó. -->
+    <InternalsVisibleTo Include="CoreAndSkill.Core.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
+    <!-- Design-time cho `dotnet ef` — docs/database/script-runbook.md §4. Không chạy lúc production. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

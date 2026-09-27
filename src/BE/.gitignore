@@ -1,0 +1,11 @@
+# Artifact build .NET đặc thù — bin/ obj/ đã loại ở .gitignore gốc
+*.user
+*.suo
+TestResults/
+coverage.json
+coverage.*.xml
+
+# Cấu hình môi trường khác Development — appsettings.Development.json được phép vào repo (repo-artifact.md §6.2)
+appsettings.Local.json
+appsettings.Production.json
+appsettings.Staging.json

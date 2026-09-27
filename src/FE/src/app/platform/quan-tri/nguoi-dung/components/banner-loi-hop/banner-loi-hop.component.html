@@ -1,0 +1,12 @@
+@if (xungDot()) {
+  <app-notice-banner severity="warning"
+    >{{ 'loi.CORE.CONCURRENCY.CONFLICT' | translate }}
+    <div>
+      <app-button variant="secondary" size="sm" (clicked)="thuLai.emit()">{{
+        'chung.thuLai' | translate
+      }}</app-button>
+    </div></app-notice-banner
+  >
+} @else if (loiChung()) {
+  <app-notice-banner severity="danger" size="sm">{{ loiChung() }}</app-notice-banner>
+}

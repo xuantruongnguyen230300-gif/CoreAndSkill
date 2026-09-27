@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>CoreAndSkill.Core.UnitTests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- Luật T3 (docs/RULES.md §8) — ngưỡng coverage của Core.Domain + Core.Application.
+       docs/wiki-core/be/04-testing-strategy.md §5: coverlet.msbuild, Threshold theo dòng và
+       nhánh; dưới ngưỡng thì dotnet test thất bại. Chỉ đo hai assembly này — Include lọc theo
+       tên assembly, không tính coverage của chính project test. -->
+  <PropertyGroup>
+    <CollectCoverage>true</CollectCoverage>
+    <Include>[CoreAndSkill.Core.Domain]*,[CoreAndSkill.Core.Application]*</Include>
+    <!-- Mã sinh bởi source generator (vd. [GeneratedRegex]) nằm dưới obj/ — không phải logic ta
+         viết, không phải nguồn (docs/quy-uoc/repo-artifact.md §2). Loại khỏi ngưỡng T3. -->
+    <ExcludeByFile>**/obj/**/*.cs</ExcludeByFile>
+    <ThresholdType>line,branch</ThresholdType>
+    <ThresholdStat>total</ThresholdStat>
+    <Threshold>80</Threshold>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.msbuild">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="FluentValidation" />
+    <!-- Container cụ thể — ServiceCollection tới từ Abstractions, nhưng BuildServiceProvider() chỉ
+         có ở gói cụ thể này. Dùng để kiểm AddCoreApplication() đăng ký đúng — DependencyInjectionTests.cs. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\CoreAndSkill.Core.Domain\CoreAndSkill.Core.Domain.csproj" />
+    <ProjectReference Include="..\..\Core\CoreAndSkill.Core.Application\CoreAndSkill.Core.Application.csproj" />
+  </ItemGroup>
+
+  <!-- Mã test dùng chung — docs/adr/0070-ma-test-dung-chung-la-tep-nguon-noi-vao-hai-project.md.
+       Tệp nguồn ở Tests/Shared/ nối vào từng project test bằng <Compile Include> KHAI TAY, từng tệp
+       một: không ký tự đại diện, để một tệp bỏ vào Shared/ không tự lọt vào mọi project test.
+       MeterProbe.cs cũng được IntegrationTests nối vào; MeterProbeTests.cs thì KHÔNG — bộ test kiểm
+       chính dụng cụ này chỉ cần biên dịch ở một project. -->
+  <ItemGroup>
+    <Compile Include="..\Shared\MeterProbe.cs" Link="Support\MeterProbe.cs" />
+    <Compile Include="..\Shared\MeterProbeTests.cs" Link="Support\MeterProbeTests.cs" />
+  </ItemGroup>
+
+</Project>

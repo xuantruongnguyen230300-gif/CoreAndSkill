@@ -1,0 +1,16 @@
+<button
+  class="icon-button"
+  [class.icon-button--sm]="size() === 'sm'"
+  [class.icon-button--lg]="size() === 'lg'"
+  [class.icon-button--secondary]="variant() === 'secondary'"
+  [class.icon-button--primary]="variant() === 'primary'"
+  [class.icon-button--danger]="variant() === 'danger'"
+  [type]="type()"
+  [disabled]="disabled() || loading()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-pressed]="pressed() === null ? null : pressed()"
+  [attr.aria-busy]="loading() ? 'true' : null"
+  (click)="onClick()"
+>
+  <i class="pi" [class]="loading() ? 'pi-spinner pi-spin' : 'pi-' + icon()" aria-hidden="true"></i>
+</button>

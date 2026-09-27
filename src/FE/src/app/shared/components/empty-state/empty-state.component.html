@@ -1,0 +1,36 @@
+<div
+  class="empty-state"
+  [class.empty-state--compact]="size() === 'compact'"
+  [class.empty-state--page]="size() === 'page'"
+  [class.empty-state--error]="variant() === 'error'"
+>
+  <div class="empty-state__icon" aria-hidden="true">
+    <i class="pi" [class]="'pi-' + iconThat()"></i>
+  </div>
+
+  @switch (headingLevel()) {
+    @case (2) {
+      <h2 class="empty-state__tieu-de">{{ title() }}</h2>
+    }
+    @case (4) {
+      <h4 class="empty-state__tieu-de">{{ title() }}</h4>
+    }
+    @default {
+      <h3 class="empty-state__tieu-de">{{ title() }}</h3>
+    }
+  }
+
+  @if (description()) {
+    <p class="empty-state__mo-ta">{{ description() }}</p>
+  }
+
+  @if (actionLabel()) {
+    @if (actionRoute()) {
+      <a class="empty-state__hanh-dong-lien-ket" [routerLink]="actionRoute()">{{
+        actionLabel()
+      }}</a>
+    } @else {
+      <app-button [variant]="bienTheNut()" (clicked)="onAction()">{{ actionLabel() }}</app-button>
+    }
+  }
+</div>

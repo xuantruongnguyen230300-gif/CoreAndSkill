@@ -1,0 +1,84 @@
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--sp-10) var(--sp-6);
+  max-width: var(--layout-dialog-w-sm);
+  margin: 0 auto;
+
+  &--compact {
+    padding: var(--sp-8) var(--sp-6);
+  }
+
+  &--page {
+    padding: var(--sp-12) var(--sp-6);
+  }
+}
+
+.empty-state__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-circle-md);
+  height: var(--icon-circle-md);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-2);
+  margin-bottom: var(--sp-6);
+
+  .empty-state--compact & {
+    width: var(--icon-circle-sm);
+    height: var(--icon-circle-sm);
+  }
+
+  .empty-state--page & {
+    width: var(--icon-circle-lg);
+    height: var(--icon-circle-lg);
+  }
+
+  .empty-state--error & {
+    background: var(--color-danger-bg);
+  }
+
+  .pi {
+    font-size: var(--icon-xl);
+    color: var(--color-text-muted);
+
+    // EmptyState.md §Kích thước: icon không phóng to bằng cỡ chữ — chỉ `compact` đổi glyph
+    // (--icon-lg), `page` giữ nguyên --icon-xl và chỉ vòng tròn nền lớn hơn.
+    .empty-state--compact & {
+      font-size: var(--icon-lg);
+    }
+
+    .empty-state--error & {
+      color: var(--color-danger);
+    }
+  }
+}
+
+.empty-state__tieu-de {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+  margin: 0;
+
+  .empty-state--compact & {
+    font-size: var(--fs-md);
+  }
+
+  .empty-state--page & {
+    font-size: var(--fs-xl);
+  }
+}
+
+.empty-state__mo-ta {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  color: var(--color-text-muted);
+}
+
+.empty-state__hanh-dong-lien-ket,
+app-button {
+  margin-top: var(--sp-6);
+}

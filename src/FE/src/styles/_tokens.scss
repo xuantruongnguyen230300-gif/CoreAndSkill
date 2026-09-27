@@ -1,0 +1,222 @@
+// src/styles/_tokens.scss — NƠI DUY NHẤT trong src/ được phép có literal màu (luật F6/F7,
+// docs/quy-uoc/fe-ui-conventions.md §3.3). Cổng FE loại trừ ĐÚNG tệp này, không loại trừ cả thư mục.
+//
+// Nguồn giá trị DUY NHẤT: docs/Design/DESIGN.md — tên khoá và giá trị chép nguyên văn từ đó.
+// Không đặt tên mới, không đổi giá trị ở đây rồi cập nhật ngược tài liệu (chiều cấm — DESIGN.md §9).
+//
+// Bốn nhóm token khai trong tệp này, đúng mô tả ở fe-ui-conventions.md §4.1: biến MÀU (kể cả
+// bảng biểu đồ — DESIGN.md §2.8), bán kính (§5.1), bóng đổ (§5.2), độ dày viền (§5.3),
+// thang z-index (§6.4) và token chuyển động (§7) — không có nhóm thứ năm nào khác trong hệ
+// bốn tệp của fe-ui-conventions.md §4.1 để giữ chúng, và cả sáu đều là "hằng số hình ảnh/thời
+// gian" chứ không phải khoảng cách hay chữ.
+//
+// Chế độ tối dùng CHUNG một khối giá trị cho cả hai đường kích hoạt (data-theme='dark' VÀ
+// prefers-color-scheme: dark) qua mixin dark-tokens — viết MỘT lần, @include HAI lần. Viết
+// tay hai bản riêng là một bản sao thứ hai sẽ lệch (.claude/CLAUDE.md §5).
+
+// ============================================================== Chế độ tối — khối dùng chung
+// DESIGN.md §8: chỉ những token THẬT SỰ đổi giá trị mới xuất hiện ở đây. --chart-6 (Lục) giữ
+// nguyên #008300 ở cả hai chế độ nên KHÔNG lặp lại trong khối này (không phải sai sót).
+@mixin dark-tokens {
+  // Nền và bề mặt — DESIGN.md §2.1
+  --color-bg: #0d1117;
+  --color-surface: #161b22;
+  --color-surface-2: #1f2630;
+  --color-surface-3: #2a323e;
+
+  // Chữ — DESIGN.md §2.2
+  --color-text: #e6edf3;
+  --color-text-muted: #9aa7b8;
+  --color-text-disabled: #6e7d90;
+  --color-text-on-brand: #0d1117;
+
+  // Viền — DESIGN.md §2.3
+  --color-border-subtle: #2c3441;
+  --color-border: #5a6879;
+  --color-border-strong: #7b8a9d;
+
+  // Thương hiệu — DESIGN.md §2.4. Lần lật vai duy nhất: brand SÁNG LÊN ở theme tối.
+  --color-brand: #6ba1f0;
+  --color-brand-hover: #8fb9f5;
+  --color-brand-active: #a9c9f8;
+  --color-brand-subtle: #16325c;
+  --color-brand-on-subtle: #b9d3f8;
+
+  // Trạng thái — DESIGN.md §2.5
+  --color-success: #54c79b;
+  --color-success-bg: #10301f;
+  --color-success-border: #3d8a67;
+  --color-warning: #e3ad4a;
+  --color-warning-bg: #3a2a0c;
+  --color-warning-border: #8f6c24;
+  --color-danger: #f08a80;
+  --color-danger-bg: #3d1a17;
+  --color-danger-border: #b45a4f;
+  --color-info: #75b0ee;
+  --color-info-bg: #12304f;
+  --color-info-border: #3d6f9f;
+  --color-danger-hover: #f4a49c;
+  --color-danger-active: #f8bdb6;
+
+  // Lớp phủ và focus — DESIGN.md §2.6. --color-overlay/--color-scrim đọc lại --color-overlay-rgb
+  // qua rgb(var(--x) / a) — dạng ĐƯỢC PHÉP của luật F7, không phải literal thứ hai.
+  --color-overlay-rgb: 2 6 12;
+  --color-overlay: rgb(var(--color-overlay-rgb) / 0.7);
+  --color-focus: #8fb9f5;
+  --color-scrim: rgb(var(--color-overlay-rgb) / 0.24);
+
+  // Bề mặt đảo — chỉ Tooltip, DESIGN.md §2.6
+  --color-inverse-surface: #e6edf3;
+  --color-inverse-text: #0d1117;
+
+  // Bảng màu biểu đồ — DESIGN.md §2.8. --chart-6 cố ý vắng mặt, xem ghi chú đầu tệp.
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-7: #9085e9;
+  --chart-8: #e66767;
+  --chart-seq-1: #104281;
+  --chart-seq-2: #1c5cab;
+  --chart-seq-3: #2a78d6;
+  --chart-seq-4: #5598e7;
+  --chart-seq-5: #9ec5f4;
+  --chart-div-neg: #3987e5;
+  --chart-div-mid: #2c3441;
+  --chart-div-pos: #e66767;
+
+  // Bóng đổ — DESIGN.md §5.2. Alpha đậm hơn nhiều; --shadow-0 không đổi (none cả hai chế độ).
+  --shadow-1: 0 1px 2px rgb(var(--color-overlay-rgb) / 0.4);
+  --shadow-2: 0 2px 8px rgb(var(--color-overlay-rgb) / 0.5);
+  --shadow-3: 0 8px 24px rgb(var(--color-overlay-rgb) / 0.6);
+  --shadow-4: 0 16px 48px rgb(var(--color-overlay-rgb) / 0.7);
+}
+
+:root {
+  // color-scheme cho control mặc định của trình duyệt (thanh cuộn, ô chọn ngày) — DESIGN.md §8.
+  color-scheme: light dark;
+
+  // ============================================================ Màu — giá trị SÁNG (mặc định)
+  // Nền và bề mặt — DESIGN.md §2.1
+  --color-bg: #f4f6fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef1f6;
+  --color-surface-3: #e2e8f0;
+
+  // Chữ — DESIGN.md §2.2
+  --color-text: #111827;
+  --color-text-muted: #4b5563;
+  --color-text-disabled: #6b7280;
+  --color-text-on-brand: #ffffff;
+
+  // Viền — DESIGN.md §2.3
+  --color-border-subtle: #e4e9f0;
+  --color-border: #7f8da3;
+  --color-border-strong: #5f6d80;
+
+  // Thương hiệu — DESIGN.md §2.4
+  --color-brand: #1a56b8;
+  --color-brand-hover: #154497;
+  --color-brand-active: #103a80;
+  --color-brand-subtle: #dbe7fb;
+  --color-brand-on-subtle: #144393;
+
+  // Trạng thái — DESIGN.md §2.5
+  --color-success: #0f6b46;
+  --color-success-bg: #d7f0e4;
+  --color-success-border: #3f8f6b;
+  --color-warning: #8a5300;
+  --color-warning-bg: #fbeccd;
+  --color-warning-border: #9c7020;
+  --color-danger: #b02318;
+  --color-danger-bg: #fbdfdc;
+  --color-danger-border: #bd6156;
+  --color-info: #0e5ba6;
+  --color-info-bg: #dcebfa;
+  --color-info-border: #5589bf;
+  --color-danger-hover: #961e14;
+  --color-danger-active: #7d1910;
+
+  // Lớp phủ và focus — DESIGN.md §2.6
+  --color-overlay-rgb: 17 24 39;
+  --color-overlay: rgb(var(--color-overlay-rgb) / 0.55);
+  --color-focus: #1a56b8;
+  --color-scrim: rgb(var(--color-overlay-rgb) / 0.08);
+
+  // Bề mặt đảo — chỉ Tooltip, DESIGN.md §2.6
+  --color-inverse-surface: #1f2937;
+  --color-inverse-text: #f9fafb;
+
+  // Bảng màu biểu đồ — DESIGN.md §2.8
+  --chart-1: #1a56b8;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300; // giống hệt cả hai chế độ — không phải bí danh, chỉ trùng giá trị
+  --chart-7: #4a3aa7;
+  --chart-8: #e34948;
+  --chart-seq-1: #cde2fb;
+  --chart-seq-2: #9ec5f4;
+  --chart-seq-3: #5598e7;
+  --chart-seq-4: #2a78d6;
+  --chart-seq-5: #184f95;
+  --chart-div-neg: #1a56b8;
+  --chart-div-mid: #dbe1ea;
+  --chart-div-pos: #e34948;
+
+  // ==================================================== Bo góc — DESIGN.md §5.1. Không đổi theo theme.
+  --radius-0: 0;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+  --radius-full: 50%;
+
+  // ==================================================== Bóng đổ — DESIGN.md §5.2. Đổi theo theme.
+  --shadow-0: none;
+  --shadow-1: 0 1px 2px rgb(var(--color-overlay-rgb) / 0.06);
+  --shadow-2: 0 2px 8px rgb(var(--color-overlay-rgb) / 0.1);
+  --shadow-3: 0 8px 24px rgb(var(--color-overlay-rgb) / 0.14);
+  --shadow-4: 0 16px 48px rgb(var(--color-overlay-rgb) / 0.2);
+
+  // ==================================================== Độ dày viền — DESIGN.md §5.3. Không đổi theo theme.
+  --border-w: 1px;
+  --border-w-strong: 2px;
+  --border-w-accent: 3px;
+
+  // ==================================================== Lớp xếp chồng — DESIGN.md §6.4. Không đổi theo theme.
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-topbar: 200;
+  --z-sidebar: 300;
+  --z-backdrop: 400;
+  --z-dialog: 500;
+  --z-popover: 600;
+  --z-toast: 700;
+
+  // ==================================================== Chuyển động — DESIGN.md §7. Không đổi theo theme.
+  --dur-instant: 0ms;
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --dur-loop: 1600ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+}
+
+// Lựa chọn TƯỜNG MINH của người dùng — thắng cả theo hệ điều hành (DESIGN.md §8, ràng buộc 2).
+:root[data-theme='dark'] {
+  @include dark-tokens;
+}
+
+// Theo hệ điều hành — CHỈ áp khi người dùng chưa chọn "sáng" tường minh.
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    @include dark-tokens;
+  }
+}

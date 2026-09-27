@@ -1,0 +1,76 @@
+# Bản cài thật — docs/wiki-core/be/18-trien-khai-va-van-hanh.md §7 (chốt 2026-09-15): một máy chủ
+# Linux, Docker Compose, bí mật qua biến môi trường do Compose cấp từ tệp .env NGOÀI repo (không
+# commit — .gitignore đã loại). Xem .env.example để biết khoá cần đặt.
+#
+# CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết (ghi trong báo cáo B3).
+#
+# KHÔNG tự áp schema, KHÔNG tự bootstrap — hai việc đó CHẠY TAY theo
+# docs/database/script-runbook.md §3.3 (ADR-0009 "áp schema chạy tay"). File này chỉ dựng runtime:
+# database + API. Sau khi hai container lên, chạy TAY:
+#   1. psql theo §3.2/§3.3 bước 2-3 của script-runbook.md (áp database/scripts/core/*.sql, cấp quyền)
+#   2. docker compose run --rm api dotnet CoreAndSkill.Api.dll core bootstrap
+
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-coreandskill}
+      POSTGRES_USER: ${POSTGRES_OWNER_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD}
+    volumes:
+      - coreandskill-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_OWNER_USER} -d ${POSTGRES_DB:-coreandskill}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # KHÔNG expose cổng ra ngoài host — chỉ container `api` trên cùng mạng compose chạm được DB
+    # (docs/wiki-core/be/09-security-beyond-auth.md — bề mặt tấn công nhỏ nhất có thể).
+
+  api:
+    build:
+      context: .
+      dockerfile: src/BE/CoreAndSkill.Api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      # Kho tệp tải lên / tệp xuất tạm — SAO LƯU CÙNG DB và phục hồi về CÙNG mốc thời gian
+      # (docs/wiki-core/be/14-file-storage.md §8): phục hồi lệch mốc sinh ra tệp mồ côi và bản ghi mất tệp.
+      - coreandskill-files:/var/lib/coreandskill/files
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Thứ tự ưu tiên: tệp mặc định → tệp theo môi trường → BIẾN MÔI TRƯỜNG thắng
+      # (docs/wiki-core/be/18-trien-khai-va-van-hanh.md §2). "__" thay cho ":" — quy ước chuẩn của
+      # Microsoft.Extensions.Configuration cho biến môi trường.
+      ConnectionStrings__Core: "Host=db;Port=5432;Database=${POSTGRES_DB:-coreandskill};Username=${POSTGRES_APP_USER};Password=${POSTGRES_APP_PASSWORD}"
+      Core__Auth__CookieName: ${CORE_AUTH_COOKIE_NAME:-coreandskill.session}
+      Core__Auth__AntiforgeryCookieName: ${CORE_AUTH_ANTIFORGERY_COOKIE_NAME:-coreandskill.antiforgery}
+      Core__Auth__SessionMinutes: ${CORE_AUTH_SESSION_MINUTES:-30}
+      Core__Auth__SessionAbsoluteHours: ${CORE_AUTH_SESSION_ABSOLUTE_HOURS:-12}
+      Core__Auth__AllowedOrigins__0: ${CORE_AUTH_ALLOWED_ORIGIN}
+      # Core:File:RootPath — BẮT BUỘC, không có giá trị mặc định (thiếu thì tiến trình không khởi động —
+      # docs/wiki-core/be/14-file-storage.md §2). Trùng đường dẫn thư mục tạo trong Dockerfile và gắn volume bên
+      # dưới; đổi một nơi thì đổi cả ba. Không phải bí mật nên không đi qua .env.
+      Core__File__RootPath: /var/lib/coreandskill/files
+      # Core:Bootstrap:* — CHỈ cần lúc chạy lệnh `core bootstrap` (không ValidateOnStart —
+      # docs/quy-uoc/be-architecture.md §4.4). Khai sẵn ở đây để `docker compose run api ... core
+      # bootstrap` đọc được cùng bộ biến với tiến trình phục vụ thật.
+      Core__Bootstrap__SystemTenantCode: ${CORE_BOOTSTRAP_SYSTEM_TENANT_CODE}
+      Core__Bootstrap__SystemTenantName: ${CORE_BOOTSTRAP_SYSTEM_TENANT_NAME}
+      Core__Bootstrap__FirstTenantCode: ${CORE_BOOTSTRAP_FIRST_TENANT_CODE}
+      Core__Bootstrap__FirstTenantName: ${CORE_BOOTSTRAP_FIRST_TENANT_NAME}
+      Core__Bootstrap__OperatorUserName: ${CORE_BOOTSTRAP_OPERATOR_USERNAME}
+      Core__Bootstrap__OperatorPassword: ${CORE_BOOTSTRAP_OPERATOR_PASSWORD}
+      Core__Bootstrap__OperatorEmail: ${CORE_BOOTSTRAP_OPERATOR_EMAIL}
+      Core__Bootstrap__AdminUserName: ${CORE_BOOTSTRAP_ADMIN_USERNAME}
+      Core__Bootstrap__AdminPassword: ${CORE_BOOTSTRAP_ADMIN_PASSWORD}
+      Core__Bootstrap__AdminEmail: ${CORE_BOOTSTRAP_ADMIN_EMAIL}
+
+volumes:
+  coreandskill-db-data:
+  coreandskill-files:

@@ -1,0 +1,166 @@
+// src/styles/_thu-vien.scss — override CSS của component thư viện (PrimeNG), gom MỘT chỗ
+// (fe-ui-conventions.md §4.4). KHÔNG rải override trong style của component nghiệp vụ.
+//
+// Mỗi khối override bắt buộc kèm chú thích trả lời hai câu: "Vì sao" và "Hỏng khi nào" — mẫu ở
+// fe-ui-conventions.md §4.4. Thêm khối vào đây CHỈ khi có một trường hợp thật — không tạo
+// override phòng hờ.
+
+@use 'spacing' as s;
+
+// Vì sao: preset PrimeNG (core/theme/prime-preset.ts) không có khái niệm "bốn cỡ bề rộng" của
+// Dialog.md — bề rộng phải áp qua CSS, không qua token semantic. `styleClass` của app-dialog
+// (shared/ui/dialog/) gắn hai lớp `.app-dialog.app-dialog--<cỡ>` lên chính panel `.p-dialog`.
+// Hỏng khi nào: PrimeNG đổi tên lớp `.p-dialog` ở bản nâng cấp major — kiểm lại sau mỗi lần đó.
+.app-dialog {
+  &.app-dialog--sm {
+    width: min(94vw, var(--layout-dialog-w-sm));
+  }
+  &.app-dialog--md {
+    width: min(94vw, var(--layout-dialog-w-md));
+  }
+  &.app-dialog--lg {
+    width: min(94vw, var(--layout-dialog-w-lg));
+  }
+  &.app-dialog--full {
+    width: calc(100vw - var(--sp-8) * 2);
+    height: calc(100vh - var(--sp-8) * 2);
+  }
+
+  .p-dialog-content {
+    padding: var(--sp-6);
+  }
+  .p-dialog-header {
+    padding: var(--sp-6) var(--sp-6) 0;
+  }
+  .p-dialog-footer {
+    padding: var(--sp-6);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--sp-4);
+  }
+
+  // Dính đáy dưới $bp-sm (Dialog.md §Responsive) — bàn phím ảo đẩy dialog căn giữa lên, cắt mất
+  // phần đầu; dính đáy thì dialog trượt lên cùng bàn phím.
+  @media (max-width: #{s.$bp-sm - 1px}) {
+    &.app-dialog--sm,
+    &.app-dialog--md,
+    &.app-dialog--lg,
+    &.app-dialog--full {
+      width: 100vw;
+      max-height: 90vh;
+      margin: 0;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    .p-dialog-footer {
+      flex-direction: column-reverse;
+    }
+  }
+}
+
+// Vì sao: preset PrimeNG không có khái niệm "cỡ mục theo Menu.md §Kích thước" — chỉ hai cỡ,
+// chiều cao mục và đệm ngang khác `sm`/`md`. `styleClass` của app-menu (shared/ui/menu/) gắn lớp
+// `.app-menu.app-menu--<cỡ>` lên panel `.p-menu`; item `danger` gắn `.app-menu__muc--nguy-hiem`
+// qua `MenuItem.styleClass`, thành lớp trên chính `<li>` của mục đó.
+// Hỏng khi nào: PrimeNG đổi tên lớp `.p-menu-item`/`.p-menu-item-content` ở bản nâng cấp major.
+.app-menu {
+  &.app-menu--sm .p-menu-item-content {
+    min-height: var(--size-control-sm);
+    padding: 0 var(--sp-4);
+    font-size: var(--fs-xs);
+  }
+  &.app-menu--md .p-menu-item-content {
+    min-height: var(--size-control-md);
+    padding: 0 var(--sp-4);
+    font-size: var(--fs-sm);
+  }
+
+  .app-menu__muc--nguy-hiem .p-menu-item-link,
+  .app-menu__muc--nguy-hiem .p-menu-item-content {
+    color: var(--color-danger);
+  }
+}
+
+// Vì sao: `inputStyleClass`/`panelStyleClass` của app-autocomplete (shared/ui/autocomplete/) gắn
+// lớp lên chính `<input>` và panel overlay mà PrimeNG dựng — ba cỡ chiều cao theo
+// Design/COMPONENTS.md §2.2 không có sẵn trong preset semantic.
+// Hỏng khi nào: PrimeNG đổi tên lớp `.p-autocomplete-input`/`.p-autocomplete-overlay` ở bản nâng
+// cấp major.
+.app-autocomplete__o {
+  &--sm {
+    height: var(--size-control-sm);
+    font-size: var(--fs-xs);
+  }
+  &--md {
+    height: var(--size-control-md);
+    font-size: var(--fs-sm);
+  }
+  &--lg {
+    height: var(--size-control-lg);
+    font-size: var(--fs-md);
+  }
+}
+
+.app-autocomplete__lop-noi {
+  max-width: var(--layout-popover-h-max);
+}
+
+// Vì sao: Design/Components/Tooltip.md §Kích thước, §Trạng thái `default` và §Responsive đều nói
+// về hộp nổi mà PrimeNG dựng vào `body` — Core không chạm được vào DOM đó, chỉ gắn được một lớp
+// lên nó qua tuỳ chọn `tooltipStyleClass` (shared/ui/tooltip/). Hai nhóm khai dưới đây:
+//   - `--p-tooltip-*`: chính là biến mà CSS tĩnh của thư viện đọc (`dt('tooltip.background')`…).
+//     Khai tại chỗ trên `.app-tooltip` thay vì trong preset để chỉ hộp CỦA Core đổi, và để mũi
+//     nhọn — thư viện tô nó bằng `tooltip.background` — tự đi theo nền mà không cần khai lại.
+//   - cỡ chữ: preset của thư viện không có token chữ cho tooltip.
+// Hỏng khi nào: PrimeNG đổi tên lớp `.p-tooltip-text` hoặc đổi tên biến `--p-tooltip-*` ở bản
+// nâng cấp major — kiểm lại sau mỗi lần đó.
+.app-tooltip {
+  --p-tooltip-background: var(--color-inverse-surface);
+  --p-tooltip-color: var(--color-inverse-text);
+  --p-tooltip-max-width: var(--layout-tooltip-w-max);
+  --p-tooltip-padding: var(--sp-2) var(--sp-4);
+  --p-tooltip-border-radius: var(--radius-xs);
+  --p-tooltip-shadow: var(--shadow-2);
+  // Khe tới phần tử neo. Thư viện dùng đúng giá trị này làm bề dày mũi nhọn.
+  --p-tooltip-gutter: var(--sp-3);
+
+  .p-tooltip-text {
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-medium);
+    line-height: var(--lh-snug);
+  }
+
+  // §Responsive: dưới $bp-sm TẮT PHẦN NHÌN. Không có chuột thì không có "rê chuột", và mọi cách
+  // giả lập đều tạo ra một nút hành xử khác mọi nút còn lại. Phần tử mô tả `.sr-only` của lớp bọc
+  // KHÔNG nằm trong khối này nên người dùng trình đọc màn hình vẫn nghe được lời chú.
+  //
+  // `visibility` chứ không phải `display`: `show()` của thư viện ghi `style.display` NỘI TUYẾN,
+  // mà không độ ưu tiên chọn lọc nào thắng được một khai báo nội tuyến — đè nó cần `!important`.
+  // `visibility` không bị thư viện ghi nội tuyến, nên đè được bằng độ ưu tiên thường. Hộp vẫn
+  // được dựng và định vị rồi mới bị ẩn: đúng cái giá đã ghi ở §Responsive.
+  @media (max-width: #{s.$bp-sm - 1px}) {
+    visibility: hidden;
+  }
+}
+
+// §Trạng thái, dòng `hover`: đường CHUỘT bọc trong `@media (hover: hover)`. Chỉ lớp `--chuot` bị
+// tắt — hộp mở bằng bàn phím vẫn phải hiện trên thiết bị không rê được (bàn phím rời cắm vào máy
+// bảng). Hai lớp do lớp bọc gắn theo nguồn đã mở hộp.
+@media (hover: none) {
+  .app-tooltip--chuot {
+    visibility: hidden;
+  }
+}
+
+// §Accessibility, dòng Chuyển động: khai `prefers-reduced-motion: reduce` thì bỏ hẳn chuyển tiếp.
+// !important: `show()` của thư viện chạy một vòng `requestAnimationFrame` ghi `opacity` NỘI TUYẾN
+// từ 0 lên 1 (`fadeIn`) — không phải transition CSS, nên khối reduced-motion toàn cục ở
+// styles.scss không với tới, và độ ưu tiên chọn lọc không đè được khai báo nội tuyến.
+@media (prefers-reduced-motion: reduce) {
+  .app-tooltip {
+    opacity: 1 !important;
+  }
+}

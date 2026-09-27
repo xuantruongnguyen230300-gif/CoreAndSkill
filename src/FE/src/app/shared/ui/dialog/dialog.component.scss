@@ -1,0 +1,34 @@
+// Design/Components/Dialog.md §Kích thước. Bề rộng theo cỡ và hành vi dính đáy nằm ở
+// src/styles/_thu-vien.scss (chạm DOM do PrimeNG dựng, ngoài encapsulation của component này).
+
+.app-dialog__dau {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.app-dialog__tieu-de {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.app-dialog__mo-ta {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.app-dialog__loi {
+  margin-bottom: var(--sp-5);
+}
+
+.app-dialog__phu-tai {
+  position: absolute;
+  inset: 0;
+  background: var(--color-scrim);
+  pointer-events: none;
+}

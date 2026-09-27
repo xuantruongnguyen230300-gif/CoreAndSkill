@@ -1,0 +1,53 @@
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: var(--size-control-sm);
+  padding: 0 var(--sp-4);
+  border-radius: var(--radius-pill);
+  border: var(--border-w) solid transparent;
+  background: var(--color-brand-subtle);
+  color: var(--color-brand-on-subtle);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-snug);
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+// Biến thể `toggle`: cả chip là <button>. Tắt → viền, không nền thương hiệu.
+.filter-chip--toggle {
+  font: inherit;
+  cursor: pointer;
+
+  &:not(.filter-chip--pressed) {
+    background: transparent;
+    color: var(--color-text-muted);
+    border-color: var(--color-border);
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      filter: brightness(0.96);
+    }
+  }
+
+  &:active {
+    background: var(--color-brand-subtle);
+  }
+}
+
+// Biến thể `readonly`: điều kiện hệ thống áp, không gỡ được. Không icon — chỉ khác màu nền
+// (FilterChip.md §Trạng thái `disabled`: "Không icon — chỉ bỏ nút gỡ").
+.filter-chip--readonly {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.filter-chip__gia-tri {
+  font-weight: var(--fw-semibold);
+}

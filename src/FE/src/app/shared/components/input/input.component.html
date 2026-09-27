@@ -1,0 +1,54 @@
+@if (type() === 'select') {
+  <select
+    class="input input--select"
+    [class.input--sm]="size() === 'sm'"
+    [class.input--md]="size() === 'md'"
+    [class.input--lg]="size() === 'lg'"
+    [class.input--full]="width() === 'full'"
+    [class.input--error]="loi"
+    [id]="id()"
+    [disabled]="voHieuHoa()"
+    [attr.aria-invalid]="loi ? 'true' : null"
+    [attr.aria-describedby]="describedBy()"
+    [value]="hienThi()"
+    (change)="doiGia($any($event.target).value)"
+    (blur)="chamVao()"
+  >
+    @for (o of options(); track o.value) {
+      <option [value]="o.value">{{ o.label }}</option>
+    }
+  </select>
+} @else {
+  <div class="input-wrap">
+    <input
+      class="input"
+      [class.input--sm]="size() === 'sm'"
+      [class.input--md]="size() === 'md'"
+      [class.input--lg]="size() === 'lg'"
+      [class.input--full]="width() === 'full'"
+      [class.input--error]="loi"
+      [id]="id()"
+      [type]="kieuThat"
+      [placeholder]="placeholder()"
+      [readOnly]="readonly()"
+      [disabled]="voHieuHoa()"
+      [autocomplete]="autocomplete()"
+      [attr.inputmode]="inputmode()"
+      [attr.aria-invalid]="loi ? 'true' : null"
+      [attr.aria-describedby]="describedBy()"
+      [value]="hienThi()"
+      (input)="doiGia($any($event.target).value)"
+      (blur)="chamVao()"
+    />
+    @if (type() === 'password' && revealable()) {
+      <button
+        type="button"
+        class="nut-hien-an"
+        [attr.aria-label]="(hienMatKhau() ? 'xacThuc.matKhau.an' : 'xacThuc.matKhau.hien') | translate"
+        (click)="toggleHienMatKhau()"
+      >
+        <i class="pi" [class.pi-eye]="!hienMatKhau()" [class.pi-eye-slash]="hienMatKhau()" aria-hidden="true"></i>
+      </button>
+    }
+  </div>
+}

@@ -1,0 +1,78 @@
+// Design/Components/NoticeBanner.md
+.notice-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  padding: var(--sp-6);
+  border-radius: var(--radius-md);
+  border: var(--border-w) solid;
+  border-left-width: var(--border-w-strong);
+  color: var(--color-text);
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+}
+
+.notice-banner--sm {
+  padding: var(--sp-4);
+  font-size: var(--fs-sm);
+}
+
+.notice-banner__icon {
+  flex: none;
+  font-size: var(--icon-lg);
+}
+
+.notice-banner__noi-dung {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.notice-banner__tieu-de {
+  font-weight: var(--fw-semibold);
+}
+
+// Giữ ngắt dòng của chuỗi: khu lỗi form đặt mỗi mã một dòng (quy-uoc/fe-ui-conventions.md §6.2).
+.notice-banner__than {
+  white-space: pre-line;
+}
+
+.notice-banner--info {
+  background: var(--color-info-bg);
+  border-color: var(--color-info-border);
+
+  .notice-banner__icon,
+  .notice-banner__tieu-de {
+    color: var(--color-info);
+  }
+}
+
+.notice-banner--success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+
+  .notice-banner__icon,
+  .notice-banner__tieu-de {
+    color: var(--color-success);
+  }
+}
+
+.notice-banner--warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+
+  .notice-banner__icon,
+  .notice-banner__tieu-de {
+    color: var(--color-warning);
+  }
+}
+
+.notice-banner--danger {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+
+  .notice-banner__icon,
+  .notice-banner__tieu-de {
+    color: var(--color-danger);
+  }
+}

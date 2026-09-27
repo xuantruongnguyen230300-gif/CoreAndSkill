@@ -1,0 +1,61 @@
+<div class="toolbar" [class.toolbar--sm]="size() === 'sm'">
+  <div class="toolbar__hang">
+    <div class="toolbar__tim" role="search">
+      <label class="sr-only" for="toolbar-tim">{{ searchLabel() }}</label>
+      <i class="pi pi-search toolbar__tim-icon" aria-hidden="true"></i>
+      <input
+        id="toolbar-tim"
+        type="text"
+        class="toolbar__tim-input"
+        [value]="searchValue()"
+        [disabled]="disabled()"
+        [placeholder]="searchLabel()"
+        (input)="onSearchInput($any($event.target).value)"
+      />
+      @if (loading()) {
+        <i class="pi pi-spinner pi-spin toolbar__tim-loading" aria-hidden="true"></i>
+      }
+    </div>
+
+    @if (variant() === 'full') {
+      <div class="toolbar__khu-loc">
+        <ng-content select="[toolbarFilters]" />
+      </div>
+    }
+
+    <div class="toolbar__hanh-dong">
+      <ng-content select="[toolbarActions]" />
+    </div>
+  </div>
+
+  @if (readonlyChips().length > 0 || chips().length > 0) {
+    <div class="toolbar__chips">
+      @for (chip of readonlyChips(); track chip.key) {
+        <app-filter-chip
+          [key]="chip.key"
+          [label]="chip.label"
+          [value]="chip.value"
+          variant="readonly"
+          [lockReason]="chip.lockReason ?? null"
+        />
+      }
+      @for (chip of chips(); track chip.key) {
+        <app-filter-chip
+          [key]="chip.key"
+          [label]="chip.label"
+          [value]="chip.value"
+          (removed)="chipRemoved.emit($event)"
+        />
+      }
+      @if (chips().length > 1) {
+        <app-button
+          variant="ghost"
+          size="sm"
+          icon="filter-slash"
+          (clicked)="filtersCleared.emit()"
+          >{{ clearAllLabel() }}</app-button
+        >
+      }
+    </div>
+  }
+</div>

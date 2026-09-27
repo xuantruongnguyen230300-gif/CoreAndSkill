@@ -1,0 +1,14 @@
+<p-menu
+  #primeMenu
+  [popup]="true"
+  [model]="model()"
+  [ariaLabel]="ariaLabel()"
+  [styleClass]="'app-menu app-menu--' + size()"
+  (onHide)="onHide()"
+>
+  @if (header()) {
+    <ng-template #start>
+      <div class="app-menu__tieu-de">{{ header() }}</div>
+    </ng-template>
+  }
+</p-menu>

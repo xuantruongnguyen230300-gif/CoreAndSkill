@@ -1,0 +1,52 @@
+// Design/Components/DataTable.md §Kích thước, §Trạng thái. Preset PrimeNG (core/theme/prime-preset.ts)
+// lo phần khung `p-table`; file này chỉ thêm phần Core không có sẵn trong preset: viền khung,
+// dải sắp xếp, hiệu ứng "đang tải lại" (giữ dữ liệu cũ, phủ mờ).
+
+.data-table__khung {
+  overflow-x: auto;
+  border: var(--border-w) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  position: relative;
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: -2px;
+  }
+
+  // Đổi trang / sắp xếp: giữ dữ liệu cũ, phủ mờ — KHÔNG thay bằng skeleton (DataTable.md §Trạng thái).
+  &--tai-lai {
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--color-scrim);
+      pointer-events: none;
+    }
+  }
+}
+
+.data-table__nut-sap-xep {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.data-table__icon-sap-xep {
+  font-size: var(--icon-sm);
+  color: var(--color-text-muted);
+}
+
+.data-table__o--end {
+  text-align: right;
+}

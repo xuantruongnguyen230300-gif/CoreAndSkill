@@ -1,0 +1,99 @@
+<div class="data-table">
+  <div
+    class="data-table__khung"
+    [class.data-table__khung--tai-lai]="dangTaiLai()"
+    tabindex="0"
+    role="region"
+    [attr.aria-label]="tieuDeBang()"
+  >
+    <p-table
+      [value]="dsHangMutable()"
+      [attr.aria-busy]="state() === 'loading' ? 'true' : null"
+      [pt]="ptBang()"
+      [dataKey]="rowKey()"
+      [rowTrackBy]="khoaHang"
+    >
+      <ng-template #header>
+        <tr>
+          @for (cot of cotHopLe(); track cot.key) {
+            @if (cot.sortable) {
+              <th
+                scope="col"
+                [style.width]="cot.width ?? null"
+                [attr.data-priority]="cot.priority ?? null"
+                [attr.aria-sort]="ariaSort(cot)"
+              >
+                <button type="button" class="data-table__nut-sap-xep" (click)="sapXep(cot)">
+                  {{ cot.header }}
+                  <i
+                    class="pi data-table__icon-sap-xep"
+                    [class.pi-sort-alt]="ariaSort(cot) === 'none'"
+                    [class.pi-sort-amount-up-alt]="ariaSort(cot) === 'ascending'"
+                    [class.pi-sort-amount-down]="ariaSort(cot) === 'descending'"
+                    aria-hidden="true"
+                  ></i>
+                </button>
+              </th>
+            } @else {
+              <th
+                scope="col"
+                [style.width]="cot.width ?? null"
+                [attr.data-priority]="cot.priority ?? null"
+              >
+                {{ cot.header }}
+              </th>
+            }
+          }
+        </tr>
+      </ng-template>
+      <ng-template #body let-hang>
+        <tr>
+          @for (cot of cotHopLe(); track cot.key) {
+            <td
+              [class.data-table__o--end]="cot.align === 'end'"
+              [attr.data-priority]="cot.priority ?? null"
+            >
+              @if (cot.cell; as cell) {
+                <ng-container
+                  [ngTemplateOutlet]="cell"
+                  [ngTemplateOutletContext]="{ $implicit: hang }"
+                />
+              } @else if (cot.value; as value) {
+                {{ value(hang) }}
+              }
+            </td>
+          }
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td [attr.colspan]="cotHopLe().length">
+            @if (dangTai()) {
+              <ng-container [ngTemplateOutlet]="loadingTemplate()" />
+            } @else if (state() === 'error') {
+              <ng-container [ngTemplateOutlet]="errorTemplate()" />
+            } @else if (rong()) {
+              <ng-container
+                [ngTemplateOutlet]="emptyTemplate()"
+                [ngTemplateOutletContext]="{ $implicit: state() }"
+              />
+            }
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  @if (totalRecords() > 0) {
+    <app-pagination
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="pageSizeOptions()"
+      [totalRecords]="totalRecords()"
+      [loading]="state() === 'loading'"
+      [ariaLabel]="paginationAriaLabel()"
+      (pageChanged)="onPageChanged($event)"
+      (pageSizeChanged)="onPageSizeChanged($event)"
+    />
+  }
+</div>

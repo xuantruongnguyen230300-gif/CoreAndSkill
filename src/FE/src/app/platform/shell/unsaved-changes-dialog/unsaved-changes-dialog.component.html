@@ -1,0 +1,9 @@
+<app-confirm-dialog
+  [open]="prompt.dangHoi()"
+  severity="ask"
+  [title]="'chung.roiTrang.tieuDe' | translate"
+  [message]="'chung.roiTrang.moTa' | translate"
+  [confirmLabel]="'chung.roiTrang.xacNhan' | translate"
+  (confirmed)="prompt.xacNhanRoiDi()"
+  (cancelled)="prompt.huy()"
+/>
