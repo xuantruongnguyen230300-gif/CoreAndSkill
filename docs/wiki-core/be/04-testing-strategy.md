@@ -234,7 +234,7 @@ Cách làm: một fixture ở phạm vi toàn bộ assembly test khởi động 
 dotnet test --filter "Category!=RequiresDocker"
 ```
 
-Mọi test class dùng `PostgresFixture` mang `[Trait("Category", "RequiresDocker")]` để lệnh trên loại đúng nhóm. CI không bao giờ dùng cờ `--filter` này — CI phải chạy đủ cả bộ.
+Mọi test class dùng `PostgresFixture` mang `[Trait("Category", "RequiresDocker")]` để lệnh trên loại đúng nhóm. CI phải chạy đủ cả bộ, chia hai bước trong job `backend-gate` của [`docs-gate.yml`](../../../.github/workflows/docs-gate.yml): bước đầu dùng đúng lệnh trên như máy dev, bước sau chỉ chạy nhóm `RequiresDocker` và chạy cả khi bước đầu đỏ.
 
 **Câu trên là luật T9, và nó có cổng** ([`../../RULES.md`](../../RULES.md) §8 — tên ArchTest ở cột *Ép bằng gì*). Cần cổng vì đây là loại lỗi không tự lộ: lớp mới quên `[Trait]` vẫn xanh trên CI (CI có Docker), và chỗ vỡ là máy dev không Docker — nơi thông báo lỗi nói về container chứ không nói về `[Trait]` còn thiếu, nên người đọc kết luận sai. Cổng bắt cả hai đường vào container: `[Collection]` của collection PostgreSQL, và `IClassFixture<PostgresFixture>`.
 

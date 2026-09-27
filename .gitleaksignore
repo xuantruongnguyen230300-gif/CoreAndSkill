@@ -1,0 +1,14 @@
+# .gitleaksignore — phát hiện gitleaks đã được người xét và kết luận KHÔNG phải bí mật.
+#
+# Mỗi dòng là MỘT fingerprint dạng commit:tệp:luật:dòng, chỉ miễn đúng phát hiện đó trong đúng
+# commit đó. Cùng chuỗi ấy ở commit khác, tệp khác hay dòng khác vẫn bị bắt. Chuỗi THẬT thì
+# không ghi vào đây: thu hồi và thay bí mật. Quy ước: docs/quy-uoc/repo-artifact.md §6.1.
+
+# 2026-09-27 — commit d8efddc, luật generic-api-key; người dùng duyệt cách xử lý.
+# Mật khẩu tạm để tạo user trong integration test. Chuỗi chỉ có trong ba tệp test này, không có
+# ở appsettings, seed hay docs.
+d8efddc1185e3c02908d7a6e2aefaa25d5abf056:src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Identity/UserAdminDuplicateRaceErrorTests.cs:generic-api-key:28
+d8efddc1185e3c02908d7a6e2aefaa25d5abf056:src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Identity/UserConcurrencyTokenTests.cs:generic-api-key:37
+d8efddc1185e3c02908d7a6e2aefaa25d5abf056:src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Identity/AppUserUniqueViolationTests.cs:generic-api-key:33
+# Dòng stack trace giả, cố ý mang một token giả để test chức năng che token.
+d8efddc1185e3c02908d7a6e2aefaa25d5abf056:src/BE/Tests/CoreAndSkill.Core.UnitTests/ClientErrors/ReportClientErrorCommandHandlerTests.cs:generic-api-key:111

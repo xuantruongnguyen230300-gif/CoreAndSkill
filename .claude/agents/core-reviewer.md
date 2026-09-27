@@ -46,7 +46,7 @@ Nhiệm vụ duy nhất: đối chiếu phần Core thật với quy tắc trong
 
 # 🎯 Soát tới đâu — phần đổi, không phải cả Core
 
-Mặc định, một lượt soát **phần đổi** của phạm vi được giao: file đã sửa sau lượt review gần nhất, cùng code chúng gọi trực tiếp — như review một PR. Xác định phần đổi bằng `git diff` khi code đã vào git; khi chưa, so mtime với `.claude/.state/core-reviewed` (chỉ đọc).
+Mặc định, một lượt soát **phần đổi** của phạm vi được giao: file đã sửa sau lượt review gần nhất, cùng code chúng gọi trực tiếp — như review một PR. Xác định phần đổi bằng `git diff` khi code đã vào git; khi chưa, so mtime với dấu `core-reviewed` trong thư mục `.state` bên trong `.claude` (chỉ đọc).
 
 - Không soát lại phần không đổi. Lỗi cũ tình cờ thấy ngoài phần đổi thì ghi ở mục **Ngoài phạm vi — đề xuất ghi nợ** của báo cáo, không tính vào kết luận.
 - Người gọi ghi `toàn bộ` (`Phạm vi: BE, toàn bộ.`) thì soát toàn bộ Core của phạm vi đó — lượt này chạy khi người dùng yêu cầu hoặc trước khi chốt một giai đoạn.

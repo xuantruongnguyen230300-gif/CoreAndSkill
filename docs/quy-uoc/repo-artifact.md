@@ -120,7 +120,7 @@ FE không có "dữ liệu chạy" theo nghĩa này — mọi thứ trong thư m
 | Biến môi trường lúc triển khai | Như trên, cho môi trường chạy | — |
 | `environments/*.ts` của FE | `apiBaseUrl`, cờ `production` | Bất cứ thứ gì lộ ra là phải đổi |
 
-**Cổng của S6:** gitleaks chạy trong CI **ngay từ giai đoạn 1**, trên toàn repo kể cả `docs/`. Allowlist toàn cục của nó (`.gitleaks.toml` ở gốc repo) chỉ chứa **placeholder rõ ràng** trong tài liệu, không chứa mẫu nới cho mã nguồn. Rule tuỳ chỉnh bắt mật khẩu rõ trong `appsettings*.json` (luật S23, 📐 chưa có — [nợ](../DEBT.md)) miễn trừ đúng dạng §6.4 và không gì khác. Rule mặc định mà báo khoá `dev` thì allowlist chỉ phủ đúng khoá cấu hình đó, trong đúng tệp đó.
+**Cổng của S6:** gitleaks chạy trong CI **ngay từ giai đoạn 1**, trên toàn repo kể cả `docs/`. Allowlist toàn cục của nó (`.gitleaks.toml` ở gốc repo) chỉ chứa **placeholder rõ ràng** trong tài liệu, không chứa mẫu nới cho mã nguồn. Rule tuỳ chỉnh bắt mật khẩu rõ trong `appsettings*.json` (luật S23, 📐 chưa có — [nợ](../DEBT.md)) miễn trừ đúng dạng §6.4 và không gì khác. Rule mặc định mà báo khoá `dev` thì allowlist chỉ phủ đúng khoá cấu hình đó, trong đúng tệp đó. Phát hiện đã xét là báo sai — chuỗi giả trong test — thì ghi đúng fingerprint của nó vào `.gitleaksignore` ở gốc repo, kèm lý do; không nới `.gitleaks.toml` cho cả một thư mục.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`repo-artifact.md`](../wiki-core/be/ly-do/repo-artifact.md) §6.1
 

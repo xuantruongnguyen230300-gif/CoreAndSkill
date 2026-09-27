@@ -397,7 +397,11 @@ else
   for _l in "${_L[@]}"; do
     case "$_l" in
       S$'\t'*) seen="${_l#S$'\t'}" ;;
-      P$'\t'*) p="${_l#P$'\t'}"; exists "$p" && CAND+=("$p") ;;
+      P$'\t'*) p="${_l#P$'\t'}"
+        # Đường dẫn ra ngoài repo (`../…`, tuyệt đối) không thể bị .gitignore của repo này loại
+        # trừ, và chỉ MỘT cái cũng làm `git check-ignore --stdin` chết cả lô (`outside repository`).
+        case "$p" in ..|../*|/*) continue ;; esac
+        exists "$p" && CAND+=("$p") ;;
     esac
   done
   # awk không chạy / không in dòng S -> seen không phải số -> coi như 0 -> FAIL bên dưới.
@@ -413,10 +417,13 @@ else
   # rộng phạm vi ở đây không sinh phát hiện sai nào, mà giữ được đúng lớp lỗi §5
   # tồn tại để bắt: bằng chứng mà người thứ hai clone về không bao giờ mở được.
   if [ "${#CAND[@]}" -gt 0 ]; then
-    IGN=$(printf '%s\n' "${CAND[@]}" | sort -u | git check-ignore --stdin 2>/dev/null)
+    IGN=$(printf '%s\n' "${CAND[@]}" | sort -u | git check-ignore --stdin 2>/dev/null); IGN_RC=$?
   else
-    IGN=$(printf '%s' '' | sort -u | git check-ignore --stdin 2>/dev/null)
+    IGN=$(printf '%s' '' | sort -u | git check-ignore --stdin 2>/dev/null); IGN_RC=$?
   fi
+  # `git check-ignore`: 0 = có đường dẫn bị loại trừ, 1 = không có, lớn hơn = lệnh chết giữa
+  # chừng. Khi chết, IGN rỗng KHÔNG có nghĩa "không vi phạm" — canary dưới không bắt được ca
+  # này vì nó chạy riêng một đường dẫn chắc chắn hợp lệ.
   # CANARY cho NUA SAU cua muc nay. `seen` chi chung minh nua truoc (grep trich
   # ung vien) con song. Dieu kien PASS that lai la `[ -z "$IGN" ]`, ma IGN sinh
   # tu `git check-ignore` — neu lenh do that bai thi IGN rong va muc in PASS
@@ -429,12 +436,14 @@ else
     bad "§5 KHÔNG trích được ứng viên đường dẫn nào — mục này đang không kiểm gì"
   elif [ -z "$CANARY_IGN" ]; then
     bad "§5 canary hỏng — git check-ignore không nhận ra cả một đường dẫn chắc chắn bị loại trừ; nửa sau của mục này đang không kiểm gì"
+  elif [ "$IGN_RC" -gt 1 ]; then
+    bad "§5 git check-ignore thoát lỗi (mã $IGN_RC): $(printf '%s\n' "${CAND[@]}" | sort -u | git check-ignore --stdin 2>&1 >/dev/null | head -1) — nửa sau của mục này đang không kiểm gì"
   elif [ -z "$IGN" ]; then
     ok "không trích dẫn nào neo vào file bị gitignore ($seen ứng viên đã xét)"
   else
     while IFS= read -r p; do
       [ -z "$p" ] && continue
-      bad "trích dẫn neo vào file bị gitignore: $p"
+      bad "trích dẫn neo vào file bị gitignore: $p — trích ở $(grep -rnF -- "$BT$p" $SCAN_DIRS --include='*.md' 2>/dev/null | cut -d: -f1,2 | head -3 | paste -sd' ' -). Người clone về không mở được tệp này: trỏ vào tệp có trong git; tệp trạng thái chạy thì tả bằng lời như CLAUDE.md §8"
     done <<< "$IGN"
   fi
 fi

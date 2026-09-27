@@ -131,6 +131,7 @@ jobs:
         run: dotnet restore "${{ steps.sln.outputs.file }}"
 
       - name: Build
+        id: build
         run: dotnet build "${{ steps.sln.outputs.file }}" --configuration Release --no-restore
 
       # Luật T3. Ngưỡng (theo dòng + nhánh) khai ở chính dự án test — nguồn cách khai:
@@ -143,14 +144,31 @@ jobs:
           [ -s /tmp/threshold.txt ] || { echo "::error::Không thấy <Threshold> của coverlet trong .csproj/.props nào dưới src/BE — cổng coverage T3 đang không chặn gì"; exit 1; }
           cat /tmp/threshold.txt
 
-      - name: Test (gồm ArchTests) + coverage
-        run: dotnet test "${{ steps.sln.outputs.file }}" --configuration Release --no-build -p:CollectCoverage=true
+      # Bộ test chia hai bước, cộng lại là đủ cả bộ (docs/wiki-core/be/04-testing-strategy.md §4.2).
+      # Bước đầu chạy ĐÚNG lệnh của máy dev không Docker, nên đỏ ở đây thì tái hiện được ở máy.
+      # Mỗi bước kiểm (hai bước test, E10) chạy khi build xanh, kể cả khi bước trước nó đỏ —
+      # lỗi ở một bước không được che kết quả của bước khác.
+      - name: Test không cần Docker (ArchTests, unit, integration) + coverage
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: dotnet test "${{ steps.sln.outputs.file }}" --configuration Release --no-build -p:CollectCoverage=true --filter "Category!=RequiresDocker"
+
+      # Nhóm cần PostgreSQL thật, dựng tạm qua Testcontainers (máy CI luôn có Docker).
+      # CollectCoverage=false: project unit test tự bật ngưỡng coverage trong .csproj, mà ở
+      # bước này nó chạy 0 test -> 0% -> đỏ oan. Chốt cuối: bộ lọc hỏng thì bước này chạy 0
+      # test và xanh rỗng, nên phải thấy ít nhất một dòng tổng kết có Total > 0.
+      - name: Test DB (RequiresDocker — PostgreSQL tạm qua Testcontainers)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          dotnet test "${{ steps.sln.outputs.file }}" --configuration Release --no-build -p:CollectCoverage=false --filter "Category=RequiresDocker" | tee "$RUNNER_TEMP/test-db.txt"
+          grep -qE '(Passed|Failed)!.*Total: *[1-9]' "$RUNNER_TEMP/test-db.txt" || { echo "::error::Bước test DB không chạy test nào — bộ lọc Category=RequiresDocker không khớp lớp nào"; exit 1; }
 
       # Luật E10: model đổi mà quên sinh migration. Chạy cho TỪNG DbContext có
       # migration. Danh sách DbContext đọc từ chính các file ModelSnapshot (thuộc
       # tính [DbContext(typeof(X))]), project host đọc từ SDK Web — không chép
       # tên project nào vào đây.
       - name: E10 — has-pending-model-changes cho từng DbContext
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           set -euo pipefail
           host=$(git ls-files -- '*.csproj' | xargs -r grep -l 'Sdk="Microsoft.NET.Sdk.Web"' || true)
