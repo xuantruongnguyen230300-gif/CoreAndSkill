@@ -6,12 +6,36 @@ verified: chua-doi-chieu
 
 # Đăng nhập và đổi mật khẩu bắt buộc — màn hình
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo chưa có `src/`. Hai màn **sẽ được dựng** ở pha F2.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Hai màn đã dựng ở `src/FE` (pha F2). Mới đối chiếu **từng mục** — bảng "Có thật hôm nay → sẽ thành" ngay dưới khối Khung/Quyền ghi mục nào đã so, mục nào lệch; chưa đối chiếu trọn file nên `verified: chua-doi-chieu` giữ nguyên.
 
 Người chưa đăng nhập vào **Đăng nhập**; phiên mang cờ buộc đổi mật khẩu thì sang **Đổi mật khẩu bắt buộc**, không đi được tuyến nào khác; đổi xong vào ứng dụng, không đăng nhập lại. Nghiệp vụ: [D1](../../luong/D1-dang-nhap.md), [D2](../../luong/D2-doi-mat-khau-lan-dau.md), [D6](../../luong/D6-dang-xuat.md), [auth.md](../../contracts/auth.md) — không chép lại.
 
 > **Khung:** khung xác thực ([AuthCard.md](../Components/AuthCard.md), không `Sidebar`, không `Topbar`) cho **cả hai** màn — tuyến `noShell` ([fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §1, §2.3).
 > **Quyền:** không cần permission. Màn đăng nhập không cần phiên; màn đổi mật khẩu bắt buộc cần phiên hợp lệ mang cờ `mustChangePassword` ([auth.md](../../contracts/auth.md) §5, §7).
+
+## Có thật hôm nay → sẽ thành
+
+Đối chiếu 2026-09-22, chỉ bằng đọc mã (không chạy ứng dụng). Đường dẫn tính từ `src/FE/src/app/`; hai trang nằm dưới `platform/xac-thuc/pages/`. Mục không có tên trong bảng thì chưa ai so.
+
+| Khoản | Có thật hôm nay (neo bằng chuỗi) | Sẽ thành |
+| --- | --- | --- |
+| Tuyến, guard, `title` | `platform/xac-thuc/xac-thuc.routes.ts` § `path: 'dang-nhap'` không có `canActivate`, `title: 'xacThuc.dangNhap.tieuDe'`; § `path: 'doi-mat-khau-bat-buoc'` mang `authGuard` và `mustChangePasswordGuard` | — |
+| Đăng nhập — ba ô đúng thứ tự, `autocomplete`, nút chính | `dang-nhap/dang-nhap.page.html` § `variant="tenantCode"` → `variant="identifier"` → `variant="password"`, `autocomplete` lần lượt `organization` / `username` / `current-password`; § `<app-button variant="primary" size="lg" [block]="true" type="submit"` | — |
+| `Footer` `auth` cỡ `sm`, dưới khung | `dang-nhap/dang-nhap.page.html` § `<app-footer` đứng sau thẻ đóng `app-auth-card`, `variant="auth"`, `size="sm"`, khoá `chung.chanTrang.banQuyen` | — |
+| Focus mặc định vào ô mã đơn vị | `dang-nhap/dang-nhap.page.ts` § `this.oMaDonVi()?.focus()` trong `afterNextRender` | — |
+| Phiên lấy từ response `login`, không gọi `me`; lấy lại token chống giả mạo; tắt toast | `core/auth/auth.service.ts` § `dangNhap(payload` — `BO_QUA_TOAST_LOI`, đặt người dùng từ DTO rồi § `this.xsrf.lamMoi()` | — |
+| Rẽ nhánh sau đăng nhập, `returnUrl` chỉ nhận đường dẫn nội bộ | `dang-nhap/dang-nhap.page.ts` § `dieuHuongSauDangNhap` — `phaiDoiMatKhau()` sang màn đổi mật khẩu kèm `returnUrl`; còn lại `returnUrl` hợp lệ hoặc `sauDangNhap` | — |
+| Lỗi đăng nhập — `CORE.VALIDATION.FAILED` vào ô, mã khác vào khu lỗi trừ lớp xuyên suốt, không có envelope thì câu mất kết nối | `dang-nhap/dang-nhap.page.ts` § `xuLyLoi` — `applyFormFailure`, `dichLoiChoMan`, `loi.CORE.CLIENT.NO_CONNECTION` | — |
+| Vùng thương hiệu trên tiêu đề | **Chưa có.** Trong `shared/components/auth-card/auth-card.component.html`, phần tử đầu tiên của khung là tiêu đề § `auth-card__tieu-de`; `CORE_BRANDING` chỉ được đọc để điền tên vào `Footer` | Vẽ theo sơ đồ bố cục |
+| Khu lỗi là `NoticeBanner` vai `danger`, có tiêu đề tiền tố `chung.thongBao.loi` | **Lệch.** Khu lỗi dựng tay trong `AuthCard` (§ `auth-card__khu-loi`, `role="alert"`), không có tiêu đề tiền tố. Chi tiết ở bảng "Đã có → còn thiếu" của [AuthCard.md](../Components/AuthCard.md) | Khu lỗi là `NoticeBanner` theo sơ đồ |
+| Đang gửi — ba ô `disabled`, giữ giá trị đã gõ | **Lệch.** Nút chính nhận `loading`, `AuthCard` nhận `[loading]`, nhưng trang không khoá form: `dang-nhap/dang-nhap.page.ts` § `gui()` chỉ bật `dangGui`, không gọi `disable()` | Khoá ba ô theo mục Trạng thái |
+| `LanguageSwitcher` cuối thứ tự Tab | **Chưa có component** — không có tệp nào dưới `shared/`. v1 chỉ một ngôn ngữ nên người dùng không thấy khác biệt, nhưng có ngôn ngữ thứ hai thì phải sửa màn, trái với dòng "không sửa màn" ở bảng Cố ý không có | Đặt vào `AuthCard` khi component về |
+| Đổi mật khẩu bắt buộc — ba ô, gợi ý chính sách, nút chính, nút Đăng xuất `ghost` | `doi-mat-khau-bat-buoc/doi-mat-khau-bat-buoc.page.html` § `autocomplete="new-password"` ở hai ô sau, § `xacThuc.matKhau.goiYChinhSach` qua `[hint]`, § `<app-button variant="ghost" type="button"` | — |
+| Đổi mật khẩu — kiểm khớp ở FE; thành công gọi lại `me` rồi đi `returnUrl` hợp lệ hoặc `sauDangNhap`; `PASSWORD_CHANGE_NOT_REQUIRED` coi như thành công | `doi-mat-khau-bat-buoc/doi-mat-khau-bat-buoc.page.ts` § `nhapLaiPhaiKhop('newPassword', 'confirmNewPassword')`, § `sauKhiDoiThanhCong` (gọi `lamMoiPhien`), § `CORE.AUTH.PASSWORD_CHANGE_NOT_REQUIRED` | — |
+| Đổi mật khẩu — đăng xuất hỏng kiểu khác thì hiện ở khu lỗi, không toast | **Lệch.** `doi-mat-khau-bat-buoc/doi-mat-khau-bat-buoc.page.ts` § `dangXuat()` bỏ qua lỗi (`error: () => undefined`) và để interceptor toast | Hiện ở khu lỗi theo mục Trạng thái |
+| Đổi mật khẩu — ghi ngôn ngữ vào hồ sơ sau khi đổi | **Chưa có** trong `sauKhiDoiThanhCong`; màn chưa có `LanguageSwitcher` nên chưa có lựa chọn nào để ghi | Làm cùng lúc với `LanguageSwitcher` |
+
+Chưa đối chiếu: mục Responsive, thứ tự Tab, nhánh `CORE.AUTH.CSRF_REJECTED` gửi lại một lần, câu thật của từng mã lỗi trong tệp dịch, luật ba nhánh bên trong `fieldErrorText`.
 
 ---
 
@@ -99,12 +123,12 @@ Căn cứ: [auth.md](../../contracts/auth.md) §3, §5 · [D1](../../luong/D1-da
 - **mặc định** — ba ô trống, không có khu lỗi; focus vào ô đầu tiên còn trống (ô mã đơn vị).
 - **đang tải** — không tải dữ liệu riêng (token chống giả mạo, trạng thái phiên lấy lúc app khởi động). Đang gửi → `loading` của `AuthCard`: nút chính quay, ba ô `disabled` và **giữ giá trị đã gõ**, khung không đổi kích thước.
 - **rỗng** — không áp dụng.
-- **lỗi** — request đăng nhập **tắt toast** (`BO_QUA_TOAST_LOI`); màn tự hiện ở khu lỗi của `AuthCard`:
+- **lỗi** — request đăng nhập **tắt toast** (`BO_QUA_TOAST_LOI`); màn tự hiện ở khu lỗi của `AuthCard`, trừ lớp lỗi xuyên suốt (5xx, 403 `CORE.AUTH.*`): luôn toast kèm `traceId`, khu lỗi không hiện ([ADR-0094](../../adr/0094-lop-loi-xuyen-suot-luon-toast-ke-ca-khi-man-tat-toast.md)):
   - `CORE.AUTH.INVALID_CREDENTIALS` → khu lỗi. 🛑 **Không** tô đỏ ô nào, kể cả ô mã đơn vị.
   - `CORE.AUTH.LOCKED_OUT` → khu lỗi, câu riêng.
-  - `CORE.AUTH.CSRF_REJECTED` → interceptor lấy token mới, gửi lại **một** lần; vẫn hỏng → khu lỗi.
+  - `CORE.AUTH.CSRF_REJECTED` → interceptor lấy token mới, gửi lại **một** lần; vẫn hỏng → toast (lớp xuyên suốt), không vào khu lỗi.
   - `CORE.RATE_LIMIT.EXCEEDED` → khu lỗi, câu mang số giây chờ; nhánh 429 của `errorInterceptor` tôn trọng `BO_QUA_TOAST_LOI`, không toast chồng.
-  - Mất mạng, không có envelope → khu lỗi, câu mất kết nối.
+  - Mất mạng, không có envelope (ngoài 5xx) → khu lỗi, câu mất kết nối.
   - Hết phiên → không áp dụng. Người bị đẩy về đây vì hết phiên (có `returnUrl`) **không** thấy lời giải thích thêm.
 - **kiểm tra dữ liệu** — ba ô bắt buộc. Lỗi thiếu hiện **dưới đúng ô** qua `errorMessage` của `AuthField`, chỉ sau khi rời ô hoặc bấm gửi (luật ba nhánh, thi công ở `fieldErrorText`). Bấm gửi khi còn ô thiếu → **không** gọi API, focus về ô lỗi đầu tiên. `CORE.VALIDATION.FAILED` gắn vào ô theo khoá `TenantCode` / `UserName` / `Password`; khoá không khớp → khu lỗi, không toast. Lỗi xác thực **không bao giờ** vào ô.
 
@@ -128,7 +152,7 @@ Theo [AuthCard.md](../Components/AuthCard.md) §Responsive; không thêm hành v
 
 ### Ảnh màn hình
 
-Chưa có — repo chưa có `src/`, không có gì để chụp.
+Chưa có — hai màn đã dựng ở `src/FE` nhưng chưa ai chạy ứng dụng để chụp; lượt đối chiếu 2026-09-22 chỉ đọc mã.
 
 ### Cần chốt
 
@@ -192,14 +216,14 @@ Căn cứ: [auth.md](../../contracts/auth.md) §1.2, §4, §6, §7, §10 · [D6]
 - **mặc định** — ba ô trống, focus vào ô mật khẩu hiện tại; mô tả nêu tên đăng nhập.
 - **đang tải** — không tải dữ liệu riêng (cờ, tên đăng nhập đã có trong DTO phiên). Đang gửi → `loading` của `AuthCard`, như màn Đăng nhập. Nút Đăng xuất **vẫn bấm được** lúc form đang gửi.
 - **rỗng** — không áp dụng.
-- **lỗi** — request đổi mật khẩu và đăng xuất tắt toast, màn tự hiện:
+- **lỗi** — request đổi mật khẩu và đăng xuất tắt toast, màn tự hiện, trừ lớp xuyên suốt như màn Đăng nhập:
   - `CORE.AUTH.CHANGE_PASSWORD_FAILED` → lỗi vào **ô** theo `fieldErrors` — ánh xạ theo mã, không theo endpoint.
   - Khoá `fieldErrors` không khớp ô nào (ví dụ `$record`) → khu lỗi, không toast.
   - `CORE.AUTH.PASSWORD_CHANGE_NOT_REQUIRED` → cờ đã hạ ở chỗ khác: gọi lại `me` rồi rời màn như khi thành công; không hiện lỗi.
   - `CORE.RATE_LIMIT.EXCEEDED` (429) → khu lỗi, câu mang số giây chờ; hạn mức áp cho mọi endpoint; không toast chồng.
   - `CORE.AUTH.CSRF_REJECTED`, mất mạng → như màn Đăng nhập.
   - Hết phiên (401) → `SessionExpiryHandler` về Đăng nhập kèm `returnUrl`; mật khẩu vừa gõ mất.
-  - Đăng xuất nhận 200 hoặc 401 → đã đăng xuất: dọn trạng thái, lấy lại token chống giả mạo, về Đăng nhập. Hỏng kiểu khác → khu lỗi; **không** dọn trạng thái, ở lại màn.
+  - Đăng xuất nhận 200 hoặc 401 → đã đăng xuất: dọn trạng thái, lấy lại token chống giả mạo, về Đăng nhập. Hỏng kiểu khác → khu lỗi (lớp xuyên suốt: toast, như màn Đăng nhập); **không** dọn trạng thái, ở lại màn.
 - **kiểm tra dữ liệu** — ba ô bắt buộc; ô nhập lại khớp ô mật khẩu mới (kiểm ở FE, `CORE.CLIENT.VALIDATION_MISMATCH`); mật khẩu mới khác mật khẩu hiện tại do BE kiểm (`CORE.AUTH.NEW_PASSWORD_SAME_AS_CURRENT` trong `fieldErrors.NewPassword`). Lỗi dưới đúng ô theo luật ba nhánh; lỗi máy chủ gắn qua `applyFieldErrors`, gỡ khi người dùng sửa ô. Ô mật khẩu mới nhận **nhiều** mã cùng lúc: hiện từng mã, mã đầu theo thứ tự BE trả; sửa ô hoặc gửi lại thì mã kế hiện ra (`fieldErrorText`).
 
 Thành công: BE cấp lại cookie cho phiên đang dùng. FE gọi lại `me` **trước** khi điều hướng. Ngôn ngữ chọn ở màn này chỉ ghi được `localStorage` (`PUT` hồ sơ bị chặn khi cờ còn bật); nếu khác `preferredLanguage` mà `me` vừa trả, **FE ghi lựa chọn đó vào hồ sơ** sau khi đổi mật khẩu — thứ tự và nhánh hỏng ở 08-i18n.md §7. Không bắt đăng nhập lại.
@@ -218,7 +242,7 @@ Như màn Đăng nhập. Nút Đăng xuất giữ nguyên ở mọi ngưỡng.
 
 ### Ảnh màn hình
 
-Chưa có — repo chưa có `src/`, không có gì để chụp.
+Chưa có — hai màn đã dựng ở `src/FE` nhưng chưa ai chạy ứng dụng để chụp; lượt đối chiếu 2026-09-22 chỉ đọc mã.
 
 ### Cần chốt
 

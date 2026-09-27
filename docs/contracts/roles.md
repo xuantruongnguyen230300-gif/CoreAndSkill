@@ -6,7 +6,13 @@ verified: chua-doi-chieu
 
 # Contract card — Quản trị vai trò
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi card trong file này mang `Status: DRAFT`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20, **chỉ ở mức định tuyến**). Mọi card giữ
+> `Status: DRAFT`: chưa endpoint nào được gọi thử ([`README.md`](README.md) §3).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/RolesController.cs` có action `GetList`, `GetById`, `Create`, `Update`, `Delete` — khớp route §1–§5 | Gọi thử thật, thay ví dụ bằng response thật, rồi mới lật `Status:` |
+> | Thân request/response, bảng lỗi, luật xoá vai trò đang có người giữ: **chưa ai đối chiếu với handler** | Đối chiếu từng card rồi mới lật `verified:` |
 >
 > Ma trận vai trò × quyền: [`permissions.md`](permissions.md). Gán vai trò cho người dùng: [`users.md`](users.md). Bảng dữ liệu: [`../database/schema-core.md`](../database/schema-core.md) §4.2.
 
@@ -36,7 +42,7 @@ Danh sách vai trò của đơn vị hiện hành, phân trang theo khuôn chung
   "success": true,
   "data": {
     "items": [
-      { "id": "0192f3c1-8a4e-7d21-9f10-2b7c5e0a1234", "name": "Quản trị hệ thống", "isSystem": true, "userCount": 3, "createdAt": "2026-09-10T03:12:44Z" }
+      { "id": "0192f3c1-8a4e-7d21-9f10-2b7c5e0a1234", "name": "Quản trị hệ thống", "isSystem": true, "userCount": 3, "createdAt": "2026-09-10T03:12:44Z", "version": "4b1f0c2e-7a3d-4e59-9c86-2d0e5f7a1b34" }
     ],
     "totalCount": 1,
     "page": 1,
@@ -53,6 +59,7 @@ Danh sách vai trò của đơn vị hiện hành, phân trang theo khuôn chung
 | `isSystem` | bool | Vai trò hệ thống — không sửa, không xoá (§3, §4) |
 | `userCount` | int | Số người dùng đang mang vai trò này |
 | `createdAt` | string \| null | Ứng với cột `created_at` cho phép NULL ([`../database/schema-core.md`](../database/schema-core.md) §4.2, §3.2) |
+| `version` | string | Token đồng thời của vai trò, **luôn** có mặt; FE gửi lại nguyên chuỗi khi gọi §3. Nguồn giá trị và khuôn: [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.3 |
 
 `userCount` có mặt để màn hình cảnh báo **trước** khi người dùng bấm xoá, thay vì để họ bấm rồi nhận lỗi.
 
@@ -114,6 +121,8 @@ Kèm header `Location: /api/v1/core/roles/0192f3c2-1111-7000-8000-000000000002`.
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 | `CORE.AUTH.FORBIDDEN` | Thiếu quyền `core.role.write` |
 
+**Hai lượt ghi cùng `name` chạy đồng thời** (tạo ở đây, hoặc đổi tên ở §3): lượt sau hôm nay nhận **500**, không nhận `CORE.ROLE.NAME_DUPLICATE`. Index `RoleNameIndex` nằm ngoài phạm vi [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md) — mở rộng sang nó là câu hỏi mở của ADR đó, chờ người dùng.
+
 ---
 
 ## 3. `PUT /api/v1/core/roles/{id}`
@@ -126,19 +135,27 @@ Chỉ đổi `name`.
 ### Request
 
 ```json
-{ "name": "Kế toán trưởng" }
+{ "name": "Kế toán trưởng", "version": "4b1f0c2e-7a3d-4e59-9c86-2d0e5f7a1b34" }
 ```
 
 | Field | Bắt buộc | Ghi chú |
 | --- | --- | --- |
 | `name` | ✔ | Cùng ràng buộc với §2 — duy nhất trong đơn vị, so trên tên đã chuẩn hoá |
+| `version` | ✔ | Token nhận từ `GET` gần nhất (§1, §5). Thiếu hoặc lệch ⇒ 409, vì `null` không bao giờ khớp |
 
 Payload **không** có chỗ cho quyền: cấp quyền đi đường ma trận ([`permissions.md`](permissions.md) §6), cùng lý do tách hai bước ở §2.
 
 ### Response 200
 
+`data` là vai trò sau khi đổi, **cùng shape một phần tử `items` của §1** — `version` trong đó là token **mới**; FE thay ngay, không cần `GET` lại trước lần ghi kế tiếp.
+
 ```json
-{ "success": true, "data": null, "error": null, "traceId": "f1a70c6b2d8e4539a0b6c4d2e8f13579" }
+{
+  "success": true,
+  "data": { "id": "0192f3c2-1111-7000-8000-000000000002", "name": "Kế toán trưởng", "isSystem": false, "userCount": 2, "createdAt": "2026-09-10T03:12:44Z", "version": "c7e2a915-0b4d-4f36-8a1e-5d9b3c6f2e70" },
+  "error": null,
+  "traceId": "f1a70c6b2d8e4539a0b6c4d2e8f13579"
+}
 ```
 
 ### Lỗi
@@ -158,6 +175,7 @@ Payload **không** có chỗ cho quyền: cấp quyền đi đường ma trận 
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 | `CORE.AUTH.FORBIDDEN` | Thiếu quyền `core.role.write` |
+| `CORE.CONCURRENCY.CONFLICT` | `version` thiếu, hoặc lệch với vai trò `{id}` trong database — một thao tác khác đã ghi xong sau khi FE đọc (người quản trị khác vừa đổi tên). Không ghi gì |
 
 ---
 
@@ -228,7 +246,7 @@ Không có tham số ngoài `{id}` trên đường dẫn.
 
 ### Response 200
 
-`data` là **một phần tử `items` của §1, cùng shape** — `id`, `name`, `isSystem`, `userCount`, `createdAt`. Không mang tập quyền của vai trò: thứ đó đi đường ma trận ([`permissions.md`](permissions.md)).
+`data` là **một phần tử `items` của §1, cùng shape** — `id`, `name`, `isSystem`, `userCount`, `createdAt`, `version`. Không mang tập quyền của vai trò: thứ đó đi đường ma trận ([`permissions.md`](permissions.md)).
 
 ### Lỗi
 

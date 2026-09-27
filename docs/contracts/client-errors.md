@@ -6,7 +6,15 @@ verified: chua-doi-chieu
 
 # Contract card — Báo lỗi từ trình duyệt
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Card trong file này mang `Status: DRAFT`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20, **định tuyến và đường ghi log**). Card giữ
+> `Status: DRAFT`: biên dịch được không phải điều kiện lên `IMPLEMENTED` ([`README.md`](README.md) §3).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/ClientErrorsController.cs` có action `Report` — khớp route §1 | Gọi thử thật, thay ví dụ bằng response thật |
+> | `src/BE/Core/CoreAndSkill.Core.Application/ClientErrors/ReportClientErrorCommandHandler.cs` cắt `stack` còn `MaxStackLines` dòng, rồi đẩy mọi field văn bản qua `SensitiveTextRedactor.Redact` trước khi ghi — đúng hai ràng buộc ở §1 | — |
+> | Danh sách trường mà `SensitiveTextRedactor` nhận ra có khớp [`../wiki-core/be/07-observability.md`](../wiki-core/be/07-observability.md) §5 hay không: **chưa đối chiếu** | Một lượt soi bộ lọc đó vào §5 |
+> | Bảng lỗi §1 và giới hạn tần suất: **chưa ai đối chiếu** | Đối chiếu rồi mới lật `verified:` |
 >
 > Envelope, `ErrorType` → HTTP, khuôn mã lỗi, bảo mật chung: [`README.md`](README.md).
 > Vì sao cần endpoint này và ba ràng buộc bắt buộc phía FE:

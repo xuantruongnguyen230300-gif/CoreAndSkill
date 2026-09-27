@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 02. Danh tính, phiên và phân quyền
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Code của chủ đề này đã có một phần dưới `src/BE`, nhưng **chưa mục nào trong tệp được đối chiếu** với nó — tệp vẫn trong tầm chấm review (2026-09-24).
 >
 > File này giữ **mô hình và lý do**. Cách thi công cụ thể (chữ ký, đăng ký DI, thuộc tính trên controller) ở [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md). Hợp đồng endpoint ở [`../../contracts/auth.md`](../../contracts/auth.md) và [`../../contracts/permissions.md`](../../contracts/permissions.md).
 
@@ -246,9 +246,17 @@ Khoá sau một số lần sai mật khẩu **liên tiếp**, tự mở sau mộ
 | --- | --- | --- |
 | Số lần sai mật khẩu liên tiếp thì khoá | **5** | `Core:Identity:Lockout:MaxFailedAttempts` |
 | Thời gian khoá | **15 phút** | `Core:Identity:Lockout:DurationMinutes` |
+| Sàn thời gian của mọi phản hồi đăng nhập trượt | **500 ms** | `Core:Identity:Login:FailureFloorMs` |
 
-Hai khoá nạp vào tuỳ chọn khoá tài khoản của Identity (`LockoutOptions.MaxFailedAccessAttempts`,
-`LockoutOptions.DefaultLockoutTimeSpan`). File khác cần hai giá trị này thì trỏ về đây, không chép.
+Hai khoá đầu nạp vào tuỳ chọn khoá tài khoản của Identity (`LockoutOptions.MaxFailedAccessAttempts`,
+`LockoutOptions.DefaultLockoutTimeSpan`). File khác cần các giá trị này thì trỏ về đây, không chép.
+
+**Sàn thời gian** không thuộc khoá tài khoản, nhưng thuộc cùng luồng nên đặt chung bảng này. Hợp đồng
+ở [`../../contracts/auth.md`](../../contracts/auth.md) §3, lý do ở
+[`../../adr/0058-dang-nhap-truot-cho-du-mot-san-thoi-gian.md`](../../adr/0058-dang-nhap-truot-cho-du-mot-san-thoi-gian.md).
+Giá trị **phải lớn hơn p99 của nhánh trượt chậm nhất** đo trên máy chạy thật, gồm phép băm và mọi truy vấn.
+Nếu nhỏ hơn thì sàn không san được gì. Số 500 ms chọn khi chưa đo, nên đo lại mỗi khi đổi số vòng băm hoặc phần cứng.
+Khoá kiểm lúc khởi động: phải lớn hơn 0 và không vượt 5000.
 
 **Thứ tự kiểm khi đăng nhập.** Chạy sau khi đơn vị đã nạp (§6.2) và lượt thử đã tính vào hạn mức theo
 tài khoản ([`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §6.5):

@@ -6,9 +6,25 @@ verified: chua-doi-chieu
 
 # Topbar
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Bản tối thiểu đã có ở `src/FE` (F2, ADR-0037) — khu tài khoản hiện INLINE, chưa phải lớp nổi; bảng "đã có → còn thiếu" ngay dưới đây.
 
 **Nền:** tự dựng. Theo tiêu chí ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 đây là một dải bố cục thuần; hành vi duy nhất đáng kể là menu người dùng, và menu đó là một lớp nổi tách riêng chứ không phải một phần của thanh.
+
+## Đã có → còn thiếu (F2, ADR-0037)
+
+Component: `src/FE/src/app/shared/components/topbar/topbar.component.ts`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | Đủ chữ ký spec: `title`, `user`, `tenantName`, `menuItems`, `sidebarMode`, `drawerOpen`, `state`, `languages`, `currentLanguage`, `pendingLanguage`, `theme`, `menuToggled`, `menuItemSelected`, `languageChangeRequested`, `themeChangeRequested` | — |
+| Tiêu đề tuyến | Có — `platform/shell` đọc `title` của tuyến qua `Router`, dịch rồi truyền vào | — |
+| Khu tài khoản | Tên người dùng + tên đơn vị (dòng dưới) + các mục `menuItems` render thành nút — đủ để tới hồ sơ và đăng xuất | Còn hiện **INLINE**, chưa phải lớp nổi mở bằng nút — thiếu `Menu.md` (chưa dựng ở F2) |
+| Mục "Ngôn ngữ" | — | Chưa dựng — `Topbar` chưa tự thêm mục này; v1 `CORE_I18N.languages` một mục nên chưa có màn nào cần thử |
+| Nút theme + Menu theme | — | Chưa dựng — cần `Menu.md`; `ThemeService` đã có (`core/theme/theme.service.ts`) nhưng chưa có control nào gọi |
+| Hamburger / nút thu-gọn `Sidebar` | — | Chưa render — gắn với `sidebarMode` khác `'expanded'`, cũng hoãn (xem Sidebar.md) |
+| `state: 'error'` ở khu tài khoản | Ẩn tên người dùng/đơn vị, giữ avatar mặc định + `menuItems` (đăng xuất còn bấm được) | — |
+| `aria-live` khi đổi theme/ngôn ngữ | — | Chưa cần — hai thao tác đó chưa render |
+| Icon của mục menu | — | 🛑 **Code lệch quy ước, phải sửa.** `topbar.component.html` § `class="pi {{ muc.icon }}"` không ghép tiền tố, nên nơi gọi đang truyền tên đã có tiền tố: `platform/shell/shell.component.ts` § `icon: 'pi-user'` và § `icon: 'pi-sign-out'`. Quy ước đã chốt là **tên trần** ([`../Icons.md`](../Icons.md) §5, và [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 cho chính kiểu `UiMenuItem` này). Sửa **cả hai nơi** cùng lượt: template ghép `pi-`, `shell` truyền `user` / `sign-out`. Đối chiếu 2026-09-23 |
 
 ---
 
@@ -124,7 +140,7 @@ Không có biến thể "trong suốt" hay "tràn viền". Chúng làm chữ tr�
 | `title` | input | `string \| null` | `null` | Tiêu đề tuyến. `platform/shell` đọc từ dữ liệu tuyến và truyền vào |
 | `user` | input | `{ fullName: string; userName: string; email: string \| null } \| null` | `null` | `null` = đang tải hoặc lỗi. `platform/shell` lấy từ phản hồi phiên ([`../../contracts/auth.md`](../../contracts/auth.md) §5), giữ đúng tên trường. Phản hồi không mang ảnh đại diện, nên [`Avatar.md`](./Avatar.md) nhận `fullName` và vẽ chữ cái đầu |
 | `tenantName` | input | `string` | `''` | Tên đơn vị của phiên. `platform/shell` lấy từ phản hồi phiên ([`../../contracts/auth.md`](../../contracts/auth.md) §5), giữ đúng tên trường; field này **chỉ để hiển thị**. Chuỗi rỗng — chưa có phiên, hoặc hồ sơ lỗi — thì **không vẽ dòng** và không chừa chỗ trống |
-| `menuItems` | input | `ReadonlyArray<UiMenuItem>` | `[]` | Mục trong menu người dùng. Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 — cùng kiểu với `items` của [`Menu.md`](./Menu.md), không có kiểu riêng cho `Topbar`. `danger: true` cho đăng xuất |
+| `menuItems` | input | `ReadonlyArray<UiMenuItem>` | `[]` | Mục trong menu người dùng. Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 — cùng kiểu với `items` của [`Menu.md`](./Menu.md), không có kiểu riêng cho `Topbar`. Trường `icon` là **tên trần**, không tiền tố ([`../Icons.md`](../Icons.md) §5): cùng một kiểu đi vào hai component thì phải đọc được theo cùng một nghĩa, nếu không thì chuyển một mục từ `Menu` sang đây sẽ ra `pi-pi-…` và không vẽ gì. `danger: true` cho đăng xuất |
 | `sidebarMode` | input | `'expanded' \| 'collapsed' \| 'drawer'` | `'expanded'` | Quyết định hiện hamburger hay nút thu/mở |
 | `drawerOpen` | input | `boolean` | `false` | Để đặt `aria-expanded` |
 | `state` | input | `'idle' \| 'loading' \| 'error'` | `'idle'` | Chỉ nói về khu tài khoản |

@@ -6,7 +6,11 @@ verified: chua-doi-chieu
 
 # 09. Form và kiểm tra dữ liệu
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`; đây là hạ tầng form phải dựng ở pha F3.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §4.1 và §4.3**; phần còn lại, gồm §4.2 và §7, chưa ai đối chiếu):
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/FE/src/app/shared/forms/apply-field-errors.ts` — `applyFieldErrors` gộp `errors` sẵn có, `markAsTouched`, trả về danh sách khoá không khớp; `tenControlTuKhoaBE` đổi PascalCase → camelCase một chỗ; `isDevMode` ghi log khi có khoá không khớp | — |
 >
 > Hình dạng `fieldErrors` từ BE: [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §2.1 · kiểu phía FE: [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §1. Luật validation phía BE: [`../../quy-uoc/be-cqrs-handler.md`](../../quy-uoc/be-cqrs-handler.md).
 

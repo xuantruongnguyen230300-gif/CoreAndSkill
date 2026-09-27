@@ -60,15 +60,25 @@ Hai nhánh `platform/` còn lại trong khung, cùng khuôn `loadChildren` với
 
 - **Vì sao `CoreTitleStrategy` dịch lại khi đổi ngôn ngữ** — Router chỉ gọi `updateTitle` lúc điều hướng, nên không có bước này thì tab giữ tiêu đề ngôn ngữ cũ tới lần điều hướng kế — và tab là thứ người dùng nhìn khi chuyển qua lại giữa nhiều tab.
 
-Route chi tiết trong `QUAN_TRI_ROUTES` ([`fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §2.2), cùng khuôn với route danh sách:
+- **Vì sao tiêu đề tĩnh trước bootstrap cần một dòng luật riêng (F38)** — Người đọc `docs/` thấy một chiến lược tiêu đề nối hậu tố thương hiệu, và kết luận hợp lý là *tab luôn mang tên sản phẩm*. Kết luận đó đúng cho mọi tiêu đề **trừ** tiêu đề đầu tiên, và cái trừ ấy trước đây chỉ được viết trong một chú thích của chính tệp `index.html` — tức nó sống ở nơi mà chú thích tối thiểu là luật ([`../../../adr/0010-comment-toi-thieu.md`](../../../adr/0010-comment-toi-thieu.md)) và người sửa có toàn quyền xoá. Hỏng theo cách đắt nhất: người viết tên sản phẩm vào đó **không** làm gì đỏ cả, vì F8 không quét tệp này và không cổng nào khác chạm nó, nên một dự án hạ nguồn thêm tên mình vào một tệp thuộc Core mà không ai biết.
+
+- **Vì sao không giải bằng cách cho `index.html` đọc seam** — Không có cách nào. Seam là một `InjectionToken`; đọc nó cần injector, mà injector chỉ tồn tại sau `bootstrapApplication`. Mọi phương án khác đều phải sinh `index.html` lúc build từ một giá trị cấu hình — tức dựng một cơ chế cấu hình **thứ hai** ở tầng build cho đúng một chuỗi, trong khi [`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §1.1 chốt *không dựng cả hai cơ chế cho cùng một giá trị*.
+
+- **Vì sao tài liệu không chép giá trị đó ra** — Một chuỗi đọc được bằng một lệnh `grep` mà chép vào tài liệu thì thành nguồn thứ hai, và nguồn thứ hai không bao giờ được sửa cùng lúc. Luật ở file luật nói **ràng buộc**; giá trị ở tệp nói **hiện trạng**.
+
+- **Vì sao ba ràng buộc áp cho MỌI thứ thêm vào `<head>` về sau, không chỉ `<title>`** — Dự án hạ nguồn không sửa tệp thuộc Core ([`../../../adr/0016-phan-phoi-core-bang-clone.md`](../../../adr/0016-phan-phoi-core-bang-clone.md)), nên bất cứ gì tĩnh trong tệp này phải trung lập với **mọi** dự án dựng trên Core — không riêng tiêu đề.
+
+- **Vì sao F8 không chạm được `index.html`** — Lệnh của F8 quét `src/FE/src/app`; `index.html` nằm ở `src/FE/src`, ngoài phạm vi đó. Chữ tiếng Việt tĩnh trong tệp này vì vậy là ngoại lệ có tên, không phải một khoảng trống cổng bỏ sót.
+
+Route chi tiết trong `NGUOI_DUNG_ROUTES` ([`fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §2.2), cùng khuôn với route danh sách — nằm trong `nguoi-dung/nguoi-dung.routes.ts`, không phải trực tiếp trong `quan-tri.routes.ts`:
 
 ```typescript
   {
-    path: 'nguoi-dung/:id',
+    path: ':id',
+    title: 'nguoiDung.chiTiet',
     canActivate: [permissionGuard('core.user.read')],
     loadComponent: () =>
-      import('./nguoi-dung/pages/chi-tiet/chi-tiet-nguoi-dung.page').then((m) => m.ChiTietNguoiDungPage),
-    title: 'nguoiDung.chiTiet',
+      import('./pages/chi-tiet/chi-tiet-nguoi-dung.page').then((m) => m.ChiTietNguoiDungPage),
   },
 ```
 
@@ -144,7 +154,7 @@ Cùng khuôn với hai guard trên và cùng lý do: trả `UrlTree` chứ khôn
 
 - **Vì sao không có directive cho cờ** — Thêm một directive kiểu `appHasPermission` cho cờ này là dựng một đường gác thứ hai cho thứ đã có một đường. Vào được màn là dùng được mọi thao tác trên màn. Cờ không nằm trong `permissions` nên cũng không có khoá quyền nào để truyền vào `permissionGuard`.
 
-- **Cờ tắt hiện ở menu, không ở guard** — Menu do máy chủ lọc ([`../../../contracts/meta-menu.md`](../../../contracts/meta-menu.md)) nên tài khoản thường không thấy mục `/he-thong`; guard bắt người gõ thẳng URL.
+- **Cờ không tắt mục nào ở menu, vì không mục menu nào trỏ vào khu này** — Guard là lớp chặn **duy nhất**, và đường vào `/he-thong` hôm nay là **URL gõ thẳng** ([`../../../Design/Screens/00-khung-ung-dung.md`](../../../Design/Screens/00-khung-ung-dung.md), bảng *Quyết định bố cục*). Đó là quyết định, không phải chỗ còn sót: ba bước lọc menu ([`../../../database/schema-core.md`](../../../database/schema-core.md) §6.3) chỉ diễn đạt được **quyền**, **vai trò**, hoặc *"mọi người đã đăng nhập"* — không bước nào đọc được cờ, nên một mục trỏ vào khu này hiện sai người dù khai cách nào. Cơ chế cho một đường vào nhìn thấy được đã được xét và **hoãn**: [`../../../adr/0079-khu-he-thong-khong-nhan-duong-vao-nhin-thay-duoc-o-v1.md`](../../../adr/0079-khu-he-thong-khong-nhan-duong-vao-nhin-thay-duoc-o-v1.md).
 
 ### 3.6 `AuthService` — khởi động và thiết lập phiên
 

@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # B2 — Phân quyền, menu, bảo mật biên
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). Code của pha này đã có một phần trên đĩa trong `src/BE`. **Chưa ai đối chiếu Định nghĩa hoàn thành dưới đây với code**, nên đừng đọc file này như bảng tiến độ, và cũng đừng đọc nó như "chưa ai bắt đầu".
 >
 > **Định nghĩa hoàn thành:** card `users.md`, `roles.md`, `permissions.md`, `meta-menu.md` và `auth.md` §10 chạy đúng như đã khai; 403 bắn đúng chỗ và không nhầm với 401; CSRF, CORS và rate limit chặn thật, mỗi cái có một test chứng minh.
 

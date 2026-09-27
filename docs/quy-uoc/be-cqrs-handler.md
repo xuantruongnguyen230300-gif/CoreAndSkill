@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # Quy ước Backend — CQRS, Handler, `Result<T>`, mã lỗi
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi code mẫu là khuôn cho `src/BE` sẽ xây ở giai đoạn 2.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/BE` đã có trên đĩa, nên code mẫu
+> dưới đây **có bản thật để đối chiếu**. Chưa ai đối chiếu toàn file, nên `verified:` giữ
+> `chua-doi-chieu`: khớp hay không thì mở file mã nguồn ra so và nêu `file:dòng`.
 >
 > Đây là file chủ của: `ICommand<T>`/`IQuery<T>`, `Result<T>`, `Error`, `ErrorType`,
 > `ErrorDescriptor`, pipeline behavior, validator, `PagedList<T>`, tham số thông điệp đặt
@@ -37,10 +39,11 @@ public sealed record CreateUserCommand(
     string UserName,
     string Email,
     string FullName,
+    string TempPassword,
     IReadOnlyList<Guid> RoleIds) : ICommand<Guid>;
 
 // Core.Application/Users/GetUserByIdQuery.cs
-public sealed record GetUserByIdQuery(Guid Id) : IQuery<UserDto>;
+public sealed record GetUserByIdQuery(Guid Id) : IQuery<UserListItemDto>;
 
 // Core.Application/Users/GetUsersListQuery.cs — tên tham số theo §9.3
 public sealed record GetUsersListQuery(
@@ -215,14 +218,6 @@ public static class ResultExtensions
 }
 ```
 
-```csharp
-// ✅ Bind — nhánh lỗi tự truyền, chỉ còn nhánh thành công phải đọc
-return await MenuItem.Create(cmd.Code, cmd.LabelKey, cmd.ParentId)
-    .BindAsync(item => EnsureParentAttachableAsync(item, ct))
-    .BindAsync(item => AddWhenCodeIsFreeAsync(item, ct))
-    .MapAsync(item => item.Id);
-```
-
 **Ngưỡng dùng:** `Bind` khi chuỗi có **từ ba bước trở lên** và mỗi bước chỉ nhận kết quả của bước
 trước. Một bước cần dữ liệu từ hai bước trước đó thì viết `if` phẳng.
 
@@ -232,33 +227,12 @@ trước. Một bước cần dữ liệu từ hai bước trước đó thì vi
 
 ## 3. Handler — bốn bước, KHÔNG tự quản transaction
 
-```csharp
-// Core.Application/Users/CreateUserCommandHandler.cs
-internal sealed class CreateUserCommandHandler(
-    IUserLookupService userLookup,
-    IUserAdminService userAdmin)
-    : IRequestHandler<CreateUserCommand, Result<Guid>>
-{
-    public async Task<Result<Guid>> Handle(CreateUserCommand cmd, CancellationToken ct)
-    {
-        // 1. Luật nghiệp vụ cần dữ liệu — trả Result lỗi, KHÔNG ném
-        if (await userLookup.EmailExistsAsync(cmd.Email, ct))
-            return Result.Failure<Guid>(UserErrors.EmailDuplicated.WithParams(("Email", cmd.Email)));
+1. **Luật nghiệp vụ cần dữ liệu** — trả `Result` lỗi, **không** ném.
+2. **Dựng entity qua factory của Domain** — không `new` rồi gán property.
+3. **Gọi ra ngoài qua interface** — **không** gọi `SaveChangesAsync`.
+4. **Trả kết quả.**
 
-        // 2. Dựng qua factory của Domain — không new + gán property
-        var emailResult = EmailAddress.Create(cmd.Email);
-        if (emailResult.IsFailure)
-            return Result.Failure<Guid>(emailResult.Error!);
-
-        // 3. Gọi ra ngoài qua interface; KHÔNG gọi SaveChangesAsync ở đây
-        var created = await userAdmin.CreateAsync(
-            new CreateUserInput(cmd.UserName, emailResult.Value, cmd.FullName, cmd.RoleIds), ct);
-
-        // 4. Trả kết quả
-        return created;
-    }
-}
-```
+Mẫu thật đủ bốn bước: `src/BE/Core/CoreAndSkill.Core.Application/Files/UploadFileCommandHandler.cs` — `StoredFile.Create(`, rồi `files.AddAsync(`. Không có entity Domain thì không có bước 2 — người dùng là kiểu Identity: `src/BE/Core/CoreAndSkill.Core.Application/Users/CreateUserCommandHandler.cs` gọi `userAdmin.CreateAsync(`.
 
 ### 3.1 Handler KHÔNG làm gì
 
@@ -281,7 +255,7 @@ internal sealed class CreateUserCommandHandler(
 | --- | --- |
 | `{id}` trên route không tồn tại (kể cả đã soft delete) | `NotFound` |
 | Một Id **trong payload** trỏ tới bản ghi không tồn tại | `BusinessRule` |
-| Trùng giá trị unique (handler kiểm trước khi ghi) | `Conflict` — `DbUpdateConcurrencyException` **không** tới handler: `IExceptionHandler` dịch thành 409 `CommonErrors.ConcurrencyConflict` ([`be-api-controller.md`](be-api-controller.md) §2.4) |
+| Trùng giá trị unique (handler kiểm trước khi ghi) | `Conflict` — `DbUpdateConcurrencyException` **không** tới handler: `IExceptionHandler` dịch thành 409 `CommonErrors.ConcurrencyConflict`, trừ ghi qua `UserManager` ([`be-api-controller.md`](be-api-controller.md) §2.4) |
 | Đã đăng nhập nhưng không đủ quyền trên **bản ghi cụ thể** này | `Forbidden` |
 | Trạng thái không cho phép thao tác ("đã duyệt thì không sửa") | `BusinessRule` |
 
@@ -313,15 +287,9 @@ public interface IUnitOfWork
 
 **Một lần ghi là MỘT transaction trên MỌI `DbContext` đã đăng ký** — Core và mọi module
 ([`../adr/0025-luu-du-lieu-module-mot-transaction.md`](../adr/0025-luu-du-lieu-module-mot-transaction.md)),
-qua **chung một** `DbConnection`:
-
-```csharp
-// Core.Infrastructure — một kết nối cho mọi DbContext của request
-services.AddScoped<DbConnection>(_ => new NpgsqlConnection(connectionString));
-services.AddDbContext<CoreDbContext>((sp, options) => options.UseNpgsql(sp.GetRequiredService<DbConnection>()));
-services.AddScoped<DbContext>(sp => sp.GetRequiredService<CoreDbContext>());
-// Module lặp hai dòng cuối cho DbContext của mình. Cấu hình đầy đủ của UseNpgsql: be-performance.md §7.2
-```
+qua **chung một** `DbConnection` scoped; mỗi `DbContext` đăng ký lại dưới kiểu `DbContext` để `UnitOfWork`
+nhận đủ — mã ở `CoreInfrastructureServiceCollectionExtensions.cs`, chuỗi `services.AddScoped<DbContext>(`. Cấu hình
+đủ: [`be-performance.md`](be-performance.md) §7.2. `DbContext` của module: 📐 chưa hỗ trợ, [nợ](../DEBT.md) B22.
 
 `UnitOfWork` (`Core.Infrastructure/Persistence/`) nhận `DbConnection` + `IEnumerable<DbContext>`.
 `ExecuteInTransactionAsync` theo đúng thứ tự: bọc bằng `Database.CreateExecutionStrategy().ExecuteAsync`
@@ -329,6 +297,22 @@ services.AddScoped<DbContext>(sp => sp.GetRequiredService<CoreDbContext>());
 gắn **mọi** context bằng `UseTransactionAsync(tx)` → chạy `operation` → `ShouldCommit` thì
 `SaveChangesAsync` từng context rồi `CommitAsync`, ngược lại `RollbackAsync` → `finally`
 `UseTransactionAsync(null)`. Ba bẫy (execution strategy, `Clear`, gắn đủ context) hỏng **lúc chạy** nếu bỏ.
+
+**`operation` có thể chạy nhiều lần** — chiến lược thử lại chạy lại cả handler. Hai luật
+([`../adr/0053-thu-lai-khong-ap-cho-het-han-cho-va-commit-khong-ro-ket-qua.md`](../adr/0053-thu-lai-khong-ap-cho-het-han-cho-va-commit-khong-ro-ket-qua.md)):
+
+1. Tác dụng ngoài database trong `operation` chỉ được là thứ mà một lượt chạy thừa để lại **rác có
+   job dọn sẵn**, ví dụ tệp vào kho, và đầu vào phải đọc lại được (stream tua về 0). Mọi tác dụng
+   nhìn thấy từ ngoài hệ thống — gửi thư, gọi HTTP ra ngoài — đi qua outbox, không gọi trực tiếp.
+2. Lỗi đường truyền ném từ `CommitAsync` **không** được thử lại: `UnitOfWork` bọc nó thành ngoại lệ
+   không tạm thời. `PostgresException` từ commit là máy chủ đã từ chối, nên vẫn theo phân loại thường.
+   ✅ CÓ THẬT (đối chiếu 2026-09-22): `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/UnitOfWork.cs`
+   (chuỗi `throw new CommitOutcomeUnknownException(traceId, ex)`).
+   Commit gọi với `CancellationToken.None`, không với token của request: đã tới commit thì client rời đi không
+   đổi việc dữ liệu có nên ghi hay không. Huỷ **trước** commit đi ra như thường, không bị bọc —
+   [ADR-0055](../adr/0055-commit-khong-nhan-token-huy-va-het-han-mo-ket-noi-khong-thu-lai.md), luật E14.
+   ✅ CÓ THẬT (đối chiếu 2026-09-23): `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/UnitOfWork.cs`
+   (chuỗi `await transaction.CommitAsync(CancellationToken.None)`).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng (gồm khối `UnitOfWork` đầy đủ): [`ly-do/be-cqrs-handler.md`](../wiki-core/be/ly-do/be-cqrs-handler.md) §4
 
@@ -342,9 +326,8 @@ gắn **mọi** context bằng `UseTransactionAsync(tx)` → chạy `operation` 
 // Core.Application/DependencyInjection.cs
 public static IServiceCollection AddCoreApplication(this IServiceCollection services)
 {
-    // Assembly module do AddXModule() ghi nhận trước đó — cơ chế và thứ tự: be-architecture.md §5.1.
-    // GatherModuleAssemblies: tên gợi ý, chốt khi thi công.
-    Assembly[] assemblies = [typeof(ICommandBase).Assembly, .. services.GatherModuleAssemblies()];
+    // Assembly module do AddXModule() ghi nhận trước đó; gom xong thì niêm — be-architecture.md §5.1.
+    Assembly[] assemblies = [typeof(ICommandBase).Assembly, .. services.SealModuleAssemblies()];
 
     services.AddMediatR(cfg =>
     {
@@ -361,8 +344,8 @@ public static IServiceCollection AddCoreApplication(this IServiceCollection serv
 **Một lời quét cho Core và mọi module**
 ([`../adr/0025-luu-du-lieu-module-mot-transaction.md`](../adr/0025-luu-du-lieu-module-mot-transaction.md)):
 module ghi nhận assembly trong `AddXModule()` ([`be-architecture.md`](be-architecture.md) §5.1); không tự
-gọi `AddMediatR`, không tự quét validator, **không tự đăng ký behavior** — luật
-`EveryPipelineBehavior_IsRegistered_ExactlyOnce` ([`../RULES.md`](../RULES.md) §3).
+gọi `AddMediatR`, không tự quét validator, **không tự đăng ký behavior** — luật A10
+([`../RULES.md`](../RULES.md) §3).
 
 > ⚠️ **`includeInternalTypes: true` không phải tuỳ chọn.** Validator là `internal sealed` (§6.1); thiếu
 > cờ này thì mọi validator bị bỏ qua **im lặng**. Một assembly:
@@ -445,22 +428,16 @@ lúc biên dịch.
 
 ### 5.5 Vì sao CHƯA có Logging / Performance / Caching behavior
 
-Nguyên tắc: **thêm sau khi đo, không thêm để phòng xa.**
-
-| Behavior thường thấy | Điều kiện để thêm |
-| --- | --- |
-| `LoggingBehavior` | Khi có nhu cầu log **theo use case** mà tầng HTTP không thấy được (ví dụ tham số đã giải mã) |
-| `PerformanceBehavior` | Khi đã có tracing và vẫn cần mốc đo ở ranh giới use case |
-| `CachingBehavior` | Ba điều kiện bắt buộc ở [`be-performance.md`](be-performance.md) §8.3 |
-| `AuthorizationBehavior` | Khi cần phân quyền theo **từng bản ghi** mà `RequirePermissionAttribute` không biểu diễn được |
-
-> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-cqrs-handler.md`](../wiki-core/be/ly-do/be-cqrs-handler.md) §5.5
+> 📐 Phần chưa thi công: [`be-cqrs-handler-chua-thi-cong.md`](be-cqrs-handler-chua-thi-cong.md) §5.5
 
 ---
 
 ## 6. Validator (FluentValidation)
 
 ### 6.1 Quy ước
+
+✅ CÓ THẬT (đối chiếu 2026-09-27): `src/BE/Core/CoreAndSkill.Core.Application/Users/CreateUserCommandValidator.cs`
+(chuỗi `.NotReservedUserName();`).
 
 ```csharp
 // Core.Application/Users/CreateUserCommandValidator.cs
@@ -470,11 +447,24 @@ internal sealed class CreateUserCommandValidator : AbstractValidator<CreateUserC
     {
         RuleFor(x => x.UserName)
             .NotEmpty().WithErrorCode(CommonErrors.Required.Code)
-            .MaximumLength(64).WithErrorCode(CommonErrors.MaxLength.Code);
+            .MaximumLength(256).WithErrorCode(CommonErrors.MaxLength.Code)
+            .NotReservedUserName(); // danh tính hệ thống — SystemActor
 
         RuleFor(x => x.Email)
             .NotEmpty().WithErrorCode(CommonErrors.Required.Code)
-            .EmailAddress().WithErrorCode(CommonErrors.Format.Code);
+            .EmailAddress().WithErrorCode(CommonErrors.Format.Code)
+            .MaximumLength(256).WithErrorCode(CommonErrors.MaxLength.Code);
+
+        RuleFor(x => x.FullName)
+            .NotEmpty().WithErrorCode(CommonErrors.Required.Code)
+            .MaximumLength(200).WithErrorCode(CommonErrors.MaxLength.Code);
+
+        RuleFor(x => x.TempPassword)
+            .NotEmpty().WithErrorCode(CommonErrors.Required.Code);
+
+        RuleFor(x => x.RoleIds)
+            .NotNull().WithErrorCode(CommonErrors.Required.Code)
+            .MaximumItems(UserRoleAssignmentRules.MaxRoleIds);
     }
 }
 ```
@@ -482,13 +472,13 @@ internal sealed class CreateUserCommandValidator : AbstractValidator<CreateUserC
 | Quy ước | Lý do |
 | --- | --- |
 | Validator chỉ kiểm thứ **tính được từ payload** | Kiểm cần DB thuộc handler — validator thuần, test không cần hạ tầng |
-| **Không** `WithMessage("câu tiếng Việt")` | Câu hiển thị do client dựng từ mã. Luật `NoUserFacingVietnameseString_InBackend` |
+| **Không** `WithMessage("câu tiếng Việt")` | Câu hiển thị do client dựng từ mã. Luật R8 ([`../RULES.md`](../RULES.md) §5) |
 | **Bắt buộc** `WithErrorCode(...)` lấy từ catalog | Không có mã thì FE không tra được bảng dịch |
 | Rỗng, độ dài, khuôn dạng dùng nhóm `CORE.VALIDATION.*` của `CommonErrors` (§7.1) | Một mã một bản dịch cho mọi module; mã riêng theo tài nguyên chỉ khi lý do không thuộc nhóm đó |
 | Một validator một file, cùng thư mục với command | Vertical slice |
 | `internal sealed` | Bộ quét phải bật `includeInternalTypes` — §5.1 |
 
-Luật `EveryAbstractValidator_IsRegistered` canh: validator không đăng ký **không bao giờ chạy**.
+Validator không đăng ký **không bao giờ chạy** — luật A11 ([`../RULES.md`](../RULES.md) §3).
 
 ### 6.2 ⚠️ Nhiều validator cho MỘT request — mỗi cái phải có `ValidationContext` riêng
 
@@ -514,36 +504,11 @@ duy nhất nó được phép nằm.
 > `*Errors.cs` khi có `src/` —
 > [`../adr/0030-dieu-kien-chuyen-giai-doan-2.md`](../adr/0030-dieu-kien-chuyen-giai-doan-2.md).
 
-```csharp
-// Core.Application/Users/UserErrors.cs
-public static class UserErrors
-{
-    public static readonly Error NotFound = new(
-        "CORE.USER.NOT_FOUND", "Không tìm thấy người dùng.", ErrorType.NotFound);
+Khuôn: mỗi tài nguyên một lớp `static` tên `<TàiNguyên>Errors`, mỗi mã một trường `public static readonly Error` dựng bằng `new(code, messageTemplate, ErrorType)`. Mẫu `UserErrors`: ly-do §7.1.
 
-    public static readonly Error EmailDuplicated = new(
-        "CORE.USER.EMAIL_DUPLICATED", "Email '{Email}' đã được dùng.", ErrorType.Conflict);
-
-    public static readonly Error CannotLockSelf = new(
-        "CORE.USER.CANNOT_LOCK_SELF", "Không tự khoá tài khoản của chính mình.", ErrorType.BusinessRule);
-
-    public static readonly Error SelfSystemRoleRemovalForbidden = new(
-        "CORE.USER.SELF_SYSTEM_ROLE_REMOVAL_FORBIDDEN",
-        "Không tự gỡ vai trò hệ thống của chính mình.", ErrorType.BusinessRule);
-
-    public static readonly Error RoleEscalationForbidden = new(
-        "CORE.USER.ROLE_ESCALATION_FORBIDDEN",
-        "Không thao tác trên vai trò cấp quyền mà người gọi không có.", ErrorType.Forbidden);
-
-    public static readonly Error SystemRoleLockForbidden = new(
-        "CORE.USER.SYSTEM_ROLE_LOCK_FORBIDDEN",
-        "Chỉ người mang vai trò hệ thống mới khoá được tài khoản mang vai trò hệ thống.",
-        ErrorType.Forbidden);
-
-    public static readonly Error RoleNotFound = new(
-        "CORE.USER.ROLE_NOT_FOUND", "Vai trò '{RoleId}' không tồn tại.", ErrorType.BusinessRule);
-}
-```
+✅ CÓ THẬT (đối chiếu 2026-09-27): `src/BE/Core/CoreAndSkill.Core.Application/Common/CommonErrors.cs`
+mang đúng chín trường dưới đây, gồm `Forbidden` (chuỗi `"CORE.AUTH.FORBIDDEN"`) — dùng khi **handler**
+(không phải `RequirePermissionAttribute`) phải tự trả 403 vì điều kiện phụ thuộc dữ liệu payload.
 
 **Mã validation dùng chung — khai MỘT lần ở catalog Core, module không khai lại:**
 
@@ -555,7 +520,7 @@ public static class CommonErrors
     public static readonly Error ValidationFailed = new(
         "CORE.VALIDATION.FAILED", "Dữ liệu gửi lên không hợp lệ.", ErrorType.Validation);
 
-    // Bốn mã dưới CHỈ xuất hiện ở fieldErrors[<Field>][].code — validator của Core và mọi module dùng lại qua WithErrorCode
+    // Mã REQUIRED, MAX_LENGTH, MIN_LENGTH, FORMAT, MAX_ITEMS CHỈ xuất hiện ở fieldErrors[<Field>][].code — validator của Core và mọi module dùng lại qua WithErrorCode
     public static readonly Error Required = new(
         "CORE.VALIDATION.REQUIRED", "Trường này bắt buộc.", ErrorType.Validation);
 
@@ -565,7 +530,9 @@ public static class CommonErrors
     public static readonly Error MinLength = new(
         "CORE.VALIDATION.MIN_LENGTH", "Tối thiểu {MinLength} ký tự.", ErrorType.Validation);
 
-    // Hai mã CHỈ IExceptionHandler phát (be-api-controller.md §2.4) — handler không trả chúng
+    // CORE.SYSTEM.UNEXPECTED CHỈ IExceptionHandler phát (be-api-controller.md §2.4) — handler không
+    // trả. CORE.CONCURRENCY.CONFLICT chủ yếu cũng vậy — NGOẠI LỆ: ghi qua UserManager trả thẳng mã
+    // này qua Result (be-api-controller.md §2.4; wiki-core/be/06-concurrency-control.md §6.1).
     public static readonly Error ConcurrencyConflict = new(
         "CORE.CONCURRENCY.CONFLICT", "Bản ghi đã bị thay đổi bởi người khác. Tải lại rồi thử lại.", ErrorType.Conflict);
 
@@ -574,6 +541,14 @@ public static class CommonErrors
 
     public static readonly Error Format = new(
         "CORE.VALIDATION.FORMAT", "Không đúng định dạng.", ErrorType.Validation);
+
+    public static readonly Error MaxItems = new(
+        "CORE.VALIDATION.MAX_ITEMS", "Tối đa {MaxItems} phần tử.", ErrorType.Validation);
+
+    // Dùng khi HANDLER (không phải RequirePermissionAttribute) cần trả 403 do một điều kiện phụ
+    // thuộc dữ liệu mà mức khai báo tĩnh của S11 không biểu diễn được.
+    public static readonly Error Forbidden = new(
+        "CORE.AUTH.FORBIDDEN", "Không có quyền thực hiện thao tác này.", ErrorType.Forbidden);
 }
 ```
 
@@ -583,31 +558,24 @@ public static class CommonErrors
 | `CORE.VALIDATION.MAX_LENGTH` | `MaxLength` | `MaximumLength(n)` |
 | `CORE.VALIDATION.MIN_LENGTH` | `MinLength` | `MinimumLength(n)` |
 | `CORE.VALIDATION.FORMAT` | — | `Matches`, `EmailAddress`, và mọi rule kiểm khuôn dạng |
+| `CORE.VALIDATION.MAX_ITEMS` | `MaxItems` | `Must(x => x.Count <= n)` trên danh sách — trần số phần tử |
 
-Mã gốc của envelope **vẫn là `CORE.VALIDATION.FAILED`** — bốn mã trên không bao giờ đứng ở `error.code`.
+Mã gốc của envelope **vẫn là `CORE.VALIDATION.FAILED`** — các mã trên không bao giờ đứng ở `error.code`.
 Khoá `messageParams` giữ đúng tên placeholder của FluentValidation (PascalCase — khoá của
 `fieldErrors` và `messageParams` không đi qua camelCase, [`be-api-controller.md`](be-api-controller.md) §2.3);
-allowlist của `MessageParamPolicy.Filter` (§5.2) phải chứa `MaxLength` và `MinLength`. Mã theo tài nguyên
-(`CORE.USER.EMAIL_DUPLICATED`) chỉ khai khi lý do **không** thuộc bốn nhóm này.
+allowlist của `MessageParamPolicy.Filter` (§5.2) phải chứa `MaxLength`, `MinLength` và `MaxItems`. Mã theo tài nguyên
+(`CORE.USER.EMAIL_DUPLICATED`) chỉ khai khi lý do **không** thuộc các nhóm này.
 
-> **Các mã cuối là chỗ hay chọn sai `ErrorType` nhất, và ranh giới nằm ở §3.2.**
->
-> | Mã | `ErrorType` | Vì sao |
-> | --- | --- | --- |
-> | `ROLE_ESCALATION_FORBIDDEN` · `SYSTEM_ROLE_LOCK_FORBIDDEN` | `Forbidden` | Người gọi **thiếu tư cách** trên bản ghi cụ thể: họ không có đủ tập quyền mà vai trò đích cấp, hoặc không mang vai trò hệ thống. Đó là hàng "không đủ quyền trên bản ghi cụ thể" |
-> | `CANNOT_LOCK_SELF` · `SELF_SYSTEM_ROLE_REMOVAL_FORBIDDEN` | `BusinessRule` | Người gọi **có đủ quyền**; thứ bị từ chối là *thao tác nhắm vào chính mình*. Trả 403 ở đây làm FE hiện "bạn không có quyền" cho một người đang có quyền |
-> | `ROLE_NOT_FOUND` | `BusinessRule` | Id **trong payload** trỏ tới bản ghi không tồn tại — §3.2 hàng 2. Không phải `Validation`: `Validation` theo định nghĩa tính được từ payload mà **không cần DB**, còn "vai trò này có tồn tại không" bắt buộc đọc DB. Kèm theo, mã `Validation` luôn đi cùng `fieldErrors`; mã này thì không |
->
-> Hợp đồng phía dây của các mã này: [`../contracts/users.md`](../contracts/users.md) §2.
+Chọn `ErrorType` cho mã **thiếu tư cách** (`Forbidden`) hay **thao tác nhắm vào chính mình** (`BusinessRule`) theo ranh giới §3.2; bảng ví dụ ở ly-do §7.1.
 
 **Luật:** không nơi nào ngoài một catalog được viết `new Error("...", ...)` với chuỗi literal —
-`ErrorDescriptor_IsNever_BuiltFrom_AStringLiteral_OutsideACatalog` ([`../RULES.md`](../RULES.md) §5) canh.
+luật R2 ([`../RULES.md`](../RULES.md) §5).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-cqrs-handler.md`](../wiki-core/be/ly-do/be-cqrs-handler.md) §7.1
 
 ### 7.2 Ranh giới của luật R8 — chuỗi tiếng Việt được phép ở ĐÚNG một chỗ
 
-Luật R8 ([`../RULES.md`](../RULES.md) §5, ArchTest `NoUserFacingVietnameseString_InBackend`) cấm hardcode
+Luật R8 ([`../RULES.md`](../RULES.md) §5) cấm hardcode
 câu hiển thị trong BE; catalog §7.1 lại **bắt buộc** mang câu tiếng Việt. Ranh giới để cả hai cùng đúng:
 
 > **Chuỗi tiếng Việt chỉ được phép ở tham số `MessageTemplate` của một `Error` khai trong
@@ -642,22 +610,23 @@ Biểu thức kiểm: `^[A-Z][A-Z0-9]*(\.[A-Z][A-Z0-9_]*){2}$`
 
 Ba luật kèm theo:
 
-1. **Duy nhất toàn hệ.** `EveryBusinessCode_Matches_Format` và `_IsUnique` canh cả hai vế.
+1. **Duy nhất toàn hệ.** Luật R3 ([`../RULES.md`](../RULES.md) §5) phủ cả hai vế.
 2. **Mã là hợp đồng công khai, đổi mã là breaking change.** Đổi câu chữ thì tự do; đổi mã thì phải
    qua contract.
 3. **Mã mô tả nguyên nhân, không mô tả giao diện.** `CORE.USER.EMAIL_DUPLICATED` đúng;
    `CORE.USER.SHOW_RED_TOAST` sai.
 
-### 7.4 Mã cho điều kiện PHÍA CLIENT — vẫn do BE khai
+### 7.4 Mã cho điều kiện phía client — định nghĩa gốc
 
 Lỗi **BE không bao giờ phát ra** (mất mạng, tải chunk hỏng, proxy trả HTML) vẫn cần mã để FE tra bảng dịch.
 
-> 🛑 **FE KHÔNG được tự chế mã.** Mọi mã — kể cả mã chỉ dùng ở phía client — khai trong
-> catalog của BE, cùng một khuôn, cùng một danh mục.
+> 🛑 **FE KHÔNG được tự chế mã.** Mã phía client khai ở **bảng dưới**, khuôn §7.3, **trước** khi code dùng.
+> BE không mang hằng số cho chúng; tài nguyên `CLIENT` dành riêng cho bảng này (R3).
 
 | Mã | Khi nào FE dùng |
 | --- | --- |
 | `CORE.CLIENT.NO_CONNECTION` | Không nhận được phản hồi nào (mất mạng, DNS hỏng, CORS chặn) |
+| `CORE.CLIENT.SERVER_UNAVAILABLE` | Nhận 5xx **không mang envelope** (proxy trả 502/504) — thay câu mất kết nối |
 | `CORE.CLIENT.RESOURCE_LOAD_FAILED` | Tải một tài nguyên của app thất bại (chunk sau khi triển khai bản mới) |
 | `CORE.CLIENT.VALIDATION_REQUIRED` | Validator phía client: ô bắt buộc để trống |
 | `CORE.CLIENT.VALIDATION_EMAIL` | Validator phía client: sai định dạng email |
@@ -709,9 +678,8 @@ gửi:
 
 ### 8.2 Vì sao tham số phải theo TÊN, không theo thứ tự (`{0}`)
 
-`messageParams` phải nằm **cạnh mã mà nó tham số hoá**: cạnh `code` ở gốc, và cạnh `code` trong từng
-phần tử của `fieldErrors` — không gom về gốc envelope. Luật `MessageParams_AreNamed_NotPositional` và
-`NoUserFacingVietnameseString_InBackend` ([`../RULES.md`](../RULES.md) §5) canh hai vế này.
+`messageParams` nằm **cạnh mã mà nó tham số hoá** — cạnh `code` ở gốc, cạnh `code` trong từng phần
+tử của `fieldErrors`, không gom về gốc envelope. Luật R7 và R8 ([`../RULES.md`](../RULES.md) §5).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-cqrs-handler.md`](../wiki-core/be/ly-do/be-cqrs-handler.md) §8.2
 
@@ -773,15 +741,8 @@ Endpoint danh sách trả **cùng envelope** với endpoint đơn: `Result<Paged
 
 ### 9.3 Quy ước paging / sort / filter
 
-> 📖 Tên, kiểu, miền giá trị và mặc định của tham số danh sách trên dây — `page`, `pageSize`,
-> `sortBy`, `sortDescending`, `searchText` — đọc [`../contracts/README.md`](../contracts/README.md) §8.
-> Card của từng endpoint chỉ khai allowlist `sortBy` và bộ lọc riêng.
-
-Query record mang **đúng tên dây** dạng PascalCase — `Page`, `PageSize`, `SortBy`, `SortDescending`,
-`SearchText` — như `GetUsersListQuery` §1; tên lệch (`Keyword`, `PageNumber`) là tham số server **không
-bao giờ nhận**. Bộ lọc riêng là field rời trên record. Hai luật cứng: **`SortBy` phải qua allowlist**
-(không ghép chuỗi client vào `OrderBy(...)` động); **sắp xếp luôn có tiêu chí phụ ổn định** — `Id` cuối.
-Keyset cho dữ liệu lớn: [`be-performance.md`](be-performance.md) §6.
+> 📖 Tên, kiểu, miền giá trị, mặc định, allowlist `sortBy` và luật sắp xếp có tiêu chí phụ ổn định
+> của tham số danh sách trên dây: đọc [`../contracts/README.md`](../contracts/README.md) §8.
 
 ### 9.4 `GET` hay `POST` cho danh sách
 
@@ -824,17 +785,20 @@ nền ra `Core.Application`.
 
 ### 10.3 Khuôn `jobId + polling`
 
-Handler (`IImportJobRepository jobs`, `IFileStorage storage`) làm **trọn** use case:
-`storage.SaveTempAsync` → `ImportJob.Create(...)` (entity ghi nhận domain event `ImportJobQueued`) →
-`jobs.AddAsync` → `Result.Success(job.Id)`. `ImportJob` ánh xạ `core.job`
+Handler (`IJobRepository jobs`, `IFileStorage storage`) làm **trọn** use case:
+`storage.SaveTempAsync` → `Job.Create(...)` (entity ghi nhận domain event `JobQueuedEvent`) →
+`jobs.AddAsync` → trả `Id`. `Job` ánh xạ `core.job`
 ([`../database/schema-core.md`](../database/schema-core.md) §9.8); `Id` là `jobId` của
-[`../contracts/jobs.md`](../contracts/jobs.md) §1. Năm ràng buộc:
+[`../contracts/jobs.md`](../contracts/jobs.md) §1. ✅ CÓ THẬT (đối chiếu 2026-09-25):
+`src/BE/Core/CoreAndSkill.Core.Application/Import/StartImportCommandHandler.cs`
+(chuỗi `Job.Create(definition.Type, callerId, tempKey)`). Năm ràng buộc:
 
 1. **Không trả HTTP 202.** 200 + envelope như mọi endpoint; `data` mang `jobId`.
 2. **Enqueue đi qua seam** — không gọi thẳng API thư viện job nền, không đẩy lời enqueue lên controller.
 3. **Handler KHÔNG gọi `IBackgroundJobScheduler` — nó ghi một dòng outbox.** Bộ chặn ở tầng dữ liệu
    chuyển domain event thành bản ghi outbox trong **cùng** transaction, kèm đơn vị và người kích hoạt
-   ([`be-architecture.md`](be-architecture.md) §1.1); tiến trình phát nền gọi scheduler sau commit.
+   ([`be-architecture.md`](be-architecture.md) §1.1); tiến trình phát nền gọi scheduler sau commit. Gọi scheduler
+   từ request thì nó ném — cùng mục đó của `be-architecture.md`.
    Cơ chế, bảng, đảm bảo *ít nhất một lần*:
    [`../wiki-core/be/12-notifications.md`](../wiki-core/be/12-notifications.md) §2,
    [`../database/schema-core.md`](../database/schema-core.md) §8.

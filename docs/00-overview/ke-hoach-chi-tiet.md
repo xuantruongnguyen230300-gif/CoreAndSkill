@@ -15,6 +15,7 @@ verified: chua-doi-chieu
 > | Danh sách file và số lượng từng khu | Đếm bằng lệnh; con số trong file này là con số của ngày lập kế hoạch |
 > | Mô tả agent, skill, cổng | `.claude/README.md` và `bash .claude/check-docs.sh` |
 > | Mô hình phục vụ FE↔API | **Hai origin khác nhau** — [`../adr/0015-fe-va-api-khac-nguon.md`](../adr/0015-fe-va-api-khac-nguon.md) |
+> | `tra-cuu-file-class.md` để rỗng, điền bảng ở giai đoạn 2 | Không giữ bảng: tra bằng lệnh — [`../wiki-core/be/tra-cuu-file-class.md`](../wiki-core/be/tra-cuu-file-class.md) |
 >
 > Nguồn sống: [`../README.md`](../README.md) · [`../RULES.md`](../RULES.md) · [`../adr/README.md`](../adr/README.md)
 

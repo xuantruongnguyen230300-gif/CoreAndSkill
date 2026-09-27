@@ -86,7 +86,7 @@ Cám dỗ là loại trừ hẳn mọi file cấu hình cho an toàn. Đừng: n
 
 Vì sao mẫu loại trừ chừa đúng `appsettings.Development.json`: để việc tạo file môi trường khác **không thể** commit nhầm.
 
-**Vì sao `appsettings.Development.json` vào repo.** `ValidateOnStart` bật ở mọi môi trường ([`be-architecture.md`](../../../quy-uoc/be-architecture.md) §4.3): máy vừa clone về phải khởi động được với phần không bí mật đã có sẵn, và chỉ tự đặt phần bí mật. Bí mật đi qua `user-secrets` nên không bao giờ nằm trong tệp; gitleaks (S6) quét cả tệp này.
+**Vì sao `appsettings.Development.json` vào repo.** `ValidateOnStart` bật ở mọi môi trường ([`be-architecture.md`](../../../quy-uoc/be-architecture.md) §4.3): máy vừa clone về phải khởi động được với phần không bí mật đã có sẵn, và chỉ tự đặt phần bí mật. Bí mật ở dạng rõ không bao giờ nằm trong tệp này. Mật khẩu của DB dev chung được nằm đó **chỉ** ở dạng mã hoá, vì lý do ở §6.4 bên dưới.
 
 ### 6.3 Máy mới clone về cần tạo gì
 
@@ -95,6 +95,16 @@ Danh sách này phải sống trong tài liệu chứ không trong đầu ngư�
 Bí mật của máy dev nằm ở kho secret của công cụ phát triển, tức **không nằm trong cây làm việc** — không thể commit nhầm ngay cả khi mẫu loại trừ bị sửa hỏng.
 
 > **Vì sao máy dev cũng chạy HTTPS:** [`adr/0015-fe-va-api-khac-nguon.md`](../../../adr/0015-fe-va-api-khac-nguon.md) chốt dev chạy **đúng hình dạng của thật** để các bẫy cookie chéo nguồn lộ ra ở máy dev, không phải ở lần triển khai đầu tiên — và vì FE `http` mà API `https` là **khác site**, cookie phiên `SameSite=Lax` không được gửi. Thiếu chứng chỉ, thiếu HTTPS ở máy chủ dev của FE, hoặc thiếu origin trong allowlist CORS thì triệu chứng là *đăng nhập thành công rồi vẫn nhận 401* — không thông báo lỗi nào chỉ ra nguyên nhân.
+
+### 6.4 Giá trị cấu hình mã hoá
+
+Quyết định, sáu câu hỏi và các phương án đã loại: [`adr/0097-mat-khau-db-dev-chung-vao-git-ma-hoa-aes-gcm-khoa-ngoai-repo.md`](../../../adr/0097-mat-khau-db-dev-chung-vao-git-ma-hoa-aes-gcm-khoa-ngoai-repo.md), sửa một phần bởi [`adr/0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md`](../../../adr/0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md). Ba điều người đọc tệp luật hay hỏi:
+
+**Vì sao khoá `dev` nằm cạnh bản mã, và như vậy thì mã hoá để làm gì.** Bản mã AES-GCM chỉ an toàn đúng bằng khoá của nó; khoá nằm trong repo thì ai đọc được repo cũng giải được. Nhóm chọn vậy để dev clone về là chạy được, không qua bước ngoài git nào. Cái mã hoá còn mua được là: mật khẩu không hiện ra khi lướt tệp, và cổng phân biệt được *giá trị đúng dạng* với *bản rõ dán nhầm* bằng hình dạng chứ không bằng đường dẫn — nên mọi bản rõ trong mọi `appsettings*.json` đều đỏ. An ninh thật của DB dev nằm ở chỗ khác: chỉ trong mạng nội bộ, không dữ liệu thật, tài khoản quyền hạn chế (luật S25). Khoá mang mã khác `dev` vẫn không bao giờ vào repo — đó là chỗ mã hoá bảo vệ thật.
+
+**Vì sao không giải được thì dừng, không bỏ qua.** Dự án tham khảo mà ADR-0097 học theo bỏ qua lặng lẽ khi thiếu khoá: chuỗi mã hoá thành mật khẩu, và triệu chứng là lỗi xác thực database ở một chỗ không liên quan. Dừng lúc khởi động, nêu tên khoá, là cùng lý lẽ với mọi cấu hình khác ở [`be-architecture.md`](../../../quy-uoc/be-architecture.md) §4.
+
+**Vì sao cổng phải có trước giá trị đầu tiên.** Sau quyết định này, chuỗi kết nối nằm trong một tệp dev sửa thường xuyên, nên xác suất dán nhầm bản rõ tăng lên. Mà gitleaks mặc định không chắc bắt được mật khẩu người chọn tay (nợ S12). Bí mật đã vào lịch sử git thì gỡ khỏi nhánh không gỡ được khỏi lịch sử, chỉ có đổi mật khẩu.
 
 ## 7. File sinh tự động
 

@@ -6,7 +6,13 @@ verified: chua-doi-chieu
 
 # 06. Kiểm soát ghi đè khi nhiều người sửa cùng lúc
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-17, **chỉ khối *Ngoại lệ — ghi qua `UserManager`*** ở §6; mục khác chưa ai đối chiếu):
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE/Core/CoreAndSkill.Core.Infrastructure/Identity/IdentityConcurrency.cs` — `public static Error? DetectConflict(`, `ConcurrencyFailureCode` | — |
+> | §8 hàng *Khoá bi quan* — đối chiếu 2026-09-25, neo ở chính hàng đó | — |
+> | Mọi mục khác: **chưa đối chiếu**, dù code của chủ đề đã có một phần dưới `src/BE` | Đối chiếu từng mục rồi mới lật `verified:` |
 >
 > File này giữ **mô hình và lý do**. Cách khai trên entity (chữ ký, cấu hình EF) là thi công — ở [`../../quy-uoc/be-entity-domain.md`](../../quy-uoc/be-entity-domain.md).
 
@@ -132,6 +138,19 @@ Cách làm: **một token cho cả tập**.
 | Ánh xạ sang HTTP | 409 |
 | Không tự thử lại | Thử lại tự động nghĩa là ghi đè thay đổi của người kia — đúng thứ đang muốn tránh |
 
+> ⚠️ **Ngoại lệ — ghi qua `UserManager`.** ✅ CÓ THẬT (đối chiếu 2026-09-17,
+> `src/BE/Core/CoreAndSkill.Core.Infrastructure/Identity/IdentityConcurrency.cs`): `UserStore<TUser>`
+> của ASP.NET Core Identity tự bắt `DbUpdateConcurrencyException` bên trong và trả về
+> `IdentityResult.Failed` mang mã lỗi `"ConcurrencyFailure"` — nó không bao giờ để ngoại lệ đó lộ ra
+> ngoài `UserManager`. Vì vậy `IExceptionHandler` không có gì để bắt cho ba thao tác ghi `AppUser`:
+> đổi mật khẩu, sửa hồ sơ, tự bỏ cờ bypass. `IdentityConcurrency.DetectConflict` (`Core.Infrastructure`)
+> là đường **thứ hai, hợp lệ**: đọc `identityResult.Errors`, nhận mã đó, trả cùng
+> `CommonErrors.ConcurrencyConflict` — nhưng đi theo `Result` bình thường (handler forward nguyên
+> trạng, `ApiControllerBase.HandleResult` dựng envelope —
+> [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §2.4), không qua
+> `IExceptionHandler`. Câu "đường duy nhất" ở dòng trên chỉ đúng cho ghi qua `DbContext`/
+> `IUnitOfWork` trực tiếp; ghi qua `UserManager` là ngoại lệ của ngoại lệ này.
+
 ### 6.2 Ở tầng giao diện
 
 Thông điệp phải trả lời được ba câu, nếu không người dùng sẽ chỉ bấm lưu lại:
@@ -160,6 +179,7 @@ Nguồn của `version` tuỳ loại bản ghi — client không cần biết, v
 | Bản ghi | Nguồn của `version` | Mã khi lệch |
 | --- | --- | --- |
 | Tài khoản người dùng — `core.app_user` | `concurrency_stamp` do Identity quản ([`../../database/schema-core.md`](../../database/schema-core.md) §3.6, §4.1; [`02-identity-auth.md`](02-identity-auth.md) §2.2). Không thêm cột, không thêm token thứ hai | `CORE.CONCURRENCY.CONFLICT` |
+| Vai trò — `core.app_role` | `concurrency_stamp` do Identity quản, như dòng trên ([`../../database/schema-core.md`](../../database/schema-core.md) §3.6, §4.2) | `CORE.CONCURRENCY.CONFLICT` |
 | Entity Core mang token `xmin` (§3) | `xmin`, gửi ra dưới dạng chuỗi | `CORE.CONCURRENCY.CONFLICT` |
 | Cả một tập (§5) | Băm của tập đã sắp xếp xác định | Mã riêng của endpoint — [`../../contracts/permissions.md`](../../contracts/permissions.md) §6 |
 
@@ -191,7 +211,7 @@ Ba công cụ, chọn theo bài toán:
 
 1. Luôn khoá theo **cùng một thứ tự** ở mọi nơi. Thứ tự khác nhau là công thức tạo khoá chết.
 2. Giữ khoá **ngắn nhất có thể**. Tuyệt đối không gọi hệ thống ngoài khi đang giữ khoá.
-3. Luôn có **thời hạn chờ**. Chờ vô hạn biến một xung đột thành một sự cố toàn hệ.
+3. Luôn có **thời hạn chờ**. Chờ vô hạn biến một xung đột thành một sự cố toàn hệ. Thời hạn là trần cho **cả request**, không cho một lượt thử: hết thời hạn chờ khoá thì lỗi đi thẳng ra, chiến lược thử lại không chạy lại nó — [`../../quy-uoc/be-performance.md`](../../quy-uoc/be-performance.md) §7.2 mục *Lỗi KHÔNG được thử lại*.
 
 ---
 
@@ -205,6 +225,6 @@ Ba công cụ, chọn theo bài toán:
 | Bảng người dùng | 📐 dùng dấu đồng thời sẵn có của Identity | Không thêm cột, không thêm migration |
 | Token trên dây — field `version` trong body | ✅ sẽ có | §6.3. Một tên, một chỗ cho mọi endpoint; card chỉ khai field |
 | Ánh xạ xung đột → HTTP 409 tại một chỗ | ✅ sẽ có | |
-| **Khoá bi quan** | ❌ chưa | Chưa có ca nào cần. Khi cần, ưu tiên ràng buộc duy nhất trước khi nghĩ tới khoá |
+| **Khoá bi quan** | ✅ có, đối chiếu 2026-09-25 | Đặt thời hạn chờ bằng `LockTimeout.SetForCurrentTransactionAsync(` trước câu khoá: khoá dòng `app_role` (`src/BE/Core/CoreAndSkill.Core.Infrastructure/Roles/RoleRowLocks.cs`), khoá tư vấn của ma trận quyền (`src/BE/Core/CoreAndSkill.Core.Infrastructure/Permissions/PermissionMatrixService.cs`), và câu `UPDATE` so-và-đổi token giữ khoá dòng tài khoản (`src/BE/Core/CoreAndSkill.Core.Infrastructure/Identity/UserAdminService.cs`, trong `TryClaimAccountVersionAsync(`). Không cần thời hạn: `FOR UPDATE SKIP LOCKED` của `src/BE/Core/CoreAndSkill.Core.Infrastructure/Outbox/OutboxDispatcher.cs` không chờ. Ca mới vẫn ưu tiên ràng buộc duy nhất trước khi nghĩ tới khoá |
 | **Hợp nhất thay đổi ở mức trường** | ❌ chưa | Đắt. Chỉ cân nhắc cho form dài, và cần ADR |
 | **Tự thử lại khi xung đột** | ❌ không làm | Thử lại là ghi đè thay đổi của người khác — đúng thứ cơ chế này sinh ra để chặn |

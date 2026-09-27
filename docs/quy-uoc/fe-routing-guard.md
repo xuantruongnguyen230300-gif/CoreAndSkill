@@ -6,7 +6,13 @@ verified: chua-doi-chieu
 
 # Route và Guard — điều hướng, phân quyền, trạng thái trên URL
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`. File này là quy ước thi công cho tầng điều hướng của `src/FE`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §3.5 và §4**; 2026-09-25 thêm `lamMoiQuyen`/`lamMoiPhien`/`donPhien` của §3.3; 2026-09-27 thêm §2.1/§2.2 (tên export `routes`, tầng route con của `nguoi-dung.routes.ts`); phần còn lại chưa ai đối chiếu):
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/FE/src/app/core/guards/system-operator.guard.ts` — `laVanHanhHeThong()`; `src/FE/src/app/app.routes.ts` — `canActivate: [authGuard, mustChangePasswordGuard]`; `src/FE/src/app/core/auth/auth.service.ts` — `lamMoiPhien(tuyChon: { readonly napLaiMenu?: boolean } = {})`, và `ho-so.page.ts` gọi `lamMoiPhien({ napLaiMenu: true })` | — |
+> | §2.1/§2.2 (đối chiếu 2026-09-27): `src/FE/src/app/app.routes.ts` — `export const routes: Routes = [`; `src/FE/src/app/platform/quan-tri/quan-tri.routes.ts` — `loadChildren: () => import('./nguoi-dung/nguoi-dung.routes')`; `src/FE/src/app/platform/quan-tri/nguoi-dung/nguoi-dung.routes.ts` — `canActivate: [permissionGuard('core.user.read')]` | — |
+> | 🚧 §1 hai trang lỗi (chốt 2026-09-25): `app.routes.ts` có `import('./platform/loi/khong-co-quyen.page')` và `import('./platform/loi/khong-tim-thay.page')` | Đường trong mẫu §1 — page dời vào `loi/pages/` ([`fe-architecture.md`](fe-architecture.md) §2.3) |
 >
 > Phân quyền phía FE **chỉ để dựng giao diện đúng**; bảo vệ thật nằm ở BE ([`be-api-controller.md`](be-api-controller.md)). Guard bị vượt qua chỉ được dẫn tới màn hình rỗng và 403 từ server — không bao giờ tới dữ liệu.
 
@@ -63,8 +69,8 @@ Khu `/he-thong` (quản trị đơn vị của tài khoản vận hành) gác b�
 ### 2.1 `app.routes.ts` chỉ khai `loadChildren`
 
 ```typescript
-// app.routes.ts
-export const APP_ROUTES: Routes = [
+// app.routes.ts — tên export thật là `routes`, không phải `APP_ROUTES`
+export const routes: Routes = [
   // Nhánh xác thực khai TRƯỚC nhánh khung app; xac-thuc.routes.ts KHÔNG khai path '' hay '**'.
   {
     path: '',
@@ -87,8 +93,8 @@ export const APP_ROUTES: Routes = [
       // Thêm module mới còn phải thêm tên vào BUSINESS_MODULES: fe-architecture.md §4.4.
 
       // Trang lỗi nằm TRONG khung (§1). '**' là dòng cuối.
-      { path: 'khong-co-quyen', title: 'trangLoi.khongCoQuyen.tieuDe', loadComponent: () => import('./platform/loi/khong-co-quyen.page').then((m) => m.KhongCoQuyenPage) },
-      { path: '**', title: 'trangLoi.khongTimThay.tieuDe', loadComponent: () => import('./platform/loi/khong-tim-thay.page').then((m) => m.KhongTimThayPage) },
+      { path: 'khong-co-quyen', title: 'trangLoi.khongCoQuyen.tieuDe', loadComponent: () => import('./platform/loi/pages/khong-co-quyen/khong-co-quyen.page').then((m) => m.KhongCoQuyenPage) },
+      { path: '**', title: 'trangLoi.khongTimThay.tieuDe', loadComponent: () => import('./platform/loi/pages/khong-tim-thay/khong-tim-thay.page').then((m) => m.KhongTimThayPage) },
     ],
   },
 ];
@@ -107,23 +113,46 @@ grep -nE "^import .* from '\./(platform|modules)/" src/FE/src/app/app.routes.ts
 
 ### 2.2 Mỗi feature một `<feature>.routes.ts`
 
+Feature có nhiều route con thì thêm một tầng: `<feature>.routes.ts` chỉ `loadChildren` sang route của từng route con, guard khai ở route con — không phải lúc nào cũng phẳng một tầng như `xac-thuc.routes.ts` (§2.3).
+
 ```typescript
-// platform/quan-tri/quan-tri.routes.ts
+// platform/quan-tri/quan-tri.routes.ts — chỉ loadChildren, KHÔNG khai guard trực tiếp ở tầng này
 export const QUAN_TRI_ROUTES: Routes = [
   {
     path: 'nguoi-dung',
+    loadChildren: () => import('./nguoi-dung/nguoi-dung.routes').then((m) => m.NGUOI_DUNG_ROUTES),
+  },
+  // 'vai-tro', 'phan-quyen': cùng khuôn loadChildren — ly-do §2.2
+];
+
+// platform/quan-tri/nguoi-dung/nguoi-dung.routes.ts — permissionGuard khai ở TẦNG NÀY, không ở quan-tri.routes.ts
+export const NGUOI_DUNG_ROUTES: Routes = [
+  {
+    path: '',
+    title: 'nguoiDung.tieuDe',
     canActivate: [permissionGuard('core.user.read')],
     loadComponent: () =>
-      import('./nguoi-dung/pages/danh-sach/danh-sach-nguoi-dung.page').then((m) => m.DanhSachNguoiDungPage),
-    title: 'nguoiDung.tieuDe',
+      import('./pages/danh-sach/danh-sach-nguoi-dung.page').then((m) => m.DanhSachNguoiDungPage),
   },
-  // 'nguoi-dung/:id' cùng khuôn — ly-do §2.2
+  // ':id' cùng khuôn — ly-do §2.2
 ];
 ```
 
-**Guard đặt trong route của feature, không rải ở `app.routes.ts`.**
+**Guard đặt trong route của feature, không rải ở `app.routes.ts`** — feature nhiều tầng thì đặt guard ở route con thật sự dùng nó, không đặt ở tầng `loadChildren` trung gian.
 
 **`title` giữ KHOÁ i18n, không giữ câu.** `core/i18n/core-title.strategy.ts` — `CoreTitleStrategy extends TitleStrategy` — dịch khoá đó rồi nối hậu tố ` · ` + `CORE_BRANDING.name` ([`fe-architecture.md`](fe-architecture.md) §2.5); khoá vắng ⇒ chỉ `CORE_BRANDING.name`. Đăng ký ở `app.config.ts`: `{ provide: TitleStrategy, useClass: CoreTitleStrategy }`. Ngôn ngữ đổi lúc chạy ([`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §7) thì `CoreTitleStrategy` dịch lại tiêu đề của route hiện tại.
+
+**Tiêu đề TĨNH trong `src/FE/src/index.html` là hằng của Core, không phải câu của sản phẩm — luật F38.** `CoreTitleStrategy` chỉ đặt tiêu đề sau lần điều hướng đầu tiên, nên chuỗi nằm trong thẻ `<title>` của `index.html` là thứ tab hiển thị suốt vòng khứ hồi khởi động, và ở lại **vĩnh viễn** nếu bootstrap hỏng. Ba ràng buộc, cả ba là hệ quả của quyết định đã có chứ không phải luật mới:
+
+- **Không mang tên sản phẩm, không mang bất cứ giá trị riêng dự án nào** — tên sản phẩm khai ở seam `CORE_BRANDING` ([`fe-architecture.md`](fe-architecture.md) §2.5), seam mà tệp này không bao giờ kịp đọc.
+- **Không qua i18n, và nó nằm ngoài tầm cổng F8** ([`../RULES.md`](../RULES.md) §7) — chữ tiếng Việt ở đây là ngoại lệ có tên, không phải chỗ cổng bỏ sót.
+- **Giá trị sống trong chính tệp đó; tài liệu không chép lại nó** ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §6). Đọc bằng lệnh, đừng tra ở đây:
+
+```bash
+grep -n '<title>' src/FE/src/index.html
+```
+
+Đổi chuỗi đó là đổi một câu người dùng nhìn thấy, nên nó cần `design-expert` duyệt; ba ràng buộc trên thì không đổi theo giá trị.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §2.2
 
@@ -242,16 +271,21 @@ export class AuthService {
     }
   }
 
-  /** Bốn nơi gọi: màn hồ sơ sau khi lưu; errorInterceptor khi 403 PASSWORD_CHANGE_REQUIRED (§5.4); màn đổi mật khẩu bắt buộc (§5.3); khung ứng dụng sau khi đổi ngôn ngữ (Design/Screens/00). Huỷ lời gọi đang chạy rồi gửi lại. */
-  lamMoiPhien(): Promise<void> {
+  /** Nơi gọi: màn hồ sơ sau khi lưu, và sau khi từ bỏ cờ đặc quyền (kèm `napLaiMenu`); errorInterceptor khi 403 PASSWORD_CHANGE_REQUIRED (§5.4); màn đổi mật khẩu bắt buộc (§5.3); khung ứng dụng sau khi đổi ngôn ngữ (Design/Screens/00). Huỷ lời gọi đang chạy rồi gửi lại. */
+  lamMoiPhien(tuyChon: { readonly napLaiMenu?: boolean } = {}): Promise<void> {
+    if (tuyChon.napLaiMenu) {
+      this.canNapLaiMenu = true;
+    }
     return this.goiLaiMe();
   }
 
   /** SessionExpiryHandler gọi (fe-api-client.md §2.5). Dọn gì, giữ gì: wiki-core/fe/07-auth-identity.md §7.2. */
   donPhien(): void {
     this.goiMe?.unsubscribe();
+    this.goiMe = null;
     this.canNapLaiMenu = false;
     this._nguoiDung.set(null);
+    this.menu.donPhien();
   }
 
   /** Thay TOÀN BỘ người dùng hiện tại bằng `me`. Promise xong khi lời gọi kết thúc — về, lỗi, hay bị huỷ. */
@@ -270,7 +304,8 @@ export class AuthService {
             this._nguoiDung.set(nguoiDung);
             if (this.canNapLaiMenu) {
               this.canNapLaiMenu = false;
-              this.menu.lamMoi(d.id);
+              // Bỏ qua cache: quyền vừa đổi nhưng userId không đổi, nên lamMoi() sẽ trúng cache cũ.
+              this.menu.thuLai(d.id);
             }
             if (nguoiDung.mustChangePassword) {
               // Chạy lại guard của URL hiện tại — mustChangePasswordGuard trả đích (§5.4). Không tự chọn đường dẫn.
@@ -288,7 +323,7 @@ export class AuthService {
 
 **Phiên mang cả đơn vị, ngôn ngữ ưa thích và cờ vận hành hệ thống.** `nguoiDung()` giữ `tenantCode`, `tenantName`, `preferredLanguage`, `isSystemOperator` của DTO phiên ([`../contracts/auth.md`](../contracts/auth.md) §3, §5); mapper `sangNguoiDungHienTai` chép sang model. Khung đọc `tenantName` ở đây; ngôn ngữ sau đăng nhập đọc `preferredLanguage` ([`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §7); `systemOperatorGuard` đọc `isSystemOperator` (§3.5). Không màn nào gọi hồ sơ chỉ để lấy các giá trị này.
 
-**`lamMoiQuyen()` nạp lại menu trong cùng bước với tập quyền.** Cờ `canNapLaiMenu` sống qua lời gọi bị huỷ.
+**`lamMoiQuyen()` và `lamMoiPhien({ napLaiMenu: true })` nạp lại menu trong cùng bước với tập quyền.** Cờ `canNapLaiMenu` sống qua lời gọi bị huỷ.
 
 **Dùng `Set` chứ không `Array.includes`.**
 
@@ -300,33 +335,7 @@ export class AuthService {
 
 Guard bảo vệ **màn hình**; directive ẩn **phần tử**. Cả hai đọc chung một nguồn.
 
-```typescript
-// shared/directives/has-permission.directive.ts
-@Directive({
-  selector: '[appHasPermission]',
-  standalone: true,
-})
-export class HasPermissionDirective {
-  private readonly auth = inject(AuthService);
-  private readonly tpl = inject(TemplateRef<unknown>);
-  private readonly vcr = inject(ViewContainerRef);
-
-  readonly appHasPermission = input.required<string | string[]>();
-
-  constructor() {
-    effect(() => {
-      const canCo = this.appHasPermission();
-      const ds = Array.isArray(canCo) ? canCo : [canCo];
-      const duocPhep = ds.every((q) => this.auth.coQuyen(q));
-
-      this.vcr.clear();
-      if (duocPhep) {
-        this.vcr.createEmbeddedView(this.tpl);
-      }
-    });
-  }
-}
-```
+Hiện thực: `src/FE/src/app/shared/directives/has-permission.directive.ts` — `export class HasPermissionDirective`. Input `appHasPermission` nhận một khoá hoặc mảng khoá, và phải có **đủ** mọi khoá; view chỉ dựng hoặc gỡ khi kết luận đổi — dựng lại làm mất focus và trạng thái của phần tử con.
 
 ```html
 <app-button *appHasPermission="'core.user.write'" variant="primary" (clicked)="moFormTao()">{{ 'chung.them' | translate }}</app-button>
@@ -370,7 +379,7 @@ Hai đường thiết lập phiên, mỗi đường một hàng; không có đư
 | `me` trả 401 | Chưa đăng nhập: giữ `null`, không toast, không điều hướng — `authGuard` lo phần còn lại (§3.2) |
 | Một nhánh lỗi | `catchError` **trong từng nhánh** của `forkJoin`, trả `null`; app vẫn render. Lỗi khác 401 đã đi qua `errorInterceptor` |
 | **Đăng nhập trả 200** | Hai việc **không phụ thuộc thứ tự**, cả hai xong trước khi điều hướng: `_nguoiDung.set(...)` từ **DTO phiên trong response `login`** — cùng kiểu với `me` ([`../contracts/auth.md`](../contracts/auth.md) §5), **không gọi `me`**; và `XsrfTokenStore.lamMoi()` ([`../luong/D1-dang-nhap.md`](../luong/D1-dang-nhap.md) bước 7–8) |
-| Phiên vừa thiết lập (cả hai đường) | Áp `preferredLanguage` theo [`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §7 |
+| Phiên vừa thiết lập (cả hai đường) | Áp `preferredLanguage` theo [`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §7. 📐 **Hoãn tới khi `CORE_I18N.languages` có từ hai mục** — một ngôn ngữ thì áp là không đổi gì; lượt thêm mục thứ hai thi công dòng này cùng lúc. Chưa thi công (2026-09-24): `core/i18n/dong-bo-ngon-ngu.ts` chỉ `this.translate.use(macDinh)` |
 
 ```typescript
 // app.config.ts — phần khởi động
@@ -528,11 +537,7 @@ export function provideCoreRoutes(routes: CoreRoutes): EnvironmentProviders {
 
 Token **không có giá trị mặc định** (lý do: [`fe-architecture.md`](fe-architecture.md) §2.5).
 
-```bash
-# Luật F21 — core/ không được biết đường dẫn route của dự án. PASS khi không in ra dòng nào.
-[ -d src/FE/src/app/core ] || { echo "F21: không có src/FE/src/app/core để quét"; exit 1; }
-grep -rnE "navigate\(\s*\[\s*'/" src/FE/src/app/core --include='*.ts' | grep -v '\.spec\.ts'
-```
+Cổng F21 dò cả bốn API của Router nhận đường dẫn — `navigate`, `createUrlTree`, `navigateByUrl`, `parseUrl` — trên nội dung cả tệp; lệnh gốc ở [`../wiki-core/fe/trien-khai/05-gate.md`](../wiki-core/fe/trien-khai/05-gate.md) §8.14.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §6
 
@@ -607,11 +612,4 @@ Cảnh báo sớm trước khi hết phiên: v1 **chưa có** — [`../wiki-core
 
 ## 10. Đối chiếu luật
 
-| Luật | Nội dung | Mục |
-| --- | --- | --- |
-| S2 | Phân quyền kiểm bằng permission, không bằng tên role | §3.1 |
-| F14 | Bundle không vượt ngân sách | §2.1 |
-| F20 | `app.routes.ts` không import tĩnh component của feature | §2.1 |
-| F21 | `core/` không khai cứng đường dẫn route của dự án | §6 |
-
-Bảng đầy đủ: [`../RULES.md`](../RULES.md). Quyết định gốc: [`../adr/0005-permission-based.md`](../adr/0005-permission-based.md). Nền: [`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md) · [`../wiki-core/fe/14-security.md`](../wiki-core/fe/14-security.md).
+> 📖 Bảng đầy đủ luật F/S kèm cột "ép bằng gì": [`../RULES.md`](../RULES.md) §7. Quyết định gốc: [`../adr/0005-permission-based.md`](../adr/0005-permission-based.md). Nền: [`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md) · [`../wiki-core/fe/14-security.md`](../wiki-core/fe/14-security.md).

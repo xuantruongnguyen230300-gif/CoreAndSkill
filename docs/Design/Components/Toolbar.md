@@ -6,7 +6,41 @@ verified: chua-doi-chieu
 
 # Toolbar
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có thật ở `src/FE/src/app/shared/components/toolbar/` — selector `app-toolbar`, class `ToolbarComponent`. Bảng dưới khai **đúng những mục đã mở ba tệp `.ts` / `.html` / `.scss` ra so, ngày 2026-09-20**; mục không có tên trong bảng thì chưa ai đối chiếu. Bản đang chạy tự khai là **F3 tối giản** trong chính chú thích đầu `toolbar.component.ts`.
+
+| Mục trong spec | Có thật hôm nay (neo bằng chuỗi trong `src/FE`) | Sẽ thành |
+| --- | --- | --- |
+| §Nền — tự dựng, không bọc PrimeNG | `toolbar.component.ts` không import gì từ `primeng/`; template dựng `<div class="toolbar">` với `<input type="text">` thật | Giữ nguyên |
+| Component dumb, **không** debounce, không gọi API | `onSearchInput` chỉ có đúng một dòng `this.searchChanged.emit(gt)`; `.ts` không inject service nào | Giữ nguyên |
+| Chiều phụ thuộc: `Toolbar` **import thẳng** `FilterChip` | `toolbar.component.ts` import `FilterChipComponent` từ `../filter-chip/filter-chip.component` và khai trong `imports` | Giữ nguyên |
+| Kiểu `ToolbarChip` khớp `../../quy-uoc/fe-ui-conventions.md` §9 | `toolbar.component.ts` khai `export interface ToolbarChip` với đúng năm trường `key`, `label`, `value`, `removable`, `lockReason?` | Giữ nguyên |
+| `default`: nền `--color-surface`, viền `--color-border`, `--radius-md`, `--shadow-1` | `.toolbar` khai đủ cả bốn | Giữ nguyên |
+| Đệm và khe theo cỡ | `.toolbar` khai `padding: var(--sp-5)` / `gap: var(--sp-4)`; `.toolbar--sm` hạ về `--sp-4` / `--sp-3` — khớp cả hai dòng của bảng §Kích thước | Giữ nguyên |
+| Khu tìm mang `role="search"`, khối ngoài không mang vai trò | `.toolbar__tim` mang `role="search"`; `<div class="toolbar">` không có `role` nào | Giữ nguyên |
+| Nhãn ô tìm là `<label>` thật, ẩn thị giác | Template có `<label class="sr-only" for="toolbar-tim">{{ searchLabel() }}</label>` | Giữ nguyên |
+| `loading`: spinner ở đuôi ô tìm, **không** khoá ô | `@if (loading())` vẽ `<i class="pi pi-spinner pi-spin toolbar__tim-loading">`; `[disabled]` của input chỉ gắn vào `disabled()`, không gắn vào `loading()` | Giữ nguyên |
+| `disabled`: dải **không** dùng `pointer-events: none` | `.scss` không chứa chuỗi `pointer-events` ở đâu | Giữ nguyên |
+| `empty`: hàng chip biến mất hẳn, và chip chỉ đọc tính là điều kiện đang bật | Template bọc hàng chip trong `@if (readonlyChips().length > 0 \|\| chips().length > 0)` | Giữ nguyên |
+| §Chip chỉ đọc — chip `readonly` đặt **trước** chip gỡ được, **cùng một** hàng | Trong `.toolbar__chips` có hai vòng `@for` liên tiếp: `readonlyChips()` với `variant="readonly"` trước, rồi `chips()` | Giữ nguyên |
+| `lockReason` truyền xuống `FilterChip` | Vòng `readonlyChips()` gắn `[lockReason]="chip.lockReason ?? null"` | Giữ nguyên |
+| Nút xoá tất cả từ hai chip trở lên | `@if (chips().length > 1)` vẽ `<app-button ... icon="filter-slash" (clicked)="filtersCleared.emit()">` | Giữ nguyên |
+| Khu lọc 1–2 trường vào qua slot, ngay sau ô tìm | `<ng-content select="[toolbarFilters]" />` nằm trong `.toolbar__khu-loc`, ngay sau khối `.toolbar__tim` | Giữ nguyên |
+| Nhóm hành động ghim phải | `.toolbar__hanh-dong` khai `margin-left: auto` | Giữ nguyên |
+| Hàng chip hiện đủ và xuống dòng khi tràn (≥ `$bp-md`) | `.toolbar__chips` khai `flex-wrap: wrap` | Giữ nguyên |
+| `focus-visible` của ô tìm | `.toolbar__tim-input:focus-visible` khai `outline: var(--border-w-strong) solid var(--color-focus)` và `outline-offset: 2px` | Giữ nguyên. Con số `2px` — **chưa so** với `../DESIGN.md` §2.6 |
+| Biến thể `actions` và `selection` | **Chưa có.** Template chỉ đọc `variant()` ở đúng một chỗ (`variant() === 'full'`, để hiện khu lọc); không nhánh nào ẩn ô tìm hay vẽ số dòng đang chọn | Dựng theo bảng §Biến thể |
+| Chiều cao control con theo cỡ | **Chưa có.** `.toolbar__tim-input` cố định `height: var(--size-control-md)`; `.toolbar--sm` không hạ nó xuống `--size-control-sm` | Dựng theo bảng §Kích thước |
+| Nút lọc mở panel: `activeFilterCount`, `filterPanelToggled`, `aria-expanded`, `aria-controls` | **Chưa có gì.** `.ts` không khai `activeFilterCount` cũng không khai `filterPanelToggled`; template không có nút lọc nào | Dựng nhánh "từ 3 trường" của §Panel lọc nằm ở đâu |
+| Thứ tự Tab: ô tìm → nút lọc → chip → nhóm hành động | **Đang lệch.** Thứ tự DOM là ô tìm → khu lọc → **nhóm hành động** → hàng chip, nên chip đứng **sau** nhóm hành động trong đường Tab | Đưa hàng chip lên trước nhóm hành động, hoặc sửa thứ tự spec khai |
+| `Escape` trong ô tìm xoá nội dung ô | **Chưa có.** Template không gắn trình xử lý bàn phím nào lên input | Dựng theo §Accessibility |
+| §Responsive — ba ngưỡng | **Chưa có.** `toolbar.component.scss` không chứa `@media` nào; co giãn hiện nay chỉ tới từ `flex-wrap: wrap` và `flex: 1 1 240px` trên `.toolbar__tim` | Dựng cả ba ngưỡng, kể cả nhánh chip cuộn ngang dưới `$bp-md` |
+| `readonlyChips` nhận đúng mục khai `removable: false` | **Không được ép ở đâu.** Trường `removable` có trong `ToolbarChip` nhưng không tệp nào trong thư mục component đọc tới nó; việc chia hai mảng hoàn toàn do nơi gọi | Kiểm ở nơi gọi, hoặc bỏ trường không ai đọc |
+
+🛑 **Một lỗi thật, không phải chỗ chưa dựng:** ô tìm mang `id="toolbar-tim"` **cố định** trong template, và `<label for="toolbar-tim">` trỏ theo. Hai `Toolbar` trên cùng một trang sẽ trùng `id`, và nhãn của cái thứ hai gắn nhầm vào ô của cái thứ nhất — đúng thứ §Accessibility đòi khi nó yêu cầu một `<label>` thật.
+
+📐 **Những mục dưới đây CHƯA đối chiếu, và vẫn là đích đến:** `aria-label` của nút gỡ chip và vùng bấm ≥ 28×28px (thuộc `FilterChip.md`), chip luôn ở cỡ `sm`, `aria-busy` trên vùng kết quả và vùng `aria-live` báo số bản ghi (cả hai đặt ở **nơi gọi**, cạnh bảng), `disabled` truyền xuống các control vào qua slot, khoản i18n, §Khi nào dùng / khi nào KHÔNG dùng, §Do / Don't.
+
+⚠️ Hai input `searchLabel` (bắt buộc) và `clearAllLabel` đang có trong `toolbar.component.ts` mà §API dự kiến **chưa khai** — spec thiếu, không phải code thừa.
 
 **Nền:** tự dựng, không bọc PrimeNG — theo [`../COMPONENTS.md`](../COMPONENTS.md) §4, `Toolbar` chỉ là một dải bố cục gom các control đã có sẵn; không có hành vi nào thuộc nhóm "khó" để phải đi mượn.
 

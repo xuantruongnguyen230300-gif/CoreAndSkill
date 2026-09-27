@@ -6,10 +6,12 @@ verified: chua-doi-chieu
 
 # `quy-uoc/` — quy ước THI CÔNG của CoreAndSkill
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo đang ở giai đoạn 1: chỉ có `docs/` và `.claude/`,
-> chưa có `src/`. Mọi quy ước trong khu này mô tả thứ `src/` **phải trở thành** ở giai
-> đoạn 2, không phải mô tả code đang chạy. Không dòng nào ở đây được đọc như bằng chứng
-> về hiện trạng.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/BE` và `src/FE` đã có trên đĩa,
+> nên quy ước trong khu này **đã có code để đối chiếu** và thuộc tầm chấm của một lượt review.
+>
+> 🛑 Điều đó **không** biến một dòng ở đây thành mô tả hiện trạng. Quy ước nói code **phải** thế
+> nào; code có thế hay không thì phải mở file mã nguồn ra so và nêu `file:dòng`. Trạng thái thật
+> của từng file đọc ở nhãn đầu chính file đó, cùng khoá `verified:`.
 
 ---
 

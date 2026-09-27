@@ -6,9 +6,35 @@ verified: chua-doi-chieu
 
 # FilterChip
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** tự dựng, không bọc PrimeNG. Theo [`../COMPONENTS.md`](../COMPONENTS.md) §4 nó là một nút nhỏ có nhãn và một nút gỡ — không có hành vi nào thuộc nhóm "khó".
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/components/filter-chip/filter-chip.component.ts` — selector `app-filter-chip`, class gốc `.filter-chip`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | `key` và `label` đều `input.required`; thêm `value`, `variant`, `pressed`, `lockReason`, output `removed` (phát `key`) và `toggled` | — |
+| Ba biến thể | Đủ, và mỗi cái ra **một thẻ khác nhau** qua `@switch`: `toggle` → `<button>`, `readonly` → `<span>`, `applied` → `<span>` bọc một nút gỡ | — |
+| Thẻ đúng theo §Accessibility | Có: `toggle` là `<button>` thật mang `aria-pressed`; `applied` có nhãn **không** bấm được, chỉ nút gỡ bấm được | — |
+| `removed` không phát ở `readonly` | Chặn hai lớp: biến thể `readonly` không vẽ nút gỡ, và `onRemove()` còn chặn lại lần nữa | — |
+| `toggled` chỉ phát ở `toggle` | Có, `onToggle()` chặn biến thể khác | — |
+| Nhãn nút gỡ nói cả tên điều kiện lẫn giá trị | Có — khoá i18n `chung.locChip.go` nhận tham số `nhan` và `giaTri` qua `nhanNutGo`, đúng yêu cầu §Accessibility | — |
+| `readonly` nói lý do bằng `Tooltip` | Có, kèm `aria-disabled="true"` và `tabindex="0"` để vẫn tới được bằng bàn phím. Hình dạng nay khớp spec — bọc bằng component, § `<app-tooltip [text]="lockReason() ?? ''" variant="hint">`, nội dung vào qua input `text` (đối chiếu 2026-09-23). Phần tử chiếu vào là một `<span>` tự nhận focus nên `aria-describedby` rơi đúng chỗ — luật ở [`Tooltip.md`](./Tooltip.md) §Accessibility "Phần tử neo là một component Core" không chạm tới chip, và `FilterChip` **không** cần input `describedBy` vì thế | — |
+| `readonly` **không** có icon | Đúng — chỉ bỏ nút gỡ, không thay bằng icon khoá nào | — |
+| `readonly` dùng con trỏ `default` | Đúng chủ đích spec (`cursor: default`, không phải `not-allowed`) | — |
+| Cỡ `sm` | Chiều cao `--size-control-sm`, cỡ chữ `--fs-xs`; nút gỡ dùng `size="sm"` của [`IconButton.md`](./IconButton.md) | Không có input `size` — spec cũng chỉ khai đúng một cỡ, nên đây là khớp chứ không phải thiếu |
+| `default` | Nền `--color-brand-subtle`, chữ `--color-brand-on-subtle`, viền trong suốt, `--radius-pill` — khớp spec | — |
+| `toggle` khi tắt | Nền trong suốt, chữ `--color-text-muted`, viền `--color-border` — khớp spec | — |
+| Icon gỡ `pi-times` | Có, qua `icon="times"` | — |
+| `focus-visible` | Có trên `.filter-chip`, `--border-w-strong` + `--color-focus` + `outline-offset: 2px`; nút gỡ có vòng focus riêng của `IconButton` nên `applied` đúng là **hai** điểm dừng Tab | — |
+| `hover` | Có khối `@media (hover: hover)` trên biến thể `toggle` | ⚠️ **Dùng `filter: brightness(0.96)` thay vì một token.** Spec đòi "nền đậm hơn một bậc"; hệ token không có bậc đậm hơn cho `--color-brand-subtle`, và code lấp chỗ đó bằng một hằng số trong SCSS. Đây là giá trị trần, trái luật cấm hardcode ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) — cần **hoặc** một token bậc mới, **hoặc** một lượt chốt rằng `brightness` là cách làm được chấp nhận. Hai biến thể `applied` và `readonly` thì không có `hover` nào cả |
+| `active` | `.filter-chip--toggle:active` đặt nền `--color-brand-subtle`; không dùng `transform`, đúng spec | Không "đậm thêm một bậc" như spec đòi — với chip **đang bật** thì đây là đặt lại đúng màu nghỉ, tức không phản hồi gì |
+| `loading` / `error` không áp dụng | Đúng — không có đường dữ liệu nào trong component | — |
+
+Chưa đối chiếu: §Responsive (hàng chip cuộn ngang dưới `$bp-md`, cắt dấu ba chấm ở phần giá trị — đều là luật của hàng chứa chip, thuộc `Toolbar`, không mở trong lượt này), trạng thái `empty` (cả hàng chip biến mất — cũng thuộc `Toolbar`), và vùng hover tròn của nút gỡ (thuộc `IconButton`, đã so riêng ở file đó).
 
 ---
 

@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 03. Thiết kế theo metadata — và chỗ nó trở thành cái bẫy
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Code của chủ đề này đã có một phần dưới `src/BE`, nhưng **chưa mục nào trong tệp được đối chiếu** với nó — tệp vẫn trong tầm chấm review (2026-09-24).
 >
 > Hợp đồng endpoint menu: [`../../contracts/meta-menu.md`](../../contracts/meta-menu.md). Phía FE tiêu thụ metadata: [`../fe/11-grid-and-metadata.md`](../fe/11-grid-and-metadata.md).
 

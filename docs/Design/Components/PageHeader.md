@@ -6,9 +6,22 @@ verified: chua-doi-chieu
 
 # PageHeader
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Bản tối thiểu đã có ở `src/FE` (F2, ADR-0037) — chỉ biến thể `minimal` (chỉ tiêu đề) đã có màn dùng; bảng "đã có → còn thiếu" ngay dưới đây.
 
 **Nền:** tự dựng. Theo tiêu chí ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 đây là bố cục thuần; giá trị của nó nằm ở việc **buộc mọi trang mở đầu giống nhau**, không ở hành vi.
+
+## Đã có → còn thiếu (F2, ADR-0037)
+
+Component: `src/FE/src/app/shared/components/page-header/page-header.component.ts`. Dùng ở `ho-so.page.html` (chỉ `[title]`, tương đương biến thể `minimal`).
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | Đủ chữ ký spec: `title`, `description`, `breadcrumbs`, `backRoute`, `backLabel`, `loading`, `headingId` | — |
+| `<h1>` + biến thể `minimal` | Có, và đã qua một màn thật (`ho-so.page.html`) | — |
+| `description`, nhóm hành động (slot mặc định) | Dựng trong template, đúng token | Chưa có màn nào truyền — chưa được thử qua thực tế |
+| `with-breadcrumb` (đường dẫn phân cấp) | Dựng trong template (`<nav>` + `<ol>`, `aria-current` ở mục cuối) | Chưa có màn nào truyền `breadcrumbs` — chưa được thử qua thực tế |
+| `detail` (nút quay lại + slot badge) | Dựng trong template (`backRoute`/`backLabel`, `<ng-content select="[slot=badge]">`) | Chưa có màn nào truyền `backRoute` — chưa được thử qua thực tế |
+| `loading` | `SkeletonLoader` thay tiêu đề, giữ đúng dòng | Chưa có màn nào bật `loading` — chưa được thử qua thực tế |
 
 ---
 

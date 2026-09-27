@@ -6,7 +6,16 @@ verified: chua-doi-chieu
 
 # Contract card — Thông báo trong ứng dụng
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi card trong file này mang `Status: DRAFT`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **ở mức định tuyến, thân và mã lỗi — trên host thật với repository trong bộ nhớ**). Mọi card giữ
+> `Status: DRAFT`: chưa endpoint nào được gọi thử trên PostgreSQL thật ([`README.md`](README.md) §3).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/NotificationsController.cs` có action `GetList`, `GetUnreadCount`, `MarkRead`, `MarkAllRead` — khớp route §1–§4, không có action tạo hay xoá; thân, mã lỗi và việc chỉ chạm thông báo của chính người gọi đã được kiểm qua HTTP ở `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Web/B4JobsAndNotificationsEndpointTests.cs` | Gọi thử thật trên DB, thay ví dụ bằng response thật, rồi mới lật `Status:` |
+> | Bộ lọc đơn vị, đếm/đánh dấu đọc bằng SQL, và việc kênh email chọn ngôn ngữ theo **người nhận**: viết thành test ở `NotificationsDatabaseTests.cs` (`RequiresDocker`) — **chưa chạy** | Chạy được ở CI có Docker |
+> | Kênh email: Core chỉ có giao diện (`IEmailSender`, `INotificationTemplateRenderer`) và **không** đăng ký bản mặc định — thiếu nhà cung cấp thì dòng outbox `dead` kèm mã `CORE.NOTIFICATION.EMAIL_NOT_CONFIGURED`. Nhà cung cấp chưa được chọn | `architect` chọn nhà cung cấp; module đăng ký bản của mình |
+>
+> Người dùng tắt/bật từng loại thông báo: có seam `INotificationPreferences` (mặc định bật hết), **chưa có bảng** lưu tuỳ chọn — quyết định lưu ở đâu chưa được chốt.
 >
 > Cơ chế sự kiện, Outbox, kênh gửi và mẫu đa ngôn ngữ: [`../wiki-core/be/12-notifications.md`](../wiki-core/be/12-notifications.md). Envelope và mã lỗi: [`README.md`](README.md).
 

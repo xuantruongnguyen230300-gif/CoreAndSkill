@@ -6,8 +6,10 @@ verified: chua-doi-chieu
 
 # Quy ước Backend — Entity & Domain
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi code mẫu dưới đây là khuôn cho `src/BE` sẽ được
-> xây ở giai đoạn 2, không phải mô tả code đang chạy.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/BE` đã có trên đĩa, nên code mẫu
+> dưới đây **có bản thật để đối chiếu**. Chưa ai đối chiếu toàn file, nên `verified:` giữ
+> `chua-doi-chieu`: một đoạn ở đây khớp code hay không thì phải mở file mã nguồn ra so, nêu
+> `file:dòng` — không suy ra từ nhãn này.
 >
 > **Domain không ném exception cho lỗi nghiệp vụ.** Factory và mutation method trả `Result<T>`.
 > Xem §3 và [`../adr/0003-result-thuan.md`](../adr/0003-result-thuan.md).
@@ -50,7 +52,7 @@ public abstract class BaseEntity : IAuditableEntity
 ### 1.1 `Id` là `init`, sinh bằng UUID v7
 
 - **`init` chứ không `set`:** entity có danh tính hợp lệ ngay lúc khởi tạo, không ai gán lại từ ngoài.
-  Luật `BaseEntityId_MustBe_InitOnly` ([`../RULES.md`](../RULES.md) §4) canh.
+  Luật E2 ([`../RULES.md`](../RULES.md) §4).
 - **UUID v7 chứ không v4 (`Guid.NewGuid()`).**
 - **Điểm sinh Id là `EntityId.New()`**, không phải `Guid.CreateVersion7()` viết trực tiếp — một seam
   một dòng, dùng chung cho cả kiểu **không** kế thừa `BaseEntity` (§1.4).
@@ -63,8 +65,8 @@ public abstract class BaseEntity : IAuditableEntity
 `AuditInterceptor` (`Core.Infrastructure`, chạy trong `SaveChangesAsync`) ghi được từ ngoài entity.
 Ranh giới, ba câu phủ định: **không** mở rộng sang field nghiệp vụ (luôn `private set`); **không** áp
 cho `Id` (`init`); **không** là giấy phép "field nào tiện thì mở setter" — đúng năm field, không thêm.
-Luật `BaseEntity_Descendants_MustNotHave_PublicSetter` canh hậu duệ; năm field ở lớp cơ sở nằm ngoài
-phạm vi detector.
+Luật E1 ([`../RULES.md`](../RULES.md) §4) áp cho hậu duệ; năm field ở lớp cơ sở nằm ngoài
+phạm vi detector của nó.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §1.2
 
@@ -79,7 +81,7 @@ cả hậu duệ `BaseEntity` lẫn các kiểu ở §1.4.
 | `Modified` | `UpdatedAt`, `UpdatedBy` |
 
 Cả bốn field lấy chung một biến `now` trong cùng lượt `SaveChangesAsync`. "Chưa từng sửa" thì so
-`UpdatedAt != CreatedAt`. Luật `EveryInterceptor_IsWiredInto_DbContextOptions` canh vế "có được nối vào".
+`UpdatedAt != CreatedAt`. Vế "có được nối vào" là luật E7 ([`../RULES.md`](../RULES.md) §4).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §1.3
 
@@ -91,12 +93,22 @@ Các kiểu dưới đây mang bốn cột vết nhưng **không** kế thừa `
 | Kiểu | Bảng | Vì sao không kế thừa `BaseEntity` |
 | --- | --- | --- |
 | `Tenant` | `core.tenant` | Không có `is_deleted`: đơn vị không bao giờ bị xoá — [`../database/schema-core.md`](../database/schema-core.md) §1.3 |
-| Kiểu ánh xạ bộ đếm sinh mã, khi thành phần đó được bật | `core.code_sequence` | Không có `is_deleted`: bộ đếm không xoá mềm — [`../database/schema-core.md`](../database/schema-core.md) §9.6 |
+| 📐 Kiểu ánh xạ bộ đếm sinh mã, khi thành phần đó được bật | `core.code_sequence` | Không có `is_deleted`: bộ đếm không xoá mềm — [`../database/schema-core.md`](../database/schema-core.md) §9.6 |
 | `AppUser` | `core.app_user` | Lớp cơ sở bắt buộc là `IdentityUser<Guid>`, và C# không cho hai lớp cơ sở. Không có `is_deleted`: vô hiệu hoá tài khoản đi qua `lockout_end` — [`../database/schema-core.md`](../database/schema-core.md) §4.1 |
+| `AppRole` | `core.app_role` | Như `AppUser`, với `IdentityRole<Guid>`. Không có `is_deleted`: xoá vai trò là xoá cứng — schema-core §4.2 |
+
+> 📐 **Hàng "Kiểu ánh xạ bộ đếm sinh mã" là đích đến — chưa có trong `src/BE`.** Ba hàng còn lại của bảng
+> trên mô tả kiểu đã tồn tại; hàng này thì không. Kiểm bằng lệnh, đừng chép kết luận:
+>
+> ```bash
+> grep -rn "code_sequence\|CodeSequence" src/BE/Core --include=*.cs
+> ```
+>
+> Không in dòng nào nghĩa là kiểu này vẫn chưa có bản thật (đối chiếu 2026-09-27).
 
 Mỗi kiểu **implement `IAuditableEntity` trực tiếp** (chữ ký ở khối §1); interceptor điền bốn cột theo
-bảng §1.3. `Tenant` và kiểu bộ đếm khai `Id` `init` bằng `EntityId.New()` (§1.1); `AppUser` nhận `Id` từ
-`IdentityUser<Guid>` nên không khai lại thành `init` được, nhưng giá trị vẫn lấy từ `EntityId.New()`.
+bảng §1.3. `Tenant` và kiểu bộ đếm khai `Id` `init` bằng `EntityId.New()` (§1.1); `AppUser`, `AppRole` nhận `Id` từ
+lớp cơ sở Identity nên không khai lại thành `init` được, nhưng giá trị vẫn lấy từ `EntityId.New()`.
 
 ```csharp
 // Core.Infrastructure — AppUser không rời tầng này (§7)
@@ -115,7 +127,7 @@ public class AppUser : IdentityUser<Guid>, ITenantScoped, IAuditableEntity
 | Luật | Ghi chú |
 | --- | --- |
 | Interceptor chọn entity theo interface, không theo lớp cơ sở | Chọn theo `BaseEntity` thì kiểu ngoài cây kế thừa phải ghi tay bốn cột ở **từng** điểm tạo/sửa |
-| Public setter chỉ cho **đúng bốn** field của interface | Cùng ranh giới §1.2. Luật E1 quét hậu duệ `BaseEntity`, nên với các kiểu này ranh giới giữ bằng review. Với `AppUser`: field kế thừa từ `IdentityUser<Guid>` nằm ngoài ranh giới; field do chính `AppUser` khai — như cờ `has_permission_bypass`, mà luật M12 cấm bật trên tài khoản đã tồn tại — thì nằm trong |
+| Public setter chỉ cho **đúng bốn** field của interface | Cùng ranh giới §1.2. Với `AppUser`/`AppRole` ranh giới có ArchTest `AppUserAndAppRole_SelfDeclaredFields_HaveNoPublicSetter` (E1 chỉ quét hậu duệ `BaseEntity`); `Tenant` vẫn giữ bằng review. Với `AppUser`: field kế thừa từ `IdentityUser<Guid>` nằm ngoài ranh giới; field do chính `AppUser` khai — như cờ `has_permission_bypass`, mà luật M12 cấm bật trên tài khoản đã tồn tại — thì nằm trong |
 
 **Ghi của chính Identity cũng đi qua interceptor** (`UserManager` lưu bằng `SaveChangesAsync` cả khi tính
 lần sai mật khẩu, đặt mốc khoá, đổi security stamp). Lần sai lúc đăng nhập chạy khi chưa có người —
@@ -158,7 +170,7 @@ public static class TenantErrors
 ```
 
 ```csharp
-// Core.Domain/Entities/Tenant.cs
+// Core.Domain/Tenants/Tenant.cs
 public sealed class Tenant : IAuditableEntity
 {
     public Guid Id { get; init; } = EntityId.New();
@@ -234,8 +246,8 @@ Hợp đồng đầy đủ của `Result<T>` và `Error`: [`be-cqrs-handler.md`]
 
 Chỉ cho **lỗi ngoài dự kiến**: mất kết nối DB, bug lập trình, vi phạm bất biến nội bộ. Ba dấu hiệu:
 không có hành động nào người dùng làm được để tránh; không có câu nào hiển thị ngoài "đã có lỗi hệ
-thống"; cần log kèm stack trace và cần ai đó xem. Luật `DomainAndApplication_MustNotThrow_BusinessException`
-([`../RULES.md`](../RULES.md) §5) canh vế còn lại.
+thống"; cần log kèm stack trace và cần ai đó xem. Vế còn lại là luật R1
+([`../RULES.md`](../RULES.md) §5).
 
 ---
 
@@ -244,30 +256,8 @@ thống"; cần log kèm stack trace và cần ai đó xem. Luật `DomainAndApp
 Dùng khi khái niệm có **từ hai field đi cùng nhau**, hoặc có **luật định dạng** cần validate. **Không**
 bọc VO cho một `decimal`/`string` đơn lẻ không có luật gì. `record` — so sánh theo giá trị.
 
-```csharp
-// Core.Domain/ValueObjects/EmailAddress.cs
-public sealed record EmailAddress
-{
-    public string Value { get; }
-
-    private EmailAddress(string value) => Value = value;
-
-    public static Result<EmailAddress> Create(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return Result.Failure<EmailAddress>(EmailErrors.Required);
-
-        var normalized = value.Trim().ToLowerInvariant();
-
-        if (!MailAddress.TryCreate(normalized, out _))
-            return Result.Failure<EmailAddress>(EmailErrors.Malformed.WithParams(("Value", normalized)));
-
-        return Result.Success(new EmailAddress(normalized));
-    }
-
-    public override string ToString() => Value;
-}
-```
+> 📖 Ví dụ minh hoạ (`EmailAddress`; `src/BE` chưa có tệp nào mang kiểu này):
+> [`ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §4.
 
 ### 4.1 Ánh xạ EF Core
 
@@ -276,16 +266,11 @@ public sealed record EmailAddress
 | Đúng một giá trị (`EmailAddress`) | `HasConversion` | Ánh xạ vào **một cột**, không đổi hình dạng bảng |
 | Nhiều field (`Address` gồm phố/quận/tỉnh) | `ComplexProperty` (hoặc `OwnsOne` khi cần navigation) | Nhiều cột trong cùng bảng |
 
-```csharp
-builder.Property(x => x.Email)
-    .HasConversion(
-        vo => vo.Value,
-        raw => EmailAddress.Create(raw).Value)
-    .HasMaxLength(256);
-```
-
 > ⚠️ `.Value` trong nhánh đọc **ném** nếu dữ liệu trong DB không hợp lệ — đúng: đó là lỗi ngoài dự kiến
 > (§3.4), không phải lỗi nghiệp vụ.
+
+> 📖 Khối `HasConversion` mẫu, theo đúng `EmailAddress` ở trên:
+> [`ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §4.1.
 
 ---
 
@@ -375,13 +360,14 @@ public class AppRoleClaim : IdentityRoleClaim<Guid>, ITenantScoped { public Guid
 public class AppUserToken : IdentityUserToken<Guid>, ITenantScoped { public Guid TenantId { get; init; } }
 
 // Core.Infrastructure/Persistence/CoreDbContext.cs — dạng khai ĐỦ KIỂU, để năm kiểu join trên thay kiểu mặc định
-public class CoreDbContext(
+public sealed class CoreDbContext(
     DbContextOptions<CoreDbContext> options,
     ITenantContext tenantContext)
     : IdentityDbContext<AppUser, AppRole, Guid, AppUserClaim, AppUserRole, AppUserLogin, AppRoleClaim, AppUserToken>(options),
-      ITenantFilteredContext
+      ITenantFilteredContext,
+      IDataProtectionKeyContext   // key ring nằm trong schema core — ADR-0014
 {
-    public Guid? CurrentTenantId => tenantContext.TenantId;
+    public Guid? CurrentTenantId => tenantContext.TenantId;   // DbSet: đọc tệp nguồn
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -395,24 +381,8 @@ public class CoreDbContext(
 }
 ```
 
-```csharp
-// Modules.<X>.Infrastructure/Persistence/<X>DbContext.cs — KHÔNG kế thừa IdentityDbContext
-public class SkillDbContext(
-    DbContextOptions<SkillDbContext> options,
-    ITenantContext tenantContext)
-    : DbContext(options), ITenantFilteredContext
-{
-    public Guid? CurrentTenantId => tenantContext.TenantId;
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.HasDefaultSchema("skill");
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(SkillDbContext).Assembly);
-
-        modelBuilder.ApplyCoreQueryFilters(this);
-    }
-}
-```
+> 📖 Khối mẫu `SkillDbContext` cho module (chưa có `Modules.*` nào tồn tại trong `src/BE` hôm nay):
+> [`ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §5.1.
 
 - **Module không kế thừa `IdentityDbContext`** — bộ lọc đi qua **extension**, không qua lớp cơ sở
   ([`../adr/0025-luu-du-lieu-module-mot-transaction.md`](../adr/0025-luu-du-lieu-module-mot-transaction.md)).
@@ -428,8 +398,8 @@ public class SkillDbContext(
 > **Đừng chụp giá trị `TenantId` vào biến cục bộ** rồi nhúng vào biểu thức — model được cache theo kiểu
 > `DbContext` ([`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §4).
 
-Ba việc bắt buộc kèm theo, mỗi việc có cổng ở [`../RULES.md`](../RULES.md) §9: `TenantId` do interceptor
-gán lúc `Added`, không bao giờ sửa (M2); mọi index unique gồm `TenantId` (M3, §5.3); mọi lời gọi
+Ba việc bắt buộc, cổng đã thiết kế (📐, [`../RULES.md`](../RULES.md) §9): `TenantId` do interceptor gán lúc
+`Added` — thiếu đơn vị thì từ chối (M8) — rồi không bao giờ đổi (nợ M15); index unique gồm `TenantId` (M3, §5.3);
 `IgnoreQueryFilters` nằm trong allowlist (M5, §5.4).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §5.1
@@ -440,9 +410,8 @@ gán lúc `Added`, không bao giờ sửa (M2); mọi index unique gồm `Tenant
 2. **Filter phải có TÊN.** Không tên thì lần khai thứ hai **ghi đè** lần thứ nhất.
 3. **Khai lẻ ở từng configuration là sai.** Entity mới quên khai thì mất filter, không có gì báo.
 
-`EveryBaseEntityDescendant_HasNamedSoftDeleteQueryFilter` ([`../RULES.md`](../RULES.md) §4) canh cả ba
-cho `SoftDelete`; `EveryTenantScopedEntity_HasTenantQueryFilter` ([`../RULES.md`](../RULES.md) §9) canh cả
-ba cho `Tenant`. **Cả ba áp cho vòng lặp tenant y hệt.**
+Luật E3 ([`../RULES.md`](../RULES.md) §4) phủ cả ba cho `SoftDelete`; luật M1
+([`../RULES.md`](../RULES.md) §9) phủ cả ba cho `Tenant`. **Cả ba áp cho vòng lặp tenant y hệt.**
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §5.2
 
@@ -458,8 +427,8 @@ builder.HasIndex(x => new { x.TenantId, x.Code })   // 1. tenant  2. cột nghi�
     .HasDatabaseName("ux_menu_item_tenant_code_active");
 ```
 
-`TenantId` **đứng đầu** ([`be-performance.md`](be-performance.md) §5.2). Luật `M3`
-(`EveryUniqueIndex_OnTenantScoped_Includes_TenantId`) canh vế `TenantId`; quy ước đặt tên index và bảng
+`TenantId` **đứng đầu** ([`be-performance.md`](be-performance.md) §5.2). Vế `TenantId` là
+luật M3 ([`../RULES.md`](../RULES.md) §9); quy ước đặt tên index và bảng
 miễn trừ `TenantId`: [`../database/schema-core.md`](../database/schema-core.md) §1.3 và §3.7.
 
 > 🪤 **Tên index có trần 63 byte**, PostgreSQL cắt **âm thầm**. Rút gọn phần **tên cột**; không bao giờ
@@ -473,18 +442,14 @@ miễn trừ `TenantId`: [`../database/schema-core.md`](../database/schema-core.
 
 ### 5.4 Khi nào bỏ qua filter
 
-`IgnoreQueryFilters` — luôn kèm tên filter — dùng đúng ba chỗ: màn hình khôi phục dữ liệu đã xoá, báo
-cáo audit, migration dữ liệu. Mỗi lời gọi phải nêu được thuộc nhóm nào.
-
-> 🛑 **Dạng KHÔNG THAM SỐ gỡ MỌI filter — cả tenant** — bị cấm ở **mọi** ca (luật B6). Nêu tên filter:
+> 🛑 **Dạng KHÔNG THAM SỐ gỡ MỌI filter — cả tenant** — bị cấm ở **mọi** ca (luật B6). Nêu tên từng filter bỏ:
 >
 > ```csharp
 > .IgnoreQueryFilters([CoreQueryFilters.SoftDeleteKey])   // giữ nguyên filter tenant
 > ```
->
-> Mã chạy **ngoài ngữ cảnh một đơn vị** (job nền toàn hệ, quản trị vận hành, migration) cần gỡ cả hai
-> thì liệt kê **cả hai** tên. Mọi lời gọi nằm trong allowlist khai tường minh, kèm lý do (luật M5):
-> [`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §7.
+
+Ca nào được bỏ filter nào — bỏ lọc **đơn vị** và bỏ riêng lọc **xoá mềm** là hai danh sách khác nhau — cùng
+allowlist của luật M5: [`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §7.
 
 ---
 
@@ -507,6 +472,7 @@ Thêm token cho entity thoả **cả hai**:
 | Danh mục dùng chung, cấu hình hệ thống | ✅ | Nhiều người quản trị cùng sửa |
 | Bản ghi có trạng thái theo quy trình | ✅ | Hai người cùng chuyển trạng thái là ca kinh điển |
 | Người dùng, vai trò, phân quyền | ✅ | Màn quản trị và các luồng khác cùng ghi |
+| Đơn vị (`Tenant`) | ❌ — **miễn trừ có điều kiện** | Trường duy nhất đổi được sau khi tạo là `IsActive`, qua đúng một endpoint ([`../contracts/tenants.md`](../contracts/tenants.md) §3), và request mang **giá trị đích** chứ không mang lệnh đảo. Hai người vận hành ghi cùng lúc thì trạng thái cuối là ý định của người ghi sau, không trường nào khác bị đè, cả hai lượt đều vào nhật ký (§5 cùng card). **Hết miễn trừ** khi có đường ghi thứ hai vào dòng đơn vị, ví dụ endpoint sửa `Name` |
 | Hồ sơ cá nhân, chỉ chính chủ sửa | ➖ | Một luồng ghi. Thêm cũng không hại, nhưng không giải quyết gì |
 | Bảng chỉ ghi thêm, không sửa | ❌ | Không có cập nhật thì không có ghi đè |
 | Bảng outbox, nhật ký | ❌ | Đồng thời xử lý bằng khoá lúc lấy bản ghi, không bằng token |
@@ -518,25 +484,22 @@ từ trí nhớ.
 
 ### 6.2 Recipe concurrency token cho Npgsql
 
-```csharp
-public sealed class MenuItem : BaseEntity
-{
-    public string Code { get; private set; } = string.Empty;
-    public int DisplayOrder { get; private set; }
+> ⚠️ **KHUÔN, không phải trích dẫn.** `CatalogItem` là tên minh hoạ — không có tệp nào trong `src/BE/`
+> mang tên đó, và hôm nay **chưa entity nào của Core dùng recipe này**: token của người dùng và vai trò
+> đi bằng `ConcurrencyStamp` của Identity (§6.4). Kiểm bằng lệnh, đừng chép kết luận:
+>
+> ```bash
+> grep -rn "IsRowVersion()" src/BE/Core --include=*.cs
+> ```
+>
+> Không in ra dòng nào nghĩa là recipe vẫn chưa có bản thật.
 
-    // Concurrency token — PHẢI là uint. KHÔNG byte[], KHÔNG shadow property.
-    public uint Version { get; private set; }
-}
-```
+Entity thoả §6.1 khai một property kiểu **`uint`** (không `byte[]`, không shadow property), rồi gắn
+`.IsRowVersion()` trong configuration. Npgsql bind property đó vào cột hệ thống **`xmin`** — không cột
+mới, không migration riêng; EF Core tự thêm `WHERE xmin = @original` vào câu UPDATE, bị ghi đè thì ném
+`DbUpdateConcurrencyException`, tầng trên dịch thành `ErrorType.Conflict` (409). Kiểu CLR hợp lệ: §6.3.
 
-```csharp
-// Core.Infrastructure/Persistence/Configurations/MenuItemConfiguration.cs
-builder.Property(x => x.Version).IsRowVersion();
-```
-
-Npgsql bind property `uint` mang `IsRowVersion()` vào cột hệ thống **`xmin`** — không cột mới, không
-migration riêng. EF Core tự thêm `WHERE xmin = @original` vào câu UPDATE; bị ghi đè thì ném
-`DbUpdateConcurrencyException`, tầng trên dịch thành `ErrorType.Conflict` (409).
+> 📖 Khối mẫu đầy đủ (entity + configuration): [`ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §6.2.
 
 ### 6.3 Kiểu CLR nào hợp lệ cho concurrency token — định nghĩa gốc
 
@@ -560,6 +523,10 @@ migration riêng. EF Core tự thêm `WHERE xmin = @original` vào câu UPDATE; 
 Chúng là entity của ASP.NET Core Identity và **đã có sẵn `ConcurrencyStamp`**. Đường cập nhật người
 dùng dùng đúng nó; không thêm cột thứ hai.
 
+Phát hiện xung đột cho đường này nằm ở `IdentityConcurrency.DetectConflict` (`Core.Infrastructure`),
+không phải `IExceptionHandler` — Identity tự nuốt `DbUpdateConcurrencyException` bên trong
+`UserStore`. Lý do đầy đủ: [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.1.
+
 ---
 
 ## 7. Ranh giới Identity — `AppUser` không rời khỏi Infrastructure
@@ -569,55 +536,14 @@ dùng dùng đúng nó; không thêm cột thứ hai.
 `AppUser : IdentityUser<Guid>` và `AppRole : IdentityRole<Guid>` sống **chỉ** trong `Core.Infrastructure`.
 `Core.Application` và `Core.Domain` **không bao giờ** thấy hai kiểu này — chúng chỉ thấy interface.
 
-```csharp
-// Core.Application/Identity/IIdentityService.cs — thông tin đăng nhập, mật khẩu, hiệu lực phiên; KHÔNG phát phiên
-public interface IIdentityService
-{
-    Task<Result<CredentialCheck>> CheckCredentialsAsync(string userName, string password, CancellationToken ct);   // mật khẩu trước, khoá sau — wiki-core/be/02-identity-auth.md §4.2
-    Task<Result<CredentialCheck>> ChangePasswordAsync(Guid userId, string current, string next, bool clearMustChangePassword, CancellationToken ct);   // stamp MỚI sau khi đổi — controller cấp lại cookie từ nó; clearMustChangePassword: true ở endpoint bắt buộc đổi (contracts/auth.md §7), false ở tự nguyện (§6)
-    Task<bool> IsSessionValidAsync(Guid userId, string securityStamp, CancellationToken ct);   // gọi ở mọi request; false khi stamp lệch HOẶC đơn vị trong phạm vi ngưng hoạt động — be-api-controller.md §7.4
-}
+Chữ ký đọc thẳng ở tệp nguồn dưới `src/BE/Core/CoreAndSkill.Core.Application/` — mục này không chép lại:
 
-// Kết quả của hai thao tác trên — nguồn DUY NHẤT của SecurityStamp cho LoginOutcome (be-api-controller.md §7.4); handler không tra stamp ở đâu khác
-public sealed record CredentialCheck(Guid UserId, string SecurityStamp, bool MustChangePassword);
-
-// Core.Application/Identity/IUserLookupService.cs — chỉ đọc
-public interface IUserLookupService
-{
-    Task<UserSummaryDto?> FindByIdAsync(Guid userId, CancellationToken ct);
-    Task<IReadOnlyList<UserSummaryDto>> FindByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct);
-    Task<bool> EmailExistsAsync(string email, CancellationToken ct);
-    Task<IReadOnlyList<string>> GetRoleNamesAsync(Guid userId, CancellationToken ct);
-}
-
-// Đủ trường để handler `me` dựng SessionDto mà không chạm AppUser — be-api-controller.md §7.4
-public sealed record UserSummaryDto(
-    Guid Id,
-    string UserName,
-    string FullName,
-    string? Email,
-    bool IsLocked,
-    bool IsSystemOperator,
-    bool MustChangePassword,
-    string? PreferredLanguage);
-
-// Core.Application/Tenants/ITenantLookup.cs — tra đơn vị theo mã, TRƯỚC khi mở phạm vi đơn vị; không phải kiểu Identity
-public interface ITenantLookup
-{
-    Task<TenantSummary?> FindByCodeAsync(string code, CancellationToken ct);
-}
-
-public sealed record TenantSummary(Guid Id, string Code, string Name, bool IsActive);
-
-// Core.Application/Identity/IUserAdminService.cs — hành động quản trị
-public interface IUserAdminService
-{
-    Task<Result<Guid>> CreateAsync(CreateUserInput input, CancellationToken ct);
-    Task<Result> LockAsync(Guid userId, CancellationToken ct);
-    Task<Result> UnlockAsync(Guid userId, CancellationToken ct);
-    Task<Result> AssignRolesAsync(Guid userId, IReadOnlyCollection<Guid> roleIds, CancellationToken ct);
-}
-```
+| Kiểu | Tệp | Vai |
+| --- | --- | --- |
+| `IIdentityService`, `CredentialCheck` | `Identity/IIdentityService.cs` | Kiểm và đổi mật khẩu, hiệu lực phiên; **không** phát phiên. `CredentialCheck` là nguồn duy nhất của `SecurityStamp` cho `LoginOutcome` |
+| `IUserLookupService`, `UserSummaryDto` | `Identity/IUserLookupService.cs` | Chỉ đọc; DTO đủ trường cho `me` mà không chạm `AppUser` |
+| `IUserAdminService`, `CreateUserInput`, `UpdateUserInput` | `Identity/IUserAdminService.cs` | Hành động quản trị; handler duyệt luật nghiệp vụ **trước** khi gọi |
+| `ITenantLookup`, `TenantSummary` | `Tenants/ITenantLookup.cs` | Tra đơn vị theo mã **trước** khi mở phạm vi đơn vị; không phải kiểu Identity |
 
 **Phát và thu hồi phiên không nằm ở interface nào ở đây** — cookie là việc của `Core.Web`
 (`HttpContext.SignInAsync` / `SignOutAsync`), `ClaimsPrincipal` dựng qua `ISessionPrincipalFactory`:
@@ -626,8 +552,8 @@ public interface IUserAdminService
 Luồng đăng nhập tra đơn vị bằng `ITenantLookup.FindByCodeAsync` — không thấy, hoặc `IsActive = false` ⇒ trượt cùng mã
 với sai mật khẩu ([`../contracts/auth.md`](../contracts/auth.md) §3) — rồi mới nạp đơn vị vào phạm vi; `CheckCredentialsAsync`
 chạy **sau** bước đó ([`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §11.1; thứ tự đầy đủ:
-[`be-api-controller.md`](be-api-controller.md) §7.4). Luật
-`IdentityTypes_MustNotLeak_OutsideInfrastructure` ([`../RULES.md`](../RULES.md) §6) canh ở mức kiểu.
+[`be-api-controller.md`](be-api-controller.md) §7.4). Ở mức kiểu, đây là luật S5
+([`../RULES.md`](../RULES.md) §6).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §7.1
 
@@ -655,7 +581,7 @@ không đổi được bằng cấu hình; `Core.Application`, `Core.Domain`, ha
 | Cùng schema, khác aggregate | Hard FK | `Restrict` |
 | **Khác schema** (Core ↔ module, module ↔ module) | **Soft FK** — `Guid` thuần, không constraint DB | Không có — chỉ `HasIndex`, kiểm tồn tại ở tầng Application |
 
-Luật `NoForeignKey_CrossesSchemaBoundary` và `EveryMappedEntity_LivesInTheSchemaOfItsSide` canh hai vế.
+Hai vế là luật E5 và E4 ([`../RULES.md`](../RULES.md) §4).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §8
 
@@ -671,7 +597,7 @@ Luật `NoForeignKey_CrossesSchemaBoundary` và `EveryMappedEntity_LivesInTheSch
 
 1. Đối chiếu schema đã khai: [`../database/schema-core.md`](../database/schema-core.md).
 2. Quyết định phía sở hữu (Core hay module) theo [`../kien-truc-core-module.md`](../kien-truc-core-module.md) §4.
-3. Entity → `<Phía>.Domain/Entities/`, kế thừa `BaseEntity`, factory trả `Result<T>`.
+3. Entity → `<Phía>.Domain/<Feature>/` ([`be-architecture.md`](be-architecture.md) §6.1), kế thừa `BaseEntity`, factory trả `Result<T>`.
    Dữ liệu thuộc về một đơn vị thì khai thêm `ITenantScoped`; không thuộc đơn vị nào thì
    phải có tên trong danh sách miễn trừ ở
    [`../database/schema-core.md`](../database/schema-core.md) §1.3, kèm lý do.

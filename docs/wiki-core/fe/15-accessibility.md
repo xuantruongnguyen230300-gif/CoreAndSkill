@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 15. Khả năng tiếp cận
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
 >
 > **Điểm vào chung cho chủ đề tiếp cận.** Phần riêng của biểu đồ nằm ở [`12-charting.md`](12-charting.md) §4; phần riêng của bảng ở [`11-grid-and-metadata.md`](11-grid-and-metadata.md) §9; tương phản màu nối với [`04-design-token-system.md`](04-design-token-system.md).
 
@@ -218,7 +218,7 @@ Cả ba đều **không** ảnh hưởng gì tới người dùng chuột, nên 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
 | Nhắm mức WCAG 2.2 AA | ✅ sẽ có | §1 |
-| Bộ quy tắc tiếp cận trong lint | ✅ sẽ có | Pha F0. **Luật F17**, còn nợ cổng — [`../../RULES.md`](../../RULES.md) §10 và [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §3.3 |
+| Bộ quy tắc tiếp cận trong lint | ✅ sẽ có | Pha F0. **Luật F17**, còn nợ cổng — [`../../DEBT.md`](../../DEBT.md) và [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §3.3 |
 | Quản lý focus: route, hộp thoại, nội dung động | ✅ sẽ có | §3 |
 | Kiểm tương phản ở tầng token, cả hai chế độ | ✅ sẽ có | §4.2, §4.3 — làm ở pha F1 |
 | Checklist §2 cho mỗi màn mới | ✅ sẽ có | Dán vào mô tả PR |

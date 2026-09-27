@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 14. Bảo mật phía Frontend
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
 >
 > Xác thực và phiên: [`07-auth-identity.md`](07-auth-identity.md). Bảo mật phía BE: [`../be/09-security-beyond-auth.md`](../be/09-security-beyond-auth.md). Header bảo mật đặt ở đâu: [`17-phuc-vu-va-trien-khai.md`](17-phuc-vu-va-trien-khai.md) §5.
 

@@ -6,9 +6,35 @@ verified: chua-doi-chieu
 
 # Input
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`, hiện thực **ba** trong sáu biến thể `type`. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** tự dựng quanh phần tử biểu mẫu gốc của HTML. Không bọc PrimeNG — theo tiêu chí ở [`../COMPONENTS.md`](../COMPONENTS.md) §4, một ô nhập không có hành vi khó nào; `<input>` gốc đã cho sẵn toàn bộ ngữ nghĩa, hỗ trợ trình quản lý mật khẩu, tự động điền, và bàn phím phù hợp trên di động.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/components/input/input.component.ts` — selector `app-input`, class gốc `.input`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| `ControlValueAccessor` | Có — `implements ControlValueAccessor`, tự gán `ngControl.valueAccessor`, đủ `writeValue`/`registerOnChange`/`registerOnTouched`/`setDisabledState` | — |
+| `error` suy từ control | Có, đúng luật spec: getter `loi` trả `invalid === true && touched === true`; ô không gắn control không có trạng thái này | — |
+| `type` | Ba biến thể: `text`, `password`, `select` | **`number`, `textarea`, `search` chưa có.** Kiểu của input thu hẹp còn `'text' \| 'password' \| 'select'`, nên ba giá trị kia không biên dịch được ở nơi gọi. Chú thích trong chính component khai đây là cắt bớt có chủ đích cho F2 |
+| `size` | Đủ ba cỡ `.input--sm`/`.input--md`/`.input--lg` theo `--size-control-*` | — |
+| `width` | Input khai đủ `'full' \| 'md' \| 'sm'`, có `.input--full` | **`md` và `sm` không render gì** — template chỉ gắn `.input--full`, hai giá trị kia không có class nào và không có quy tắc nào trong SCSS |
+| `revealable` cho `password` | Có — nút `.nut-hien-an`, `pi-eye`/`pi-eye-slash`, `aria-label` qua i18n (`xacThuc.matKhau.hien`/`.an`), trạng thái hiện/ẩn do component tự giữ đúng như spec §API | — |
+| `options` + `SegmentOption` | Có, dùng lại đúng kiểu spec chỉ định | — |
+| `placeholder`, `readonly`, `autocomplete`, `inputmode`, `describedBy`, `id` | Có, gắn thẳng lên phần tử gốc | — |
+| `disabled` (ca không gắn control) | Vô hiệu hoá **chỉ** đến qua `setDisabledState` | Không có input `disabled` — ca ô tìm của `Toolbar` (ô không gắn control) chưa vô hiệu hoá được |
+| `valueChange` | — | **Không có output nào.** Ca không gắn control hiện không báo được giá trị ra ngoài; `value` vào được nhưng không có đường ra |
+| `loading` | — | Chưa có input `loading`, chưa có spinner ở vị trí `suffix`, chưa đặt `aria-busy` |
+| `prefix` / `suffix` | — | Chưa có |
+| `default` | Có, đúng token spec: `--color-surface`, `--border-w` + `--color-border-strong`, `--color-text`, `--radius-sm`, placeholder `--color-text-muted` | — |
+| `focus-visible` | Có **cả hai** dấu hiệu spec đòi: vòng `--color-focus` với `outline-offset: 2px` **và** viền chuyển `--color-brand` | — |
+| `error` | Có: `.input--error` đặt `--border-w-strong` + `--color-danger-border`, nền giữ nguyên, `aria-invalid`, `aria-describedby` | — |
+| `hover` | Có khối `@media (hover: hover)` đúng chỗ | ⚠️ **Không đổi gì trên thực tế** — trạng thái nghỉ đã là `--color-border-strong` và hover đặt lại đúng token đó. Spec đòi "viền đậm thêm một bậc"; thang xám hiện không có bậc nào trên `--color-border-strong` để bước lên |
+| `disabled` | Có nền `--color-surface-3`, chữ `--color-text-disabled`, `cursor: not-allowed` | Chưa đặt `border-color: var(--color-border)` mà spec khai — viền giữ nguyên `--color-border-strong` của trạng thái nghỉ. Nút hiện/ẩn của `password` cũng chưa bị `disabled` kèm |
+
+Chưa đối chiếu: §Responsive, §Token dùng (chưa soát từng token một), bàn phím ảo trên di động (đo trên thiết bị thật), và việc `id` có thật sự trùng `controlId` của `FormRow` ở từng trang gọi — mới so hợp đồng của component, chưa mở các trang gọi ra so.
 
 ---
 
@@ -142,6 +168,8 @@ Dùng `disabled` cho một trường chỉ để hiển thị (mã bản ghi t�
 | `valueChange` | output | `string \| number \| null` | — | Chỉ khi ô **không** gắn control — ô tìm của [`Toolbar.md`](./Toolbar.md) |
 
 **Form control chuẩn Angular.** `app-input` cài `ControlValueAccessor`: nhận `[formControl]` và `formControlName` như một phần tử biểu mẫu gốc; giá trị, `touched` (lúc rời ô) và vô hiệu hoá đi qua control. Trạng thái `error` — viền và `aria-invalid` — suy từ control: `invalid && touched`. Câu lỗi do trang lấy từ `fieldErrorText` ([`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.5) và truyền cho `error` của `FormRow`; `describedBy` vẫn do trang truyền vì `Input` không biết `FormRow` có gợi ý hay không. Ca không gắn control chỉ còn ô tìm của [`Toolbar.md`](./Toolbar.md): `valueChange` và `disabled` dành cho ca đó; không có output rời ô — ca có control đã có `touched`, ca không có control không cần. Mẫu gắn vào form, kèm `id` trùng `controlId` của `FormRow`: cùng file §6.4.
+
+**`Input` không có `maxlength` — cố ý, không phải thiếu sót.** Độ dài tối đa là luật của validator gắn ở control; lỗi báo bằng `CORE.CLIENT.VALIDATION_MAXLENGTH` ([`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §5.3). Ba lý do: (1) `maxlength` gốc của trình duyệt **cắt im lặng** chuỗi dán vào — với một mã định danh (mã đơn vị, [`../Screens/20-don-vi.md`](../Screens/20-don-vi.md)) chuỗi bị cắt vẫn hợp khuôn nhưng sai, và không ai thấy lỗi; (2) con số tối đa sẽ có hai nguồn, validator và thuộc tính; (3) `Input` không được biết luật ở control, xem đoạn dưới. Màn nào cần chặn cứng lúc gõ ở một ô cụ thể là đang đề nghị mở rộng `Input` — mở mục Cần chốt, không thêm ngầm ở chỗ gọi.
 
 **`Input` đọc trạng thái, không đọc luật.** Nó không biết validator nào gắn ở control và không được biết; nó chỉ hỏi control *đang lỗi và đã chạm chưa* rồi vẽ theo. Đây là điều giữ cho nó là component **dumb** ([`../COMPONENTS.md`](../COMPONENTS.md) §5).
 

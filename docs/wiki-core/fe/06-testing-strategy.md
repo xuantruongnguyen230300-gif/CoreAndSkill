@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 06. Chiến lược kiểm thử Frontend
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`; đây là bộ luật test mà giai đoạn 2 phải theo.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Đây là bộ luật test mà giai đoạn 2 phải theo.
 >
 > Đối chiếu phía BE: [`../be/04-testing-strategy.md`](../be/04-testing-strategy.md). Hai phía có ngưỡng khác nhau, có chủ đích — xem §6.
 
@@ -209,7 +209,7 @@ Quy trình bắt buộc cho mọi test của `core/`:
 | Spec cạnh mọi `*.service.ts` | ✅ sẽ có | Luật F12, từ pha F0 |
 | Test interceptor và guard | ✅ sẽ có | §2.2, §2.3 — hai nhóm đáng test nhất |
 | Test component `shared/` ở bốn trạng thái | ✅ sẽ có |  |
-| Sàn coverage ở §4, đo theo **nhánh** | ✅ sẽ có | **Luật F15**, nợ cổng ghi ở [`../../RULES.md`](../../RULES.md) §10; nợ cổng ở [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §3.3 |
+| Sàn coverage ở §4, đo theo **nhánh** | ✅ sẽ có | **Luật F15**, nợ cổng ghi ở [`../../DEBT.md`](../../DEBT.md); nợ cổng ở [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §3.3 |
 | Karma + Jasmine qua `ng test`, ChromeHeadless | ✅ sẽ có | §7 |
 | Vitest | ❌ chưa | Điều kiện: đợt nâng Angular theo kế hoạch ở [`../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md) (§7) |
 | Bộ E2E cho bốn luồng ở §6 | ❌ chưa | Điều kiện: có cách dựng dữ liệu thử ổn định. Thiếu điều kiện này thì E2E sẽ đỏ ngẫu nhiên rồi bị tắt |

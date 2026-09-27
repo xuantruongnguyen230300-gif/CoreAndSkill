@@ -6,7 +6,20 @@ verified: chua-doi-chieu
 
 # Quy ước giao diện — Angular, PrimeNG, token, i18n, form
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`. File này là quy ước thi công cho `src/FE`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §5.5, §6.1, §6.2, §6.4, §6.5**; riêng §5.5 đối chiếu lại 2026-09-23 sau khi ADR-0063 thi công xong, và §6.1 đối chiếu lại 2026-09-24 sau khi ADR-0078 thi công xong). Mọi mục còn lại **chưa đối chiếu với `src/FE`**, kể cả mục đã có code.
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | §5.5 **đã khớp** ([ADR-0063](../adr/0063-locale-id-den-tu-seam-core-i18n.md) thi công xong, đối chiếu 2026-09-23): `src/FE/src/app/core/config/core-i18n.ts` có `registerLocaleData(ngonNgu.localeData, ngonNgu.code);` và `{ provide: LOCALE_ID, useValue: i18n.defaultLanguage },`; `src/FE/src/app/app.config.ts` chỉ còn truyền `localeData: localeVi` **vào** `provideCoreI18n({`; `app.config.spec.ts` có ca `KHÔNG cấp LOCALE_ID trực tiếp — giá trị đó đến từ provideCoreI18n`. Việc **vắng mặt** hai chuỗi đó ngoài seam do cổng F36 canh chứ không do câu này — [`../RULES.md`](../RULES.md) §7 | — |
+> | §6.2 **đã khớp** (đối chiếu 2026-09-24; chữ ký nhận `ApiFailureError` và đoạn *Toast và banner* 2026-09-25): `src/FE/src/app/shared/forms/apply-form-failure.ts` có `export function applyFormFailure(`, `if (laLoiXuyenSuot(loi.status, loi.body))` và trả `cauTungMa(`; `field-errors-text.ts` cùng thư mục cũng chặn bằng `laLoiXuyenSuot(`; màn đăng nhập gọi `dichLoiChoMan(this.translate, err)`; `src/FE/src/app/shared/forms/field-errors-text.ts` có `.join('\n')`; `src/FE/src/app/shared/forms/focus-o-sai-dau-tien.ts` có `export function focusOSaiKhiGuiSai(` và `export function focusOSaiDauTien(`. Trạng thái tải hỏng (đối chiếu 2026-09-26): khung luôn có tiêu đề, thân `dichLoiChoMan` — `ho-so.page.ts` `loiTaiHoSo`, `chi-tiet-nguoi-dung.page.html` `#khoiLoiTai`, `ma-tran-phan-quyen.page.html` `[errorHeading]`; `tra-cuu-vai-tro.store.ts` `cauLoi(` | — |
+> | §6.5: `src/FE/src/app/shared/forms/field-error-text.ts` có `export function fieldErrorText(` | — |
+> | Khu đơn vị khớp §6.2 về vai: `src/FE/src/app/platform/he-thong/don-vi/state/tao-don-vi.store.ts` có `readonly lanGuiSai = signal(0)`; `src/FE/src/app/platform/he-thong/don-vi/components/hop-tao-don-vi/hop-tao-don-vi.component.ts` có `focusOSaiKhiGuiSai(this.lanGuiSai` (component nhận qua `input()`) | — |
+> | §6.2 mã gốc → ô **đã khớp** (đối chiếu 2026-09-24): `src/FE/src/app/shared/forms/apply-form-failure.ts` có `maGocVaoO: BangMaGocVaoO<F> = {},` và `return oMaGoc ? null : dichLoi(translate, body);`; dưới `src/FE/src/app/platform/`, `tao-don-vi.store.ts`, `tao-nguoi-dung.store.ts`, `hop-vai-tro.store.ts` có `const MA_GOC_VAO_O:`, `hop-chi-tiet-nguoi-dung.store.ts` có `const MA_GOC_VAO_O_SUA:` | — |
+> | §6.4 dưới `src/FE/src/app/platform/`: `hop-tao-don-vi.component.html` có `controlId="dv-tao-ma"` và `'dv-tao-ma-error' : 'dv-tao-ma-hint'`, khớp `FormRow`/`Input`. **Lệch ở mọi `.html` có cả `<app-dialog` lẫn `<form`:** banner lỗi đứng trước `<form>`; nút gửi `(clicked)` ở `slot="footer"`, không `type="submit"` | Chưa quyết: sửa mẫu hay ghi ngoại lệ cho form trong Dialog |
+> | §6.1 CVA: `src/FE/src/app/shared/components/input/input.component.ts` có `this.ngControl.valueAccessor = this` — cách đăng ký khớp. **Hết ca lệch chỗ đặt** (đối chiếu 2026-09-24): [ADR-0078](../adr/0078-cot-nen-giu-quyen-quyet-thu-muc-button-va-input-doi-sang-shared-components.md) quyết định 2 đã thi công xong — `Button` và `Input` nay ở `shared/components/`, và `src/FE/src/app/shared/components/button/button.component.ts` mang chú thích `Tự dựng, không bọc PrimeNG (§Nền)`, khớp cột `Nền` ([`../Design/COMPONENTS.md`](../Design/COMPONENTS.md) §3 — bảng mục lục là chỗ **khai** giá trị; §4 là quy tắc **chọn** giá trị). `Check` **chưa bao giờ** là ca lệch — nó khai `bọc PrimeNG` và `src/FE/src/app/shared/ui/check/check.component.ts` có `import { CheckboxModule } from 'primeng/checkbox';`, tức đúng chỗ; `app-date-picker` chưa có trong `src/FE/src/app/shared/` | — |
+> | Khu người dùng gọi hàm §6.2 (đối chiếu 2026-09-24): `src/FE/src/app/platform/quan-tri/nguoi-dung/state/tao-nguoi-dung.store.ts` có `applyFormFailure(`; `hop-chi-tiet-nguoi-dung.store.ts` cùng thư mục có `applyFormFailure(` và `fieldErrorsText(` | — |
+> | §6.3 hàm nhập lại (đối chiếu 2026-09-25): `src/FE/src/app/shared/forms/nhap-lai-phai-khop.ts` có `export function nhapLaiPhaiKhop(`; `ho-so.page.ts`, `doi-mat-khau-bat-buoc.page.ts` gọi nó | — |
+> | **Chưa đối chiếu:** §1–§4, §5.1–§5.4, phần còn lại của §6.3, §7–§10; mẫu `FormNguoiDungPage` ở §6.1; các lệnh cổng F5–F9, F23 chưa chạy trên `src/FE` | Đối chiếu từng mục rồi mới lật `verified:` |
 >
 > **Nguồn giao diện duy nhất là [`../Design/`](../Design/)**; khi hai bên lệch, `Design/` thắng.
 
@@ -165,9 +178,7 @@ Component Design ghi **bọc PrimeNG** (`DataTable`) nằm ở `shared/ui/`; com
 
 🛑 **Bọc không phải là chuyển tiếp mọi thuộc tính.** Bọc đúng là **thu hẹp**: phơi đúng những gì sản phẩm cần, đặt tên theo API ở spec component của `Design/` (`sortDescending`, không phải `sortOrder` của thư viện), giấu phần còn lại.
 
-Phép thử: *đổi thư viện bên dưới, có sửa được chỉ trong file bọc này không?* Không → chỉ là một lớp gián tiếp.
-
-> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §2.3
+> 📖 Lý do, bẫy, ví dụ mở rộng (gồm phép thử nhanh để biết một bọc có hẹp đúng cách): [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §2.3
 
 ### 2.4 Khi thư viện thiếu thứ cần
 
@@ -364,6 +375,8 @@ done
 
 **Giới hạn:** cổng không bắt chuỗi cứng tiếng Anh (`"Save"`).
 
+**Vế thứ hai của F8** — mọi khoá dịch viết literal trong `src/app` có trong `vi.json` — chạy cùng section; lệnh gốc ở [`../wiki-core/fe/trien-khai/05-gate.md`](../wiki-core/fe/trien-khai/05-gate.md) §8.6.
+
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §5.2
 
 ### 5.3 Đặt khoá dịch — định nghĩa gốc
@@ -378,35 +391,13 @@ Khoá phẳng theo miền, phân cấp bằng dấu chấm, camelCase ở mỗi 
 | Khoá phản ánh **vai trò của chuỗi trong giao diện**, không phản ánh nội dung câu | `chung.luu` sống được khi câu đổi thành "Ghi lại"; `chung.luuLaiHoSo` thì không |
 | Khoá dưới `chung.` chỉ cho câu thật sự dùng ở nhiều miền | Nếu không, `chung.` biến thành ngăn kéo rác |
 | Khoá lỗi là `loi.<mã lỗi BE>` — giữ nguyên mã BE, **không** đổi sang camelCase | Để tra được bằng chính mã BE trả về, không cần một bảng chuyển đổi thứ hai |
-| Khoá lỗi của **validator phía client** là `loi.<mã>` như mọi khoá lỗi khác — giữ nguyên mã, không đổi sang camelCase. 📖 Danh mục mã `CORE.CLIENT.*` và khuôn `VALIDATION_<VALIDATOR>`: đọc [`be-cqrs-handler.md`](be-cqrs-handler.md) §7.4 | Cùng nhóm `loi.*` nên chỉ một đường tra câu lỗi. Catalog mã nằm ở BE cho **mọi** nhóm mã, kể cả `CORE.CLIENT.*`; chép một phần danh mục sang đây là bản sao thứ hai, và FE sẽ tra một mã không có thật ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §5) |
+| Khoá lỗi của **validator phía client** là `loi.<mã>` như mọi khoá lỗi khác — giữ nguyên mã, không đổi sang camelCase. 📖 Danh mục mã `CORE.CLIENT.*` và khuôn `VALIDATION_<VALIDATOR>`: đọc [`be-cqrs-handler.md`](be-cqrs-handler.md) §7.4 | Cùng nhóm `loi.*` nên chỉ một đường tra câu lỗi. Danh mục `CORE.CLIENT.*` ở `be-cqrs-handler.md` §7.4; chép một phần sang đây là bản sao thứ hai, và FE sẽ tra một mã không có thật ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §5) |
+| Khoá mà **BE cấp cả phần đuôi** giữ nguyên **đúng dạng BE gửi**, không đổi sang camelCase: `menu.<code>` ([`../contracts/meta-menu.md`](../contracts/meta-menu.md) §1.2 — `labelKey` là khoá i18n, `code` là kebab-case) và `permission.<code>` ([`../contracts/permissions.md`](../contracts/permissions.md) §4 — `nameKey`, ví dụ `permission.core.user.reset-password`; `resourceNameKey` ở §5 cùng khuôn) | Cùng lý do với `loi.<mã BE>`, một tầng nữa: hình dạng khoá **không phải của FE**. FE nhận nó trên dây và tra thẳng, nên "sửa cho đúng camelCase" ở tệp ngôn ngữ làm khoá thôi khớp và giao diện hiện **nguyên chuỗi khoá** — sidebar mất chữ, ma trận quyền mất tên hàng. Cổng F8 không bắt được vì `labelKey`/`nameKey` đến từ dây, không có trong mã nguồn FE. Đổi hình dạng khoá là đổi hợp đồng BE, không phải đổi tệp `vi.json` |
 | Trong tệp JSON, khoá **lồng theo từng đoạn**, kể cả khoá lỗi: `loi` → `CORE` → `CLIENT` → `VALIDATION_REQUIRED`. Không viết một khoá phẳng chứa dấu chấm | Thư viện dịch coi dấu chấm là ranh giới cấp; khoá phẳng chứa dấu chấm tra trúng hay trượt tuỳ phiên bản thư viện, và trượt thì **im lặng** hiện nguyên chuỗi khoá. Lồng cấp thì đúng ở mọi phiên bản |
 | Mọi ngôn ngữ có **cùng tập khoá** | Thiếu khoá ở một ngôn ngữ thì câu đó hiện ra dưới dạng chính khoá |
 
-```bash
-# Luật F23 — trong MỖI tầng tệp dịch, mọi tệp ngôn ngữ có cùng tập khoá với vi.json.
-# Hai tầng đối chiếu riêng, không gộp. PASS khi thoát 0 và không in dòng khác biệt nào.
-# Chỉ cần Node, không cần jq; chạy được trên Git Bash.
-khoa_dich() {
-  node -e 'const f=(o,p)=>Object.entries(o).flatMap(([k,v])=>v!==null&&typeof v==="object"?f(v,p+k+"."):[p+k]);
-process.stdout.write(f(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")),"").join("\n")+"\n")' "$1" | sort
-}
-[ -d src/FE/public ] || { echo "F23: không có src/FE/public để quét"; exit 1; }
-lech=0
-for TM in src/FE/public/i18n src/FE/public/i18n-app; do
-  [ -d "$TM" ] || { echo "F23: không có $TM, bỏ qua"; continue; }
-  if [ "$(find "$TM" -maxdepth 1 -name '*.json' | wc -l)" -lt 2 ]; then
-    echo "F23: $TM có một ngôn ngữ, không có gì để đối chiếu"; continue
-  fi
-  [ -f "$TM/vi.json" ] || { echo "F23: $TM thiếu vi.json"; lech=1; continue; }
-  for f in "$TM"/*.json; do
-    [ "$f" = "$TM/vi.json" ] && continue
-    diff <(khoa_dich "$TM/vi.json") <(khoa_dich "$f") || lech=1
-  done
-done
-exit $lech
-```
 
-Cổng quét **từng tầng riêng** — `public/i18n/` và `public/i18n-app/` ([`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §2.3). Thư mục vắng, hay chỉ có một tệp, thì cổng báo rồi bỏ qua, thoát 0. Đỏ khi một thư mục có từ hai tệp mà thiếu `vi.json`, hoặc tập khoá lệch. Hành vi này khai **ở đây**, chỗ khác trỏ về.
+**Luật F23 — mọi tệp ngôn ngữ trong CÙNG một tầng có cùng tập khoá với `vi.json` của tầng đó.** Cổng quét **từng tầng riêng**, `public/i18n/` và `public/i18n-app/` ([`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §2.3), không gộp. Thư mục vắng hay chỉ có một tệp: báo rồi bỏ qua, thoát 0. Đỏ khi một thư mục có từ hai tệp mà thiếu `vi.json`, hoặc tập khoá lệch. Hành vi này khai **ở đây**; lệnh ở [`../wiki-core/fe/trien-khai/05-gate.md`](../wiki-core/fe/trien-khai/05-gate.md) §8.15.
 
 **`CORE_I18N.languages` có một mục ⇒ `LanguageSwitcher` không render** — trạng thái `empty` ở [`../Design/Components/LanguageSwitcher.md`](../Design/Components/LanguageSwitcher.md).
 
@@ -442,7 +433,7 @@ Cổng quét **từng tầng riêng** — `public/i18n/` và `public/i18n-app/` 
 {{ tongTien() | number: '1.0-0' }}
 ```
 
-Đăng ký locale ở `app.config.ts`, cùng chỗ cấu hình ngôn ngữ.
+**`LOCALE_ID` và dữ liệu locale đến từ seam `CORE_I18N`** — luật F36, [ADR-0063](../adr/0063-locale-id-den-tu-seam-core-i18n.md): `provideCoreI18n` cấp `LOCALE_ID` từ `defaultLanguage` và đăng ký locale của mọi ngôn ngữ khai; `app.config.ts` không cấp `LOCALE_ID` riêng, không gọi `registerLocaleData` ngoài seam. Đã thi công — bảng đầu file, và cổng F36 canh.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §5.5
 
@@ -454,58 +445,7 @@ Cổng quét **từng tầng riêng** — `public/i18n/` và `public/i18n-app/` 
 
 Chỉ dùng **reactive form có kiểu**. Không template-driven form (`ngModel`) cho form nghiệp vụ.
 
-```typescript
-// platform/quan-tri/nguoi-dung/pages/form/form-nguoi-dung.page.ts — khối import ở ly-do §6.1
-type TenTruong = 'userName' | 'fullName' | 'email' | 'tempPassword';
-
-@Component({
-  selector: 'app-form-nguoi-dung',
-  standalone: true,
-  imports: [ReactiveFormsModule, TranslateModule, FormRowComponent, InputComponent, ButtonComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './form-nguoi-dung.page.html',
-})
-export class FormNguoiDungPage {
-  private readonly fb = inject(NonNullableFormBuilder);
-  private readonly service = inject(NguoiDungService);
-  private readonly translate = inject(TranslateService);
-  private readonly toast = inject(ToastService);
-  private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
-
-  protected readonly dangGui = signal(false);
-  protected readonly daGui = signal(false);
-
-  /** Tên control = tên field của request ở contracts/users.md §5. */
-  protected readonly form = this.fb.group({
-    userName: this.fb.control('', [Validators.required]),
-    fullName: this.fb.control('', [Validators.required, Validators.maxLength(200)]),
-    email: this.fb.control('', [Validators.required, Validators.email]),
-    tempPassword: this.fb.control('', [Validators.required]),
-  });
-
-  protected gui(): void {
-    this.daGui.set(true);
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-    this.dangGui.set(true);
-    this.service
-      .them(this.form.getRawValue())
-      .pipe(finalize(() => this.dangGui.set(false)))
-      .subscribe({
-        next: () => void this.router.navigate(['..'], { relativeTo: this.route }),
-        error: (err: unknown) => this.ganLoiTuServer(err),
-      });
-  }
-
-  /** Uỷ quyền: dịch lỗi và thời điểm hiện lỗi nằm ở shared/forms/, không ở page. */
-  protected loiCua(ten: TenTruong): string | null {
-    return fieldErrorText(this.form.controls[ten], this.daGui(), this.translate);
-  }
-}
-```
+> 📖 Khuôn ví dụ đầy đủ (class minh hoạ, chưa khớp tên file/class thật nào trong `src/FE` hôm nay — thực tế dùng khuôn "hộp thoại" như `hop-tao-nguoi-dung.component.ts`): [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §6.1.
 
 **Tên control trùng tên field của request** — `applyFieldErrors` chỉ đổi chữ hoa đầu khi chuyển khoá `fieldErrors` về tên control.
 
@@ -513,7 +453,7 @@ export class FormNguoiDungPage {
 
 **`getRawValue()` chứ không `value`.**
 
-**Control tự dựng ở `shared/components/` nhận `[formControl]` — `app-input`, `app-auth-field`, `app-date-picker`, `app-check` — cài `ControlValueAccessor`.** Đăng ký **không** qua `providers` với `NG_VALUE_ACCESSOR`. Khuôn:
+**Mọi control nhận `[formControl]` — `app-input`, `app-auth-field`, `app-date-picker`, `app-check` — cài `ControlValueAccessor`.** Luật này **không** phụ thuộc tầng: thư mục của một component do cột "Nền" ở [`../Design/COMPONENTS.md`](../Design/COMPONENTS.md) §3 quyết ([`../wiki-core/fe/05-component-library.md`](../wiki-core/fe/05-component-library.md) §3), nên `app-check` và `app-date-picker` — cả hai `bọc PrimeNG` — nằm ở `shared/ui/` mà vẫn cài CVA như mọi control khác. Đăng ký **không** qua `providers` với `NG_VALUE_ACCESSOR`. Khuôn:
 
 ```typescript
 // shared/components/input/input.component.ts — phần đăng ký CVA
@@ -530,22 +470,24 @@ API chi tiết ở spec component: [`../Design/Components/Input.md`](../Design/C
 
 ### 6.2 Gắn lỗi từ `fieldErrors` của BE
 
-Page **không** tự viết vòng lặp gắn lỗi; gọi hàm dùng chung ở `shared/forms/`:
+Page (hoặc store của nó) **không** tự viết vòng lặp gắn lỗi và **không** tự chọn câu cho khu lỗi chung; gọi `applyFormFailure` ở `shared/forms/` — nhánh `error` của khuôn §6.1 là dạng gọi chuẩn.
 
-```typescript
-private ganLoiTuServer(err: unknown): void {
-  if (!(err instanceof ApiFailureError)) {
-    return; // toast đã do interceptor bắn
-  }
-  const khongKhop = applyFieldErrors(this.form, err.body?.error.fieldErrors, this.translate);
-  if (khongKhop.length > 0) {
-    // Field BE báo lỗi nhưng form không có ô tương ứng: KHÔNG im lặng bỏ qua.
-    this.toast.loi(this.translate.instant('loi.CORE.VALIDATION.FAILED'));
-  }
-}
-```
+**Hàm gắn lỗi của phản hồi thất bại vào form — định nghĩa gốc:** `shared/forms/apply-form-failure.ts` — `applyFormFailure<F extends FormGroup>(form: F, loi: ApiFailureError, translate: TranslateService, maGocVaoO: BangMaGocVaoO<F> = {}): string | null`. Nó bọc `applyFieldErrors` ([`../wiki-core/fe/09-forms-validation.md`](../wiki-core/fe/09-forms-validation.md) §4 — chữ ký, khoá lồng nhau, khoá không khớp) để **một** luật quyết việc lỗi không được biến mất, không lặp ở từng hộp:
 
-> 📖 Hàm `applyFieldErrors` — chữ ký, khoá lồng nhau, khoá không khớp: [`../wiki-core/fe/09-forms-validation.md`](../wiki-core/fe/09-forms-validation.md) §4 (nơi **duy nhất** hiện thực).
+- Lỗi thuộc lớp lỗi xuyên suốt ([`fe-api-client.md`](fe-api-client.md) §2.2) → `null`, form không bị đụng.
+- Mọi mã trong `fieldErrors` đã hiện dưới một ô → trả `null`.
+- Còn mã **chưa hiện ở ô nào** — khoá không khớp control, hoặc màn không có form (hộp Gán vai trò, [`../Design/Screens/10-nguoi-dung.md`](../Design/Screens/10-nguoi-dung.md); nó gọi `fieldErrorsText(translate, loi: ApiFailureError)` cùng thư mục, cùng luật) → trả câu của **từng mã chưa hiện**, đúng thứ tự BE gửi, **không** lặp mã đã hiện dưới ô, nối bằng `\n` — mỗi mã một dòng; chỗ hiện giữ ngắt dòng. Page đặt vào `NoticeBanner` đầu form hoặc đầu thân hộp.
+- `fieldErrors` không mang mã nào (vắng, `{}`, mọi danh sách rỗng) → **đường lùi**: câu của mã ở gốc envelope; `null` nếu mã gốc đã vào ô.
+
+**Mã gốc vào ô** ([ADR-0086](../adr/0086-ma-goc-vao-o-qua-bang-cua-applyformfailure.md)): `BangMaGocVaoO<F>` là `Readonly<Record<string, Extract<keyof F['controls'], string>>>` — mã gốc → tên control **cấp một**, gõ sai tên là lỗi biên dịch. Mã gốc vào ô khi đủ ba điều kiện: `loi.body` khác `null`, bảng có mã đó, `form.get(ô)` khác `null`. Khi đó `server` của ô là câu `dichLoi` của mã gốc rồi tới câu các mã con cùng ô; lỗi server lần trước bị thay, lỗi validator client giữ nguyên, ô được `markAsTouched`; mã gốc **không bao giờ** lên khu chung. Thiếu một điều kiện → như không có bảng. Store khai bảng `MA_GOC_VAO_O` theo bảng *Mã lỗi → chỗ hiện* của screen spec, và đưa mọi `ApiFailureError` vào hàm, không lọc theo danh sách mã — trừ `CORE.CONCURRENCY.CONFLICT` ở màn có nhánh tải lại.
+
+🛑 **Mã gốc không nói thay mã con.** Câu của mã gốc chỉ dùng ở đường lùi hoặc dưới ô của bảng trên — mã nào cũng vậy, kể cả `CORE.TENANT.ADMIN_CREATE_FAILED`. Ca đắt nhất là `CORE.VALIDATION.FAILED`: câu của nó (*"kiểm tra lại các trường được đánh dấu"*) sai khi không ô nào được đánh dấu. Screen spec quyết **chỗ hiện** (bảng *Mã lỗi → chỗ hiện*); **câu nào** thì chỉ mục này quyết. Chốt 2026-09-24.
+
+**Ngoại lệ có tên — màn đăng nhập:** mọi mã ngoài `CORE.VALIDATION.FAILED` đi qua `dichLoiChoMan` ([`fe-api-client.md`](fe-api-client.md) §2.2) vào khu lỗi, không qua `applyFormFailure`, không vào ô nào — một câu, không chỉ ra ô nào sai ([`../Design/Screens/01-dang-nhap.md`](../Design/Screens/01-dang-nhap.md), chống dò tài khoản). Bảo đảm thật ở BE: bốn ca một mã, không `fieldErrors` ([`../contracts/auth.md`](../contracts/auth.md) §3).
+
+**Toast và banner không đi cùng nhau.** Form dùng `applyFormFailure` tự hiện lỗi của mình, nên lời gọi ghi của nó mang `BO_QUA_TOAST_LOI` — thiếu thì lỗi hiện hai lần. Cờ chỉ tắt toast cho lỗi **của màn**: lớp lỗi xuyên suốt ([`fe-api-client.md`](fe-api-client.md) §2.2) luôn toast, và khu lỗi của màn **bỏ qua** lớp đó — `applyFormFailure`, `fieldErrorsText`, `dichLoiChoMan` trả `null`. Lỗi kèm `fieldErrors` thì interceptor không toast, có cờ hay không.
+
+**Hàm đưa focus về ô sai khi gửi sai — định nghĩa gốc:** `shared/forms/focus-o-sai-dau-tien.ts` — `focusOSaiKhiGuiSai(lanGuiSai, goc)` gọi trong constructor của component (cần injection context), và `focusOSaiDauTien(goc)` là phần thuần bên dưới nó. Lớp logic tăng `lanGuiSai` (một `signal<number>`, khởi tạo `0`) ở nhánh "bấm gửi nhưng form không hợp lệ"; component đọc nó, và **sau lần render kế tiếp** mới đặt focus về ô sai đầu tiên trong `goc` — vì dấu nhận diện `aria-invalid="true"` (do `app-input` đặt khi `invalid && touched`) chỉ có trên DOM sau khi lỗi được vẽ. Luật hiển thị ở [`../wiki-core/fe/09-forms-validation.md`](../wiki-core/fe/09-forms-validation.md) §5. Hộp thoại có hai form thì `goc` chọn form của hộp đang mở. Store giữ `lanGuiSai`, component hộp nhận nó qua `input()` — component không biết store ([`fe-architecture.md`](fe-architecture.md) §3.1).
 
 Ba điểm khi gọi:
 
@@ -569,6 +511,8 @@ Ba điểm khi gọi:
 
 **Form đổi mật khẩu — ranh giới cụ thể của dòng 2.** Client chỉ kiểm **ô nhập lại có khớp ô mật khẩu mới không** (`CORE.CLIENT.VALIDATION_MISMATCH`); *mật khẩu mới phải khác mật khẩu hiện tại* do **BE** kiểm, tới dưới dạng `CORE.AUTH.NEW_PASSWORD_SAME_AS_CURRENT` trong `fieldErrors` ([`../contracts/auth.md`](../contracts/auth.md) §6).
 
+**Hàm kiểm ô nhập lại phải khớp — định nghĩa gốc:** `shared/forms/nhap-lai-phai-khop.ts` — `nhapLaiPhaiKhop(tenGoc, tenNhapLai): ValidatorFn`, cấp group, đặt lỗi `mismatch` lên ô nhập lại. Form có ô nhập lại dùng nó, không tự viết. Ô gõ lại mã đơn vị (`khoi-phuc-tao-quan-tri.store.ts`) là luật khác.
+
 **Hệ quả:** lỗi chỉ server biết (dòng 3–5) tới dưới dạng `error.fieldErrors` hoặc `error.code`; ô nhập phải có chỗ hiện lỗi kể cả khi không có validator client.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §6.3
@@ -576,7 +520,10 @@ Ba điểm khi gọi:
 ### 6.4 Hiển thị lỗi
 
 ```html
-<form [formGroup]="form" (ngSubmit)="gui()">
+<form #formEl [formGroup]="form" (ngSubmit)="gui()">
+  @if (loiChung(); as loi) {
+    <app-notice-banner severity="danger" size="sm">{{ loi }}</app-notice-banner>
+  }
   @let loiEmail = loiCua('email');
   <app-form-row
     controlId="nguoi-dung-email"
@@ -615,41 +562,7 @@ Chi tiết nền về form: [`../wiki-core/fe/09-forms-validation.md`](../wiki-c
 
 Hàm ở `shared/forms/field-error-text.ts`, cạnh `applyFieldErrors`; page gọi qua một dòng uỷ quyền (§6.1), không tự viết lại điều kiện hiện lỗi.
 
-```typescript
-// shared/forms/field-error-text.ts — khối import ở ly-do §6.5
-export function fieldErrorText(
-  control: AbstractControl,
-  formSubmitted: boolean,
-  translate: TranslateService,
-): string | null {
-  const errors = control.errors;
-  if (errors === null || (!control.touched && !formSubmitted)) {
-    return null;
-  }
-
-  // Lỗi server: mảng câu đã dịch, đúng thứ tự BE trả; hiện câu đầu.
-  const server: unknown = errors['server'];
-  if (Array.isArray(server) && typeof server[0] === 'string') {
-    return server[0];
-  }
-
-  // Lỗi validator client: khoá đầu tiên theo thứ tự validator khai ở control.
-  const validator = Object.keys(errors).find((khoa) => khoa !== 'server');
-  if (validator === undefined) {
-    return null;
-  }
-  const chiTiet: unknown = errors[validator];
-  return translate.instant(
-    `loi.CORE.CLIENT.VALIDATION_${validator.toUpperCase()}`,
-    laThamSo(chiTiet) ? chiTiet : undefined,
-  );
-}
-
-/** `required` gắn `true`, `maxlength` gắn object — chỉ object mới là tham số dịch. */
-function laThamSo(giaTri: unknown): giaTri is Record<string, unknown> {
-  return typeof giaTri === 'object' && giaTri !== null;
-}
-```
+Hiện thực: `src/FE/src/app/shared/forms/field-error-text.ts` — `export function fieldErrorText(`, nhận `control`, `formSubmitted`, `translate`, trả `string | null`. Lỗi client dịch bằng khoá `loi.CORE.CLIENT.VALIDATION_<KHOÁ VIẾT HOA>`, tham số dịch là object lỗi của validator.
 
 | Luật | Vì sao |
 | --- | --- |
@@ -736,17 +649,6 @@ export interface UiMenuItem {
   group?: string;
 }
 
-/** Một mục trong Timeline, dùng cho cả hai biến thể. */
-export interface TimelineItem {
-  key: string;
-  state: 'done' | 'current' | 'rejected' | 'upcoming';
-  title: string;
-  meta?: string;                        // thời gian tuyệt đối, địa chỉ IP…
-  quote?: string;                       // lý do, ghi chú
-  change?: { from: string; to: string };
-  interactive?: boolean;
-}
-
 /** Một nút trong cây, dùng cho TreeSelect và cho DataTable công tắc tree. */
 export interface UiTreeNode {
   key: string;
@@ -757,6 +659,8 @@ export interface UiTreeNode {
   selectable?: boolean;                 // false = vẫn hiện, vẫn xoè, không chọn
 }
 ```
+
+> 📐 `TimelineItem` (dùng cho `Timeline`) chưa có tệp thật trong `src/FE` hôm nay — chữ ký chuyển sang [`fe-ui-conventions-chua-thi-cong.md`](fe-ui-conventions-chua-thi-cong.md).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §9
 
@@ -773,6 +677,7 @@ export interface ColumnDef<T = unknown> {
   align?: 'start' | 'end';
   hideBelow?: 'xs' | 'sm' | 'md' | 'lg';   // điểm ngắt mà cột bị ẩn
   cell?: TemplateRef<{ $implicit: T }>;
+  value?: (row: T) => string;              // ĐÚNG MỘT trong cell/value; value vẽ thành chữ — cột của seam CORE_SCREEN_EXT
 }
 
 /** DataTable thêm ba khả năng của một lưới đọc. */
@@ -781,32 +686,11 @@ export interface DataColumnDef<T = unknown> extends ColumnDef<T> {
   priority?: 'high' | 'low';               // 'low' bị ẩn trước khi thu hẹp
   frozen?: boolean;
 }
-
-/** EditableGrid thêm ba khả năng của một lưới ghi. */
-export interface EditableColumnDef<T = unknown> extends ColumnDef<T> {
-  editor?: 'text' | 'number' | 'date' | 'select' | 'check';   // 'date' → DatePicker mode='single'
-  computed?: boolean;                      // máy tính ra, không gõ được
-  validate?: (value: unknown, row: T) => string | null;  // null = hợp lệ
-}
-
-/** Sáu công tắc của DataTable. Khai bằng MỘT object có tên, không phải sáu input boolean rời. */
-export interface DataTableSwitches {
-  selectable?: boolean;
-  frozen?: boolean | 'first' | 'both';   // 'both' = ghim cả cột đầu và cột hành động
-  tree?: boolean;
-  grouped?: boolean;                     // đi kèm `groupBy`
-  expandable?: boolean;                  // đi kèm `rowDetail`
-  summary?: boolean;                     // đi kèm `summary` và `summaryScope`
-}
-
-/** Dòng tổng của DataTable, khi bật công tắc `summary`. */
-export interface SummaryRow {
-  label: string;                           // ĐÃ kèm phạm vi: "Tổng cộng 137 bản ghi"
-  values: Record<string, string>;          // khoá cột → giá trị ĐÃ định dạng
-}
 ```
 
-**`values` của `SummaryRow` là chuỗi đã định dạng, không phải số**; component không được đoán hộ định dạng.
+> 📐 `EditableColumnDef`, `DataTableSwitches`, `SummaryRow` (dùng cho `EditableGrid`/`DataTable`) chưa có tệp thật trong `src/FE` hôm nay — chữ ký chuyển sang [`fe-ui-conventions-chua-thi-cong.md`](fe-ui-conventions-chua-thi-cong.md).
+
+**Một cột có đúng một trong `cell` và `value`**; thiếu cả hai thì component ném lỗi lúc dựng cột. `value` dành cho cột thêm qua seam ([`fe-architecture.md`](fe-architecture.md) §2.7).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §9
 
@@ -817,14 +701,10 @@ Bảy component nhận mảng lựa chọn; **không** gộp thành một kiểu
 ```typescript
 export interface Option { key: string; label: string; hint?: string }          // Autocomplete
 export interface SegmentOption { value: string; label: string; icon?: string; disabled?: boolean }
-export interface TabItem { key: string; label: string; icon?: string; badge?: number; disabled?: boolean }
-export interface StepItem { key: string; label: string; note?: string; state: 'done' | 'current' | 'upcoming' | 'error' }
 export type { LanguageOption } from '../../core/config/core-i18n';           // khai ở core (fe-architecture.md §2.5) — cùng kiểu với CORE_I18N.languages
 export interface FooterLink { label: string; href: string; external?: boolean }
-export interface ChartSeries { key: string; label: string; points: ReadonlyArray<number | null> }
-export interface DateRangePreset { key: string; label: string; from: Date; to: Date }   // DatePicker mode='range'
 
-/** Một trường trong FilterPanel — điểm mở rộng: dự án hạ nguồn thêm qua CORE_SCREEN_EXT.filterFields, không sửa file Core. */
+/** Một trường trong FilterPanel. Seam CORE_SCREEN_EXT chưa nhận trường lọc — hoãn tới khi có FilterPanel (ADR-0057). */
 export interface FilterField {
   key: string;
   label: string;
@@ -837,7 +717,7 @@ export interface FilterField {
 }
 ```
 
-**`DateRangePreset` là điểm mở rộng của `DatePicker` ở `mode` `'range'`.** Core khai bộ lối tắt mặc định độc lập nghiệp vụ (hôm nay, 7 ngày qua, tháng này, quý này, năm nay); lối tắt nghiệp vụ do trang truyền vào qua đây. `from`/`to` là ngày đã tính sẵn.
+> 📐 `TabItem`, `StepItem`, `ChartSeries`, `DateRangePreset` (dùng cho `Tabs`/`Stepper`/`Chart`/`DatePicker` mode `range`) chưa có tệp thật trong `src/FE` hôm nay — chữ ký chuyển sang [`fe-ui-conventions-chua-thi-cong.md`](fe-ui-conventions-chua-thi-cong.md).
 
 ### Ba kiểu của khung ứng dụng
 
@@ -847,24 +727,9 @@ export interface NavItem {                                  // Sidebar — tối
   route?: string;                                           // bỏ trống = mục chỉ để nhóm
   children?: ReadonlyArray<NavItem>; disabled?: boolean;
 }
-export interface ToastItem {                                // Toast — service cắt còn tối đa ba
-  id: string; severity: 'success' | 'warning' | 'danger' | 'info';
-  title: string; message?: string; actionLabel?: string; duration?: number;
-}
-export interface UploadItem {                               // FileUpload
-  id: string; name: string; size: number;
-  status: 'queued' | 'uploading' | 'done' | 'failed' | 'rejected';
-  progress: number | null;                                  // null khi chưa bắt đầu hoặc không đo được
-  error?: string;
-}
 ```
 
-`UploadItem.progress` nhận `null` **có chủ đích**: khi đó [`../Design/Components/ProgressBar.md`](../Design/Components/ProgressBar.md) chuyển sang biến thể `indeterminate`, không bịa một con số.
-
-Hai điều:
-
-- **`StepItem`, không phải `Step`.**
-- **`points` của `ChartSeries` cho phép `null`**: *không có dữ liệu tại điểm đó*, khác `0` là *có dữ liệu và bằng không*.
+> 📐 `ToastItem`, `UploadItem` (dùng cho `Toast`/`FileUpload`) chưa có tệp thật trong `src/FE` hôm nay — chữ ký chuyển sang [`fe-ui-conventions-chua-thi-cong.md`](fe-ui-conventions-chua-thi-cong.md).
 
 Ba luật đi kèm:
 

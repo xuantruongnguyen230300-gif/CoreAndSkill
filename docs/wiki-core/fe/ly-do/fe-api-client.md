@@ -62,10 +62,10 @@ Khối import của `XsrfTokenStore` ([`fe-api-client.md`](../../../quy-uoc/fe-a
 
 ```typescript
 // core/auth/xsrf-token.store.ts — phần import
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, map, tap } from 'rxjs';
-import type { ApiResult } from '../http/api-result.model';
+import { ApiResult, BO_QUA_TOAST_LOI } from '../http/api-result.model';
 import { unwrapData } from '../http/unwrap';
 ```
 
@@ -73,7 +73,11 @@ import { unwrapData } from '../http/unwrap';
 
 - **Vì sao `inject()` gọi ở thân hàm interceptor** — Thân hàm là injection context; callback của `catchError` thì không, vì nó chạy ở tick khác.
 
-- **Nhánh CSRF — vì sao chỉ gửi lại một lần, và vì sao `ORIGIN_REJECTED` không vào nhánh này** — Token mới vẫn bị từ chối nghĩa là lỗi thật, rơi xuống nhánh toast. `Origin` do trình duyệt đặt nên lấy token mới rồi gửi lại vẫn nhận đúng mã đó — gửi lại vô nghĩa.
+- **Nhánh CSRF — vì sao chỉ gửi lại một lần, và vì sao `ORIGIN_REJECTED` không vào nhánh này** — Token mới vẫn bị từ chối nghĩa là lỗi thật, rơi xuống lớp lỗi xuyên suốt — toast kèm `traceId`, có cờ hay không. `Origin` do trình duyệt đặt nên lấy token mới rồi gửi lại vẫn nhận đúng mã đó — gửi lại vô nghĩa.
+
+- **Nhánh CSRF — vì sao lần gửi lại phải bọc lại bằng chính bộ xử lý lỗi, và vì sao context phải là bản sao** — `catchError` không bắt lỗi của observable do callback của chính nó trả về, nên lần gửi lại trả thẳng từ nhánh CSRF sẽ để lỗi (422 kèm `fieldErrors`, 401, CSRF lần hai, mạng đứt) thoát ra khỏi interceptor dưới dạng lỗi HTTP thô: màn không nhận `ApiFailureError`, không toast, không nhánh 401 chạy. Bộ xử lý lỗi vì thế dựng theo từng request (`xuLyLoi(yeuCau)`) để áp lại cho bản clone. Cờ `DA_THU_LAI_XSRF` đặt trên context của **bản clone**: `HttpContext.set()` sửa tại chỗ, mà một service giữ một context dùng chung cho mọi lệnh ghi — gắn cờ vào chính instance đó thì cờ nằm lại vĩnh viễn và những lần CSRF hết hạn sau không còn được thử lại. Bản ghi sự cố: [`../../../audit/2026-09-21-mau-ma-trong-luat-khong-ai-chay.md`](../../../audit/2026-09-21-mau-ma-trong-luat-khong-ai-chay.md).
+
+- **Nhánh CSRF — vì sao chỉ lệnh ghi (`LENH_AN_TOAN`)** — `XsrfTokenStore.lamMoi()` là một `HttpClient.get` đi qua **chính** `errorInterceptor`, và GET đó không mang cờ `DA_THU_LAI_XSRF`: cờ nằm trên context của bản clone được gửi lại, không phải của lời gọi làm mới. Cho GET vào nhánh thì một GET token bị `CSRF_REJECTED` gọi lại `lamMoi()` liên tục, im lặng, không lỗi hiển thị. BE bỏ qua kiểm CSRF cho phương thức an toàn nên ca này hiếm — mẫu vẫn phải mang điều kiện, vì người dựng lại interceptor từ mẫu không biết BE làm gì. Tập phương thức phản chiếu tập BE bỏ qua kiểm CSRF ([`be-api-controller.md`](../../../quy-uoc/be-api-controller.md) §7.5) — bốn phương thức; `TRACE` hầu như không phát sinh qua `HttpClient` nhưng giữ cho hai tập không lệch nhau. Kiểm lại chuỗi `LENH_AN_TOAN` trong code nếu tập đổi. Bản ghi sự cố: [`../../../audit/2026-09-21-mau-ma-trong-luat-khong-ai-chay.md`](../../../audit/2026-09-21-mau-ma-trong-luat-khong-ai-chay.md).
 
 - **Thiếu đường lùi ở `dichLoi`** — `TranslateService.instant` trả về **chính khoá** khi không tìm thấy bản dịch; so sánh kết quả với khoá là cách duy nhất phát hiện điều đó. Không có nhánh này, một mã lỗi mới do BE thêm sẽ hiện ra màn hình dưới dạng `loi.CORE.USER.SOMETHING` — vừa vô nghĩa với người dùng, vừa rò cấu trúc mã lỗi nội bộ.
 
@@ -85,29 +89,199 @@ import { unwrapData } from '../http/unwrap';
 
 - **403 `PASSWORD_CHANGE_REQUIRED` — vì sao không toast, cơ chế** — Mã này giữa phiên nghĩa là cờ buộc đổi mật khẩu đang bật mà `AuthService` chưa biết. Không toast vì đổi màn đã là thông điệp, cùng lý do với nhánh 401. Interceptor giữ nguyên luật không điều hướng khi gặp 403 ([`fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §8); khi `me` về, `AuthService` cho router chạy lại guard của URL hiện tại và `mustChangePasswordGuard` trả đích.
 
-- **429 — vì sao ở interceptor, vì sao header thắng envelope** — Giới hạn tần suất áp cho mọi endpoint, không riêng đăng nhập, nên xử lý nằm ở interceptor. Header thắng tham số trong envelope vì header là con số limiter đặt cho **đúng** response này.
+- **429 — vì sao toast ở interceptor, vì sao header thắng envelope, vì sao màn tắt toast đọc envelope** — Giới hạn tần suất áp cho mọi endpoint, không riêng đăng nhập, nên toast mặc định nằm ở interceptor. Header thắng tham số trong envelope vì header là con số limiter đặt cho **đúng** response này. Màn tắt toast thì chỉ nhận `ApiFailureError` — envelope và status, không header — nên số giây phải đi kèm trong `messageParams`; BE thiếu tham số đó thì câu hiện nguyên chỗ giữ `{{RetryAfterSeconds}}`, vì bộ dịch để nguyên chỗ giữ khi không có giá trị.
 
 - **Bẫy `Retry-After` qua CORS** — 🪤 API ở origin khác, nên trình duyệt chỉ cho JavaScript đọc `Retry-After` khi BE khai nó trong `Access-Control-Expose-Headers`; thiếu khai báo thì `headers.get` trả `null` — không lỗi, không cảnh báo — và câu dịch rơi về tham số trong envelope. Kiểm bằng tab Network **và** một test đọc header thật, không kiểm bằng mắt câu toast.
 
-- **409 `CONFLICT` — vì sao không gửi lại, không tải lại hộ; ca hiện trong trang; mã 409 khác** — Mã dùng chung này ([`../contracts/auth.md`](../../../contracts/auth.md) §11) nghĩa là người khác đã ghi bản ghi sau khi màn đọc nó; mô hình, lý do không tự thử lại, và ba câu mà thông điệp phải trả lời ở [`../wiki-core/be/06-concurrency-control.md`](../../../wiki-core/be/06-concurrency-control.md) §6. Interceptor **không** gửi lại — gửi lại là ghi đè thay đổi của người kia, đúng thứ cơ chế này tồn tại để chặn — và **không** tải lại dữ liệu hộ: thứ người dùng đang nhập chưa mất, và chỉ màn biết giữ nó thế nào. Màn muốn hiện xung đột ngay trong trang thay vì toast — ma trận phân quyền với token cấp tập ([`../Design/Screens/12-ma-tran-phan-quyen.md`](../../../Design/Screens/12-ma-tran-phan-quyen.md)) — tắt toast bằng `BO_QUA_TOAST_LOI` như mọi lỗi khác. Mã 409 khác (`*_DUPLICATED`, `*_DUPLICATE`) không vào nhánh này: chúng nói về dữ liệu vừa gửi, tải lại không đổi được gì, nên đi theo nhánh toast chung.
+- **409 `CONFLICT` — vì sao không gửi lại, không tải lại hộ; ca hiện trong trang; mã 409 khác** — Mã dùng chung này ([`../contracts/auth.md`](../../../contracts/auth.md) §11) nghĩa là người khác đã ghi bản ghi sau khi màn đọc nó; mô hình, lý do không tự thử lại, và ba câu mà thông điệp phải trả lời ở [`../wiki-core/be/06-concurrency-control.md`](../../../wiki-core/be/06-concurrency-control.md) §6. Interceptor **không** gửi lại — gửi lại là ghi đè thay đổi của người kia, đúng thứ cơ chế này tồn tại để chặn — và **không** tải lại dữ liệu hộ: thứ người dùng đang nhập chưa mất, và chỉ màn biết giữ nó thế nào. Màn muốn hiện xung đột ngay trong trang thay vì toast — ma trận phân quyền với token cấp tập ([`../Design/Screens/12-ma-tran-phan-quyen.md`](../../../Design/Screens/12-ma-tran-phan-quyen.md)) — tắt toast bằng `BO_QUA_TOAST_LOI` như mọi lỗi ngoài lớp lỗi xuyên suốt. Mã 409 khác (`*_DUPLICATED`, `*_DUPLICATE`) không vào nhánh này: chúng nói về dữ liệu vừa gửi, tải lại không đổi được gì, nên đi theo nhánh toast chung.
 
 **Vì sao lỗi có `fieldErrors` không bắn toast:** người dùng đang nhìn cái form. Lỗi hiện ngay dưới ô nhập là thông tin; cùng lỗi đó bay lên góc màn hình dưới dạng toast là tiếng ồn, và tệ hơn là nó biến mất trước khi người ta đọc xong.
 
 - **Vì sao không dùng cờ toàn cục** — Cờ toàn cục nghĩa là hai request chạy song song giẫm lên nhau, và không có gì báo.
 
+- **Lớp lỗi xuyên suốt — vì sao cờ không tắt được, vì sao nhánh đứng trước 429/409** — `traceId` chỉ tới người dùng qua toast; để màn mang cờ nuốt 5xx thì câu *"báo mã theo dõi"* hiện ra mà không có mã nào để báo. Nhánh đứng ngay sau các nhánh 403 để không nhánh nào tôn trọng cờ chặn trước nó. 5xx không envelope (proxy, load balancer trả 502/504) mang mã client riêng chứ không câu mất kết nối: đã có phản hồi, nên câu đó sai sự thật và đẩy người dùng đi kiểm mạng của họ (chốt 2026-09-25). Quyết định và phương án đã loại: [`../../../adr/0094-lop-loi-xuyen-suot-luon-toast-ke-ca-khi-man-tat-toast.md`](../../../adr/0094-lop-loi-xuyen-suot-luon-toast-ke-ca-khi-man-tat-toast.md).
+
+Khối đầy đủ của `core/interceptors/error.interceptor.ts` — chuyển từ file luật §2.2 ngày 2026-09-22; file luật giữ thứ tự nhánh, khối này là hiện thực và sửa cùng lượt với code (luật D44, [`../../../DEBT.md`](../../../DEBT.md)). Phần import ở khối kế tiếp:
+
+```typescript
+// core/interceptors/error.interceptor.ts — phần import ở khối ngay dưới
+/** Đánh dấu request đã được gửi lại một lần sau CSRF_REJECTED — chặn vòng lặp. */
+const DA_THU_LAI_XSRF = new HttpContextToken<boolean>(() => false);
+
+/** Phương thức BE không kiểm CSRF (be-api-controller.md §7.5) — không có gì để "lấy token rồi gửi lại". */
+const LENH_AN_TOAN: ReadonlySet<string> = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
+
+/**
+ * `HttpContext.set()` sửa map TẠI CHỖ. Một service giữ MỘT context dùng chung cho mọi lệnh ghi
+ * (`private readonly ctx = new HttpContext().set(BO_QUA_TOAST_LOI, true)`) — gắn cờ thẳng vào nó thì
+ * cờ nằm lại vĩnh viễn và mọi lần CSRF hết hạn sau đó không còn được thử lại. Luôn dựng BẢN SAO.
+ */
+function ctxDaThuLaiXsrf(goc: HttpContext): HttpContext {
+  const ban = new HttpContext();
+  for (const token of goc.keys()) {
+    ban.set(token, goc.get(token));
+  }
+  return ban.set(DA_THU_LAI_XSRF, true);
+}
+
+/**
+ * Với `responseType: 'blob'` (tải tệp xuất — fe-api-client.md §6.4), Angular giao MỌI thân phản hồi
+ * dưới dạng `Blob`, kể cả thân lỗi 4xx/5xx dù server gửi `application/json`. `docEnvelopeLoi` kiểm
+ * `'success' in body` trên một `Blob` ⇒ `null` ⇒ toast *mất kết nối* cho một lỗi 422 có mã.
+ * `Blob.text()` bất đồng bộ, nên nhánh gọi hàm này là `from(...).pipe(switchMap(...))`.
+ */
+async function bocThanBlob(err: HttpErrorResponse): Promise<HttpErrorResponse> {
+  let than: unknown = null;
+  try {
+    const chu = await (err.error as Blob).text();
+    than = chu === '' ? null : JSON.parse(chu);
+  } catch {
+    than = null; // proxy trả HTML, tệp rỗng — nhánh dưới xử lý như phản hồi không phải envelope.
+  }
+  return new HttpErrorResponse({
+    error: than,
+    headers: err.headers,
+    status: err.status,
+    statusText: err.statusText,
+    url: err.url ?? undefined,
+  });
+}
+
+// dichLoi và thamSoRetryAfter import từ core/http/dich-loi.ts — khối bên dưới, không khai trong file này.
+export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  // inject() gọi Ở ĐÂY — callback của catchError KHÔNG phải injection context.
+  const toast = inject(ToastService);
+  const translate = inject(TranslateService);
+  const auth = inject(AuthService);
+  const hetPhien = inject(SessionExpiryHandler);
+  const xsrf = inject(XsrfTokenStore);
+
+  /**
+   * Bộ xử lý lỗi cho MỘT request. Dựng theo request để lần gửi lại sau CSRF_REJECTED dùng lại đúng
+   * bộ này trên request đã clone (mang cờ `DA_THU_LAI_XSRF` và context của nó).
+   */
+  const xuLyLoi =
+    (yeuCau: HttpRequest<unknown>) =>
+    (err: HttpErrorResponse): Observable<HttpEvent<unknown>> => {
+      // Thân lỗi là Blob (request tải tệp xuất) — bóc envelope TRƯỚC khi dịch, rồi chạy lại chính
+      // bộ xử lý này trên phản hồi đã bóc. Không nhánh nào dưới đây phải biết về Blob.
+      if (err.error instanceof Blob) {
+        return from(bocThanBlob(err)).pipe(switchMap((daBoc) => xuLyLoi(yeuCau)(daBoc)));
+      }
+
+      const body = docEnvelopeLoi(err);
+      // Mọi nhánh trả lỗi về người gọi qua đây — mang status thật để màn nhận diện lớp xuyên suốt.
+      const nem = (): Observable<never> => throwError(() => new ApiFailureError(body, err.status));
+
+      // 403 CSRF — lấy token mới rồi gửi lại ĐÚNG MỘT lần; cờ trên context chặn vòng lặp.
+      // CORE.AUTH.ORIGIN_REJECTED KHÔNG vào nhánh này. Chỉ LỆNH GHI mới được thử lại — lý do ở đoạn sau mẫu.
+      // Ngoại lệ có tên: GET mang dấu CO_TAC_DUNG_PHU (tải tệp xuất) — BE kiểm token cho nó như lệnh
+      // ghi (§6.4), nên nó cũng được gửi lại một lần. `lamMoi()` KHÔNG mang dấu ⇒ đường đệ quy vẫn đóng.
+      const duocGuiLai = !LENH_AN_TOAN.has(yeuCau.method) || yeuCau.context.get(CO_TAC_DUNG_PHU);
+      if (
+        body?.error?.code === 'CORE.AUTH.CSRF_REJECTED' &&
+        duocGuiLai &&
+        !yeuCau.context.get(DA_THU_LAI_XSRF)
+      ) {
+        // Lỗi của CHÍNH lần lấy token được dịch ở lượt GET đó — mang cờ tắt toast của request gốc
+        // theo, để màn tự hiện lỗi không bị toast chồng (fe-ui-conventions.md §6.2).
+        return xsrf.lamMoi({ boQuaToastLoi: yeuCau.context.get(BO_QUA_TOAST_LOI) }).pipe(
+          switchMap((token) => {
+            const guiLai = yeuCau.clone({
+              setHeaders: { 'X-XSRF-TOKEN': token },
+              context: ctxDaThuLaiXsrf(yeuCau.context),
+            });
+            // catchError KHÔNG bắt lỗi của observable do CALLBACK của chính nó trả về — nên lần gửi lại
+            // phải được bọc lại bằng cùng bộ xử lý (đã mang cờ DA_THU_LAI_XSRF ⇒ không có lần gửi thứ ba).
+            return next(guiLai).pipe(catchError(xuLyLoi(guiLai)));
+          }),
+        );
+      }
+
+      // 401 — phiên chết. Không toast. Request mang BO_QUA_HET_PHIEN tự xử lý (§2.5).
+      if (err.status === 401) {
+        if (!yeuCau.context.get(BO_QUA_HET_PHIEN)) {
+          hetPhien.handle();
+        }
+        return nem();
+      }
+
+      // 403 CORE.AUTH.FORBIDDEN — làm mới quyền và menu, rồi xuống nhánh lớp xuyên suốt. KHÔNG điều hướng.
+      if (err.status === 403 && body?.error.code === 'CORE.AUTH.FORBIDDEN') {
+        auth.lamMoiQuyen();
+      } else if (err.status === 403 && body?.error.code === 'CORE.AUTH.PASSWORD_CHANGE_REQUIRED') {
+        // Cờ buộc đổi mật khẩu bật giữa phiên: làm mới phiên, guard lo phần còn lại (fe-routing-guard.md §5.4). KHÔNG điều hướng, KHÔNG toast.
+        void auth.lamMoiPhien();   // Promise — interceptor không chờ; màn cần chờ thì await (fe-routing-guard.md §3.3)
+        return nem();
+      } else if (err.status === 403 && body !== null && !body.error.code.startsWith('CORE.AUTH.')) {
+        // 403 mang mã nghiệp vụ — màn tự xử lý theo card. Không toast chung, không làm mới quyền.
+        return nem();
+      }
+
+      // Lớp xuyên suốt (5xx, 403 CORE.AUTH.* còn lại) — LUÔN toast kèm traceId, KHÔNG xét
+      // BO_QUA_TOAST_LOI: khu lỗi của màn bỏ qua lớp này (`laLoiXuyenSuot`), nên toast là chỗ hiện duy nhất.
+      if (laLoiXuyenSuot(err.status, body)) {
+        if (body === null) {
+          // 5xx không envelope (proxy trả 502/504 dạng HTML): máy chủ CÓ trả lời nên không phải câu mất
+          // kết nối; không mã, không traceId — câu của mã phía client `CORE.CLIENT.SERVER_UNAVAILABLE`
+          // (be-cqrs-handler.md §7.4). 403 không envelope không vào lớp này, nên `null` ở đây luôn là 5xx.
+          toast.loi(translate.instant('loi.CORE.CLIENT.SERVER_UNAVAILABLE'), null);
+        } else {
+          toast.loi(dichLoi(translate, body), body.traceId);
+        }
+        return nem();
+      }
+
+      // 429 — siết tần suất ở MỌI màn (contracts/auth.md §10–§11). Số giây chờ đọc từ Retry-After.
+      if (err.status === 429) {
+        if (!yeuCau.context.get(BO_QUA_TOAST_LOI)) {
+          toast.loi(dichLoi(translate, body, thamSoRetryAfter(err)), body?.traceId ?? null);
+        }
+        return nem();
+      }
+
+      // 409 CORE.CONCURRENCY.CONFLICT — người khác đã ghi sau khi màn đọc (contracts/auth.md §11).
+      // Toast rồi trả lỗi về màn. KHÔNG gửi lại, KHÔNG tải lại hộ.
+      if (err.status === 409 && body?.error.code === 'CORE.CONCURRENCY.CONFLICT') {
+        if (!yeuCau.context.get(BO_QUA_TOAST_LOI)) {
+          toast.loi(dichLoi(translate, body), body?.traceId ?? null);
+        }
+        return nem();
+      }
+
+      // 400/409/422 kèm fieldErrors — lỗi thuộc về form, KHÔNG toast. Trường thật ở body.error.fieldErrors.
+      if (body?.error?.fieldErrors) {
+        return nem();
+      }
+
+      // Màn tự hiển thị lỗi của mình thì tắt toast cho ĐÚNG request đó.
+      if (!yeuCau.context.get(BO_QUA_TOAST_LOI)) {
+        toast.loi(dichLoi(translate, body), body?.traceId ?? null);
+      }
+      return nem();
+    };
+
+  return next(req).pipe(catchError(xuLyLoi(req)));
+};
+```
+
 Khối import của `errorInterceptor` ([`fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §2.2):
 
 ```typescript
 // core/interceptors/error.interceptor.ts — phần import
-import { HttpContextToken, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import {
+  HttpContext, HttpContextToken, HttpErrorResponse, HttpEvent, HttpInterceptorFn, HttpRequest,
+} from '@angular/common/http';
 import { inject } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { catchError, switchMap, throwError } from 'rxjs';
+import { Observable, catchError, from, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { SessionExpiryHandler } from '../auth/session-expiry.handler';
 import { XsrfTokenStore } from '../auth/xsrf-token.store';
+import { dichLoi, thamSoRetryAfter } from '../http/dich-loi';
+import { laLoiXuyenSuot } from '../http/loi-xuyen-suot';
 import {
-  type ApiFailure, ApiFailureError, BO_QUA_HET_PHIEN, BO_QUA_TOAST_LOI, type MessageParams, docEnvelopeLoi,
+  ApiFailureError, BO_QUA_HET_PHIEN, BO_QUA_TOAST_LOI, CO_TAC_DUNG_PHU, docEnvelopeLoi,
 } from '../http/api-result.model';
 import { ToastService } from '../toast/toast.service';
 ```
@@ -138,6 +312,16 @@ import { DestroyRef, Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { CORE_ROUTES } from '../config/core-routes';
 import { AuthService } from './auth.service';
+```
+
+Phần import mà `dangXuat()` cần trong `core/auth/auth.service.ts`:
+
+```typescript
+import { HttpClient, HttpContext } from '@angular/common/http';
+import { Observable, catchError, map, of, switchMap, tap, throwError } from 'rxjs';
+import { ApiFailureError, ApiResult, BO_QUA_HET_PHIEN } from '../http/api-result.model';
+import { XsrfTokenStore } from './xsrf-token.store';
+import { TabSessionBroadcastService } from './tab-session-broadcast.service';
 ```
 
 ## 3. Xử lý lỗi tập trung — component KHÔNG có `try/catch` rải rác
@@ -189,16 +373,7 @@ Hai chi tiết của mẫu này đã được kiểm chứng ở dự án tiền
 
 > **Vì sao không ép endpoint ngoài khuôn vào hàm chung** — Ép mọi thứ vào một hàm dùng chung bằng cách thêm tham số điều kiện là cách hàm đó biến thành thứ khó đọc hơn code nó thay thế — đúng chế độ hỏng mà việc bỏ base class tránh được.
 
-Khối import của `core/http/crud.ts` ([`fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §5.2):
-
-```typescript
-// core/http/crud.ts — phần import
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
-import type { ApiResult } from './api-result.model';
-import type { PageQuery, PagedList } from './paged.model';
-import { unwrapData } from './unwrap';
-```
+- **Vì sao `context` lại là tham số của hàm chung** — Nó không rẽ nhánh gì trong hàm, chỉ chuyền nguyên cho `HttpClient`, nên không phải loại tham số điều kiện ở trên. Thiếu nó thì mọi lần đọc cần tắt toast phải tự viết lại `theoId` trong service — đã xảy ra ở ba phương thức — và ở bản chép tay đó không còn gì buộc đi qua mapper (chốt 2026-09-25).
 
 ## 6. Hủy request, retry, timeout
 
@@ -269,6 +444,20 @@ export class GanVaiTroDialog {
 ### 6.3 Timeout
 
 Không có timeout, một request treo sẽ giữ chỉ báo tải quay mãi và người dùng không biết nên chờ hay tải lại trang.
+
+### 6.4 Tải tệp xuất về máy — blob qua `HttpClient`
+
+- **Vì sao không `<a href>` hay `window.open`** — cookie `SameSite=Lax` **vẫn đi theo** một điều hướng cấp cao nhất xuyên site, và trình duyệt không gắn `Origin` cho điều hướng `GET`. Một trang lạ đặt liên kết tới URL export là đủ để server xuất dữ liệu dưới tên người bấm và ghi nhật ký kiểm toán mang tên họ. Token trong header là thứ duy nhất điều hướng không mang được — đó là toàn bộ lý do BE đòi nó ([`../../../adr/0062-endpoint-xuat-kiem-token-chong-gia-mao-nhu-lenh-ghi.md`](../../../adr/0062-endpoint-xuat-kiem-token-chong-gia-mao-nhu-lenh-ghi.md)), và vì thế FE **phải** tải bằng `HttpClient`. Cái giá: mất thanh tiến trình của trình duyệt, tệp đi qua bộ nhớ.
+
+- **Vì sao đánh dấu request thay vì gắn token cho mọi `GET`** — gắn cho mọi `GET` cũng vô hại về bảo mật (token chỉ tới API), nhưng `errorInterceptor` sẽ không biết `GET` nào được phép gửi lại sau `CSRF_REJECTED`: gửi lại mọi `GET` là vòng lặp với chính `GET` phát token (§2.2), không gửi lại thì export đổ vào toast *token sai* mỗi lần token hết hạn giữa phiên. Dấu tường minh phía FE soi đúng attribute tường minh phía BE — hai bên cùng khai ngoại lệ bằng metadata, và một cổng tương lai so được hai tập.
+
+- **Bẫy `Content-Disposition` qua CORS** — cùng bẫy với `Retry-After` ở §2.2: API ở origin khác, header không nằm trong `Access-Control-Expose-Headers` thì `headers.get('Content-Disposition')` trả `null`, không lỗi, không cảnh báo. Đặt tên dự phòng là giấu đúng lỗi này; ném lỗi thì nó lộ ra ở lần dùng đầu tiên trên máy dev.
+
+- **Đọc `filename*` trước `filename`** — tên tài nguyên có dấu tiếng Việt đi ở `filename*=UTF-8''…` (percent-encoding); `filename=` chỉ mang bản ASCII đã bỏ dấu cho client cũ. Đọc nhầm thứ tự thì tệp tên không dấu, đúng cú pháp, sai câu chữ — không ai báo.
+
+- **Bẫy thân lỗi là `Blob`** — với `responseType: 'blob'`, Angular giao **mọi** thân phản hồi dưới dạng `Blob`, kể cả thân của lỗi 4xx/5xx, dù server gửi `application/json`. `docEnvelopeLoi` kiểm `'success' in body` trên một `Blob` → `false` → `null` → toast *mất kết nối* cho một lỗi 422 `CORE.EXPORT.TOO_MANY_ROWS` mà thông điệp của nó nói rõ phải lọc hẹp thêm bao nhiêu. Bóc ở interceptor: `Blob.text()` là bất đồng bộ, nên nhánh này thành một `from(...).pipe(switchMap(...))` như nhánh CSRF — bóc ở từng service là chép lại đúng đoạn đó ở mọi export.
+
+- **Vì sao một hàm dùng chung kích hoạt tải** — `URL.createObjectURL` không tự thu hồi; quên `revokeObjectURL` là rò bộ nhớ đúng bằng cỡ tệp, mỗi lần bấm. Một hàm ở `core/http/` làm đúng một lần; export của module chỉ gọi.
 
 ## 7. Khi endpoint chưa tồn tại
 

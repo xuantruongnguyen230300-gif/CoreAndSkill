@@ -28,14 +28,16 @@ Người dùng đã đăng nhập, từ nút **Xuất** trên thanh công cụ c
 
 | # | Ai làm | Hệ thống làm gì | Chi tiết ở |
 | --- | --- | --- | --- |
-| 1 | FE | `GET /api/v1/<khu>/<tài nguyên>/export` kèm **đúng bộ tham số lọc đang hiển thị** | [`../contracts/exports.md`](../contracts/exports.md) §1 |
-| 2 | BE | Kiểm quyền xuất của tài nguyên đó | [`../database/schema-core.md`](../database/schema-core.md) §5 |
-| 3 | BE | Đếm số dòng khớp bộ lọc **trước khi** dựng tệp | [`../contracts/exports.md`](../contracts/exports.md) §1 |
-| 4 | BE | Vượt giới hạn ⇒ dừng, trả lỗi kèm số dòng thực tế. Dưới giới hạn ⇒ dựng tệp | cùng trên |
-| 5 | BE | Đọc dữ liệu theo lô bằng phân trang keyset, không nạp hết vào bộ nhớ | [`../wiki-core/be/11-performance-caching.md`](../wiki-core/be/11-performance-caching.md) |
-| 6 | FE | Nhận tệp | [`../contracts/exports.md`](../contracts/exports.md) §1 |
+| 1 | FE | `GET /api/v1/<khu>/<tài nguyên>/export` qua `HttpClient`, kèm **đúng bộ tham số lọc đang hiển thị** và header `X-XSRF-TOKEN` — không mở bằng URL | [`../contracts/exports.md`](../contracts/exports.md) §1 · [`../quy-uoc/fe-api-client.md`](../quy-uoc/fe-api-client.md) §6.4 |
+| 2 | BE | Kiểm token chống giả mạo **như một lệnh ghi** — ngoại lệ có tên vì bước 7 ghi nhật ký kiểm toán | [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §7.2 · [ADR-0062](../adr/0062-endpoint-xuat-kiem-token-chong-gia-mao-nhu-lenh-ghi.md) |
+| 3 | BE | Kiểm quyền xuất của tài nguyên đó | [`../database/schema-core.md`](../database/schema-core.md) §5 |
+| 4 | BE | Đếm số dòng khớp bộ lọc **trước khi** dựng tệp | [`../contracts/exports.md`](../contracts/exports.md) §1 |
+| 5 | BE | Vượt giới hạn ⇒ dừng, trả lỗi kèm số dòng thực tế. Dưới giới hạn ⇒ dựng tệp | cùng trên |
+| 6 | BE | Đọc dữ liệu theo lô bằng phân trang keyset, không nạp hết vào bộ nhớ | [`../wiki-core/be/11-performance-caching.md`](../wiki-core/be/11-performance-caching.md) |
+| 7 | BE | Ghi một dòng nhật ký kiểm toán: ai xuất, bộ lọc nào, bao nhiêu dòng | [`../wiki-core/be/15-import-export.md`](../wiki-core/be/15-import-export.md) §5.5 |
+| 8 | FE | Nhận blob, đặt tên theo `Content-Disposition`, kích hoạt tải | [`../quy-uoc/fe-api-client.md`](../quy-uoc/fe-api-client.md) §6.4 |
 
-### Vì sao bước 3 đứng trước bước 5
+### Vì sao bước 4 đứng trước bước 6
 
 Đếm trước thì người dùng nhận lỗi **ngay**. Dựng tệp trước rồi mới phát hiện quá lớn nghĩa là hệ đã tiêu tài nguyên cho một việc chắc chắn thất bại — và ở một hệ một instance ([`../adr/0014-mot-instance-key-ring-postgres.md`](../adr/0014-mot-instance-key-ring-postgres.md)), một lần xuất quá lớn làm chậm **mọi người**.
 
@@ -45,6 +47,7 @@ Người dùng đã đăng nhập, từ nút **Xuất** trên thanh công cụ c
 
 | Ca | Mã lỗi | Người dùng thấy |
 | --- | --- | --- |
+| Thiếu hoặc sai token chống giả mạo — kể cả khi mở URL export trực tiếp | `CORE.AUTH.CSRF_REJECTED` | FE gửi lại một lần với token mới, người dùng không thấy gì; lần hai vẫn từ chối thì toast chung. Mở bằng URL thì 403 — đúng chủ đích, không phải lỗi |
 | Thiếu quyền xuất | `CORE.AUTH.FORBIDDEN` | Nút Xuất lẽ ra đã không hiện — nếu nó hiện thì FE đang dựng giao diện không theo tập quyền |
 | Vượt giới hạn số dòng | `CORE.EXPORT.TOO_MANY_ROWS` | Thông điệp phải nêu **số dòng thực tế và giới hạn**, để người dùng biết cần lọc hẹp thêm bao nhiêu |
 | Bộ lọc gửi lên khác bộ lọc đang hiển thị | không có mã lỗi | 🛑 Tệp xuất ra **đúng cú pháp nhưng sai nội dung**. Không lỗi nào bắn ra; chỉ có người đọc tệp phát hiện, và thường là muộn |
@@ -53,7 +56,7 @@ Người dùng đã đăng nhập, từ nút **Xuất** trên thanh công cụ c
 
 **Thuộc đơn vị — và đây là luồng rủi ro nhất trong nhóm.**
 
-Bộ lọc đơn vị phải áp ở bước 5 **như mọi truy vấn khác**. Rủi ro riêng của luồng này: đọc hàng loạt là chỗ người ta hay với tới `IgnoreQueryFilters` vì lý do hiệu năng, và luật **M5** buộc mọi lời gọi đó nằm trong allowlist đã khai, còn luật **M6** buộc **nêu tên filter** được bỏ.
+Bộ lọc đơn vị phải áp ở bước 6 **như mọi truy vấn khác**. Rủi ro riêng của luồng này: đọc hàng loạt là chỗ người ta hay với tới `IgnoreQueryFilters` vì lý do hiệu năng, và luật **M5** buộc mọi lời gọi đó nằm trong allowlist đã khai, còn luật **M6** buộc **nêu tên filter** được bỏ.
 
 Gọi `IgnoreQueryFilters` **không tham số** bỏ **cả hai** filter cùng lúc: người viết định bỏ lọc xoá mềm lại bỏ luôn lọc đơn vị. Kết quả là một tệp chứa dữ liệu của mọi đơn vị, giao ra ngoài hệ.
 

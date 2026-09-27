@@ -6,7 +6,13 @@ verified: chua-doi-chieu
 
 # 14. Lưu trữ file
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ các dòng nêu dưới đây**; phần còn lại của file chưa ai đối chiếu nên `verified:` giữ `chua-doi-chieu`).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | Interface `IFileStorage` (`src/BE/Core/CoreAndSkill.Core.Application/Files/IFileStorage.cs`) và bản cài trên hệ thống tệp (`src/BE/Core/CoreAndSkill.Core.Infrastructure/Files/LocalFileStorage.cs`, `PurgeTempAsync`): khoá do hệ thống sinh, ghi nguyên tử qua `.part`, chống thoát khỏi thư mục gốc; kiểm cấu hình lúc khởi động ở `CoreFileOptionsValidator.cs` | Chạy trên đĩa của môi trường thật (Linux/Docker) — chưa từng chạy ngoài Windows |
+> | Nhận diện kiểu bằng nội dung (`FileContentDetector.cs`), giới hạn dung lượng ba lớp (`UploadSizeLimitAttribute.cs`), phục vụ qua endpoint kiểm quyền theo bản ghi chủ (`FileAccessPolicy.cs`) | Quét mã độc (chưa ở v1) |
+> | Job đối soát và dọn tạm (`FileMaintenanceHostedService.cs`, `RunOnceAsync`): logic chưa được chạy trên PostgreSQL thật — `FilesDatabaseTests.cs` (`RequiresDocker`) **chưa chạy** | Chạy được ở CI có Docker |
 >
 > Phần bảo mật khi nhận file tải lên ở [`09-security-beyond-auth.md`](09-security-beyond-auth.md) §9. File này lo **cơ chế lưu, vòng đời file và các cách hỏng đặc trưng**.
 
@@ -26,19 +32,30 @@ Nếu nghiệp vụ gọi thẳng API của hệ thống tệp:
 
 **Nhưng đừng trừu tượng quá tay.** Interface chỉ nên có các thao tác thật sự dùng. Một interface cố mô phỏng đầy đủ khả năng của cả hệ thống tệp lẫn dịch vụ lưu trữ đối tượng sẽ có những thao tác không cài đặt được ở nơi này, và những thao tác chỉ có nghĩa ở nơi kia.
 
-Thao tác tối thiểu: lưu một luồng dữ liệu và nhận về một khoá, mở một luồng đọc theo khoá, xoá theo khoá, kiểm tồn tại. Bốn thao tác đó phủ gần hết nhu cầu thật.
+Thao tác tối thiểu: lưu một luồng dữ liệu và nhận về một khoá, mở một luồng đọc theo khoá, xoá theo khoá, kiểm tồn tại. Bốn thao tác đó phủ gần hết nhu cầu thật. Hai nhu cầu thật của B4 kéo thêm hai nhóm: **liệt kê** (job đối soát §5.2 phải thấy mọi tệp trên đĩa) và **kho tạm** (§6).
 
 ```csharp
 // Core.Application — interface, không biết file nằm ở đâu
 public interface IFileStorage
 {
-    Task<Result<string>> SaveAsync(Stream content, string logicalName, CancellationToken ct);
+    Task<string> SaveAsync(Stream content, string purpose, string extension, CancellationToken ct);
     Task<Result<Stream>> OpenAsync(string key, CancellationToken ct);
-    Task<Result> DeleteAsync(string key, CancellationToken ct);
+    Task DeleteAsync(string key, CancellationToken ct);
+    Task<bool> ExistsAsync(string key, CancellationToken ct);
+    IAsyncEnumerable<StoredObject> ListAsync(CancellationToken ct);
+
+    Task<string> SaveTempAsync(Stream content, CancellationToken ct);
+    Task<Result<Stream>> OpenTempAsync(string tempKey, CancellationToken ct);
+    Task DeleteTempAsync(string tempKey, CancellationToken ct);
+    Task<int> PurgeTempAsync(DateTimeOffset olderThan, CancellationToken ct);
 }
 ```
 
-Điểm cần chú ý: các thao tác trả `Result` chứ không ném exception cho lỗi dự kiến được (không tìm thấy file, không đủ quyền ghi) — đúng luật R1 ở [`../../RULES.md`](../../RULES.md).
+Điểm cần chú ý: chỉ ca **dự kiến được** — không có tệp ở `OpenAsync` / `OpenTempAsync` — là `Result`. Đĩa đầy, mất quyền ghi là lỗi hạ tầng: exception, đi tới `IExceptionHandler` thành 500 — đúng luật R1 ở [`../../RULES.md`](../../RULES.md) (ca dự kiến được là `Result`, ca không dự kiến được là exception). Khoá do **hệ thống** sinh (`<mục đích>/<năm>/<tháng>/<guid>.<đuôi>`); `extension` do chỗ gọi suy từ kiểu **đã xác định bằng nội dung**, không từ tên client.
+
+**Dự án đổi nơi lưu bằng cách thay bản cài** ([`../../adr/0106-ifilestorage-la-seam-du-an-thay-duoc.md`](../../adr/0106-ifilestorage-la-seam-du-an-thay-duoc.md)). Dự án hiện thực đủ interface trên, giữ đủ các hợp đồng của đoạn này, rồi đăng ký bản của mình bằng `AddSingleton` **trước** `AddCore`, cùng chỗ với dòng của module. Core đăng ký bản đĩa cục bộ bằng `TryAddSingleton` nên nhường, và khi nhường thì bỏ qua phép kiểm `Core:File:RootPath` (§2) — [`../../adr/0107-rootpath-chi-kiem-khi-dung-ban-luu-cua-core.md`](../../adr/0107-rootpath-chi-kiem-khi-dung-ban-luu-cua-core.md).
+
+> 🚧 **Lệch (đối chiếu 2026-09-25):** Core còn đăng ký bằng `AddSingleton`, nên bản của dự án đăng ký trước bị đè im lặng; `Core:File:RootPath` còn bị kiểm vô điều kiện — [nợ](../../DEBT.md) B23.
 
 ---
 
@@ -51,6 +68,10 @@ public interface IFileStorage
 | **Không** đặt thư mục file bên trong thư mục ứng dụng | Triển khai lại là mất sạch file |
 | **Không** đặt trong thư mục được phục vụ tĩnh | Xem §4 |
 | Ghép đường dẫn bằng API của nền tảng | Ghép chuỗi bằng tay sẽ sai dấu phân tách khi đổi hệ điều hành |
+
+Khoá thư mục gốc là **`Core:File:RootPath`** — bắt buộc khi bản lưu là bản đĩa cục bộ của Core (§1), **không** có giá trị mặc định, không nằm ở `appsettings.json` (mỗi môi trường một chỗ). Lúc khởi động nó phải là đường dẫn **tuyệt đối**, thư mục **có sẵn**, **ghi được**, và **không nằm trong thư mục ứng dụng**; sai một điều thì tiến trình không lên, thông điệp nêu tên khoá. Khoá còn lại của nhóm (`MaxUploadMb`, hạn giữ tệp tạm, hạn giữ tệp chưa gắn, khoảng an toàn cho tệp mồ côi, chu kỳ bảo trì) và giá trị mặc định: đọc ở `CoreFileOptions` — nguồn duy nhất, không chép vào đây. Cách đặt ở Docker và ở máy dev: [`18-trien-khai-va-van-hanh.md`](18-trien-khai-va-van-hanh.md) §7.
+
+**Chưa tách thư mục vật lý theo đơn vị.** Mọi đơn vị chung một thư mục gốc; tách đơn vị bằng bộ lọc đơn vị trên bản ghi `core.file` (tệp của đơn vị khác là "không có") và bằng khoá do hệ thống sinh, đoán không ra. Đây là lựa chọn của người thi công cho câu 1 ở [`../../luong/N2-dinh-kem-tep.md`](../../luong/N2-dinh-kem-tep.md) §6 — **chưa được `architect` chốt**.
 
 ### Bố cục khoá file
 
@@ -125,6 +146,8 @@ Một job định kỳ đối soát hai chiều:
 | Chiều | Việc |
 | --- | --- |
 | File không có bản ghi, **và cũ hơn một khoảng an toàn** | Xoá |
+| Bản ghi **chưa gắn** chủ nào (§3.1), cũ hơn hạn giữ tệp chưa gắn | Gỡ mềm bản ghi; file đi theo dòng dưới |
+| Bản ghi đã gỡ, cũ hơn khoảng an toàn | Xoá file, giữ bản ghi làm lịch sử |
 | Bản ghi không có file | **Báo cáo, không tự xoá** — đây là dấu hiệu có gì đó sai, cần người xem |
 
 Khoảng an toàn ở dòng đầu là bắt buộc: nếu không, job sẽ xoá đúng file vừa được tải lên trong lúc transaction chưa kịp commit.
@@ -152,11 +175,11 @@ Dòng thứ ba là dòng hay bị bỏ qua: mọi người viết khối dọn d
 
 | Giới hạn | Đặt ở đâu | Cơ chế |
 | --- | --- | --- |
-| Kích thước một file | Cả tầng máy chủ web và tầng ứng dụng | `[RequestSizeLimit]` hoặc `FormOptions.MultipartBodyLengthLimit` trên action nhận `IFormFile` — khai **tường minh**, không dựa mặc định ẩn của Kestrel. Giá trị ở khoá `Core:File:MaxUploadMb` |
+| Kích thước một file | Cả tầng máy chủ web và tầng ứng dụng | Attribute `[UploadSizeLimit]` trên action nhận `IFormFile` (`Core.Web/Http/UploadSizeLimitAttribute.cs`) — khai **tường minh**, không dựa mặc định ẩn của Kestrel. Giá trị đọc **lúc chạy** từ khoá `Core:File:MaxUploadMb`, nên không dùng được `[RequestSizeLimit]` (đòi hằng số lúc biên dịch). Ba lớp: `Content-Length` khai quá trần ⇒ từ chối ngay bằng `CORE.FILE.TOO_LARGE`; trần thân của Kestrel; trần multipart. Trần của thân và của multipart cao hơn trần tệp một khoảng dư cho các phần ngoài tệp, để tệp vượt trần **ít** vẫn tới handler và nhận đúng mã `CORE.FILE.TOO_LARGE` thay vì lỗi model binding |
 | Tổng kích thước một request nhiều file | Tầng ứng dụng | Cùng khoá `Core:File:MaxUploadMb`, nhân theo số tệp cho phép một lần gửi |
 | Hạn mức theo người dùng hoặc theo bản ghi | Nghiệp vụ, nếu cần | — |
 
-**Mọi action nhận `IFormFile` phải khai giới hạn này tường minh, không để framework tự quyết bằng mặc định ẩn.** Thiếu nó thì action vẫn build, vẫn chạy — cho tới ngày có người gửi một tệp rất lớn: nội dung đã bị multipart parser buffer hết **trước khi** bất kỳ validator nào kiểm được gì, kể cả trần số dòng ở [`15-import-export.md`](15-import-export.md) §7 (`Core:Import:MaxRows`) — trần đó đếm dòng sau khi đã nhận hết file, không ngăn được request lớn.
+**Mọi action nhận `IFormFile` phải khai giới hạn này tường minh, không để framework tự quyết bằng mặc định ẩn.** Luật này có cổng: ArchTest `EveryFormFileAction_DeclaresUploadSizeLimit` — cổng chỉ thấy **chữ ký** của action (tham số `IFormFile` hoặc kiểu mô hình mang thuộc tính đó, tới hai tầng lồng); action đọc `Request.Form.Files` mà không khai tham số nào thì cổng **không thấy**, nên đừng viết action như vậy. Thiếu nó thì action vẫn build, vẫn chạy — cho tới ngày có người gửi một tệp rất lớn: nội dung đã bị multipart parser buffer hết **trước khi** bất kỳ validator nào kiểm được gì, kể cả trần số dòng ở [`15-import-export.md`](15-import-export.md) §7 (`Core:Import:MaxRows`) — trần đó đếm dòng sau khi đã nhận hết file, không ngăn được request lớn.
 
 Đặt ở tầng máy chủ web là quan trọng: thiếu nó thì toàn bộ nội dung đã được nhận và ghi vào bộ nhớ hoặc đĩa **trước khi** ứng dụng có cơ hội từ chối.
 
@@ -168,7 +191,7 @@ Dòng thứ ba là dòng hay bị bỏ qua: mọi người viết khối dọn d
 
 | Vấn đề | Ghi chú |
 | --- | --- |
-| **Đĩa cục bộ không dùng chung được** | Instance A lưu file, instance B không đọc được. Đây là lý do phổ biến nhất buộc phải đổi nơi lưu — và là lý do lớp trừu tượng ở §1 tồn tại |
+| **Đĩa cục bộ không dùng chung được** | Instance A lưu file, instance B không đọc được. Đây là lý do phổ biến nhất buộc phải đổi nơi lưu — và là lý do lớp trừu tượng ở §1 tồn tại. Đổi bằng cách thay bản cài, theo cuối §1 |
 | **Sao lưu DB không đủ** | Phải sao lưu cả kho file |
 | **Phục hồi phải về cùng mốc thời gian** | Phục hồi DB về hôm qua và giữ kho file của hôm nay tạo ra cả hai chiều mồ côi ở §5 cùng lúc |
 
@@ -193,7 +216,7 @@ Dòng cuối là chỗ hay bị phát hiện muộn — thường là trong chí
 | Job đối soát file mồ côi hai chiều | ✅ sẽ có | Chiều "bản ghi không có file" chỉ báo cáo |
 | Thư mục tạm riêng + job dọn theo hạn | ✅ sẽ có | Không chỉ dựa vào khối dọn dẹp trong code |
 | Giới hạn kích thước ở cả hai tầng | ✅ sẽ có | |
-| **Quét mã độc** | ❌ chưa ở v1 | Bắt buộc trước khi file được chia sẻ giữa người dùng — [`09-security-beyond-auth.md`](09-security-beyond-auth.md) |
+| **Quét mã độc** | ❌ chưa ở v1 | Hoãn có chủ ý dù v1 đã chia sẻ tệp — [`../../adr/0050-v1-chua-quet-ma-doc-siet-zip-va-duoi-tai-xuong.md`](../../adr/0050-v1-chua-quet-ma-doc-siet-zip-va-duoi-tai-xuong.md) |
 | **Cài đặt trên dịch vụ lưu trữ đối tượng** | ❌ chưa | Cần khi mở instance thứ hai. Lớp trừu tượng tồn tại để lúc đó chỉ phải thêm một cài đặt |
 | **Liên kết có chữ ký, có hạn dùng** | ❌ chưa | Cần khi có file lớn hoặc lượng tải cao |
 | **Chống trùng lặp theo nội dung, đánh phiên bản file** | ❌ chưa | Chưa có nhu cầu |

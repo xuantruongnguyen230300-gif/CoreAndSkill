@@ -6,7 +6,12 @@ verified: chua-doi-chieu
 
 # COMPONENTS.md — mục lục component Core
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo chưa có `src/`. Mọi dòng dưới đây mang trạng thái `📐 spec xong, chưa dựng` — định nghĩa các trạng thái ở [`CLAUDE.md`](./CLAUDE.md) §4.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Repo đã có `src/FE`. Một phần component trong mục lục này đã có code thật, phần còn lại chưa — và **mục lục không giữ trạng thái của từng component**. Trạng thái đọc ở nhãn cấp tệp đầu mỗi spec; cách đọc và tiêu chí PASS ở §3.
+
+| Có thật hôm nay | Sẽ thành |
+| --- | --- |
+| Mỗi spec dưới `Components/` mang một nhãn cấp tệp `📐` hoặc `🚧`. Spec mang `🚧` kèm ngay trong nó một bảng khai phần đã có và phần còn nợ | Spec nào đã mở source ra so trọn vẹn thì mang `✅ ĐÃ ĐỐI CHIẾU` kèm ngày, theo [`CLAUDE.md`](./CLAUDE.md) §2 |
+| Cổng [`../../.claude/check-docs.sh`](../../.claude/check-docs.sh) §27 canh **một** chiều: spec mang `📐` mà đã có tệp component cùng tên dạng kebab dưới `src/FE/src/app/` thì cổng đỏ (luật D42, [`../DEBT.md`](../DEBT.md)) | Chiều còn lại — spec mang `🚧` mà chưa có component thật — chưa có cổng nào canh, hôm nay giữ bằng người đọc |
 
 > **File này là cổng.** Một screen spec chỉ được ghép những component có tên trong bảng §3. Thêm một file vào `Components/` mà không thêm dòng ở đây thì component đó **chưa tồn tại** với phần còn lại của khu Design.
 >
@@ -53,7 +58,7 @@ Mỗi spec phải khai **đủ tám** trạng thái. Cái nào không áp dụng
 | `error` | Dữ liệu hoặc thao tác sai | Viền đỏ **không đủ** — bắt buộc kèm chữ. Xem [`DESIGN.md`](./DESIGN.md) §2.7 |
 | `empty` | Không có gì để hiển thị | Trống là một trạng thái phải thiết kế, không phải chỗ để trống |
 
-**Bỏ trống một dòng nguy hiểm hơn viết sai nó.** Dòng sai thì có người cãi; dòng trống thì mỗi người dựng tự bịa một kiểu.
+> 📖 Vì sao bỏ trống một dòng trạng thái là lỗi nặng hơn viết sai nó: đọc [`CLAUDE.md`](./CLAUDE.md) §6.
 
 ### 2.2 Kích thước
 
@@ -97,62 +102,87 @@ Luật chống lồng nhau vẫn giữ nguyên hiệu lực ở chỗ nó sinh r
 
 ## 3. Mục lục
 
-| Component | Là gì | Spec | Nền | Trạng thái |
-| --- | --- | --- | --- | --- |
-| `Button` | Nút có nhãn chữ, bốn vai, ba cỡ | [Components/Button.md](./Components/Button.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `IconButton` | Nút chỉ có icon, luôn kèm nhãn cho trình đọc màn hình | [Components/IconButton.md](./Components/IconButton.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Input` | Hợp đồng ô nhập dùng chung cho text, number, select, textarea | [Components/Input.md](./Components/Input.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `DatePicker` | Ô chọn một ngày hoặc một khoảng ngày, lịch thả xuống, luôn `dd/mm/yyyy` | [Components/DatePicker.md](./Components/DatePicker.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `FormRow` | Cụm nhãn + ô nhập + gợi ý + lỗi; nơi duy nhất quyết định lỗi hiện ở đâu | [Components/FormRow.md](./Components/FormRow.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Check` | Ô đánh dấu và nút chọn một trong nhiều, gồm trạng thái nửa chọn | [Components/Check.md](./Components/Check.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `SegmentedControl` | Chuyển đổi giữa vài chế độ xem loại trừ nhau | [Components/SegmentedControl.md](./Components/SegmentedControl.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Card` | Bề mặt gom một khối nội dung, có tiêu đề và chân tuỳ chọn | [Components/Card.md](./Components/Card.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Badge` | Nhãn nhỏ mang trạng thái hoặc mang định danh | [Components/Badge.md](./Components/Badge.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Avatar` | Ảnh đại diện, rơi về chữ cái đầu khi không có ảnh | [Components/Avatar.md](./Components/Avatar.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Table` | Bảng tĩnh — chỉ trình bày, không phân trang, không sắp xếp | [Components/Table.md](./Components/Table.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `DataTable` | Lưới dữ liệu: phân trang phía máy chủ, sắp xếp, chọn dòng, cột ghim | [Components/DataTable.md](./Components/DataTable.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `Dialog` | Hộp thoại chặn, bẫy focus, ba cỡ bề rộng | [Components/Dialog.md](./Components/Dialog.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `ConfirmDialog` | Hỏi xác nhận — đúng hai nút, có mức độ nguy hiểm | [Components/ConfirmDialog.md](./Components/ConfirmDialog.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Toast` | Thông báo nổi tạm thời, tự biến mất | [Components/Toast.md](./Components/Toast.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `NoticeBanner` | Thông báo nằm trong trang, ở lại cho tới khi bối cảnh đổi | [Components/NoticeBanner.md](./Components/NoticeBanner.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Sidebar` | Dải điều hướng của khung ứng dụng: cây menu, thu gọn, drawer | [Components/Sidebar.md](./Components/Sidebar.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Topbar` | Thanh đầu trang dính: hamburger, tiêu đề tuyến, khu người dùng | [Components/Topbar.md](./Components/Topbar.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Toolbar` | Dải điều khiển trên một danh sách: tìm kiếm, bộ lọc, nhóm hành động | [Components/Toolbar.md](./Components/Toolbar.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Footer` | Dòng chân trang: phiên bản, bản quyền, liên kết phụ | [Components/Footer.md](./Components/Footer.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `AuthCard` | Khung thứ hai — màn xác thực chạy **không** có sidebar và topbar | [Components/AuthCard.md](./Components/AuthCard.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `AuthField` | Ô nhập của màn xác thực: có icon dẫn, có nút hiện/ẩn mật khẩu | [Components/AuthField.md](./Components/AuthField.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `LanguageSwitcher` | Đổi ngôn ngữ lúc chạy | [Components/LanguageSwitcher.md](./Components/LanguageSwitcher.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `EmptyState` | Màn trống có nghĩa: icon, câu giải thích, một hành động | [Components/EmptyState.md](./Components/EmptyState.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `SkeletonLoader` | Khối xám giữ chỗ trong lúc chờ dữ liệu | [Components/SkeletonLoader.md](./Components/SkeletonLoader.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `FileUpload` | Chọn và tải tệp lên: kéo thả, kiểm loại và dung lượng, tiến trình | [Components/FileUpload.md](./Components/FileUpload.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `PageHeader` | Đầu một trang: đường dẫn phân cấp, tiêu đề, mô tả, hành động chính | [Components/PageHeader.md](./Components/PageHeader.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Pagination` | Điều hướng trang và chọn số dòng mỗi trang | [Components/Pagination.md](./Components/Pagination.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `Tabs` | Chuyển giữa các phần nội dung trong cùng một trang | [Components/Tabs.md](./Components/Tabs.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `Menu` | Danh sách hành động ngắn trong một lớp nổi neo vào nút đã mở nó | [Components/Menu.md](./Components/Menu.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `Tooltip` | Một dòng chú ngắn, chỉ hiện khi người dùng tỏ ý muốn biết thêm | [Components/Tooltip.md](./Components/Tooltip.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `Drawer` | Tấm trượt từ cạnh màn hình — xem hoặc sửa nhanh mà danh sách phía sau vẫn còn | [Components/Drawer.md](./Components/Drawer.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `ProgressBar` | Một việc đã đi được bao xa, hoặc một giá trị so với một mốc | [Components/ProgressBar.md](./Components/ProgressBar.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `FilterChip` | Một điều kiện lọc đang bật, gỡ được bằng một thao tác | [Components/FilterChip.md](./Components/FilterChip.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `TreeSelect` | Chọn một nút trong cấu trúc phân cấp, khi danh sách phẳng không diễn tả được | [Components/TreeSelect.md](./Components/TreeSelect.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `Autocomplete` | Chọn từ danh mục lớn bằng cách gõ vài ký tự, một hoặc nhiều giá trị | [Components/Autocomplete.md](./Components/Autocomplete.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `EditableGrid` | Nhập và sửa nhiều dòng ngay trên lưới, không mở hộp thoại từng dòng | [Components/EditableGrid.md](./Components/EditableGrid.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `Stepper` | Chia một việc dài thành các bước có thứ tự mà **người dùng** điều khiển | [Components/Stepper.md](./Components/Stepper.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Timeline` | Chuỗi sự việc theo thời gian: nhật ký đã xảy ra, hoặc luồng duyệt còn bước phía trước | [Components/Timeline.md](./Components/Timeline.md) | tự dựng | 📐 spec xong, chưa dựng |
-| `Chart` | Vẽ số liệu thành hình để so sánh nhanh hơn đọc bảng | [Components/Chart.md](./Components/Chart.md) | bọc PrimeNG | 📐 spec xong, chưa dựng |
-| `FilterPanel` | Nơi nhập nhiều điều kiện lọc cùng lúc rồi áp một lần | [Components/FilterPanel.md](./Components/FilterPanel.md) | tự dựng | 📐 spec xong, chưa dựng |
-
-**Cột "Nền" nhận đúng một trong hai giá trị: `bọc PrimeNG` · `tự dựng`.** FE đọc cột này bằng máy để xếp component vào thư mục — quy tắc ánh xạ ở [`../wiki-core/fe/05-component-library.md`](../wiki-core/fe/05-component-library.md). Component dựng **trên** một component bọc khác mà không tự import thư viện (như `ConfirmDialog` trên `Dialog`) mang `tự dựng`. Component bọc mà chỉ **một phần** biến thể cần thư viện (như `Chart`: chỉ `line`) vẫn mang `bọc PrimeNG` — các biến thể còn lại vẽ bên trong cùng lớp bọc.
+| Component | Là gì | Spec | Nền |
+| --- | --- | --- | --- |
+| `Button` | Nút có nhãn chữ, bốn vai, ba cỡ | [Components/Button.md](./Components/Button.md) | tự dựng |
+| `IconButton` | Nút chỉ có icon, luôn kèm nhãn cho trình đọc màn hình | [Components/IconButton.md](./Components/IconButton.md) | tự dựng |
+| `Input` | Hợp đồng ô nhập dùng chung cho text, number, select, textarea | [Components/Input.md](./Components/Input.md) | tự dựng |
+| `DatePicker` | Ô chọn một ngày hoặc một khoảng ngày, lịch thả xuống, luôn `dd/mm/yyyy` | [Components/DatePicker.md](./Components/DatePicker.md) | bọc PrimeNG |
+| `FormRow` | Cụm nhãn + ô nhập + gợi ý + lỗi; nơi duy nhất quyết định lỗi hiện ở đâu | [Components/FormRow.md](./Components/FormRow.md) | tự dựng |
+| `Check` | Ô đánh dấu và nút chọn một trong nhiều, gồm trạng thái nửa chọn | [Components/Check.md](./Components/Check.md) | bọc PrimeNG |
+| `SegmentedControl` | Chuyển đổi giữa vài chế độ xem loại trừ nhau | [Components/SegmentedControl.md](./Components/SegmentedControl.md) | tự dựng |
+| `Card` | Bề mặt gom một khối nội dung, có tiêu đề và chân tuỳ chọn | [Components/Card.md](./Components/Card.md) | tự dựng |
+| `Badge` | Nhãn nhỏ mang trạng thái hoặc mang định danh | [Components/Badge.md](./Components/Badge.md) | tự dựng |
+| `Avatar` | Ảnh đại diện, rơi về chữ cái đầu khi không có ảnh | [Components/Avatar.md](./Components/Avatar.md) | tự dựng |
+| `Table` | Bảng tĩnh — chỉ trình bày, không phân trang, không sắp xếp | [Components/Table.md](./Components/Table.md) | tự dựng |
+| `DataTable` | Lưới dữ liệu: phân trang phía máy chủ, sắp xếp, chọn dòng, cột ghim | [Components/DataTable.md](./Components/DataTable.md) | bọc PrimeNG |
+| `Dialog` | Hộp thoại chặn, bẫy focus, ba cỡ bề rộng | [Components/Dialog.md](./Components/Dialog.md) | bọc PrimeNG |
+| `ConfirmDialog` | Hỏi xác nhận — đúng hai nút, có mức độ nguy hiểm | [Components/ConfirmDialog.md](./Components/ConfirmDialog.md) | tự dựng |
+| `Toast` | Thông báo nổi tạm thời, tự biến mất | [Components/Toast.md](./Components/Toast.md) | bọc PrimeNG |
+| `NoticeBanner` | Thông báo nằm trong trang, ở lại cho tới khi bối cảnh đổi | [Components/NoticeBanner.md](./Components/NoticeBanner.md) | tự dựng |
+| `Sidebar` | Dải điều hướng của khung ứng dụng: cây menu, thu gọn, drawer | [Components/Sidebar.md](./Components/Sidebar.md) | tự dựng |
+| `Topbar` | Thanh đầu trang dính: hamburger, tiêu đề tuyến, khu người dùng | [Components/Topbar.md](./Components/Topbar.md) | tự dựng |
+| `Toolbar` | Dải điều khiển trên một danh sách: tìm kiếm, bộ lọc, nhóm hành động | [Components/Toolbar.md](./Components/Toolbar.md) | tự dựng |
+| `Footer` | Dòng chân trang: phiên bản, bản quyền, liên kết phụ | [Components/Footer.md](./Components/Footer.md) | tự dựng |
+| `AuthCard` | Khung thứ hai — màn xác thực chạy **không** có sidebar và topbar | [Components/AuthCard.md](./Components/AuthCard.md) | tự dựng |
+| `AuthField` | Ô nhập của màn xác thực: có icon dẫn, có nút hiện/ẩn mật khẩu | [Components/AuthField.md](./Components/AuthField.md) | tự dựng |
+| `LanguageSwitcher` | Đổi ngôn ngữ lúc chạy | [Components/LanguageSwitcher.md](./Components/LanguageSwitcher.md) | tự dựng |
+| `EmptyState` | Màn trống có nghĩa: icon, câu giải thích, một hành động | [Components/EmptyState.md](./Components/EmptyState.md) | tự dựng |
+| `SkeletonLoader` | Khối xám giữ chỗ trong lúc chờ dữ liệu | [Components/SkeletonLoader.md](./Components/SkeletonLoader.md) | tự dựng |
+| `FileUpload` | Chọn và tải tệp lên: kéo thả, kiểm loại và dung lượng, tiến trình | [Components/FileUpload.md](./Components/FileUpload.md) | bọc PrimeNG |
+| `PageHeader` | Đầu một trang: đường dẫn phân cấp, tiêu đề, mô tả, hành động chính | [Components/PageHeader.md](./Components/PageHeader.md) | tự dựng |
+| `Pagination` | Điều hướng trang và chọn số dòng mỗi trang | [Components/Pagination.md](./Components/Pagination.md) | bọc PrimeNG |
+| `Tabs` | Chuyển giữa các phần nội dung trong cùng một trang | [Components/Tabs.md](./Components/Tabs.md) | bọc PrimeNG |
+| `Menu` | Danh sách hành động ngắn trong một lớp nổi neo vào nút đã mở nó | [Components/Menu.md](./Components/Menu.md) | bọc PrimeNG |
+| `Tooltip` | Một dòng chú ngắn, chỉ hiện khi người dùng tỏ ý muốn biết thêm | [Components/Tooltip.md](./Components/Tooltip.md) | bọc PrimeNG |
+| `Drawer` | Tấm trượt từ cạnh màn hình — xem hoặc sửa nhanh mà danh sách phía sau vẫn còn | [Components/Drawer.md](./Components/Drawer.md) | bọc PrimeNG |
+| `ProgressBar` | Một việc đã đi được bao xa, hoặc một giá trị so với một mốc | [Components/ProgressBar.md](./Components/ProgressBar.md) | tự dựng |
+| `FilterChip` | Một điều kiện lọc đang bật, gỡ được bằng một thao tác | [Components/FilterChip.md](./Components/FilterChip.md) | tự dựng |
+| `TreeSelect` | Chọn một nút trong cấu trúc phân cấp, khi danh sách phẳng không diễn tả được | [Components/TreeSelect.md](./Components/TreeSelect.md) | bọc PrimeNG |
+| `Autocomplete` | Chọn từ danh mục lớn bằng cách gõ vài ký tự, một hoặc nhiều giá trị | [Components/Autocomplete.md](./Components/Autocomplete.md) | bọc PrimeNG |
+| `EditableGrid` | Nhập và sửa nhiều dòng ngay trên lưới, không mở hộp thoại từng dòng | [Components/EditableGrid.md](./Components/EditableGrid.md) | bọc PrimeNG |
+| `Stepper` | Chia một việc dài thành các bước có thứ tự mà **người dùng** điều khiển | [Components/Stepper.md](./Components/Stepper.md) | tự dựng |
+| `Timeline` | Chuỗi sự việc theo thời gian: nhật ký đã xảy ra, hoặc luồng duyệt còn bước phía trước | [Components/Timeline.md](./Components/Timeline.md) | tự dựng |
+| `Chart` | Vẽ số liệu thành hình để so sánh nhanh hơn đọc bảng | [Components/Chart.md](./Components/Chart.md) | bọc PrimeNG |
+| `FilterPanel` | Nơi nhập nhiều điều kiện lọc cùng lúc rồi áp một lần | [Components/FilterPanel.md](./Components/FilterPanel.md) | tự dựng |
 
 Đừng chép số lượng vào tài liệu ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §6). Đếm bằng lệnh:
 
 ```bash
-ls docs/Design/Components/*.md | wc -l
+grep -L '^kind: lich-su' docs/Design/Components/*.md | wc -l
 grep -cE '^\| `[A-Za-z]+` \|.*\]\(\./Components/' docs/Design/COMPONENTS.md
 ```
 
 PASS = hai số bằng nhau.
 
-> Lệnh thứ hai **cố ý neo vào hình dạng của một dòng bảng có link spec**, không neo vào chuỗi trạng thái. Đếm theo chuỗi trạng thái sẽ đếm luôn dòng nhãn fidelity ở đầu file và đếm luôn chính khối lệnh này — một phép kiểm luôn lệch là một phép kiểm không ai chạy lần thứ hai. Cơ chế hỏng ghi ở [`../audit/2026-09-11-lenh-kiem-tu-dem-chinh-no.md`](../audit/2026-09-11-lenh-kiem-tu-dem-chinh-no.md).
+> Lệnh thứ hai **cố ý neo vào hình dạng của một dòng bảng có link spec**, không neo vào chuỗi nào khác. Đếm theo một chuỗi nội dung sẽ đếm luôn dòng nhãn fidelity ở đầu file và đếm luôn chính khối lệnh này — một phép kiểm luôn lệch là một phép kiểm không ai chạy lần thứ hai. Cơ chế hỏng ghi ở [`../audit/2026-09-11-lenh-kiem-tu-dem-chinh-no.md`](../audit/2026-09-11-lenh-kiem-tu-dem-chinh-no.md).
+>
+> Lệnh thứ nhất **bỏ spec đã rút** (`kind: lich-su`) vì §8 gỡ dòng của nó khỏi bảng trên. Đếm thẳng bằng `ls` sẽ làm PASS này vỡ ngay lần rút đầu tiên.
+
+### Cột Nền — định nghĩa gốc
+
+**Cột "Nền" nhận đúng một trong hai giá trị: `bọc PrimeNG` · `tự dựng`.** FE đọc cột này bằng máy để xếp component vào thư mục — quy tắc ánh xạ ở [`../wiki-core/fe/05-component-library.md`](../wiki-core/fe/05-component-library.md). Component dựng **trên** một component bọc khác mà không tự import thư viện (như `ConfirmDialog` trên `Dialog`) mang `tự dựng`. Component bọc mà chỉ **một phần** biến thể cần thư viện (như `Chart`: chỉ `line`) vẫn mang `bọc PrimeNG` — các biến thể còn lại vẽ bên trong cùng lớp bọc.
+
+### Trạng thái thi công đọc ở đâu
+
+Bảng trên khai **danh sách** component Core và **nền** của từng cái. Nó cố ý **không** khai component nào đã dựng: trạng thái đó sống ở nhãn cấp tệp đầu mỗi spec, và một bản sao trong mục lục thì mục ruỗng mà không ai báo — đúng luật *một nội dung, một nguồn đối chiếu duy nhất* ở [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §5: trạng thái của một file đọc ở đầu chính file đó, mục lục chỉ giữ nhãn cấp khu.
+
+Đọc trạng thái từng component bằng lệnh:
+
+```bash
+grep -m1 -oE '^(📐|🚧|✅) ' docs/Design/Components/*.md
+```
+
+Mỗi dòng in ra là một spec kèm nhãn cấp tệp của nó. Nghĩa ba nhãn ở [`CLAUDE.md`](./CLAUDE.md) §2; riêng ở khu này `📐` còn mang thêm một nghĩa **máy kiểm được**: không có tệp component cùng tên dưới `src/FE/src/app/`, và cổng §27 đỏ nếu có.
+
+PASS = hai số dưới đây bằng nhau:
+
+```bash
+grep -m1 -oE '^(📐|🚧|✅) ' docs/Design/Components/*.md | wc -l
+grep -L '^kind: lich-su' docs/Design/Components/*.md | wc -l
+```
+
+Lệch nghĩa là có spec **không** mang nhãn cấp tệp nào, hoặc mang nó ở dạng cổng §27 không đọc được — đó không phải chuyện hình thức: nhãn cấp tệp là thứ duy nhất §27 đọc để quyết đỏ hay xanh.
 
 ---
 
@@ -192,6 +222,29 @@ Mọi thứ còn lại **tự dựng**. Một `Button` bọc thư viện chỉ �
    - Phép thử một câu: *hai màn khác nhau có cần hiện thứ khác nhau ở chỗ này không?* Có → template. Không, chỗ đó luôn là cùng một control của lớp bọc → phần cấu trúc; nó báo ra ngoài bằng `output()` của lớp bọc.
    - Lớp bọc có input `state` thì hiện template theo `state`. Lớp bọc chỉ có `loading` thì `loadingTemplate` hiện khi `loading` là `true`, còn `errorTemplate` hiện khi màn truyền nó khác `null` — màn chỉ truyền lúc đang lỗi — và thắng mọi slot khác.
    - Vùng đã là slot nội dung của màn (thân `Dialog`, thân `Drawer`, panel `Tabs`) thì màn đặt component tự dựng thẳng vào slot đó, không cần template.
+6. **Chuỗi của chính thư viện đi qua tệp dịch, không đặt ở nơi gọi.** Thư viện có câu của riêng nó — "không có kết quả" trong ô chọn, nhãn đọc lên của nút phân trang, nút đóng. Chúng nạp từ nhánh `thuVienUi` của tệp dịch và nạp lại mỗi lần đổi ngôn ngữ (cơ chế: [`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §8); **tên khoá là tên khoá gốc của thư viện**, kể cả nhánh con `aria`, để tra thẳng không cần bảng chuyển đổi — cùng lý do khoá lỗi giữ nguyên mã BE ([`../quy-uoc/fe-ui-conventions.md`](../quy-uoc/fe-ui-conventions.md) §5.3). Câu của từng khoá ở bảng dưới.
+
+### Câu của thư viện — nhánh `thuVienUi`
+
+Bảng này là **nguồn câu chữ** cho nhánh `thuVienUi` của tệp dịch; `frontend-expert` chép câu từ đây vào `vi.json`, không tự dịch. Ô mang tiền tố *Chờ duyệt:* là câu do `frontend-expert` dịch sát nghĩa bản tiếng Anh của thư viện khi thi công, **chưa ai duyệt** — khuôn nhãn ở [`CLAUDE.md`](./CLAUDE.md) §8; duyệt xong thì xoá tiền tố. Nhóm Paginator lấy câu từ [`Components/Pagination.md`](./Components/Pagination.md) §Accessibility. Cột cuối liệt kê mô-đun của thư viện đọc khoá đó (tìm tên khoá trong gói `primeng` đang cài, 2026-09-22), quy về lớp bọc Core tương ứng.
+
+| Khoá (tên gốc của thư viện) | Câu | Lớp bọc nào hiện |
+| --- | --- | --- |
+| `emptyMessage` | *Chờ duyệt:* Không có lựa chọn nào | Lớp nổi của `Autocomplete`, `TreeSelect` khi danh mục rỗng; `DataTable`, `Pagination` cũng đọc khoá này nhưng thân bảng rỗng đã đi qua `emptyTemplate` (luật 5) |
+| `emptySearchMessage` · `emptyFilterMessage` | *Chờ duyệt:* Không tìm thấy kết quả | Lớp nổi ô chọn khi gõ tìm / lọc không khớp gì |
+| `searchMessage` | *Chờ duyệt:* Có {0} kết quả | Đọc lên số kết quả sau khi gõ tìm trong ô chọn |
+| `selectionMessage` · `emptySelectionMessage` | *Chờ duyệt:* Đã chọn {0} mục · Chưa chọn mục nào | Đọc lên trạng thái chọn của ô chọn nhiều |
+| `aria.close` | *Chờ duyệt:* Đóng | Nút đóng do thư viện vẽ: `Dialog`, `ConfirmDialog` (qua `Dialog`), `Toast` |
+| `aria.firstPageLabel` · `aria.prevPageLabel` · `aria.previousPageLabel` · `aria.nextPageLabel` · `aria.lastPageLabel` | Trang đầu · Trang trước · Trang trước · Trang sau · Trang cuối | `Pagination` — [`Components/Pagination.md`](./Components/Pagination.md) §Accessibility, dòng "Nhãn từng nút". Hai khoá `prevPageLabel` / `previousPageLabel` cùng một câu vì thư viện tra cả hai tên |
+| `aria.pageLabel` | Trang {page} | `Pagination` — cùng dòng trên ("Trang 3") |
+| `aria.rowsPerPageLabel` | Số dòng mỗi trang | `Pagination` — cùng spec, dòng "Nhãn khác" |
+| `aria.jumpToPageDropdownLabel` · `aria.jumpToPageInputLabel` | *Chờ duyệt:* Chọn trang · Nhập số trang | `Pagination` — ô nhảy tới trang, nếu biến thể nào bật |
+| `aria.listLabel` | *Chờ duyệt:* Danh sách lựa chọn | Nhãn đọc lên của danh sách trong lớp nổi `Autocomplete` (mô-đun autocomplete, select, multiselect của thư viện) |
+| `aria.removeLabel` | *Chờ duyệt:* Gỡ | Nút gỡ trên chip do thư viện vẽ trong ô chọn nhiều của `Autocomplete`, `TreeSelect` |
+| `aria.selectAll` · `aria.unselectAll` | *Chờ duyệt:* Đã chọn tất cả · Đã bỏ chọn tất cả | `DataTable` công tắc `selectable` — đọc lên sau khi bấm ô đánh dấu ở `th` |
+| `aria.selectRow` · `aria.unselectRow` | *Chờ duyệt:* Đã chọn dòng · Đã bỏ chọn dòng | `DataTable` công tắc `selectable` — đọc lên sau khi bấm ô đánh dấu của dòng |
+
+Khoá nào thư viện có mà bảng không có thì thư viện rơi về câu tiếng Anh mặc định của nó — thấy câu tiếng Anh lọt ra giao diện là dấu hiệu bảng này thiếu dòng, thêm dòng vào đây **trước**, rồi mới thêm vào tệp dịch.
 
 ---
 
@@ -230,16 +283,23 @@ Ba ca dễ nhầm, giải sẵn:
 | File spec | `Components/<Tên>.md`, trùng khít tên component | `Components/NoticeBanner.md` |
 | Class CSS gốc | `kebab-case`, trùng tên component | `.notice-banner` |
 | Class biến thể | `.<gốc>--<biến thể>` | `.btn--danger` |
-| Class trạng thái | `.is-<trạng thái>` | `.is-loading` |
+| Class trạng thái | `.<gốc>--<trạng thái>` — cùng khuôn với biến thể, xem lý do dưới bảng | `.form-row--disabled` |
 | Class phần con | `.<gốc>__<phần>` | `.card__header` |
 | Token riêng component | `--<gốc>-<thuộc tính>` | `--btn-height` |
 
-Bốn điều cấm:
+**Vì sao "class trạng thái" dùng chung khuôn `--` với "class biến thể", không còn `.is-<trạng thái>` riêng.** Đối chiếu `src/FE/src/app/shared/components/` (2026-09-17), trên các thư mục component có mặt khi đó — `card`, `confirm-dialog`, `footer`, `form-row`, `notice-banner`, `page-header`, `sidebar`, `skeleton-loader`, `topbar`, `auth-card`, `auth-field` — thì:
+
+- Không nơi nào dùng `.is-<trạng thái>`. Phần lớn tám trạng thái ở §2.1 (`hover`, `focus-visible`, `active`, `disabled`) được thể hiện bằng pseudo-class CSS gốc (`:hover`, `:focus-visible`, `:disabled`, `:active`) — không cần một class nào cả.
+- Đúng một chỗ cần class cho trạng thái vì phần tử không phải control gốc: `form-row.component.scss` § `.form-row--disabled .form-row__nhan`. Nó tự chọn khuôn `--` giống biến thể, không phải `.is-`.
+- Angular binding không phân biệt "biến thể chọn qua input" và "trạng thái đổi lúc chạy" — cả hai đều là `[class.x]="dieu-kien()"`. Giữ hai khuôn cho một cơ chế giống nhau chỉ tạo một lựa chọn phải nhớ mỗi lần thêm class mới, mà không cứu được gì.
+
+Năm điều cấm:
 
 - 🛑 **Không tiền tố công ty/dự án** (`csk-`, `core-`) trong tên class. Core đã là gốc của mọi thứ; tiền tố chỉ thêm nhiễu.
 - 🛑 **Không đặt tên theo màu hay vị trí**: không `.btn-blue`, không `.card-left`. Ngày đổi màu hoặc đổi bố cục là ngày tên nói dối.
 - 🛑 **Không đặt tên theo màn hình**: không `.user-list-toolbar`. Đó là dấu hiệu component đang bị chặt vào một màn.
 - 🛑 **Không viết tắt** trừ khi viết tắt phổ biến hơn từ đầy đủ (`id`, `url`, `api`). `btn` là ngoại lệ đã chốt vì nó phổ biến tới mức không gây mơ hồ.
+- 🛑 **Không dùng class trạng thái trần, không tiền tố** (`.active`, `.disabled` không qua `.<gốc>--`). Một class trần không đóng gói theo component, va tên được với bất cứ thứ gì khác trên trang. Đối chiếu `sidebar.component.html` § `sidebar__muc` (2026-09-17): nợ này đã đóng — phần tử `<a>` mang `class="sidebar__muc"` cùng `[class.sidebar__muc--active]` / `[class.sidebar__muc--disabled]`, không còn `[class.active]`/`[class.disabled]` không tiền tố.
 
 ---
 
@@ -266,11 +326,11 @@ Một component bị rút khi nó không còn nơi dùng, hoặc khi nó đượ
 Bốn bước, không bỏ bước nào:
 
 1. **Kiểm không còn nơi dùng.** Không screen spec nào ghép nó, và khi đã có `src/` thì không màn nào import nó.
-2. **Đổi trạng thái dòng ở §3 thành `⛔ đã rút`**, và ghi ngay trong dòng đó **vì sao rút** và **đi đâu**.
-3. **Giữ file spec, đổi `kind` thành `lich-su`**, dán banner ở đầu file theo [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §5, và trỏ về component thay thế.
-4. **Gỡ mọi link trỏ tới nó.** Cổng [`../RULES.md`](../RULES.md) §1 D10 cấm trích dẫn file mang `kind: lich-su`, nên bước này không phải tuỳ chọn.
+2. **Gỡ dòng của nó khỏi bảng §3.** Dòng đó mang một link tới spec, và cổng [`../RULES.md`](../RULES.md) §1 D10 cấm trích dẫn file mang `kind: lich-su`. Giữ dòng lại thì hoặc cổng đỏ, hoặc phải bỏ link — và bỏ link làm vỡ phép đếm PASS ngay dưới bảng §3.
+3. **Giữ file spec, đổi `kind` thành `lich-su`**, dán banner ở đầu file theo [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §5. Banner đó là nơi ghi **vì sao rút** và **đi đâu**, kèm trỏ về component thay thế.
+4. **Gỡ mọi link trỏ tới nó** ở phần còn lại của khu Design — screen spec, prompt pack, spec component khác. Cổng D10 ép bước này, nên nó không phải tuỳ chọn.
 
-**Dòng `⛔ đã rút` được giữ lại, không xoá.** Lý do rút — *"vì màn hình dùng nó đã bỏ"* chứ không phải *"vì nó là component tồi"* — chính là bằng chứng mà người sau cần khi cân nhắc dựng lại nó. Một bảng chỉ hiện trạng thái hiện tại sẽ mất thông tin đó, và ai đó sẽ tranh luận lại từ đầu.
+**Lý do rút không được xoá — nó đổi chỗ, từ mục lục sang banner của chính file spec.** Lý do đó — *"vì màn hình dùng nó đã bỏ"* chứ không phải *"vì nó là component tồi"* — là bằng chứng người sau cần khi cân nhắc dựng lại. Để nó ở mục lục thì nó là bản sao thứ hai của một câu đã có trong file spec, và bản sao ấy sẽ không được sửa cùng lúc ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §5). Để nó ở banner thì người mở file gặp nó ngay, còn người quét mục lục thấy đúng thứ mục lục có nhiệm vụ khai: component nào **đang** dùng được.
 
 Ở dự án tiền nhiệm, một loạt spec bị rút vì hai màn hình bị gỡ ra để làm lại, rồi được khôi phục nguyên vẹn ít lâu sau. Điều cứu được lần khôi phục đó là **bảng rút vẫn còn** và nó nói rõ lý do rút là lịch trình chứ không phải thiết kế.
 

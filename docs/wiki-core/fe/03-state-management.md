@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 03. Quản lý state — signal store viết tay, chưa dùng NgRx
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`; mọi mẫu dưới đây là thứ phải viết.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Mọi mẫu dưới đây là đích phải đạt, không trích từ code đang chạy.
 >
 > Thi công cụ thể (đặt file ở đâu, đặt tên thế nào): [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md).
 
@@ -27,7 +27,7 @@ Phần lớn tranh cãi về "dùng thư viện state nào" biến mất khi tá
 | Loại | Cơ chế ở Core này | Nơi khai |
 | --- | --- | --- |
 | Server state | Service store dạng signal, có khoá cache | `<feature>/state/<feature>.store.ts` |
-| UI state | `signal()` trần trong page, phần cần chia sẻ link thì đặt trên URL | `<feature>/pages/…` |
+| UI state | `signal()` trần trong page, phần cần chia sẻ link thì đặt trên URL. Một *quy trình* (hộp thoại + form + gửi + xử lý lỗi) làm page vượt ngưỡng cỡ file thì lên `state/*.store.ts` — không lên `services/` ([`../../adr/0049-trang-thai-quy-trinh-hop-thoai-o-state-khong-o-services.md`](../../adr/0049-trang-thai-quy-trinh-hop-thoai-o-state-khong-o-services.md)) | `<feature>/pages/…` · `<feature>/state/…` |
 | Session state | Service `providedIn: 'root'` trong `core/` | `core/auth`, `core/i18n`, `core/theme` |
 
 > **Store sống ở `state/`, không ở `services/`.** Cấu trúc thư mục của một feature do [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §3 quyết; file này chỉ nói *store làm gì*. Hệ quả cần biết: cổng F12 (*"mọi `services/*.service.ts` có `.spec.ts` cạnh nó"*) **không** phủ file store — test cho store là yêu cầu riêng ở §9, và nó không có cổng đếm tên file nào canh.
@@ -87,26 +87,27 @@ export class UserListStore {
   private readonly _items = signal<User[]>([]);
   private readonly _total = signal(0);
   private readonly _loading = signal(false);
-  private readonly _error = signal<string | null>(null);   // MÃ lỗi, không phải câu hiển thị
+  // Tải hỏng: khung lỗi chỉ có tiêu đề cố định — request KHÔNG tắt toast, chi tiết và traceId ở toast.
+  private readonly _loadFailed = signal(false);
 
   // Bề mặt công khai chỉ đọc.
   readonly items = this._items.asReadonly();
   readonly total = this._total.asReadonly();
   readonly loading = this._loading.asReadonly();
-  readonly error = this._error.asReadonly();
+  readonly loadFailed = this._loadFailed.asReadonly();
 
-  readonly isEmpty = computed(() => !this._loading() && this._items().length === 0);
+  readonly isEmpty = computed(() => !this._loading() && !this._loadFailed() && this._items().length === 0);
 
   async load(query: UserQuery): Promise<void> {
     this._loading.set(true);
-    this._error.set(null);
+    this._loadFailed.set(false);
     try {
       const page = await firstValueFrom(this.api.search(query));
       this._items.set(page.items);
       this._total.set(page.totalCount);
-    } catch (e) {
-      // Giữ MÃ lỗi; template dịch nó. Giữ câu của BE là khoá chặt vào ngôn ngữ server.
-      this._error.set(e instanceof ApiFailureError ? e.body?.error.code ?? 'CORE.CLIENT.RESOURCE_LOAD_FAILED' : 'CORE.CLIENT.RESOURCE_LOAD_FAILED');
+    } catch {
+      // Không giữ mã, không dựng câu: interceptor đã toast. Giữ thân lỗi ở đây là hiện cùng sự cố hai lần.
+      this._loadFailed.set(true);
     } finally {
       this._loading.set(false);
     }
@@ -120,7 +121,7 @@ export class UserListStore {
 | --- | --- |
 | Bề mặt công khai chỉ đọc (`asReadonly()`) | Một `set()` gọi từ component là một đường thay đổi state không đi qua store — và nó sẽ được viết, vì nó ngắn hơn |
 | Store **không** gọi `HttpClient` trực tiếp | Giữ ranh giới `services/`: mapper DTO → model sống ở service API, store chỉ giữ state |
-| Component dumb (`components/`) **không** inject store | Luật F11. Component dumb nhận `input()` và phát `output()`; inject store là nó biết nghiệp vụ và hết dùng lại được |
+| Component dumb (`components/`) **không** inject store, **không** import tệp store, **không** nhận store qua `input()` | Luật F11 (phần `inject(`) và F33 (phần còn lại). Component dumb nhận **giá trị** qua `input()` và phát `output()`; nhận một store — dù qua `input()` — là nó biết nghiệp vụ và hết dùng lại được, và F11 không thấy đường đó |
 | Một store cho một feature | Một store dùng chung cho nhiều feature không liên quan chính là "god component" ở dạng state |
 
 ### 4.2 `providedIn: 'root'` hay provide theo route
@@ -205,9 +206,10 @@ Quy tắc bắt buộc: **rollback bằng ảnh chụp state trước khi đổi
 | Test gì | Cách |
 | --- | --- |
 | Trạng thái tải | Gọi `load()` với service giả trả Observable chậm → `loading()` là `true` ở giữa, `false` ở cuối |
-| Nhánh lỗi | Service giả ném lỗi có envelope → `error()` mang đúng **mã lỗi** của envelope, không phải chuỗi Angular sinh và không phải câu tiếng Việt viết cứng |
+| Nhánh lỗi | Service giả ném lỗi có envelope → `loadFailed()` là `true`, `isEmpty()` là `false`; store không giữ mã hay câu nào của lỗi |
 | Khoá cache | Gọi hai lần với hai khoá khác nhau → service bị gọi hai lần; cùng khoá → gọi một lần |
 | Vô hiệu hoá | Phát sự kiện đăng xuất → lần gọi kế tiếp phải chạm service lại |
+| Store quy trình hộp thoại | Mở → trạng thái được đặt lại; gửi thành công → cờ mở về `false` và callback chạy; **mỗi** mã lỗi mà store xử lý riêng có một ca; lỗi không kèm `fieldErrors` vẫn ra thông báo chung, không im lặng |
 
 Không test `computed()` tầm thường (chỉ ánh xạ lại một field) — test đó chỉ khẳng định lại chính dòng code nó test. Xem [`06-testing-strategy.md`](06-testing-strategy.md) §5.
 

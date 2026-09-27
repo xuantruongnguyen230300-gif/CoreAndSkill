@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0001 — Modular Monolith, không microservices và không monolith phẳng
 
-> **Trạng thái:** Đã chấp nhận (2026-09-08)
+> **Trạng thái:** Đã chấp nhận (2026-09-08) · Sửa một phần bởi [ADR-0101](0101-hop-dong-giua-module-o-contracts-cua-module-phat.md) (2026-09-25)
 
 ## Bối cảnh
 

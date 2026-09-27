@@ -6,7 +6,11 @@ verified: chua-doi-chieu
 
 # 09. Bảo mật ngoài phạm vi đăng nhập
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §9**; mục khác chưa ai đối chiếu nên `verified:` giữ `chua-doi-chieu`). Đường dẫn tính từ `src/BE/Core/CoreAndSkill.Core.Application/Files/`.
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | §9 nhận diện kiểu bằng nội dung: `FileContentDetector.cs` (`Detect`); tên tải về mang đuôi theo kiểu đã xác định: `FileNameSanitizer.cs` (`ForDownload`); purpose nhận `application/zip` làm hỏng khởi động: `FilePurposeDefinition.cs` (`FilePurposeCatalog`) | Giữ nguyên tới khi có quét mã độc |
 >
 > Đăng nhập, phiên và phân quyền ở [`02-identity-auth.md`](02-identity-auth.md). File này lo phần còn lại. Phía FE: [`../fe/14-security.md`](../fe/14-security.md).
 
@@ -105,7 +109,7 @@ Header là biện pháp rẻ nhất trong toàn bộ file này: đặt một l�
 
 | Quy tắc | Chi tiết |
 | --- | --- |
-| **Không bao giờ trong source** | Luật S6 ở [`../../RULES.md`](../../RULES.md), canh bằng công cụ quét bí mật trong CI |
+| **Không bao giờ ở dạng rõ trong source** | Luật S6 ở [`../../RULES.md`](../../RULES.md), canh bằng công cụ quét bí mật trong CI. Dạng mã hoá duy nhất được vào repo, và cái giá của nó: [`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md) §6.4 |
 | Máy lập trình viên | Cơ chế lưu bí mật ngoài thư mục repo của nền tảng phát triển |
 | Môi trường thật | Biến môi trường hoặc kho bí mật; **không** nằm trong file cấu hình được commit |
 | Xoay vòng | Phải làm được **mà không cần build lại**. Không đạt được thì trên thực tế sẽ không ai xoay |
@@ -144,7 +148,7 @@ Cùng nguyên tắc áp cho chiều sắp xếp và cho tên bảng.
 | **Không tin tên file client gửi** | Sinh tên mới. Tên client gửi có thể chứa đường dẫn tương đối để thoát ra thư mục khác, hoặc ký tự đặc biệt của hệ điều hành |
 | **Lưu ngoài thư mục được phục vụ tĩnh** | File tải lên không được nằm ở nơi máy chủ web có thể trả về trực tiếp |
 | **Phục vụ qua endpoint có kiểm quyền** | Kèm header buộc tải xuống thay vì hiển thị, và kiểu nội dung xác định — không lấy từ file |
-| **Quét mã độc** | Bắt buộc khi file được chia sẻ giữa người dùng |
+| **Quét mã độc** | Biện pháp đúng khi file được chia sẻ giữa người dùng. v1 chia sẻ mà **chưa** quét — lời hoãn có chủ ý, biện pháp bù và điều kiện mở lại ở [`../../adr/0050-v1-chua-quet-ma-doc-siet-zip-va-duoi-tai-xuong.md`](../../adr/0050-v1-chua-quet-ma-doc-siet-zip-va-duoi-tai-xuong.md) |
 
 Chi tiết về lưu trữ, dọn file mồ côi và file tạm: [`14-file-storage.md`](14-file-storage.md).
 
@@ -210,7 +214,7 @@ Và sau sự cố: một mục ở [`../../audit/`](../../audit/) ghi lại **c�
 | Quét bí mật trong CI | ✅ sẽ có | Luật S6 |
 | Danh sách cột cho phép khi sắp xếp và lọc | ✅ sẽ có | §8 |
 | Kiểm chữ ký file khi tải lên | ✅ sẽ có | |
-| **Quét mã độc cho file tải lên** | ❌ chưa ở v1 | Cần một dịch vụ quét. Bắt buộc trước khi file được chia sẻ giữa người dùng |
+| **Quét mã độc cho file tải lên** | ❌ chưa ở v1 | Hoãn có chủ ý dù v1 đã chia sẻ tệp — [`../../adr/0050-v1-chua-quet-ma-doc-siet-zip-va-duoi-tai-xuong.md`](../../adr/0050-v1-chua-quet-ma-doc-siet-zip-va-duoi-tai-xuong.md). Bù bằng luật S15, S16 ở [`../../RULES.md`](../../RULES.md) §6 |
 | **Giới hạn tần suất chia sẻ giữa nhiều instance** | ❌ chưa | Điều kiện bắt buộc phải giải trước khi chạy instance thứ hai |
 | **Tường lửa ứng dụng web** | ❌ chưa | Thuộc hạ tầng, không thuộc Core |
 | **Kiểm thử xâm nhập** | ❌ chưa | Nên làm một lần trước khi mở ra ngoài mạng nội bộ |

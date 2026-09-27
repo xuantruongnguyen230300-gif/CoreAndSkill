@@ -6,9 +6,25 @@ verified: chua-doi-chieu
 
 # Sidebar
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Bản tối thiểu đã có ở `src/FE` (F2, ADR-0037) — chỉ biến thể `expanded`; bảng "đã có → còn thiếu" ngay dưới đây.
 
 **Nền:** tự dựng. Theo tiêu chí ở [`../COMPONENTS.md`](../COMPONENTS.md) §4, cây menu là đệ quy đơn giản, không thuộc nhóm "khó". Riêng dạng `drawer` ở màn nhỏ **bọc** [`Drawer.md`](./Drawer.md) `position: left` — bẫy focus, khoá cuộn nền, trả focus là hành vi khó và đã giải ở đó; chiều `shared/components/` dùng `shared/ui/` là chiều được phép ([`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.2). Bọc một component điều hướng của thư viện lại buộc phải đè style nặng, vì hình thức của nó gắn chặt với thương hiệu.
+
+## Đã có → còn thiếu (F2, ADR-0037)
+
+Component: `src/FE/src/app/shared/components/sidebar/sidebar.component.ts`. `platform/shell` dựng cả `Sidebar` và `Topbar` — không còn markup tay ở `shell.component.html`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | Đủ chữ ký spec: `items`, `mode`, `drawerOpen`, `activeRoute`, `state`, `modeChange`, `drawerClose`, `retry` | — |
+| Biến thể `expanded` | Cây menu hai cấp, `<a routerLink>` thật, ba kênh cho mục đang chọn (nền, màu chữ, dải cạnh trái), `aria-current="page"` | — |
+| Biến thể `collapsed` | — | Chưa dựng: bề rộng `--layout-sidebar-w-collapsed`, chỉ icon, flyout hiện nhãn khi hover/focus |
+| Biến thể `drawer` | — | Chưa dựng: bọc `Drawer.md` (bản thân `Drawer` cũng chưa dựng), bẫy focus, khoá cuộn nền |
+| Ghi nhớ thu/mở | — | Chưa đọc/ghi `localStorage` — `mode` do `platform/shell` truyền cố định `'expanded'` |
+| Responsive tự chuyển `mode` theo `$bp-md`/`$bp-lg` | — | Chưa có — không có logic đọc breakpoint; đây cũng là hiện trạng của `shell.component.scss` trước ADR này, không phải hồi quy mới |
+| `state: 'loading'` | Một dòng chữ + không render gì khác | Còn thiếu: `SkeletonLoader.md` dạng vài dòng chữ nhật thay cho dòng chữ |
+| `state: 'error'` / `'empty'` | Đủ: dòng chữ (empty) hoặc dòng chữ + nút Thử lại (error) | — |
+| Liên kết "Bỏ qua tới nội dung chính" | Có, ở `shell.component.html` — đúng vị trí spec (thuộc khung, không thuộc `Sidebar`) | — |
 
 ---
 
@@ -68,7 +84,7 @@ Trạng thái ở đây phần lớn là của **một mục nav**, không phả
 | `disabled` | Mục người dùng không có quyền vào: chữ `--color-text-disabled`, không hover, không bấm được. **Cân nhắc ẩn hẳn thay vì làm mờ** — xem dưới | Có |
 | `loading` | Cây menu chưa về: [`SkeletonLoader.md`](./SkeletonLoader.md) dạng vài dòng chữ nhật. **Không** hiện một sidebar rỗng rồi mọc mục ra — nó làm bố cục nhảy | Có |
 | `error` | Không tải được menu: một dòng chữ ngắn `--color-text-muted` + nút "Thử lại" cỡ `sm`. **Không** dùng [`NoticeBanner.md`](./NoticeBanner.md) — dải quá hẹp cho nó | Có |
-| `empty` | Người dùng không có quyền vào mục nào: hiện logo, phần menu để trống với một dòng giải thích. Không hiện dải trống không có gì. Khu tài khoản và đường đăng xuất thuộc [`Topbar.md`](./Topbar.md), không thuộc `Sidebar` | Có |
+| `empty` | Người dùng không có quyền vào mục nào: phần menu để trống, thay bằng một dòng giải thích — dòng chữ đó đã lấp khoảng trống nên **không** cần thêm logo. `Sidebar` không có prop hay seam thương hiệu nào để vẽ logo; seam đó (`CORE_BRANDING`) chỉ nối tới [`AuthCard.md`](./AuthCard.md) cho màn chưa đăng nhập ([`01-dang-nhap.md`](../Screens/01-dang-nhap.md)). Khu tài khoản và đường đăng xuất thuộc [`Topbar.md`](./Topbar.md), không thuộc `Sidebar` | Có |
 
 **Ba kênh cho mục đang chọn là bắt buộc, không phải trang trí.** `--color-brand-subtle` chênh với `--color-surface` chỉ **1.25:1** ([`../DESIGN.md`](../DESIGN.md) §2.4) — dưới xa mọi ngưỡng. Dải cạnh trái `--color-brand` đạt 6.85:1 và màu chữ `--color-brand-on-subtle` đạt 7.47:1; chúng mới là thứ thật sự báo "bạn đang ở đây".
 
@@ -108,7 +124,7 @@ Chuyển giữa `expanded` và `collapsed` chạy trong `--dur-slow` với `--ea
 | Danh sách | `<ul>` / `<li>`; mục con là `<ul>` lồng trong `<li>` cha |
 | Mục nav | `<a>` với `routerLink`. 🛑 Không `<div (click)>` — mất mở tab mới, mất copy link, mất mọi thứ |
 | Mục hiện tại | `aria-current="page"` trên đúng một mục. Đây là kênh mà trình đọc màn hình dùng; ba kênh hình ảnh ở trên không thay được nó |
-| Mục có con | `<button aria-expanded>` để mở/đóng nhánh. Nhánh cha vừa điều hướng vừa mở rộng thì tách làm hai phần tử: liên kết và nút mở rộng |
+| Mục có con, **chỉ khi nhánh đó đóng/mở được** (hôm nay là flyout ở `collapsed` — dòng "Flyout ở `collapsed`" dưới đây) | `<button aria-expanded>` cho nút mở/đóng. Nhánh cha vừa điều hướng vừa mở rộng thì tách làm hai phần tử: liên kết và nút mở rộng. **Không áp dụng cho `expanded`**: biến thể này hiện tĩnh cả hai cấp, nhánh con luôn hiện và không đóng lại được (xem bảng "Đã có → còn thiếu" đầu file) — không có nút nào cần `aria-expanded` ở đây |
 | Bàn phím | Tab đi qua từng mục theo thứ tự đọc. Enter kích hoạt. Mũi tên **không** bắt buộc — đây là danh sách liên kết, không phải widget menu |
 | Drawer | Do [`Drawer.md`](./Drawer.md) §Accessibility gánh (biến thể `edit`): bẫy focus, Escape đóng, trả focus về nút hamburger |
 | Flyout ở `collapsed` | Nút cha `aria-expanded`; các con là `<a routerLink>` thật trong `<ul>` nên `aria-current` và Tab giữ nguyên như khi `expanded`; Escape đóng flyout, trả focus về nút cha |
@@ -133,6 +149,8 @@ Chuyển giữa `expanded` và `collapsed` chạy trong `--dur-slow` với `--ea
 | `retry` | output | `void` | — | |
 
 **`NavItem`:** chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9.
+
+⚠️ **`icon` của `NavItem` là chỗ hai luật gặp nhau, và chỗ nối chưa được duyệt.** Icon của mục nav không đến từ nơi gọi mà đến từ máy chủ, và [`../../contracts/meta-menu.md`](../../contracts/meta-menu.md) §1.3 chốt rằng trên dây nó là **lớp CSS thật** (`pi-home`). Input `icon` của component Core thì nhận **tên trần** ([`../Icons.md`](../Icons.md) §5). Hai luật không mâu thuẫn — chúng nói về hai đoạn khác nhau của cùng một chuỗi — nhưng phải có một chỗ cắt tiền tố, và chỗ đó là `platform/shell`, cùng chỗ nó đã dịch `labelKey` thành `label`. Xem §Cần chốt #3 trước khi dựng.
 
 🛑 **`label` là chuỗi ĐÃ dịch, không phải khoá i18n.** Nhận khoá thì `Sidebar` phải inject service dịch để hiển thị được, và lúc đó nó không còn là component dumb — vi phạm [`../COMPONENTS.md`](../COMPONENTS.md) §5 và luật F11. Trang cha phân giải khoá rồi truyền cây menu xuống. Cái giá: đổi ngôn ngữ lúc chạy buộc trang cha dựng lại cây.
 
@@ -159,3 +177,4 @@ Chuyển giữa `expanded` và `collapsed` chạy trong `--dur-slow` với `--ea
 | --- | --- | --- |
 | 1 | Có ô tìm kiếm trong menu khi cây lớn không? Nó cứu được cây dài nhưng cũng là dấu hiệu cây đang quá dài | Sau F3 — dự án hạ nguồn đầu tiên có trên vài chục mục |
 | 2 | Bậc `sm` của `Drawer` (`--layout-drawer-w-sm`) có quá rộng cho một cây menu ở khoảng `$bp-sm` … `$bp-md` không? Bậc hẹp hơn là một bậc mới của thang `--layout-drawer-w-*` — không tự đẻ | Người dùng, khi có màn thật để nhìn |
+| 3 | *Chờ duyệt:* Tiền tố `pi-` trong icon máy chủ trả về (§API, ghi chú `NavItem`) cắt ở đâu? **Đề xuất: `platform/shell` cắt khi đổi `MenuNode` sang `NavItem`**, giữ nguyên hợp đồng và giữ input component đồng nhất với mọi component Core khác. Phương án còn lại — đổi [`../../contracts/meta-menu.md`](../../contracts/meta-menu.md) §1.3 để máy chủ trả tên trần — sạch hơn về lâu dài nhưng là thay đổi hợp đồng, đụng cả BE | Người dùng; `architect` giữ hợp đồng đó |

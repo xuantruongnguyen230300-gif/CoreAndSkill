@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 01. Một Core tầm trung gồm những gì — Nhóm A và Nhóm B
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`. File này mô tả thứ Core phải trở thành.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/BE` đã có trên đĩa; file này mô tả thứ Core phải trở thành, và nay **có bản thật để đối chiếu**. Chưa ai đối chiếu toàn file, nên `verified:` giữ `chua-doi-chieu` — thành phần nào đã có thật thì mở `src/BE` ra so và nêu `file:dòng`.
 >
 > **Đây là file agent đọc TRƯỚC KHI tự đề xuất thêm một abstraction mới.** Mục [§5 Áp dụng](#5-áp-dụng--core-này-có-gì-cố-ý-thiếu-gì) liệt kê những thứ đã được cân nhắc và **cố ý loại**, kèm lý do. Đề xuất lại một thứ nằm trong bảng đó mà không nói được điều kiện đã đổi là làm mất thời gian của mọi người.
 
@@ -220,7 +220,7 @@ CA15 ArchTest — dựng SONG SONG, không để cuối
 
 ## 5. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Chưa có `src/` để đối chiếu.
+> 📐 Bảng dưới là **đích đến**, không phải hiện trạng — chưa ai đối chiếu nó với `src/BE`; hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Nhãn `📐` ở đây nghĩa là *chưa đối chiếu*, không có nghĩa là *chưa có code*.
 
 ### 5.1 Nhóm A — Core này sẽ có
 
@@ -254,7 +254,7 @@ CA15 ArchTest — dựng SONG SONG, không để cuối
 | **Multi-tenant** | **Không hoãn — trong phạm vi v1**: nhiều cơ quan dùng chung một bản cài. Cột phân biệt, bộ lọc truy vấn toàn cục, cách ly tuyệt đối. Xem [`../../adr/0013-multi-tenant.md`](../../adr/0013-multi-tenant.md) và [`17-multi-tenant.md`](17-multi-tenant.md) | — đã trong phạm vi |
 | **Pipeline behavior cho caching** | Cache ở tầng behavior là chỗ **tệ nhất** để bắt đầu: nó cache theo hình dạng request, không theo ngữ nghĩa dữ liệu, nên vô hiệu hoá đúng lúc là bất khả thi. Cache khi cần thì cache ở đúng nơi biết dữ liệu nào vừa đổi | Không có — hướng này bị loại, không hoãn. Cache sẽ làm ở tầng truy vấn cụ thể |
 | **Pipeline behavior cho logging và đo hiệu năng** | Trùng với thứ hạ tầng đã cho sẵn (middleware log request, telemetry). Thêm behavior là log hai lần cùng một thứ ở hai định dạng khác nhau. Xem [`../../adr/0006-pipeline-behavior.md`](../../adr/0006-pipeline-behavior.md) | Có nhu cầu đo **riêng ở tầng handler** mà tầng HTTP không thấy được |
-| **Thư viện lập lịch job nền** (Quartz.NET, Hangfire…) | Đã chốt `BackgroundService` của .NET sau seam `IBackgroundJobScheduler`, không thư viện. Các job đã có — dọn dữ liệu quá hạn, đối soát tệp mồ côi, nhập nền — chạy trên cơ chế đó — [`18-trien-khai-va-van-hanh.md`](18-trien-khai-va-van-hanh.md) §7 | Cần lịch cron do người dùng cấu hình |
+| **Thư viện lập lịch job nền** (Quartz.NET, Hangfire…) | Đã chốt `BackgroundService` của .NET, không thư viện — [`18-trien-khai-va-van-hanh.md`](18-trien-khai-va-van-hanh.md) §7. Mọi job dự tính (dọn dữ liệu quá hạn, đối soát tệp mồ côi, nhập nền) chạy trên cơ chế đó, theo một trong hai hình dạng ở [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1 — chỉ hình dạng *chạy một lần theo yêu cầu* mới đi qua seam `IBackgroundJobScheduler` | Cần lịch cron do người dùng cấu hình |
 | **Phiên bản API** | Chưa có client bên thứ ba | Có client không triển khai cùng nhịp với BE |
 
 ### 5.3 Cách dùng bảng 5.2 khi review

@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 05. Thư viện component dùng chung
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`; đây là bộ component `shared/` phải dựng.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Đây là bộ component `shared/` phải có.
 >
 > Đặc tả giao diện từng component (bố cục, trạng thái, câu chữ) thuộc [`../../Design/COMPONENTS.md`](../../Design/COMPONENTS.md). File này nói *cần component nào, vì sao, và ranh giới của chúng*.
 

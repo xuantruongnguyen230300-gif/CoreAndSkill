@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # Cái gì được vào repo — artifact, dữ liệu chạy, file sinh, secret
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo đang ở giai đoạn 1: chưa có `src/`. Quy ước dưới đây áp cho `src/` khi nó ra đời, và áp **ngay** cho phần `docs/` đã có.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/` đã có trên đĩa, nên quy ước dưới đây **đang áp cho cả `src/` lẫn `docs/`**, không còn chờ. Chưa ai đối chiếu toàn file với code, nên `verified:` giữ `chua-doi-chieu`.
+>
+> ⚠️ `src/`, `scripts/` và `database/` **chưa vào git** (`git status` in chúng ở dạng chưa theo dõi). Cho tới lần commit đầu tiên, mọi lệnh kiểm trong file này chỉ chạy đúng trên máy có sẵn cây thư mục, không chạy đúng trên một checkout CI sạch.
 
 ---
 
@@ -107,24 +109,24 @@ FE không có "dữ liệu chạy" theo nghĩa này — mọi thứ trong thư m
 
 ### 6.1 Luật
 
-> **Không secret nào trong source, và không secret nào trong bundle FE** (luật S6).
+> **Không secret dạng rõ nào trong source, không khoá giải mã nào trong repo ngoài khoá mang mã `dev`, và không secret nào trong bundle FE** (luật S6). Dạng mã hoá **duy nhất** được vào repo, cùng khoá `dev` của nó: §6.4.
 
 | Nơi | Được chứa | Cấm |
 | --- | --- | --- |
-| File cấu hình mặc định của server (vào repo) | Cấu trúc khoá, giá trị không nhạy cảm, giá trị mặc định an toàn | Mọi giá trị thật của môi trường chạy |
-| `appsettings.Development.json` của server (**vào** repo) | Giá trị **không bí mật** cho máy lập trình viên — ví dụ origin FE trong allowlist CORS, mã đơn vị của lệnh bootstrap | Mọi bí mật: chuỗi kết nối mang mật khẩu, khoá ký, mật khẩu tài khoản |
+| File cấu hình mặc định của server (vào repo) | Cấu trúc khoá, giá trị không nhạy cảm, giá trị mặc định an toàn | Mọi giá trị thật của môi trường chạy; mọi giá trị mã hoá của §6.4 — tệp này đi theo artifact lên máy chủ |
+| `appsettings.Development.json` của server (**vào** repo) | Giá trị **không bí mật** cho máy lập trình viên — ví dụ origin FE trong allowlist CORS, mã đơn vị của lệnh bootstrap. Phần mật khẩu của `ConnectionStrings:Core` **ở dạng mã hoá §6.4**, cùng khoá mã `dev` giải nó, khi nhóm dùng DB dev chung. Tệp **không** đi vào gói publish | Mọi bí mật **dạng rõ**: mật khẩu trong chuỗi kết nối, khoá ký, mật khẩu tài khoản; khoá giải mã mang mã khác `dev` |
 | File cấu hình của môi trường khác (**không** vào repo) | Chuỗi kết nối, khoá ký | — |
 | Kho secret của công cụ phát triển (`user-secrets`, ngoài cây làm việc) | Mọi bí mật của máy lập trình viên | — |
 | Biến môi trường lúc triển khai | Như trên, cho môi trường chạy | — |
 | `environments/*.ts` của FE | `apiBaseUrl`, cờ `production` | Bất cứ thứ gì lộ ra là phải đổi |
 
-**Cổng của S6:** gitleaks chạy trong CI **ngay từ giai đoạn 1**, trên toàn repo kể cả `docs/`. Allowlist của nó (`.gitleaks.toml` ở gốc repo) chỉ chứa **placeholder rõ ràng** trong tài liệu, không chứa mẫu nới cho mã nguồn.
+**Cổng của S6:** gitleaks chạy trong CI **ngay từ giai đoạn 1**, trên toàn repo kể cả `docs/`. Allowlist toàn cục của nó (`.gitleaks.toml` ở gốc repo) chỉ chứa **placeholder rõ ràng** trong tài liệu, không chứa mẫu nới cho mã nguồn. Rule tuỳ chỉnh bắt mật khẩu rõ trong `appsettings*.json` (luật S23, 📐 chưa có — [nợ](../DEBT.md)) miễn trừ đúng dạng §6.4 và không gì khác. Rule mặc định mà báo khoá `dev` thì allowlist chỉ phủ đúng khoá cấu hình đó, trong đúng tệp đó.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`repo-artifact.md`](../wiki-core/be/ly-do/repo-artifact.md) §6.1
 
 ### 6.2 File cấu hình mặc định vẫn phải vào repo
 
-Khuôn đúng: **file mặc định vào repo với cấu trúc đầy đủ và giá trị rỗng hoặc vô hại; `appsettings.Development.json` vào repo với giá trị không bí mật của máy dev**. File của môi trường khác bị loại trừ theo mẫu tên, và mẫu đó chừa đúng `appsettings.Development.json`. Bí mật đi qua `user-secrets`, không bao giờ nằm trong tệp; gitleaks (S6) quét cả tệp này.
+Khuôn đúng: **file mặc định vào repo với cấu trúc đầy đủ và giá trị rỗng hoặc vô hại; `appsettings.Development.json` vào repo với giá trị không bí mật của máy dev**. File của môi trường khác bị loại trừ theo mẫu tên, và mẫu đó chừa đúng `appsettings.Development.json`. Bí mật dạng rõ đi qua `user-secrets` và không bao giờ nằm trong tệp — ngoại lệ có tên là mật khẩu DB dev chung ở dạng §6.4 cùng khoá `dev` của nó; gitleaks (S6) quét cả tệp này.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`repo-artifact.md`](../wiki-core/be/ly-do/repo-artifact.md) §6.2
 
@@ -132,16 +134,52 @@ Khuôn đúng: **file mặc định vào repo với cấu trúc đầy đủ và
 
 | Cần tạo | Ở đâu | Lấy giá trị từ đâu |
 | --- | --- | --- |
-| Bí mật của máy dev — chuỗi kết nối, mật khẩu hai tài khoản của lệnh bootstrap | kho secret của công cụ phát triển (`user-secrets`) | tự đặt; tên khoá của lệnh bootstrap: [`../database/script-runbook.md`](../database/script-runbook.md) §3.3 |
-| Cơ sở dữ liệu cục bộ + áp schema | máy cá nhân | [`../database/script-runbook.md`](../database/script-runbook.md) |
+| Bí mật của máy dev — chuỗi kết nối **khi không dùng DB dev chung**, mật khẩu hai tài khoản của lệnh bootstrap | kho secret của công cụ phát triển (`user-secrets`) | tự đặt; tên khoá của lệnh bootstrap: [`../database/script-runbook.md`](../database/script-runbook.md) §3.3 |
+| Cơ sở dữ liệu cục bộ + áp schema — khi không dùng DB dev chung, khi thử script của nhánh chưa hợp nhất, khi gỡ lỗi việc nền ([`../adr/0099-luat-van-hanh-db-dev-chung.md`](../adr/0099-luat-van-hanh-db-dev-chung.md)), khi thử khu quản trị hệ thống ([`../adr/0105-thu-khu-quan-tri-he-thong-tren-db-cuc-bo.md`](../adr/0105-thu-khu-quan-tri-he-thong-tren-db-cuc-bo.md)) | máy cá nhân | [`../database/script-runbook.md`](../database/script-runbook.md) |
 | Đơn vị hệ thống, đơn vị nghiệp vụ đầu tiên và hai tài khoản đầu tiên | cơ sở dữ liệu cục bộ | Lệnh bootstrap — **cùng lệnh** với bản cài thật; mật khẩu đọc từ kho secret của công cụ phát triển — [`../database/script-runbook.md`](../database/script-runbook.md) |
 | Thư viện của FE | thư mục FE | lệnh cài, đọc từ lockfile |
-| Chứng chỉ HTTPS phát triển được máy tin cậy, và bản xuất cho máy chủ dev của FE | kho chứng chỉ của máy cá nhân; tệp xuất nằm ở `src/FE/.cert/` — thư mục bị `.gitignore` loại trừ, không bao giờ commit (lệnh kiểm 5 ở §10) | Lệnh và khai báo trong `angular.json`: [`../wiki-core/fe/trien-khai/01-f0-nen-mong.md`](../wiki-core/fe/trien-khai/01-f0-nen-mong.md) §1 |
+| Chứng chỉ HTTPS phát triển được máy tin cậy, và bản xuất cho máy chủ dev của FE | kho chứng chỉ của máy cá nhân; tệp xuất nằm ở thư mục `.cert/` trong `src/FE/` — thư mục bị `.gitignore` loại trừ, không bao giờ commit (lệnh kiểm 5 ở §10) | Lệnh và khai báo trong `angular.json`: [`../wiki-core/fe/trien-khai/01-f0-nen-mong.md`](../wiki-core/fe/trien-khai/01-f0-nen-mong.md) §1 |
 | Origin của FE trong allowlist CORS của API — **đủ scheme và cổng** | có sẵn trong `appsettings.Development.json` — chỉ kiểm lại cho khớp | cổng mà máy chủ dev của FE thật sự chạy |
 
 Máy dev cũng chạy HTTPS — [`../adr/0015-fe-va-api-khac-nguon.md`](../adr/0015-fe-va-api-khac-nguon.md).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`repo-artifact.md`](../wiki-core/be/ly-do/repo-artifact.md) §6.3
+
+### 6.4 Giá trị cấu hình mã hoá — định nghĩa gốc
+
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Quyết định và cái giá: [`../adr/0097-mat-khau-db-dev-chung-vao-git-ma-hoa-aes-gcm-khoa-ngoai-repo.md`](../adr/0097-mat-khau-db-dev-chung-vao-git-ma-hoa-aes-gcm-khoa-ngoai-repo.md), sửa một phần bởi [`../adr/0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md`](../adr/0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md) — giải mã ở bước dựng `CoreConnectionOptions`, khoá `dev` nằm trong git. Luật: S6 ([`../RULES.md`](../RULES.md) §6), S23–S25 ([`../DEBT.md`](../DEBT.md)).
+>
+> 🛑 **Với khoá `dev`, mã hoá chỉ là che mắt**: khoá nằm cạnh bản mã, nên ai đọc được repo thì giải được mật khẩu DB dev. Điều kiện để chấp nhận được: ADR-0098, quyết định 3.4.
+
+| Mục | Giá trị |
+| --- | --- |
+| Chỗ được phép | Phần mật khẩu của `ConnectionStrings:Core` — khoá `Password` hoặc một tên đồng nghĩa mà Npgsql nhận. Trong repo: chỉ trong `appsettings.Development.json`, và chỉ mang mã khoá `dev`. Ngoài repo: biến môi trường của máy chủ, mã do DevOps đặt — được, không bắt buộc. **Không khoá cấu hình nào khác** |
+| Dạng | `enc:v1:<mã khoá>:<dữ liệu>` |
+| `v1` | AES-256-GCM. Nonce 12 byte ngẫu nhiên, mới cho mỗi lần mã hoá; tag 16 byte. `<dữ liệu>` là base64url không đệm của nonce ‖ bản mã ‖ tag. Dữ liệu liên kết (AAD) là các byte ASCII của chuỗi đầu `enc:v1:<mã khoá>:`. Bản rõ mã UTF-8 |
+| Mã khoá | Chữ thường và chữ số, 1–16 ký tự. `dev` là mã **dành riêng** cho khoá nằm trong git. Mã khác không dùng lại mã đã từng phát |
+| Khoá | 32 byte ngẫu nhiên, base64 chuẩn, ở khoá cấu hình `Core:ConfigEncryption:Keys:<mã khoá>`. Khoá `dev`: trong `appsettings.Development.json`, cạnh bản mã. Khoá mọi mã khác: biến môi trường `Core__ConfigEncryption__Keys__<mã khoá>` do DevOps cấp, **không bao giờ** trong tệp nào của repo. Nhóm khoá trống là hợp lệ |
+| Nhận diện dấu | Chuỗi con `enc:v<số>:` ở bất kỳ đâu trong một giá trị, **không phân biệt hoa thường**. Dấu này là không gian tên dành riêng: bản rõ không được chứa nó |
+| Xét trên | Giá trị **hiệu lực**, sau khi mọi nguồn cấu hình đã gộp. Giá trị bị nguồn sau đè thì không bao giờ được giải |
+| Không có dấu | Dùng nguyên |
+| Có dấu mà không giải được — thiếu khoá mang đúng mã, sai khoá, bị sửa, sai dạng, phiên bản lạ, nằm ngoài chỗ được phép — hoặc một khoá sai dạng | Tiến trình **không khởi động**. Thông điệp nêu khoá cấu hình và mã khoá, trỏ về mục này; không in bản rõ, bản mã hay khoá |
+
+Máy clone về đã có khoá `dev`. Máy không dùng DB dev chung thì đè `ConnectionStrings:Core` bằng `user-secrets` trỏ vào database cục bộ: `user-secrets` đứng sau `appsettings.Development.json` trong thứ tự nguồn của framework, nên thắng.
+
+```bash
+# Sinh khoá — in base64 của 32 byte ngẫu nhiên. Khoá dev: chỉ khi dựng DB dev chung lần đầu.
+openssl rand -base64 32
+
+# Mã hoá một mật khẩu: lệnh đọc mật khẩu từ đầu vào chuẩn, KHÔNG nhận nó qua tham số.
+dotnet run --project src/BE/CoreAndSkill.Api -- core encrypt-secret --key dev
+```
+
+Khoá mang mã khác `dev` không bao giờ truyền làm tham số dòng lệnh: lịch sử shell giữ lại nó.
+
+**Khoá `dev` không xoay.** Lịch sử git giữ cả khoá cũ lẫn bản mã cũ, nên xoay khoá không thu hồi gì. Khi có người rời nhóm: gỡ quyền đọc repo; nếu người đó còn với tới DB dev, **đổi mật khẩu `coreandskill_app`** của DB dev, mã hoá lại bằng khoá `dev`, commit. Khoá của môi trường máy chủ là việc của DevOps.
+
+Không có lệnh giải mã — lý do ở ADR-0097, quyết định 7.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`repo-artifact.md`](../wiki-core/be/ly-do/repo-artifact.md) §6.4
 
 ---
 
@@ -217,7 +255,7 @@ Theo [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §6, không chép danh
 git ls-files | grep -cE '/(bin|obj|dist|node_modules)/' || true
 
 # 2. File cấu hình của môi trường khác Development lọt vào chỉ mục — PASS khi in ra 0
-#    appsettings.Development.json được phép: nó vào repo và không chứa bí mật (§6.1)
+#    appsettings.Development.json được phép: nó vào repo và không chứa bí mật dạng rõ (§6.1, §6.4)
 git ls-files | grep -E 'appsettings\.[A-Za-z]+\.json$' | grep -vc 'appsettings\.Development\.json$' || true
 
 # 3. Đường dẫn lẽ ra bị loại trừ nhưng .gitignore không khai — PASS khi không in gì
@@ -278,6 +316,7 @@ Ba lớp chặn, và mỗi lớp có chỗ mù riêng:
 
 - [ ] Không có file nào trong nhóm "✘" của bảng §2 nằm trong thay đổi.
 - [ ] Nếu có file cấu hình mới: giá trị thật nằm ngoài repo, file mặc định có đủ cấu trúc khoá (§6.2).
+- [ ] Nếu đổi chuỗi kết nối trong `appsettings.Development.json`: phần mật khẩu rỗng hoặc ở dạng §6.4 mang mã khoá `dev`, không bao giờ dạng rõ.
 - [ ] Nếu có file sinh tự động: mang dấu "đừng sửa tay" kèm lệnh sinh (§7).
 - [ ] Nếu `package.json` đổi: lockfile đổi theo, và không sửa tay (§3).
 - [ ] Nếu thêm ảnh vào [`../Design/`](../Design/): đã nén, đúng định dạng, ghi đè đúng tên cũ (§5).
@@ -315,11 +354,11 @@ Ba dòng, không hơn: tag Core đang dùng, mã commit đầy đủ của tag �
 
 ### 15.2 Đánh tag ở repo Core
 
-Tag theo dạng `core-vMAJOR.MINOR.PATCH`, tăng theo đúng nghĩa quen thuộc: `PATCH` cho sửa lỗi không đổi hợp đồng, `MINOR` cho thêm khả năng mà bản cũ vẫn chạy, `MAJOR` cho thay đổi phá vỡ. Cùng lúc đánh tag, ghi một mục trong `CHANGELOG.md` ở gốc repo Core; mục của thay đổi phá vỡ **bắt buộc** có phần *"dự án phải làm gì"*.
+Tag theo dạng `core-vMAJOR.MINOR.PATCH`, tăng theo đúng nghĩa quen thuộc: `PATCH` cho sửa lỗi không đổi hợp đồng, `MINOR` cho thêm khả năng mà bản cũ vẫn chạy, `MAJOR` cho thay đổi phá vỡ. Cùng lúc đánh tag, ghi một mục trong `CHANGELOG.md` ở gốc repo Core; mục của thay đổi phá vỡ **bắt buộc** có phần *"dự án phải làm gì"*. Thay đổi mà dự án phải làm theo ở vùng dự án (§15.5) — một dòng mới ở `Program.cs`, một khoá mới ở `appsettings.json` của host, một dòng mới ở Dockerfile — cũng **bắt buộc** có phần đó, kể cả khi không phá vỡ: host thuộc dự án, nên lần kéo bản mới không tự mang thay đổi đó tới ([`../adr/0100-host-thuoc-vung-du-an-ba-vung-so-huu-tep.md`](../adr/0100-host-thuoc-vung-du-an-ba-vung-so-huu-tep.md)).
 
 ### 15.3 Kéo một bản Core mới về dự án
 
-Repo dự án giữ thêm một remote trỏ về repo Core. Trình tự: đọc `CHANGELOG.md` trước → kéo về theo **tag**, không theo nhánh → xử lý xung đột (nếu có xung đột trong `Core/` thì luật 1 của ADR-0016 đã bị vi phạm từ trước) → chạy cổng và bộ test → cập nhật `CORE_VERSION`.
+Repo dự án giữ thêm một remote trỏ về repo Core. Trình tự: đọc `CHANGELOG.md` trước → kéo về theo **tag**, không theo nhánh → xử lý xung đột (xung đột ở tệp vùng Core nghĩa là luật 1 của ADR-0016 đã bị vi phạm từ trước; xung đột ở host thì giải theo phần *"dự án phải làm gì"* của `CHANGELOG.md`) → chạy cổng và bộ test → cập nhật `CORE_VERSION`.
 
 > 🛑 Các lệnh git ghi ở bước này là **của người dùng**, không phải của agent ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §1). Agent dừng lại và nói rõ cần chạy lệnh gì.
 
@@ -331,6 +370,28 @@ Repo dự án giữ thêm một remote trỏ về repo Core. Trình tự: đọc
 | Chưa có seam, nhưng nhu cầu chung | Thêm seam **ở repo Core**, đánh tag, rồi kéo về dự án |
 | Nhu cầu chỉ của riêng dự án này | Viết trong module của dự án. Không nâng lên Core — ngưỡng ở [`../kien-truc-core-module.md`](../kien-truc-core-module.md) §4.2 |
 
-Không sửa thẳng tệp trong `Core/` của bản clone.
+Không sửa thẳng tệp thuộc vùng Core (§15.5) của bản clone.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`repo-artifact.md`](../wiki-core/be/ly-do/repo-artifact.md) §15.4
+
+### 15.5 Vùng sở hữu tệp — định nghĩa gốc
+
+Luật 1 của [`../adr/0016-phan-phoi-core-bang-clone.md`](../adr/0016-phan-phoi-core-bang-clone.md) — *dự án không sửa vùng Core* — đọc theo bảng này ([`../adr/0100-host-thuoc-vung-du-an-ba-vung-so-huu-tep.md`](../adr/0100-host-thuoc-vung-du-an-ba-vung-so-huu-tep.md)). Bảng trả lời *"dự án được sửa tệp nào"*. Câu *"đổi tệp nào cần `core-reviewer`"* là câu khác, trả lời ở khối `core-paths` ([`../kien-truc-core-module.md`](../kien-truc-core-module.md) §10). Mọi đường dẫn trong khối đó thuộc vùng Core.
+
+| Vùng | Đường dẫn | Dự án được làm gì |
+| --- | --- | --- |
+| **Dự án** | `src/BE/CoreAndSkill.Api/` · `src/BE/Modules/` · `database/scripts/modules/` · `CORE_VERSION` | Mọi thứ. Core không phụ thuộc nội dung của chúng; repo Core giữ host làm **mẫu** |
+| **Dùng chung có thủ tục** | `src/BE/CoreAndSkill.slnx` · `src/BE/Directory.Packages.props` | Chỉ **thêm** dòng của mình — project của module, gói của module. Không sửa, không xoá dòng của Core |
+| **Core** | Mọi đường dẫn trong khối `core-paths` · `src/BE/Tests/` · `CHANGELOG.md` · mọi đường dẫn còn lại dưới `src/BE/` và `database/` | Không sửa. Cần đổi hành vi thì theo §15.4 |
+| `docs/`, `spec/` | Theo khoá `scope` của từng tệp ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §9): `core` thuộc vùng Core, `du-an` thuộc vùng dự án | — |
+| **Chưa phân vùng** | Phần `src/FE/` nằm ngoài khối `core-paths` — composition root, tệp token toàn cục ([`../adr/0059-cong-fe-canary-va-tai-san-fe-cua-core-vao-core-paths.md`](../adr/0059-cong-fe-canary-va-tai-san-fe-cua-core-vao-core-paths.md), phương án C); tệp gốc repo không kể ở trên | Chưa có luật. Cổng của A17 ([`../DEBT.md`](../DEBT.md)) chờ hàng này rỗng |
+
+### 15.6 Dựng dự án mới từ bản clone — giá trị mang tên Core phải thay
+
+Ba nhóm giá trị trong vùng dự án mang tên của repo Core. Dự án thay chúng **một lần**, lúc dựng, cùng lúc tạo `CORE_VERSION` (luật A19):
+
+| Giá trị | Ở đâu | Không thay thì |
+| --- | --- | --- |
+| `UserSecretsId` — sinh GUID mới | `.csproj` của host | Hai repo trên một máy dùng chung một kho `user-secrets`: chuỗi kết nối, mật khẩu bootstrap chạy sang repo kia mà không báo |
+| Tên cookie phiên và cookie antiforgery | `Core:Auth:CookieName`, `Core:Auth:AntiforgeryCookieName` trong `appsettings.json` của host | Trình duyệt không cách ly cookie theo cổng: hai app trên `localhost`, hoặc dưới cùng miền cha, ghi đè phiên của nhau |
+| Thư mục kho tệp | Dockerfile của host; `Core:File:RootPath` của mỗi môi trường | Hai sản phẩm chung thư mục thì bảo trì kho tệp của bên này xoá tệp *"không có bản ghi"* của bên kia |

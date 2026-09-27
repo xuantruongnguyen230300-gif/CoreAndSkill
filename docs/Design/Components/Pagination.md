@@ -6,7 +6,31 @@ verified: chua-doi-chieu
 
 # Pagination
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có thật ở `src/FE/src/app/shared/ui/pagination/` — selector `app-pagination`, class `PaginationComponent`. Bảng dưới khai **đúng những mục đã mở ba tệp `.ts` / `.html` / `.scss` ra so, ngày 2026-09-20**; mục không có tên trong bảng thì chưa ai đối chiếu. Bản đang chạy tự khai là **F3 tối giản** trong chính chú thích đầu `pagination.component.ts`.
+
+| Mục trong spec | Có thật hôm nay (neo bằng chuỗi trong `src/FE`) | Sẽ thành |
+| --- | --- | --- |
+| §Nền — bọc PrimeNG | `pagination.component.ts` import `PaginatorModule` từ `primeng/paginator`; template đặt `<p-paginator>` | Giữ nguyên |
+| Luật bọc: không lọt kiểu PrimeNG ra API | `PaginatorState` chỉ xuất hiện ở tham số của `onPageChange`, là `protected`; mọi `input`/`output` công khai đều là kiểu thường | Giữ nguyên |
+| Quy đổi đếm-từ-0 ở một chỗ | `first` là `computed` trong `.ts`, tính `(this.page() - 1) * this.pageSize()` | Giữ nguyên |
+| Không dùng `::ng-deep` | `pagination.component.scss` không chứa chuỗi `::ng-deep` | Giữ nguyên |
+| 🛑 Bẫy đổi số dòng phải về trang 1 | `onPageChange` phát `this.pageSizeChanged.emit({ pageSize: rows, page: 1 })` rồi `return` ngay | Giữ nguyên |
+| Không phát khi bấm lại trang đang đứng | `onPageChange` bọc lần phát trong `if (trangMoi !== this.page())` | Giữ nguyên |
+| Component không tự gọi API | `.ts` không inject service nào, chỉ có `input`/`output`/`computed` | Giữ nguyên |
+| Thẻ `<nav>` + `aria-label` | `pagination.component.html` mở bằng `<nav class="pagination" [attr.aria-label]="ariaLabel()">` | Giữ nguyên — nhưng §API dự kiến **chưa khai** input `ariaLabel`, spec thiếu chứ không phải code thừa |
+| "x–y trên tổng z" trong vùng `aria-live="polite"` | `.pagination__khoang` mang `aria-live="polite"` trong template | Giữ nguyên |
+| Chuỗi có tham số, không nối chuỗi | Có (đối chiếu 2026-09-22): template gọi `'chung.phanTrang.khoang' \| translate: thamSoKhoang()`; `thamSoKhoang` là `computed` trả `{ tu, den, tong }`; `src/FE/public/i18n/vi.json` có khoá `chung` › `phanTrang` › `khoang` = "{{tu}}–{{den}} trên tổng {{tong}}" — đúng ba tham số template truyền, đúng câu "x–y trên tổng z" của spec, dấu gạch giữa hai số là gạch ngang ngắn | — (đủ) |
+| Câu cho nhãn ARIA từng nút và ô chọn số dòng (§Accessibility) | Có trong tệp dịch (đối chiếu 2026-09-22): nhánh `thuVienUi` › `aria` của `vi.json` mang các khoá `firstPageLabel`, `prevPageLabel`, `nextPageLabel`, `lastPageLabel`, `pageLabel`, `rowsPerPageLabel` với câu của §Accessibility; bảng câu và cơ chế nạp ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 6. Thư viện có gắn chúng lên đúng nút hay không: chưa mở DOM chạy thật ra xem — vẫn thuộc khối 📐 ngay dưới | — |
+| `empty` khi tổng bằng 0 | Template bọc toàn bộ trong `@if (totalRecords() > 0)` | Giữ nguyên. Nhánh "tổng vừa đủ một trang" do PrimeNG quyết, **chưa so** |
+| Biến thể `full` / `compact` / `simple` | **Chỉ có `full`.** `.ts` không khai input `variant`; chú thích đầu tệp nói thẳng `compact`/`simple` chưa dựng | Dựng khi có màn cần, theo bảng §Biến thể |
+| Cỡ `sm` / `md` | **Chưa có.** `.ts` không khai input `size`; `.scss` không dùng `--size-control-sm` hay `--size-control-md` | Dựng theo bảng §Kích thước |
+| `showPageSize` | **Chưa có** trong `.ts` | Dựng theo §API dự kiến |
+| `loading` → `aria-busy="true"` và `disabled` thật | **Chưa có.** `disabled()`/`loading()` chỉ gắn class `pagination__paginator--disabled`, và class đó khoá bằng `pointer-events: none` — chuột bị chặn, bàn phím thì không, và không có `aria-busy` ở đâu | Khoá thật bằng `disabled` của từng nút, thêm `aria-busy` theo §Trạng thái |
+| Tạo hình nút theo token: `default`, `hover`, `focus-visible`, `active`, `disabled` | **Chưa có.** `.scss` chỉ tạo hình khung ngoài (`.pagination`, `.pagination__khoang`); không token nào trong nhóm `--color-brand-subtle`, `--color-surface-2`, `--color-focus`, `--radius-sm` xuất hiện | Tạo hình theo §Trạng thái bằng cơ chế theme của thư viện |
+| §Responsive | **Chưa có.** `.scss` không chứa `@media`; chỉ có `flex-wrap: wrap` trên `.pagination` | Dựng cả ba ngưỡng |
+| §Token dùng — `--dur-fast` (đối chiếu 2026-09-23, chỉ đọc mã) | Nút trang đổi màu có chuyển tiếp, và nó đi qua biến của thư viện chứ không qua token Core: `@primeuix/styles/paginator` § `transition:` liệt kê `background`, `color`, `outline-color`, `box-shadow` với `dt('paginator.transition.duration')`. Biến đó lấy giá trị từ primitive `transition.duration` của preset Aura — `0.2s`, tức **200ms** | Spec đòi `120ms`. Khoảng lệch là `80ms` trên một chuyển tiếp màu, mắt khó bắt — nhưng nó là **80ms không ai chọn**, và điều đáng sửa là chỗ quyết định nằm ngoài tầm với chứ không phải con số. Nối `--p-paginator-transition-duration` về token là xong; `frontend-expert` làm |
+
+📐 **Những mục dưới đây CHƯA đối chiếu, và vẫn là đích đến:** `aria-current="page"` và `aria-label` từng nút (PrimeNG vẽ, chưa mở DOM chạy thật ra xem), thứ tự Tab, hành vi focus sau khi đổi trang, vùng bấm ≥ 28×28px, vị trí một-dải-dưới-bảng (thuộc `DataTable`), §Khi nào dùng / khi nào KHÔNG dùng và §Do / Don't.
 
 **Nền:** bọc PrimeNG — theo [`../COMPONENTS.md`](../COMPONENTS.md) §4, phân trang thuộc nhóm hành vi khó: tính dãy số trang có dấu lược, đồng bộ với phân trang phía máy chủ, giữ đúng chỉ số khi tổng số bản ghi đổi giữa hai lần tải. Đây cũng là component đi cặp với [`DataTable.md`](./DataTable.md), vốn đã bọc cùng thư viện — dùng hai nguồn khác nhau cho hai nửa của một cơ chế là cách chúng lệch nhau.
 

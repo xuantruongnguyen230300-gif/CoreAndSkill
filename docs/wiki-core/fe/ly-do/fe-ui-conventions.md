@@ -136,6 +136,8 @@ Cùng lý do đó áp cho cả việc **đổi hẳn thư viện UI**. Không ai
 
 - **Bọc chuyển tiếp mọi thuộc tính thì sao** — Một bọc phơi lại đủ mọi `input` của component gốc thì không cách ly được gì: đổi thư viện vẫn phải sửa mọi nơi gọi, vì tên và ngữ nghĩa thuộc tính đến từ thư viện cũ.
 
+- **Phép thử nhanh để biết một bọc có hẹp đúng cách** — đổi thư viện bên dưới, có sửa được chỉ trong file bọc này không? Không thì đó chỉ là một lớp gián tiếp, không phải một lớp bọc.
+
 ### 2.4 Khi thư viện thiếu thứ cần
 
 - **Vì sao bước 4 phải cân nhắc kỹ** — Override CSS neo vào tên lớp CSS nội bộ của thư viện, tức neo vào thứ thư viện có quyền đổi trong bản vá nhỏ.
@@ -298,23 +300,95 @@ Khuôn số nhiều — hai khoá con và chọn ở template:
 
 - **Vì sao đăng ký CVA bằng `ngControl.valueAccessor = this`, không qua `providers` với `NG_VALUE_ACCESSOR`** — Spec của các control tự dựng suy trạng thái `error` từ `invalid && touched` của control chủ, tức component phải inject `NgControl`. `NgControl` trên cùng phần tử lại tìm accessor qua `NG_VALUE_ACCESSOR`; provide token đó ở chính component là hai bên chờ nhau — Angular ném `NG0200` lúc dựng. Gán accessor trong constructor cắt vòng đó. `{ self: true }` vì thiếu nó `inject` với lên `NgControl` của form cha và control con nhận nhầm chủ; `{ optional: true }` vì `Input` và `Check` còn ca không gắn control ([`../../../Design/Components/Input.md`](../../../Design/Components/Input.md) mục *API dự kiến*). Token này không lấy dữ liệu nên F11 tha ([`../trien-khai/05-gate.md`](../trien-khai/05-gate.md) §8.8).
 
-Khối import của khuôn `FormNguoiDungPage` ([`fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §6.1):
+Khuôn ví dụ đầy đủ nhắc tới ở [`fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §6.1 — **ví dụ minh hoạ**, chưa khớp tên file hay tên class thật nào trong `src/FE` hôm nay (đối chiếu 2026-09-27: không có `form-nguoi-dung.page.ts`, không có class `FormNguoiDungPage`; thực tế màn tạo người dùng dùng khuôn "hộp thoại" — `hop-tao-nguoi-dung.component.ts`, cùng tín hiệu `loiChung`/`lanGuiSai`):
 
 ```typescript
-// platform/quan-tri/nguoi-dung/pages/form/form-nguoi-dung.page.ts — phần import
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+// platform/quan-tri/nguoi-dung/pages/form/form-nguoi-dung.page.ts
+import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { finalize } from 'rxjs';
 import { ApiFailureError } from '../../../../../core/http/api-result.model';
-import { ToastService } from '../../../../../core/toast/toast.service';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormRowComponent } from '../../../../../shared/components/form-row/form-row.component';
 import { InputComponent } from '../../../../../shared/components/input/input.component';
-import { applyFieldErrors } from '../../../../../shared/forms/apply-field-errors';
+import { NoticeBannerComponent } from '../../../../../shared/components/notice-banner/notice-banner.component';
+import { applyFormFailure } from '../../../../../shared/forms/apply-form-failure';
 import { fieldErrorText } from '../../../../../shared/forms/field-error-text';
+import { focusOSaiKhiGuiSai } from '../../../../../shared/forms/focus-o-sai-dau-tien';
 import { NguoiDungService } from '../../services/nguoi-dung.service';
+
+type TenTruong = 'userName' | 'fullName' | 'email' | 'tempPassword';
+
+@Component({
+  selector: 'app-form-nguoi-dung',
+  standalone: true,
+  imports: [
+    ReactiveFormsModule, TranslateModule, FormRowComponent, InputComponent, ButtonComponent,
+    NoticeBannerComponent,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './form-nguoi-dung.page.html',
+})
+export class FormNguoiDungPage {
+  private readonly fb = inject(NonNullableFormBuilder);
+  private readonly service = inject(NguoiDungService);
+  private readonly translate = inject(TranslateService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly formEl = viewChild<ElementRef<HTMLFormElement>>('formEl');
+
+  protected readonly dangGui = signal(false);
+  protected readonly daGui = signal(false);
+  /** Câu cho khu lỗi chung của form (`NoticeBanner`); `null` = không có. Xem quy-uoc/fe-ui-conventions.md §6.2. */
+  protected readonly loiChung = signal<string | null>(null);
+  /** Tăng mỗi lần bấm gửi mà form không hợp lệ — `focusOSaiKhiGuiSai` đọc nó. Xem quy-uoc/fe-ui-conventions.md §6.2. */
+  protected readonly lanGuiSai = signal(0);
+
+  /** Tên control = tên field của request ở contracts/users.md §5. */
+  protected readonly form = this.fb.group({
+    userName: this.fb.control('', [Validators.required]),
+    fullName: this.fb.control('', [Validators.required, Validators.maxLength(200)]),
+    email: this.fb.control('', [Validators.required, Validators.email]),
+    tempPassword: this.fb.control('', [Validators.required]),
+  });
+
+  constructor() {
+    focusOSaiKhiGuiSai(this.lanGuiSai, () => this.formEl()?.nativeElement);
+  }
+
+  protected gui(): void {
+    this.daGui.set(true);
+    this.loiChung.set(null);
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.lanGuiSai.update((n) => n + 1);
+      return;
+    }
+    this.dangGui.set(true);
+    this.service
+      .them(this.form.getRawValue())
+      .pipe(finalize(() => this.dangGui.set(false)))
+      .subscribe({
+        next: () => void this.router.navigate(['..'], { relativeTo: this.route }),
+        error: (err: unknown) => this.xuLyLoi(err),
+      });
+  }
+
+  private xuLyLoi(err: unknown): void {
+    if (!(err instanceof ApiFailureError)) {
+      this.loiChung.set(this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION')); // lỗi không đến từ HTTP: không có envelope
+      return;
+    }
+    this.loiChung.set(applyFormFailure(this.form, err, this.translate));
+  }
+
+  /** Uỷ quyền: dịch lỗi và thời điểm hiện lỗi nằm ở shared/forms/, không ở page. */
+  protected loiCua(ten: TenTruong): string | null {
+    return fieldErrorText(this.form.controls[ten], this.daGui(), this.translate);
+  }
+}
 ```
 
 ### 6.2 Gắn lỗi từ `fieldErrors` của BE
@@ -326,6 +400,11 @@ import { NguoiDungService } from '../../services/nguoi-dung.service';
 - **Vì sao giá trị `fieldErrors` phải là mã, không phải câu** — Gắn thẳng object vào control cho ra `[object Object]` trên màn hình và vứt mất mã lỗi.
 
 - **Vì sao lỗi server bị xoá khi người dùng sửa ô** — Nếu không, lỗi cũ đứng lì và người dùng sửa đúng rồi vẫn thấy báo sai.
+
+- **Vì sao câu banner là câu của mã con, kể cả khi mã gốc không phải `CORE.VALIDATION.FAILED`** — Phương án "mã gốc không bao thì dùng câu của chính nó" làm mã con chưa hiện **biến mất**: `ADMIN_CREATE_FAILED` kèm khoá lệch cho ra *"không tạo được tài khoản quản trị"*, còn lý do cụ thể (chính sách mật khẩu) không hiện ở đâu — trái [`../09-forms-validation.md`](../09-forms-validation.md) §4.3, *khoá không khớp phải gộp vào thông báo chung*. Trong một hộp, việc đang làm đã rõ; thứ người dùng thiếu là **vì sao**. Hệ quả phụ: không còn danh sách "mã bao" nào phải giữ.
+- **Vì sao nhận nguyên `ApiFailureError`, không `err.body`** — Hàm cần `status` để nhận lớp lỗi xuyên suốt; `body` không mang nó. Truyền `err.body` là lỗi biên dịch, và lối thoát dễ nhất — bọc lại `new ApiFailureError(err.body)` — cho `status = 0`: `laLoiXuyenSuot` không nhận ra 5xx, khu lỗi hiện nó thêm một lần cạnh toast.
+- **Vì sao `\n` chứ không mảng** — Giữ chữ ký `string | null` cho mọi nơi gọi; ngắt dòng là việc của chỗ hiện (`NoticeBanner`, khu lỗi `AuthCard`), một khai báo style ở component thay vì một vòng `@for` ở từng page.
+- **Vì sao screen spec không khai câu** — Hai nơi cùng quyết câu thì lệch, và code đi theo nơi người thi công mở ra trước. Luật chọn câu là một, cho mọi form; màn chỉ khác nhau ở chỗ đặt banner.
 
 ### 6.3 Validate phía client hay phía server
 
@@ -350,14 +429,6 @@ import { NguoiDungService } from '../../services/nguoi-dung.service';
 ### 6.5 `fieldErrorText` — lỗi hiện lúc nào, câu nào
 
 - **Khoá và tham số dịch của lỗi validator client** — Khoá lỗi `required` của Angular thành `loi.CORE.CLIENT.VALIDATION_REQUIRED`; tham số dịch là object lỗi mà validator gắn vào control — `maxlength` mang `requiredLength`. Thứ tự mảng lỗi server giữ đúng thứ tự BE trả ([`../wiki-core/fe/09-forms-validation.md`](../../../wiki-core/fe/09-forms-validation.md) §4.1).
-
-Khối import của `fieldErrorText` ([`fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §6.5):
-
-```typescript
-// shared/forms/field-error-text.ts — phần import
-import type { AbstractControl } from '@angular/forms';
-import type { TranslateService } from '@ngx-translate/core';
-```
 
 ## 7. Responsive
 

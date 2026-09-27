@@ -6,9 +6,35 @@ verified: chua-doi-chieu
 
 # Autocomplete
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`, bọc `primeng/autocomplete`. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** **bọc PrimeNG**. Định vị lớp nổi khi cuộn hoặc tràn viewport thuộc nhóm "khó" ở [`../COMPONENTS.md`](../COMPONENTS.md) §4. Phần Core tự viết là luật **khi nào gọi máy chủ** và **kết quả cũ về sau thì xử lý ra sao** — hai thứ thư viện không quyết hộ được.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/ui/autocomplete/autocomplete.component.ts` — selector `app-autocomplete`, chữ ký lựa chọn `Option`, `inputStyleClass` gắn `.app-autocomplete__o--<cỡ>`. Phần chạm DOM do PrimeNG dựng nằm ở `src/FE/src/styles/_thu-vien.scss` (khối `.app-autocomplete__o`).
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| Nơi duy nhất import `primeng/autocomplete` | Đúng — chú thích đầu file khai vai trò này | Chưa tự kiểm bằng lệnh là không còn chỗ nào khác import |
+| API | `options`, `value`, `variant`, `size`, `minChars`, `debounceMs`, `loading`, `errorTemplate`, `disabled`, `placeholder` (`input.required`), `inputId`, `describedBy`; output `search`, `valueChange` | — |
+| Hai biến thể | Có, `[multiple]` ánh theo `variant()`; `onModelChange` trả mảng khoá ở `multiple`, khoá đơn ở `single` | — |
+| Ba cỡ | Có ở `_thu-vien.scss`, đúng §Kích thước: `--size-control-sm/-md/-lg` kèm `--fs-xs`/`--fs-sm`/`--fs-md` | — |
+| `minChars` / `debounceMs` | Map thẳng sang `minQueryLength` / `delay` của PrimeNG; component **không** tự debounce lần hai | — |
+| Component dumb, không tự gọi HTTP | Đúng — chỉ phát `search`, trang cha gọi API | — |
+| Luật "bỏ kết quả request cũ" | Đúng chỗ: component **cố ý không làm**, vì nó không sở hữu lời gọi; chú thích đầu file nói rõ trang cha giữ số thứ tự request | Chưa mở trang gọi nào ra xác nhận trang **thật sự có** làm việc đó — luật này hiện chưa có gì cưỡng chế |
+| Giữ nhãn cho khoá đã chọn | Có, cache `nhanDaBiet` gom dần nhãn từ mọi `options()` từng thấy, nên đổi trang kết quả không làm mất nhãn mục đã chọn | Spec **không** mô tả cơ chế này; đây là giải pháp cho một vấn đề thật mà spec chưa ghi. Nên bổ sung vào spec |
+| Dòng phụ phân biệt mục trùng tên | Có, `Option.hint` vẽ thành `.app-autocomplete__muc-goi-y` (`--fs-xs`, `--color-text-muted`) dưới nhãn | — |
+| `forceSelection` | Bật — người dùng không bỏ lại chuỗi tự do không khớp mục nào | Spec không khai công tắc này; hành vi hợp lý nhưng chưa được chốt ở spec |
+| `allowCreate` / `createRequested` | — | **Chưa dựng.** Không có input lẫn output nào; chú thích component khai không màn nào cần. Kéo theo ca `empty` thứ hai của spec (dòng "Tạo mới '…'") cũng không có |
+| `loading` | Input có, giữ đúng chữ ký §API dự kiến | ⚠️ **Không nối vào gì cả.** Chú thích trong chính code khai: bản `p-autoComplete` đang dùng không có input `loading` công khai, nên cờ này **không** sinh vòng quay `pi-spinner` ở đuôi ô và **không** đặt `aria-busy` trên hộp kết quả như §Trạng thái đòi. Trang chỉ dùng được nó để khoá nút gửi |
+| `errorTemplate` | Có, nhưng vẽ thành một khối **dưới ô** (`.app-autocomplete__loi`, `--color-danger`) | Spec đòi lỗi gọi máy chủ hiện **trong lớp nổi**, kèm nút "Thử lại". Vị trí và hình dạng đều khác; không có nút thử lại |
+| `empty` — ba ca | — | **Chưa phân biệt ca nào.** Không có câu "Gõ ít nhất N ký tự", không có "Không tìm thấy '…'", không có câu riêng cho danh mục rỗng hoàn toàn. `minQueryLength` chặn việc gọi tìm, nhưng không sinh ra câu giải thích nào |
+| Tô đậm phần chuỗi khớp | — | Chưa có. §Trạng thái `default` đòi phần khớp tô `--color-brand` + `--fw-semibold`; `<ng-template #item>` vẽ nhãn trần |
+| `describedBy` | Truyền vào `[ariaLabelledBy]` | ⚠️ **Nối sai thuộc tính.** `describedBy` mang nghĩa `aria-describedby` (id dòng lỗi/gợi ý, cùng khuôn [`Input.md`](./Input.md)); gắn nó vào `aria-labelledby` biến dòng lỗi thành **tên** của ô thay vì phần mô tả kèm theo |
+| Chuyển động — mở/đóng lớp nổi và đổi màu (phát hiện 2026-09-23, chỉ đọc mã) | Lớp nổi bung ra và thu lại bằng hoạt ảnh Angular, mặc định thư viện: `primeng/autocomplete` § `showTransitionOptions = '.12s cubic-bezier(0, 0, 0.2, 1)'` và § `hideTransitionOptions = '.1s linear'`; lớp bọc Core không truyền gì vào hai input đó | Spec nay khai đủ khoản này và **giữ quyền đặt số**: `--dur-base` cho cả hai chiều, `--ease-decelerate` chiều hiện, `--ease-accelerate` chiều ẩn (§Trạng thái). Việc của lớp bọc là truyền vào hai input trên hai chuỗi dựng từ **hằng số có tên**, mỗi hằng nêu đích danh token nó phản chiếu — luật **F37** ([`../../RULES.md`](../../RULES.md) §7); khuôn ở lớp bọc [`Toast.md`](./Toast.md). Sau lượt dựng đó hai mặc định ghi ở cột trái không còn chỗ nào trong mã — [`../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md`](../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md) quyết định 1, 2, 3 |
+
+Chưa đối chiếu — **lỗ mù chính của file này**: hình thức của ô và của lớp nổi ở mọi trạng thái (`default` nền/viền, `hover` dòng kết quả, `focus-visible` trên ô và dòng đang trỏ tới, `active`, `disabled`, và hình thức chip ở biến thể `multiple`) **không nằm trong** hai tệp style đã mở — chúng đến từ sub-preset `autocomplete` của PrimeNG, chưa soát. Cũng chưa đối chiếu §Responsive, §Accessibility, và việc dòng đang trỏ tới có **được cuộn vào tầm nhìn** hay không (phải chạy thật mới biết).
 
 ---
 
@@ -67,6 +93,16 @@ Lớp nổi kết quả: bề rộng bằng ô, chiều cao tối đa `--layout-
 | `error` | Gọi máy chủ hỏng: lớp nổi hiện `errorTemplate` — màn ghép dòng lỗi `--color-danger` kèm nút "Thử lại" — và ô giữ nguyên chuỗi đang gõ. Lỗi **xác thực** của trường thì viền ô đổi `--color-danger-border` và dòng lỗi hiện dưới ô qua [`FormRow.md`](./FormRow.md) | Có |
 | `empty` | **Ba ca phải phân biệt.** *Chưa đủ ký tự tối thiểu:* "Gõ ít nhất 2 ký tự" — **không** hiện danh sách rỗng. *Không có kết quả:* "Không tìm thấy '…'", kèm dòng tạo mới nếu `allowCreate`. *Danh mục rỗng hoàn toàn:* câu khác hẳn, nói danh mục chưa có dữ liệu | Có |
 
+**Đổi màu:** viền ô lúc nhận focus, nền dòng kết quả lúc hover, nền dòng đang được bàn phím trỏ tới — cả ba đổi trong `--dur-fast` với `--ease-standard`. Nhịp này phải ngắn hơn nhịp gõ phím: người dùng đang rà `↑` `↓` qua danh sách sẽ thấy nền "đuổi theo" nếu nó dài hơn khoảng cách giữa hai lần bấm.
+
+**Mở và đóng lớp nổi:** danh sách kết quả mờ dần lúc hiện và lúc ẩn, **một** thời lượng `--dur-base` cho cả hai chiều; đường cong chia theo hướng, `--ease-decelerate` lúc hiện và `--ease-accelerate` lúc ẩn. 🛑 Lớp nổi **không** mang chuyển động mỗi lần danh sách kết quả đổi nội dung — người dùng gõ tiếp một ký tự thì nội dung thay ngay, không mờ vào mờ ra. Lý do ở [`../DESIGN.md`](../DESIGN.md) §7, dòng "nội dung bảng đổi sau khi lọc": chớp một cái ở mỗi phím làm mắt mất chỗ đang đọc, và ở đây mỗi phím là một lần đổi. Tắt cả hai khi `prefers-reduced-motion: reduce`.
+
+**Vì sao bậc này.** [`../DESIGN.md`](../DESIGN.md) §7 chia bậc theo thứ đang đổi: bậc ngắn nhất dành cho sơn màu, còn `transform` và `opacity` của một lớp nổi thuộc `--dur-base`. Lớp nổi kết quả nằm ở vế sau, nên nó lấy `--dur-base` kể cả khi một con số ngắn hơn đang sẵn trong nền bọc — chọn theo con số đang trùng là lấy một sự trùng hợp làm căn cứ ([`../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md`](../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md) quyết định 2). Hệ quả người dùng thấy: lớp nổi hiện và ẩn chậm hơn nhịp mặc định, một cái giá đã được duyệt. Nhịp mới nặng hay vừa tay là câu hỏi để ngỏ ở [`../DESIGN.md`](../DESIGN.md) §10.
+
+**Bất đối xứng thời lượng của nền bọc không được mang theo.** Hai input rời nhau chở được hai số, nhưng thang §7 không có bậc nào trùng giá trị mặc định thứ hai, và một mặc định của gói không phải một ý đồ của hệ này. Thứ giữ lại bất đối xứng ở đây là **đường cong**, vì §7 khai riêng một vai cho phần tử đi vào và một vai cho phần tử rời đi.
+
+🛑 **Hai đoạn chuyển động ở trên đều lấy số từ token, nhưng áp ở hai chỗ khác nhau.** Đổi màu chạy bằng CSS: sub-preset `autocomplete` trỏ thời lượng của nó về khoá semantic dùng chung mà preset Core nối về `--dur-fast`, nên component thừa hưởng không cần khai gì riêng ([`../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md`](../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md) quyết định 1). Mở/đóng lớp nổi chạy bằng hoạt ảnh Angular, và chuỗi tham số bị phân tích thành số trước khi có ai giải `var()` — ba giá trị của khoản đó đi qua **hằng số có tên** khai cạnh lớp bọc, mỗi hằng nêu đích danh token nó phản chiếu (luật **F37**, [`../../RULES.md`](../../RULES.md) §7). Khác nhau ở chỗ áp, không ở ai quyết.
+
 ## Token dùng
 
 | Nhóm | Token |
@@ -77,6 +113,7 @@ Lớp nổi kết quả: bề rộng bằng ô, chiều cao tối đa `--layout-
 | Hình dạng | `--radius-sm`, `--radius-md`, `--radius-pill`, `--border-w`, `--border-w-strong` |
 | Kích thước | `--size-control-sm`, `--size-control-md`, `--size-control-lg`, `--icon-sm`, `--icon-md`, `--layout-popover-h-max` |
 | Bóng, lớp | `--shadow-3`, `--z-popover` |
+| Chuyển động | `--dur-fast`, `--ease-standard` phủ đoạn "Đổi màu" của §Trạng thái; `--dur-base`, `--ease-decelerate`, `--ease-accelerate` phủ đoạn "Mở và đóng lớp nổi". Ba token sau áp trong TypeScript chứ không trong stylesheet — xem khối 🛑 ở §Trạng thái |
 | Icon | `pi-search`, `pi-times` để xoá, `pi-spinner` khi tải — [`../Icons.md`](../Icons.md) §5 |
 
 ## Responsive

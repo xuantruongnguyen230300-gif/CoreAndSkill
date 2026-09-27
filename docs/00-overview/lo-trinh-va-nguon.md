@@ -189,7 +189,7 @@ Ngày 2026-08-29, module nghiệp vụ duy nhất của PlatformManager (`Module
 
 Năm câu hỏi đó chỉ có đáp án **sau khi một module thật chạy được**. Viết trước là viết theo trí nhớ về một thứ chưa tồn tại — và sản phẩm sẽ là skill sinh ra code không build được, mà không có "đáp án đúng" nào để đối chiếu khi đi sửa.
 
-Có tiền lệ đúng khuôn này trong repo: `backend-expert.md` từng chứa một cây thư mục 10 project **sai**, và `.claude/CLAUDE.md` §8 ghi nhận nó *"lọt qua mọi luật cho tới khi có người đọc"* — vì sơ đồ trong khối ``` không bị gate nào kiểm.
+Có tiền lệ đúng khuôn này trong repo: `backend-expert.md` từng chứa một cây thư mục 10 project **sai**, và `.claude/README.md` mục *Vì sao*, phần §8, ghi nhận nó *"lọt qua mọi luật cho tới khi có người đọc"* — vì sơ đồ trong khối ``` không bị gate nào kiểm.
 
 Sau E4, skill chỉ còn việc: *"sao chép cấu trúc module mẫu, đổi tên, bỏ phần nghiệp vụ"* — và có ngay cách nghiệm thu: chạy skill → `dotnet test` → so với module mẫu.
 

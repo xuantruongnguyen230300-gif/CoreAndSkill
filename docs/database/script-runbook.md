@@ -6,12 +6,24 @@ verified: chua-doi-chieu
 
 # Runbook script database — đường đi cụ thể từ model tới database
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`, chưa có thư mục script, chưa có
-> database nào. Mọi lệnh dưới đây là lệnh **sẽ** chạy được ở giai đoạn 2, không phải lệnh đã
-> chạy.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-17). `src/` và `database/scripts/` đã tồn tại
+> thật, nhưng chỉ một phần cơ chế trong file này có code thật. Đối chiếu diễn ra theo **từng
+> mục** — mục nào bảng dưới không nhắc tới thì vẫn đứng nguyên `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG`.
 >
 > **File chủ về thao tác áp schema.** Nội dung schema: [`schema-core.md`](schema-core.md).
 > Ai sở hữu migration nào: [`migration-policy.md`](migration-policy.md).
+
+| Mục | Có thật hôm nay | Sẽ thành |
+| --- | --- | --- |
+| §1–§2 | `database/scripts/core/` đã có **nhiều hơn một** script, mọi tên đúng khuôn `NNNN__owner__mo-ta` (đối chiếu 2026-09-19). Danh sách không chép vào đây — nó đếm được bằng `ls database/scripts/core/` ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §6) | Script mới theo cùng khuôn mỗi lần Core đổi model; số thứ tự tăng, không sửa script đã chạy (§2) |
+| §3.1 | Khối ghi `core.schema_script_history` có thật, cuối transaction — bảng tạo ở `../../database/scripts/core/0001__core__initial.sql:15-29`, khối ghi lịch sử là khối cuối cùng của file đó, ngay trước `COMMIT;` | — |
+| §3.2 | Checksum lưu ở cột `checksum_sha256` của khối ghi lịch sử cuối `0001__core__initial.sql` khớp đúng nội dung thật phía trước nó — lệnh mẫu ở §3.2/§3.5 đã sửa sang cắt theo byte (`grep -ab` + `head -c`) và tự kiểm lại khớp giá trị đó (2026-09-17), thay cho bản `awk` cũ (đọc CRLF sai byte, lệch cả mẫu regex với chú thích thật trong file) | — |
+| §3.3, §3.6, §6 | `core bootstrap` và service tạo đơn vị có code thật — nhánh `case "bootstrap":` của `RunCoreCommandAsync` và hàm `RunBootstrapAsync` trong `../../src/BE/Core/CoreAndSkill.Core.Web/Commands/CoreCommandRunner.cs` | Chạy tay lần đầu trên Postgres thật — **chưa từng chạy** (môi trường hiện tại không có Docker). Test không database gọi `RunBootstrapAsync`, xanh (`dotnet test`, 2026-09-25): `BootstrapReservedUserNameTests` (service tạo đơn vị giả) và `BootstrapSeedValidationTests` (runner và service thật trên `CoreDbContext` không database). **Chưa test nào** chạy lệnh trên PostgreSQL thật. Hai khoá email ở bước 4 ([ADR-0091](../adr/0091-bootstrap-doi-hai-khoa-email-bat-buoc.md)) **đã khớp** (đối chiếu 2026-09-25): `src/BE/Core/CoreAndSkill.Core.Application/Configuration/CoreBootstrapOptions.cs` có `public string OperatorEmail` và `public string AdminEmail`, mỗi khoá mang `[EmailAddress(ErrorMessage = EmailFormatMessage)]` và `[MaxLength(EmailMaxLength` (256, bằng cột `core.app_user.email`); `CoreCommandRunner.cs` in từng lỗi con kèm khoá cấu hình — chuỗi `(khoá {CoreBootstrapOptions.SectionName}:{configKey})`; `ITenantProvisioningService.cs` khai `string AdminEmail,` không giá trị mặc định. `BootstrapAccountConfigTests` xanh cùng ngày — Identity lấy từ đăng ký thật (`OfflineBootstrapHarness`), không database. `docker-compose.yml` có `CORE_BOOTSTRAP_OPERATOR_EMAIL` và `CORE_BOOTSTRAP_ADMIN_EMAIL`; `.env.example` có cả hai |
+| §4 | Khuôn `--idempotent` (`DO $EF$ … IF NOT EXISTS (… __ef_migrations_history …)`) đã dùng thật để sinh `0001__core__initial.sql` | — |
+| §5.1–§5.2 | `ISchemaVerifier`/`SchemaVerifier` có code thật, khớp mẫu (`../../src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/SchemaVerifier.cs`). Phép kiểm lúc khởi động là `DatabaseSchemaStartupCheck` (`../../src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/DatabaseSchemaStartupCheck.cs`), gọi từ `VerifyDatabaseSchemaAsync` trong `CoreApplicationBuilderExtensions.cs` cùng thư mục; hai khoá `Core:SchemaCheck:*` khớp `CoreSchemaCheckOptions` (đối chiếu 2026-09-25). Lớp không database của luật E8 xanh — hàng E8 ở [`../RULES.md`](../RULES.md) §4 | Nhánh `SchemaVerifier` trên PostgreSQL thật thiếu migration **chưa có test** — nợ E8 ở [`../DEBT.md`](../DEBT.md) |
+| §8 | `core reset-operator-password` có code thật — hàm `RunResetOperatorPasswordAsync` trong `CoreCommandRunner.cs`; kết quả hỏng thì `Environment.ExitCode = 1` sau `ReportFailureAsync(`. Service dừng ở lệnh ghi hỏng: `PasswordResetWriteFailureTests` xanh (2026-09-25), gọi thẳng service | Chưa chạy tay; lệnh qua runner chưa có test |
+| §9 | Không có gì | `seed-tenant-defaults` — **chưa có dòng code nào** trong `src/` |
+| §10 | Không có gì | `outbox-replay` — **chưa có dòng code nào** trong `src/` |
 
 ---
 
@@ -123,36 +135,72 @@ PASS: không in gì, thoát 0.
 `core.schema_script_history` — định nghĩa cột đầy đủ ở [`schema-core.md`](schema-core.md) §9.1.
 Nó trả lời câu *"database này đã chạy những script nào"* cho **con người**; đừng nhầm với `core.__ef_migrations_history` — hai bảng, hai câu hỏi, không suy ra nhau được.
 
-Mỗi script kết thúc bằng đúng khối này:
+Mỗi script kết thúc bằng đúng khối này — **chép nguyên văn, kể cả hai dòng comment**, rồi chỉ đổi
+tên file và giá trị checksum:
 
 ```sql
--- Ghi nhận đã áp. Đặt ở CUỐI file, TRONG cùng transaction với phần thay đổi schema.
+-- Ghi nhận đã áp — docs/database/script-runbook.md §3.1. Checksum tính trên nội dung file NGAY
+-- TRƯỚC khối này (§3.2: grep -abm1 '^-- Ghi nhận đã áp' rồi head -c "$offset" | sha256sum).
 INSERT INTO core.schema_script_history (script_name, checksum_sha256, owner, applied_by, note)
 VALUES ('0002__core__add-notification.sql',
-        'a3f1…',                      -- sha256 nội dung file, xem §3.2
+        'a3f1…',
         'core',
         current_user,
         NULL)
 ON CONFLICT (script_name) DO NOTHING;
 ```
 
-**`ON CONFLICT DO NOTHING` là bắt buộc.** **Nằm trong cùng transaction cũng bắt buộc.**
+Khối trên là **thứ duy nhất được copy** khi viết script mới. Đừng copy từ script liền trước: khuôn
+này chỉ có một bản, ở đây.
+
+**`ON CONFLICT DO NOTHING` là bắt buộc.** **Nằm trong cùng transaction cũng bắt buộc** — đặt ở CUỐI
+file, trước `COMMIT;`, trong cùng transaction với phần thay đổi schema.
+
+**Hai dòng comment là một phần của khối, không phải trang trí.** Dòng đầu phải bắt đầu bằng đúng
+chuỗi `-- Ghi nhận đã áp` — đó là **điểm cắt** mà lệnh §3.2 tìm để biết hash tới đâu. Cả khối nằm
+**sau** điểm cắt đó, nên chữ trong nó không ảnh hưởng giá trị checksum; đổi chữ ở đầu dòng thứ nhất
+thì có.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §3.1
 
 ### 3.2 Tính `checksum_sha256`
 
+**Checksum là của phần nội dung script TRƯỚC khối ghi lịch sử ở §3.1 — không bao giờ là hash của
+file đã có khối đó.** Lệnh dưới luôn cắt bỏ khối `INSERT` (nếu đã có) trước khi hash, cắt theo
+**byte** chứ không qua xử lý dòng của `awk`/`sed` — cắt theo dòng làm một số công cụ tự bỏ `\r`
+lúc đọc, ra hash khác byte thật của file có CRLF. Dùng đúng ở cả hai thời điểm: lúc soạn thảo
+(file chưa có khối) lẫn lúc đối soát lại sau này ở §3.5 (3) (file đã commit, đã có khối).
+
 ```bash
-sha256sum database/scripts/core/0002__core__add-notification.sql
+file=database/scripts/core/0002__core__add-notification.sql
+offset=$(grep -abm1 '^-- Ghi nhận đã áp' "$file" | cut -d: -f1)
+head -c "$offset" "$file" | sha256sum
 ```
 
-Trên Windows PowerShell:
+Chạy trên Git Bash. Đã tự kiểm lại đúng cách này trên `0001__core__initial.sql` (2026-09-17): ra
+đúng `2be447a3aa4d1c1b4add8716d9b0a2ed2f71fc88237de82f369cdf20133123e7`, khớp từng ký tự với giá
+trị đã dán ở cột `checksum_sha256` của khối ghi lịch sử cuối file đó.
 
-```powershell
-Get-FileHash database/scripts/core/0002__core__add-notification.sql -Algorithm SHA256
-```
+> 🛑 **Trỏ vào khối ghi lịch sử, không trỏ vào số dòng** — mỗi script có đúng **một** khối (§3.1).
 
 Dán giá trị vào khối `INSERT` **trước khi** commit script.
+
+> 🛑 **Mọi lần GHI lại một script đã áp đều có thể làm lệch checksum — kể cả khi chỉ sửa comment.**
+> Script trong `database/scripts/` là UTF-8 **có BOM, xuống dòng CRLF** (khuôn `dotnet ef migrations
+> script` sinh ra trên Windows). Nhiều công cụ ghi đè âm thầm chuẩn hoá: `sed -i` và một số trình
+> soạn thảo đổi CRLF → LF cho **cả file**, làm mọi byte sau đó dịch chỗ và hash đổi hẳn. Đã đo thật
+> trên `0001__core__initial.sql` (2026-09-19): sửa bằng công cụ giữ nguyên BOM/CRLF thì offset vẫn
+> `21496` và hash vẫn `2be447a3aa4d…`; sửa bằng `sed -i` thì offset tụt còn `20964` và hash thành
+> `f932765b221e…` — một script đã áp lên database thật lập tức bị câu kiểm §3.5 (3) báo `LECH`.
+>
+> **Vì vậy:** sửa script bằng công cụ **giữ nguyên BOM và CRLF**, và **sau mỗi lần ghi, chạy lại
+> lệnh §3.2 trên chính file đó** rồi so với giá trị đang lưu trong khối `INSERT` của nó. Hash đổi ⇒
+> **hoàn tác ngay**, đừng cập nhật giá trị lưu — giá trị lưu là thứ database đã ghi nhận, sửa nó chỉ
+> xoá dấu vết chứ không sửa được gì.
+>
+> Nhắc lại cho rõ, vì hay bị suy luận nhầm theo chiều ngược: nội dung **khối §3.1** nằm **sau** điểm
+> cắt, nên sửa chữ trong khối đó **không** đổi checksum. Thứ làm đổi checksum là công cụ ghi, không
+> phải chỗ sửa.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §3.2
 
@@ -238,15 +286,17 @@ theo môi trường: bảng *Môi trường* dưới. Tên lệnh và tham số:
 | Tên **đơn vị nghiệp vụ đầu tiên** | `Core:Bootstrap:FirstTenantName` | Không |
 | Tên đăng nhập **tài khoản vận hành hệ thống** (ví dụ `superadmin`) — mang `is_system_operator` và `must_change_password`, thuộc đơn vị hệ thống | `Core:Bootstrap:OperatorUserName` | Không |
 | Mật khẩu tài khoản vận hành hệ thống | `Core:Bootstrap:OperatorPassword` | **Có** |
+| Email tài khoản vận hành hệ thống — **bắt buộc**: Identity chạy với email duy nhất nên email rỗng bị từ chối ([`schema-core.md`](schema-core.md) §4.1, [`../adr/0091-bootstrap-doi-hai-khoa-email-bat-buoc.md`](../adr/0091-bootstrap-doi-hai-khoa-email-bat-buoc.md)) | `Core:Bootstrap:OperatorEmail` | Không |
 | Tên đăng nhập **tài khoản quản trị đơn vị** (ví dụ `admin`) — mang `has_permission_bypass` và `must_change_password`, thuộc đơn vị nghiệp vụ đầu tiên | `Core:Bootstrap:AdminUserName` | Không |
 | Mật khẩu tài khoản quản trị đơn vị | `Core:Bootstrap:AdminPassword` | **Có** |
+| Email tài khoản quản trị đơn vị — **bắt buộc**, cùng lý do. Được trùng với email vận hành: hai tài khoản ở hai đơn vị | `Core:Bootstrap:AdminEmail` | Không |
 
 > 📖 Vì sao nhóm khoá này không gắn `ValidateOnStart`, và nó được kiểm ở mốc nào thay thế: đọc
 > [`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §4.4
 
 | Môi trường | Nguồn giá trị |
 | --- | --- |
-| Máy dev | Giá trị cột *Bí mật* = Không: `appsettings.Development.json` — tệp này vào repo và không chứa bí mật ([`../quy-uoc/repo-artifact.md`](../quy-uoc/repo-artifact.md) §6.1). Mật khẩu: `dotnet user-secrets set "Core:Bootstrap:<khoá>" "<tự đặt>" --project src/BE/CoreAndSkill.Api` — mỗi máy tự đặt, không ai gửi giá trị cho ai |
+| Máy dev | Giá trị cột *Bí mật* = Không: `appsettings.Development.json` — tệp này vào repo và không chứa bí mật ([`../quy-uoc/repo-artifact.md`](../quy-uoc/repo-artifact.md) §6.1). Hai khoá email ở tệp này là địa chỉ ví dụ trên tên miền `example.com`, không phải email thật của ai. Mật khẩu: `dotnet user-secrets set "Core:Bootstrap:<khoá>" "<tự đặt>" --project src/BE/CoreAndSkill.Api` — mỗi máy tự đặt, không ai gửi giá trị cho ai |
 | Bản cài thật | Nguồn bí mật của môi trường đó — [`../wiki-core/be/18-trien-khai-va-van-hanh.md`](../wiki-core/be/18-trien-khai-va-van-hanh.md) §2. `user-secrets` chỉ được nạp ở môi trường Development |
 
 Chuỗi kết nối của ứng dụng dùng `coreandskill_app`, **không** dùng `coreandskill_owner` — lý do
@@ -261,9 +311,10 @@ dotnet run --project src/BE/CoreAndSkill.Api -- core bootstrap
 Lệnh gọi **service tạo đơn vị** — cùng service mà endpoint tạo đơn vị ở khu quản trị hệ thống gọi
 ([`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md))
 — để tạo đơn vị hệ thống, đơn vị nghiệp vụ đầu tiên kèm dữ liệu mặc định của nó, và hai tài khoản
-ở bước 4. Xong thì **thoát, không mở cổng**. Bốn tính chất bắt buộc:
+ở bước 4. Xong thì **thoát, không mở cổng**. Tính chất bắt buộc:
 
-- **Thiếu một giá trị ở bước 4 ⇒ dừng, không ghi dòng nào.**
+- **Thiếu một giá trị ở bước 4, một email sai dạng hoặc dài quá cột, hoặc một tên đăng nhập ở bước 4 là tên dành riêng
+  ([`../contracts/users.md`](../contracts/users.md) §5, *Tên dành riêng*) ⇒ thoát mã 1, không ghi dòng nào.**
 - **Chạy lại không nhân đôi.**
 - **Tài khoản đi qua `UserManager`, không qua SQL** ([`schema-core.md`](schema-core.md) §4.1).
 - **Tiến trình API phục vụ thật không tạo gì cả.**
@@ -314,7 +365,7 @@ comm -13 /tmp/da-chay.txt /tmp/trong-repo.txt        # còn thiếu, theo đúng
 ```bash
 # Bước 3: chạy đúng những file ở bước 2, theo thứ tự, TỪNG FILE MỘT, đọc kết quả từng cái.
 psql -h "$PGHOST" -U coreandskill_owner -d "$PGDATABASE" -v ON_ERROR_STOP=1 \
-     -f database/scripts/core/0007__core__add-outbox-retry-columns.sql
+     -f database/scripts/core/<tên file>.sql
 ```
 
 **Từng file một, không vòng lặp**, khi database có dữ liệu thật.
@@ -335,9 +386,27 @@ SELECT script_name FROM core.schema_script_history
 WHERE  script_name NOT IN ( /* dán danh sách tên file từ repo vào đây */ );
 
 -- (3) Nội dung script đã đổi sau khi áp?
---     So checksum trong DB với sha256sum của file cùng tên trong repo.
+--     KHÔNG so bằng sha256sum của nguyên file trong repo — file đã commit mang thêm khối ghi lịch
+--     sử ở §3.1, còn checksum lưu ở đây chỉ tính trên phần TRƯỚC khối đó (§3.2). So trực tiếp
+--     sha256sum của nguyên file sẽ lệch 100% số lần, kể cả với script chưa ai sửa gì.
 SELECT script_name, checksum_sha256 FROM core.schema_script_history ORDER BY script_name;
 ```
+
+Tính lại đúng cách (§3.2) cho toàn bộ script rồi so với DB:
+
+```bash
+psql -h "$PGHOST" -U "$PGUSER" -d "$PGDATABASE" -At -F',' \
+     -c "SELECT script_name, checksum_sha256 FROM core.schema_script_history" \
+| while IFS=',' read -r name db_hash; do
+    file=$(find database/scripts -name "$name")
+    offset=$(grep -abm1 '^-- Ghi nhận đã áp' "$file" | cut -d: -f1)
+    real_hash=$(head -c "$offset" "$file" | sha256sum | cut -d' ' -f1)
+    [ "$db_hash" = "$real_hash" ] || echo "LECH: $name (DB=$db_hash, file=$real_hash)"
+done
+```
+
+PASS: không in gì. Đã tự kiểm cách cắt byte này khớp đúng checksum thật của
+`0001__core__initial.sql` — xem §3.2.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §3.5
 
@@ -562,67 +631,37 @@ internal sealed class SchemaVerifier(IEnumerable<DbContext> contexts) : ISchemaV
 }
 ```
 
-`Core.Web` — nối vào đường khởi động, bên trong `UseCore()`:
+`Core.Web` — phép kiểm chạy bên trong `UseCoreAsync()`, **trước** khi server nhận request:
+`RunAsync` của `DatabaseSchemaStartupCheck`
+(`../../src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/DatabaseSchemaStartupCheck.cs`), gọi
+từ `VerifyDatabaseSchemaAsync`. Code thật là nguồn của thân hàm; file này không chép lại.
 
-```csharp
-public static async Task<WebApplication> UseCoreAsync(this WebApplication app)
-{
-    await app.VerifyDatabaseSchemaAsync();
-    // … phần còn lại của UseCore()
-    return app;
-}
+Thông điệp lỗi bắt buộc nêu **đúng tên** từng migration còn thiếu, **đường dẫn thư mục script** cần chạy, và **file tài liệu** cần đọc tiếp. Thư mục script là thư mục của chủ sở hữu từng context; code hôm nay ghi cứng `database/scripts/core/`, chỉ đúng khi mọi context là `CoreDbContext`.
 
-private static async Task VerifyDatabaseSchemaAsync(this WebApplication app)
-{
-    using var scope = app.Services.CreateScope();
-    var verifier = scope.ServiceProvider.GetRequiredService<ISchemaVerifier>();
-    var logger   = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+**Khoá cấu hình của phép kiểm khởi động — định nghĩa gốc.** Không kết nối được database thì phép
+kiểm không chạy được, và *không kiểm được* không bao giờ được coi là *khớp* (§5.3). Phép kiểm thử
+lại trong một khoảng có hạn. Khoá nằm dưới tiền tố `Core:SchemaCheck:`, khớp `CoreSchemaCheckOptions`:
 
-    var reports = await verifier.InspectAsync(app.Lifetime.ApplicationStopping);
+| Khoá | Mặc định | Miền | Nghĩa |
+| --- | --- | --- | --- |
+| `Core:SchemaCheck:ConnectWaitSeconds` | `60` | `0`–`600` | Tổng thời gian chờ database nhận kết nối, tính từ lần thử đầu. `0` = thử đúng một lần |
+| `Core:SchemaCheck:ConnectRetryIntervalSeconds` | `5` | `1`–`60` | Khoảng nghỉ giữa hai lần thử. Lần nghỉ cuối bị cắt cho vừa hạn |
 
-    foreach (var report in reports.Where(r => r.UnknownToApplication.Count > 0))
-    {
-        logger.LogWarning(
-            "Database di TRUOC code cho {Context}: {Count} migration database co ma ban build nay khong biet ({List}). "
-          + "Hop le neu dang o buoc 'mo rong'; neu khong, kiem tra da chay nham script len nham moi truong chua.",
-            report.ContextName,
-            report.UnknownToApplication.Count,
-            string.Join(", ", report.UnknownToApplication));
-    }
+- **Giá trị ngoài miền ⇒ app từ chối khởi động**, thông điệp nêu tên khoá.
+- **Lỗi kết nối tạm thời** — lỗi mà Npgsql đánh dấu `IsTransient`, ví dụ bị từ chối kết nối,
+  database đang khởi động ⇒ thử lại. Kết nối được thì phép kiểm §5.1 chạy như thường. Hết hạn ⇒
+  từ chối khởi động, tiến trình dừng.
+- **Lỗi không tạm thời** — sai mật khẩu, database không tồn tại, thiếu quyền ⇒ từ chối khởi động
+  ngay, không thử lại.
+- Vòng thử này là của riêng phép kiểm khởi động. Nó **không** phải chiến lược thử lại của luật E11.
 
-    var blocking = reports.Where(r => r.MissingInDatabase.Count > 0).ToList();
-    if (blocking.Count == 0)
-    {
-        return;
-    }
+> 🛑 **Trong lúc chờ, tiến trình chưa trả lời endpoint nào — kể cả `/health/live`.** Bộ điều phối
+> phải cho giai đoạn khởi động dài hơn `ConnectWaitSeconds` rồi mới áp liveness. Không thì nó giết
+> tiến trình giữa lúc chờ — đúng vòng lặp khởi động lại mà
+> [`../wiki-core/be/07-observability.md`](../wiki-core/be/07-observability.md) §8 cảnh báo.
 
-    var message = new StringBuilder()
-        .AppendLine("KHOI DONG BI TU CHOI — database thieu migration.")
-        .AppendLine();
-
-    foreach (var report in blocking)
-    {
-        message.AppendLine($"  {report.ContextName} thieu {report.MissingInDatabase.Count} migration:");
-        foreach (var id in report.MissingInDatabase)
-        {
-            message.AppendLine($"    - {id}");
-        }
-        message.AppendLine($"    Script can chay: database/scripts/{OwnerFolderOf(report.ContextName)}/");
-        message.AppendLine();
-    }
-
-    message
-        .AppendLine("Cach xu ly: doc docs/database/script-runbook.md muc 3.4 (chay phan con thieu).")
-        .AppendLine("Sau khi chay xong, khoi dong lai. KHONG bo qua kiem tra nay.");
-
-    throw new InvalidOperationException(message.ToString());
-}
-```
-
-Thông điệp lỗi bắt buộc nêu **đúng tên** từng migration còn thiếu, **đường dẫn thư mục script** cần chạy, và **file tài liệu** cần đọc tiếp.
-
-Luật E8 ([`../RULES.md`](../RULES.md) §4) canh cơ chế này bằng integration test
-`Startup_Fails_When_PendingMigrationsExist` — một test **bắt buộc**.
+Luật E8 ([`../RULES.md`](../RULES.md) §4) canh cơ chế này. Cổng đang chạy khai ở hàng E8 của file đó;
+phần chưa có cổng khai ở hàng E8 của [`../DEBT.md`](../DEBT.md).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`script-runbook.md`](../wiki-core/be/ly-do/script-runbook.md) §5.2
 
@@ -673,7 +712,9 @@ Phép kiểm §5.1 đọc **bảng lịch sử migration**, không đọc cấu 
 
 ## 6. Môi trường dev — cùng đường với §3.3
 
-**Máy dev chạy đúng năm bước của §3.3: cùng lệnh, cùng bảng nghiệm thu.** Không có tệp `.sql` dữ
+**Nhóm dùng một database dev chung** ([`../adr/0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md`](../adr/0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md)). Trên database đó, người vận hành DB dev chạy §3.3 một lần, rồi dùng `admin` tạo tài khoản ứng dụng cho từng dev qua màn quản trị người dùng ([`../adr/0104-tai-khoan-ung-dung-cua-dev-tren-db-chung-tao-qua-man-quan-tri.md`](../adr/0104-tai-khoan-ung-dung-cua-dev-tren-db-chung-tao-qua-man-quan-tri.md)); chạy §3.4 **chỉ** cho script đã hợp nhất vào nhánh chính; người mở nó bằng công cụ SQL dùng tài khoản Postgres cá nhân — [`../adr/0099-luat-van-hanh-db-dev-chung.md`](../adr/0099-luat-van-hanh-db-dev-chung.md). Mục này là đường của **database cục bộ**: khi không dùng DB chung, khi thử script của nhánh chưa hợp nhất, khi gỡ lỗi việc nền, và khi thử khu quản trị hệ thống bằng tài khoản vận hành của chính mình ([`../adr/0105-thu-khu-quan-tri-he-thong-tren-db-cuc-bo.md`](../adr/0105-thu-khu-quan-tri-he-thong-tren-db-cuc-bo.md)).
+
+**Database cục bộ chạy đúng năm bước của §3.3: cùng lệnh, cùng bảng nghiệm thu.** Không có tệp `.sql` dữ
 liệu riêng cho dev, không có lệnh riêng cho dev.
 
 | Chỗ | Máy dev |
@@ -683,8 +724,9 @@ liệu riêng cho dev, không có lệnh riêng cho dev.
 | Nguồn giá trị ở §3.3 bước 4 | Dòng *Máy dev* của bảng nguồn giá trị ở §3.3 bước 4 |
 
 ```bash
-# Container Postgres (dung Postgres da cai san thi bo qua dong nay).
-docker run -d --name coreandskill-db -e POSTGRES_PASSWORD=dev -p 5432:5432 postgres:17
+# Container Postgres (dung Postgres da cai san thi bo qua dong nay). Phien ban theo
+# docker-compose.yml o goc repo — nguon phien ban PostgreSQL cua repo.
+docker run -d --name coreandskill-db -e POSTGRES_PASSWORD=dev -p 5432:5432 postgres:18
 
 export PGHOST=localhost PGADMIN=postgres PGDATABASE=coreandskill_dev
 # Roi chay §3.3 tu buoc 1.
@@ -766,7 +808,7 @@ dotnet run --project src/BE/CoreAndSkill.Api -- core reset-operator-password
 
 | Tính chất | Vì sao |
 | --- | --- |
-| **Thiếu mật khẩu mới ⇒ dừng, không ghi gì** | Cùng lý do với lệnh bootstrap (§3.3 bước 5) |
+| **Thiếu mật khẩu mới, hoặc một lệnh ghi của Identity hỏng ⇒ dừng, thoát mã 1, không ghi gì** | Cùng lý do với lệnh bootstrap (§3.3 bước 5). Lệnh ghi hỏng thì lệnh dừng ngay ở đó, không ghi nhật ký — [`../adr/0096-lenh-ghi-usermanager-kiem-ket-qua-hong-thi-dung.md`](../adr/0096-lenh-ghi-usermanager-kiem-ket-qua-hong-thi-dung.md) |
 | **Mật khẩu đi qua `UserManager`, không qua SQL** | Không hàm SQL nào sinh được chuỗi băm hợp lệ ([`schema-core.md`](schema-core.md) §4.1). Mật khẩu mới phải đạt chính sách mật khẩu như ở mọi môi trường (luật S9) |
 | **Chạy bằng `coreandskill_app`** | Cùng chuỗi kết nối với ứng dụng — bảng quyền ở §3.6 |
 

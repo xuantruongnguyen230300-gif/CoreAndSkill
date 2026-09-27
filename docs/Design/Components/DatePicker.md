@@ -62,6 +62,19 @@ Bề rộng ô theo công tắc `width` như [`Input.md`](./Input.md); panel l�
 | `error` | Bật khi control `invalid && touched` (§API dự kiến), cùng khuôn `error` của [`Input.md`](./Input.md): viền `--color-danger-border`, `aria-invalid="true"`, `aria-describedby` trỏ dòng lỗi do `FormRow` vẽ. Chuỗi gõ tay không thành ngày hợp lệ → validator cài sẵn gắn lỗi `dateInvalid` lên control, giá trị đi qua control vẫn là `null`; câu lỗi dịch qua khoá `loi.CORE.CLIENT.VALIDATION_DATEINVALID` ([`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.5) | Có |
 | `empty` | **Không áp dụng.** Ô trống là bình thường; placeholder `dd/mm/yyyy` đã xử lý | — |
 
+**Mở và đóng panel lịch:** panel mờ dần lúc bung ra và lúc thu lại. **Một** thời lượng cho cả hai chiều — `--dur-base`; đường cong đi theo hướng: `--ease-decelerate` chiều bung, `--ease-accelerate` chiều thu. Dưới `$bp-sm` panel dính đáy màn hình (§Responsive), và nhịp vẫn giữ nguyên: nó trượt quãng dài hơn nhưng không vì thế mà được chậm hơn. Tắt khi `prefers-reduced-motion: reduce` ([`../DESIGN.md`](../DESIGN.md) §7).
+
+**Bậc lấy theo vai, không theo con số nào đang sẵn.** Bung một panel là chuyển động `transform` và `opacity`, và [`../DESIGN.md`](../DESIGN.md) §7 giao vai đó cho `--dur-base`; bậc ngắn hơn giữ riêng vai sơn màu, nên nó không phải lựa chọn ở đây kể cả khi một con số mặc định nào đó trông vừa mắt hơn — [`../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md`](../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md) quyết định 2 và 4. Nhịp này dài hơn nhịp mặc định của nền bọc, và đó là một cái giá người dùng đã duyệt chứ không phải một chỗ sót; nó có nặng tay hay không thì [`../DESIGN.md`](../DESIGN.md) §10 giữ câu hỏi.
+
+🛑 **Chuyển động của component này chạy trên HAI đường, và hai đường áp token theo hai cách khác nhau.**
+
+| Đường | Chở khoản nào | Token áp thế nào |
+| --- | --- | --- |
+| CSS của thư viện | Đổi màu ô khi hover/focus; đổi nền ô ngày trong lưới | ✅ **Thẳng, và không cần khai gì riêng.** Sub-preset `datepicker` trỏ thời lượng của nó về khoá semantic dùng chung mà preset Core đã nối về `--dur-fast` — [`../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md`](../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md) quyết định 1. Component này thừa hưởng lúc được dựng |
+| Hoạt ảnh Angular | Bung ra / thu lại của chính panel | ✅ **Vòng qua TypeScript.** Hai tham số là chuỗi bị phân tích thành số nên `var()` không giải tới; ba giá trị ở đoạn trên đi qua **hằng số có tên** khai cạnh lớp bọc, mỗi hằng nêu đích danh token nó phản chiếu — luật **F37** ([`../../RULES.md`](../../RULES.md) §7). Khuôn có sẵn ở lớp bọc [`Toast.md`](./Toast.md); đọc ở đó, đừng dựng khuôn thứ hai |
+
+Hai ô cột phải khác nhau ở **chỗ áp**, không ở **ai quyết**: cả hai đường đều lấy số từ token, và `DatePicker` là nơi quyết cả hai. Một hằng số trong mã ngang vai với một tên token trong stylesheet.
+
 ## Token dùng
 
 | Nhóm | Token |
@@ -72,7 +85,7 @@ Bề rộng ô theo công tắc `width` như [`Input.md`](./Input.md); panel l�
 | Hình dạng | `--radius-sm`, `--radius-md`, `--border-w`, `--border-w-strong` |
 | Kích thước | `--size-control-sm`, `--size-control-md`, `--size-control-lg`, `--icon-md` |
 | Bóng, lớp | `--shadow-3`, `--z-popover` |
-| Chuyển động | `--dur-fast`, `--ease-standard` |
+| Chuyển động | `--dur-fast`, `--ease-standard` (đường CSS); `--dur-base`, `--ease-decelerate`, `--ease-accelerate` (đường hoạt ảnh Angular) — bảng hai đường ở §Trạng thái nói rõ khoản nào đi đường nào |
 
 ## Responsive
 
@@ -121,4 +134,6 @@ Bề rộng ô theo công tắc `width` như [`Input.md`](./Input.md); panel l�
 
 ## Cần chốt
 
-Không còn. Icon nút mở lịch đã chốt: `pi-calendar`, dòng ở [`../Icons.md`](../Icons.md) §5. Lỗi gõ tay đã chốt ở mục Trạng thái và API dự kiến (`dateInvalid`, người dùng duyệt 2026-09-16).
+Không còn câu hỏi để ngỏ ở mục này.
+
+Icon nút mở lịch đã chốt: `pi-calendar`, dòng ở [`../Icons.md`](../Icons.md) §5. Lỗi gõ tay đã chốt ở mục Trạng thái và API dự kiến (`dateInvalid`, người dùng duyệt 2026-09-16). Nhịp bung/thu của panel đã chốt ở [`../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md`](../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md) (người dùng duyệt 2026-09-23) và viết ở §Trạng thái.

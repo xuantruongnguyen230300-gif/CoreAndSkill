@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # Quy ước Backend — repository, query, index, cache
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi code mẫu là khuôn cho `src/BE` sẽ xây ở giai đoạn 2.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/BE` đã có trên đĩa. Code mẫu ở §2 là
+> **khuôn, không phải trích dẫn** — không tệp nào mang các tên đó. Chưa ai đối chiếu toàn file, nên
+> `verified:` giữ `chua-doi-chieu`: khớp hay không thì mở file mã nguồn ra so và nêu `file:dòng`.
 >
 > Đọc file này khi viết repository/query mới, hoặc khi nhận bất kỳ task nào có chữ
 > *"chậm"* / *"tối ưu"* / *"cache"*.
@@ -33,7 +35,7 @@ Cache đặt trước ba bước đầu chỉ **che** lỗi chứ không sửa.
 ### 2.1 Interface ở Application, implementation ở Infrastructure
 
 ```csharp
-// Core.Application/Menu/IMenuItemRepository.cs
+// KHUÔN, không có tệp này; repository thật: IJobRepository
 public interface IMenuItemRepository
 {
     Task<MenuItem?> GetByIdAsync(Guid id, CancellationToken ct);
@@ -47,13 +49,11 @@ public interface IMenuItemRepository
 Không method nào nhận tham số đơn vị: `MenuItem` là entity `ITenantScoped`, bộ lọc tenant đã giới hạn
 mọi truy vấn trong đơn vị hiện hành ([`be-entity-domain.md`](be-entity-domain.md) §5.1).
 
-| Luật | Vì sao |
-| --- | --- |
-| Interface khai ở **Application**, cạnh feature dùng nó | Vertical slice; và Application không được biết Infrastructure |
-| **Không** `IRepository<T>` tổng quát | Nó buộc mọi entity mang cùng một bề mặt — vi phạm ISP |
-| Repository **không** tự `SaveChangesAsync` | `TransactionBehavior` sở hữu điểm commit — [`be-cqrs-handler.md`](be-cqrs-handler.md) §5.3 |
-| Method trả về **entity** hoặc **DTO đã projection**, không trả `IQueryable` | Xem §2.2 |
-| `Remove` là `void` | Nó chỉ đánh dấu trên `ChangeTracker`; đặt `async` cho nó là nói dối về việc có I/O |
+- Interface khai ở **Application**, cạnh feature dùng nó
+- **Không** `IRepository<T>` tổng quát
+- Repository **không** tự `SaveChangesAsync`
+- Method trả về **entity** hoặc **DTO đã projection**, không trả `IQueryable`
+- `Remove` là `void`
 
 ### 2.2 `IQueryable` không được rò ra khỏi Application
 
@@ -63,20 +63,19 @@ mọi truy vấn trong đơn vị hiện hành ([`be-entity-domain.md`](be-entit
 Repository nhận một **criteria object** và trả kết quả đã materialize:
 
 ```csharp
-// Core.Application/Menu/MenuItemSearchCriteria.cs
+// KHUÔN, không có tệp này; gần nhất: UserSearchCriteria
 public sealed record MenuItemSearchCriteria(
     string? SearchText,
     Guid? ParentId,
     int Page,
     int PageSize,
-    MenuItemSortField SortBy,
+    string SortBy,
     bool SortDescending);
-
-public enum MenuItemSortField { Code, DisplayOrder, CreatedAt }
 ```
 
-`SortBy` là **enum**, không phải chuỗi — cách rẻ nhất để cưỡng chế allowlist sắp xếp
-([`be-cqrs-handler.md`](be-cqrs-handler.md) §9.3).
+`SortBy` là **chuỗi**, kiểm miền giá trị ở validator của request theo allowlist khai một lần (luật B3,
+[`be-cqrs-handler.md`](be-cqrs-handler.md) §9.3) — như `UsersListAllowlists.cs`. Repository ánh xạ chuỗi đã kiểm
+sang biểu thức sắp xếp; không ghép chuỗi vào `OrderBy` động.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §2.2
 
@@ -162,7 +161,7 @@ Ba cách, xếp theo thứ tự nên áp dụng:
    định một trần:
 
 ```csharp
-// Tests/.../CommandCountingInterceptor.cs
+// KHUÔN, không có tệp này ở src/BE/Tests — kỹ thuật minh hoạ, chưa dựng
 public sealed class CommandCountingInterceptor : DbCommandInterceptor
 {
     private int _count;
@@ -333,35 +332,53 @@ Khối lượng rất lớn (từ hàng chục nghìn dòng): chia lô cố đ�
 ngưỡng phải **đo** — và việc đó thuộc về job nền ([`be-cqrs-handler.md`](be-cqrs-handler.md) §10).
 
 Cập nhật/xoá hàng loạt theo điều kiện: `ExecuteUpdateAsync` / `ExecuteDeleteAsync`. Chúng **bỏ qua
-`ChangeTracker`** và interceptor — `AuditInterceptor` **không** chạy, phải tự set cột vết trong câu
-`ExecuteUpdate`. `ExecuteDeleteAsync` là **xoá cứng** — entity có soft delete dùng `ExecuteUpdateAsync`
+`ChangeTracker`** và cả bốn interceptor (§7.2): tự set cột vết trong câu `ExecuteUpdate`; không có dòng
+nhật ký, không có sự kiện outbox. `ExecuteDeleteAsync` là **xoá cứng** — entity có soft delete dùng `ExecuteUpdateAsync`
 đặt `IsDeleted = true`.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §7.1
 
 ### 7.2 Cấu hình `UseNpgsql`
 
-```csharp
-services.AddDbContext<CoreDbContext>((sp, options) => options
-    .UseNpgsql(sp.GetRequiredService<DbConnection>(), npgsql =>
-    {
-        npgsql.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorCodesToAdd: null);
-        npgsql.CommandTimeout(30);
-        npgsql.MigrationsHistoryTable("__ef_migrations_history", CoreSchema.Name);
-    })
-    .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
-```
+Cấu hình của `CoreDbContext` đọc ở mã: `src/BE/Core/CoreAndSkill.Core.Infrastructure/DependencyInjection/CoreInfrastructureServiceCollectionExtensions.cs`,
+chuỗi `services.AddDbContext<CoreDbContext>`. Đủ cấu hình là **sáu** thứ: `DbConnection` dùng chung ·
+`CoreExecutionStrategy` · `CommandTimeout(30)` · bảng lịch sử migration trong schema của phía nó ·
+`UseSnakeCaseNamingConvention()` · bốn interceptor đúng thứ tự dưới. Lý do từng thứ, và bẫy transaction tự
+mở: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §7.2.
 
-| Thiết lập | Vì sao khai tường minh |
+**Thứ tự interceptor — định nghĩa gốc:** `AuditInterceptor` → `TenantAssignmentInterceptor` →
+`AuditLogInterceptor` → `OutboxInterceptor` — nhật ký và dòng outbox đọc `TenantId` **đã gán** của entity.
+
+> 📐 **`DbContext` của module: chưa hỗ trợ** — chưa có hàm `public` đăng ký đủ sáu thứ, và
+> `CoreExecutionStrategy` là `internal`. Tự dựng thì hỏng im lặng: [nợ](../DEBT.md) B22.
+
+#### Lỗi KHÔNG được thử lại — định nghĩa gốc
+
+> ✅ **CÓ THẬT** (đối chiếu 2026-09-22). Strategy: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/CoreExecutionStrategy.cs`
+> (chuỗi `IsWaitLimitExceeded`), nối vào `CoreDbContext` ở
+> `src/BE/Core/CoreAndSkill.Core.Infrastructure/DependencyInjection/CoreInfrastructureServiceCollectionExtensions.cs`
+> (chuỗi `npgsql.ExecutionStrategy(dependencies => new CoreExecutionStrategy(`). Bọc lỗi commit:
+> `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/UnitOfWork.cs` (chuỗi
+> `catch (Exception ex) when (ex is not PostgresException)`). Host test không database:
+> `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Support/CoreWebApplicationFactory.cs` (chuỗi
+> `NonRetryingExecutionStrategy`).
+>
+> **Chưa ai thấy trên PostgreSQL thật:** hết `CommandTimeout` có đúng là `NpgsqlException` bọc
+> `TimeoutException` không, và `55P03` có ra 500 sau đúng một lần chờ không. Test có, chưa chạy — luật
+> E11 ở [`../RULES.md`](../RULES.md) §4. Lý do và phương án đã loại:
+> [`../adr/0053-thu-lai-khong-ap-cho-het-han-cho-va-commit-khong-ro-ket-qua.md`](../adr/0053-thu-lai-khong-ap-cho-het-han-cho-va-commit-khong-ro-ket-qua.md).
+
+Phân loại "tạm thời" của Npgsql rộng hơn thứ nên thử lại. Core thay `EnableRetryOnFailure` bằng một
+execution strategy riêng. Strategy giữ số lần thử, trễ tối đa và phân loại của Npgsql, **trừ**:
+
+| Lỗi | Vì sao không thử lại |
 | --- | --- |
-| `DbConnection` dùng chung thay vì chuỗi kết nối | Mọi `DbContext` của một request đi chung một kết nối để đứng chung một transaction — [`be-cqrs-handler.md`](be-cqrs-handler.md) §4 |
-| `EnableRetryOnFailure` | Một nhịp chớp mạng giữa app và Postgres không được biến thành 500 cho người dùng |
-| `CommandTimeout(30)` | Bằng đúng mặc định — khai ra để nó là con số **đã cân nhắc**. Hạ xuống khi có số đo p99 thật |
-| `MigrationsHistoryTable` trong schema `core` | Core sở hữu lịch sử migration của mình; module có bảng riêng — [`../database/migration-policy.md`](../database/migration-policy.md) |
+| `PostgresException` mã `55P03` (hết `lock_timeout`) | Thời hạn chờ là trần cho **cả request**. Thử lại nhân nó lên bốn lần trong lúc giữ kết nối — [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §7 quy tắc 3 |
+| `NpgsqlException` có `InnerException` là `TimeoutException` — hết `CommandTimeout`, và **có chủ đích** cả hết hạn mở kết nối lẫn hết hạn chờ pool ([ADR-0055](../adr/0055-commit-khong-nhan-token-huy-va-het-han-mo-ket-noi-khong-thu-lai.md)) | Lỗi đã tiêu hết một thời hạn chờ thì không thử lại: câu vừa quá hạn sẽ lại quá hạn trên database đang chậm; pool cạn thì thử lại chỉ thêm người xếp hàng. Lỗi mở kết nối **hỏng nhanh** (bị từ chối, bị ngắt) vẫn thử lại. Hình dạng ngoại lệ của hai ca mở kết nối chưa tái hiện trên PostgreSQL thật |
+| Lỗi đường truyền ném từ `CommitAsync` | Không biết máy chủ đã commit chưa. Chạy lại có thể ghi hai lần. `UnitOfWork` bọc lỗi này thành ngoại lệ không tạm thời — [`be-cqrs-handler.md`](be-cqrs-handler.md) §4 |
 
-> ⚠️ **Bẫy đi kèm `EnableRetryOnFailure`:** chiến lược thử lại **không** bọc được transaction do code tự
-> mở — ném `InvalidOperationException` lúc **chạy**. Transaction gom về `IUnitOfWork.ExecuteInTransactionAsync`
-> — [`be-cqrs-handler.md`](be-cqrs-handler.md) §4.
+Host test **không có database** dùng strategy không thử lại, vì ở đó mọi lượt thử lại đều chắc chắn
+hỏng. Host test trên PostgreSQL thật giữ đúng strategy của production.
 
 ---
 
@@ -369,32 +386,15 @@ services.AddDbContext<CoreDbContext>((sp, options) => options
 
 ### 8.1 Trạng thái và lý do
 
-> 📐 **Redis và `CachingBehavior` KHÔNG có ở v1.** Không phải bỏ sót — chưa đo được vấn đề nào để cache
-> giải quyết. Quyết định về số lượng behavior ở v1:
-> [`../adr/0006-pipeline-behavior.md`](../adr/0006-pipeline-behavior.md).
+> 📐 Phần chưa thi công: [`be-performance-chua-thi-cong.md`](be-performance-chua-thi-cong.md) §1.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §8.1
 
 ### 8.2 Interface khai trước — để đổi implementation không sửa call site
 
-```csharp
-// Core.Application/Common/Interfaces/ICacheStore.cs
-public interface ICacheStore
-{
-    ValueTask<T?> GetAsync<T>(string key, CancellationToken ct = default);
+`Core.Application` **không bao giờ** chạm thẳng `HybridCache`/`IMemoryCache`/`IDistributedCache` — chỉ qua `ICacheStore`. Implementation ở v1: **không có**; chỗ nào thật sự cần trước thì đăng ký một implementation **no-op** (luôn miss, `Set` không làm gì).
 
-    ValueTask SetAsync<T>(string key, T value, TimeSpan ttl,
-                          IReadOnlyCollection<string>? tags = null, CancellationToken ct = default);
-
-    ValueTask RemoveAsync(string key, CancellationToken ct = default);
-
-    ValueTask RemoveByTagAsync(string tag, CancellationToken ct = default);
-}
-```
-
-Bốn method, không hơn. Implementation ở v1: **không có**; chỗ nào thật sự cần trước thì đăng ký một
-implementation **no-op** (luôn miss, `Set` không làm gì). `Core.Application` **không bao giờ** chạm thẳng
-`HybridCache`/`IMemoryCache`/`IDistributedCache` — chỉ qua `ICacheStore`.
+> 📐 Chữ ký `ICacheStore` — chưa thi công: [`be-performance-chua-thi-cong.md`](be-performance-chua-thi-cong.md) §2.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §8.2
 
@@ -440,6 +440,6 @@ trên cùng tập dữ liệu, so sánh, rồi mới xoá bản cũ.
 - [ ] `Distinct` / `GroupBy` / `Count` / phân trang chạy ở **SQL**, không `ToListAsync()` rồi làm trong C#.
 - [ ] Không `await` trong vòng lặp.
 - [ ] Sắp xếp có tiêu chí phụ ổn định (`ThenBy(x => x.Id)`).
-- [ ] `SortBy` đến từ enum hoặc allowlist, không phải chuỗi client gửi thẳng vào `OrderBy`.
+- [ ] `SortBy` qua allowlist ở validator (B3), không phải chuỗi client gửi thẳng vào `OrderBy`.
 - [ ] Nếu bỏ qua một mục trên: comment nêu **con số** trần trên và điều kiện làm nó hết đúng.
       *"Dataset hiện tại nhỏ"* suông **không** phải ngoại lệ hợp lệ.

@@ -1,6 +1,6 @@
 ---
 name: "adr-new"
-description: "Tạo một Architecture Decision Record mới đúng khuôn: lấy số tiếp theo bằng lệnh, hỏi đủ bối cảnh và phương án đã loại, viết file, cập nhật bảng mục lục. Dùng khi vừa chốt một quyết định kiến trúc đắt để đảo ngược."
+description: "Tạo một Architecture Decision Record mới đúng khuôn: lấy số tiếp theo bằng lệnh, hỏi đủ bối cảnh và phương án đã loại, viết file, cập nhật bảng mục lục. Dùng khi vừa chốt một quyết định mang dấu hiệu ADR ở docs/adr/README.md §2 — quyết định nhỏ ghi một dòng nhật ký, không dùng skill này."
 argument-hint: "<quyết định, dạng câu khẳng định> - vd 'Dùng Outbox thay message broker ở v1'"
 metadata:
   author: "core-team"
@@ -29,18 +29,19 @@ Việc này thuộc `architect`. Skill chuẩn bị dữ liệu rồi giao, khô
 
 ### 1. Đọc khuôn và quy tắc — không nhớ bằng đầu
 
-Mở [`../../../docs/adr/README.md`](../../../docs/adr/README.md). Bốn thứ lấy từ đó, **không chép sang file này**:
+Mở [`../../../docs/adr/README.md`](../../../docs/adr/README.md). Ba thứ lấy từ đó, **không chép sang file này**:
 
 - Khuôn năm mục bắt buộc và bẫy thường gặp của từng mục.
 - Quy tắc đánh số và đặt tên file.
 - Cách lật một quyết định cũ.
-- Bảng mục lục cần cập nhật ở bước 6.
+
+Bảng mục lục cần cập nhật ở bước 6 nằm ở [`../../../docs/adr/muc-luc.md`](../../../docs/adr/muc-luc.md) — `README.md` §6 chỉ còn một dòng trỏ sang đó.
 
 📖 Thực hành ADR như một chuẩn chung: đọc [`../../../docs/wiki-core/be/08-adr-practice.md`](../../../docs/wiki-core/be/08-adr-practice.md)
 
 ### 2. Kiểm tra đây có thật sự là một ADR không
 
-Mục "Khi nào KHÔNG viết" trong file mục lục ở bước 1 liệt kê bốn tình huống thuộc khu khác. Đối chiếu trước khi viết.
+Mục "Khi nào KHÔNG viết" trong file mục lục ở bước 1 liệt kê các tình huống thuộc khu khác — kể cả quyết định nhỏ, ghi một dòng nhật ký thay vì ADR. Đối chiếu trước khi viết.
 
 **Phép thử nhanh:** sáu tháng nữa có ai hỏi *"vì sao hồi đó lại làm thế?"* không? Không → đây không phải ADR, chuyển sang khu đúng của nó và dừng.
 
@@ -81,22 +82,22 @@ Tên file theo quy tắc ở bước 1: bốn chữ số, gạch ngang, slug ti�
 
 Nội dung: chép **khuôn rỗng** ở cuối file mục lục, điền đủ năm mục. Ba khoá frontmatter: `kind: quyet-dinh`, `scope: core`, `verified: chua-doi-chieu`.
 
-Hai ràng buộc về bằng chứng ở giai đoạn 1:
+Hai ràng buộc về bằng chứng:
 
-- Repo **chưa có `src/`** — không trích dẫn dạng đường-dẫn-kèm-số-dòng vào `src/`. Cổng sẽ bắt, và đó là bịa bằng chứng.
+- Trích dẫn dạng đường-dẫn-kèm-số-dòng vào `src/` chỉ được viết khi đã **mở đúng file đó ra đọc**. Cổng chỉ kiểm được số dòng có nằm trong file; nó không biết dòng đó nói gì, nên một trích dẫn dựng từ trí nhớ vẫn qua cổng và vẫn là bịa bằng chứng.
 - Bài học từ dự án tiền nhiệm kể bằng **văn xuôi** ("ở dự án tiền nhiệm…"), không viết dạng đường-dẫn-kèm-số-dòng.
 
 Không chép nội dung của một file quy ước vào ADR. ADR nói *vì sao*, khu quy ước nói *làm thế nào*. Chép sang là tạo bản sao thứ hai, và bản sao thứ hai không bao giờ được sửa cùng lúc với bản gốc.
 
 ### 6. Cập nhật bảng mục lục
 
-Thêm **một dòng** vào bảng mục lục trong [`../../../docs/adr/README.md`](../../../docs/adr/README.md): link tới file mới, cộng quyết định gói trong một dòng.
+Thêm **một dòng** vào bảng mục lục trong [`../../../docs/adr/muc-luc.md`](../../../docs/adr/muc-luc.md): link tới file mới, cộng quyết định gói trong một dòng.
 
 Nếu ADR mới **lật** một ADR cũ: sửa **duy nhất dòng Trạng thái** của ADR cũ, kèm một dòng link sang bản mới. 🛑 Không đụng vào phần nội dung của ADR cũ — sửa nó là xoá mất lý do người ta từng nghĩ thế.
 
 ### 7. Nếu ADR sinh ra một luật mới
 
-Một ADR **không tự nó ép được gì**. Phần ép nằm ở [`../../../docs/RULES.md`](../../../docs/RULES.md), cột "Ép bằng gì".
+Một ADR **không tự nó ép được gì**. Phần ép nằm ở bảng luật — các tệp `docs/RULES-*.md`, mục lục [`../../../docs/RULES.md`](../../../docs/RULES.md) — cột "Ép bằng gì".
 
 Hỏi người dùng: quyết định này có sinh ra luật mà code phải tuân không? Có → luật đó phải xuất hiện ở file luật kèm cột "Ép bằng gì". Chưa có cổng nào ép được → dòng đó thuộc mục Danh sách nợ, nhìn thấy được, không lờ đi.
 

@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 05. Nhất quán dữ liệu giữa các module
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Code của chủ đề này đã có một phần dưới `src/BE`, nhưng **chưa mục nào trong tệp được đối chiếu** với nó — tệp vẫn trong tầm chấm review (2026-09-24).
 >
 > Ba khái niệm hay bị lẫn — domain event, integration event, notification — được tách bạch ở [`12-notifications.md`](12-notifications.md) §1. File này lo phần **nhất quán dữ liệu**; file kia lo phần **báo cho người dùng**.
 

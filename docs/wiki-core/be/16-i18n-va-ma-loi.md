@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 16. Mã lỗi và đa ngôn ngữ phía Backend
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Code của chủ đề này đã có một phần dưới `src/BE`, nhưng **chưa mục nào trong tệp được đối chiếu** với nó — tệp vẫn trong tầm chấm review (2026-09-24).
 >
 > Hình dạng envelope và ánh xạ sang HTTP là thi công: [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md). Phía FE ghép câu: [`../fe/08-i18n.md`](../fe/08-i18n.md) và [`../fe/09-forms-validation.md`](../fe/09-forms-validation.md).
 

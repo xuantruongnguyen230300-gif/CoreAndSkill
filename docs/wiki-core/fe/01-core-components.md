@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 01. Một Core FE gồm những gì
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo đang ở giai đoạn 1, chưa có `src/`. Toàn bộ file này mô tả thứ `src/FE` **phải trở thành**, không phải mô tả hiện trạng.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/FE` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Toàn bộ file này mô tả thứ `src/FE` **phải trở thành**, không phải mô tả hiện trạng.
 >
 > **File chủ của câu hỏi "Core FE đủ chưa, còn thiếu mảng nào".** Ai muốn biết *thi công thế nào* thì đọc [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md); file này chỉ trả lời *cần có gì và vì sao*.
 
@@ -94,7 +94,9 @@ Nhóm B khác Nhóm A ở một điểm: **thiếu chúng thì app vẫn chạy 
 | A3, A4, A5 — phiên, guard, menu | ✅ sẽ có | F2 | Permission-based, **không** role-based |
 | A11 — i18n | ✅ sẽ có | F2 | Hạ tầng bật từ F2; bản dịch thứ hai có thể về sau |
 | A12 — layout shell | ✅ sẽ có | F2 | Cùng lúc với màn đăng nhập, vì màn đó cần cờ tắt shell |
-| A8, A9, A10 — component, form, grid | ✅ sẽ có | F3 | Sinh ra từ nhu cầu thật của các màn quản trị F3 |
+| A17 — `unsavedChangesGuard` | ✅ sẽ có | F2 | Kéo sớm theo [`../../adr/0040-a17-unsaved-changes-guard-keo-som-vao-f2.md`](../../adr/0040-a17-unsaved-changes-guard-keo-som-vao-f2.md) — hai màn F2 thật (`00-khung-ung-dung.md`, `03-ho-so-ca-nhan.md`) đã cần nó, không phải dự đoán |
+| A8 (phần) — `PageHeader`, `Card`, `ConfirmDialog`, `SkeletonLoader` | ✅ sẽ có | F2 | Kéo sớm theo [`../../adr/0037-f2-dung-du-component-core-khong-hoan-ngam.md`](../../adr/0037-f2-dung-du-component-core-khong-hoan-ngam.md) — nhu cầu thật của màn hồ sơ cá nhân, không phải dự đoán. `Sidebar`/`Topbar` không thuộc A8, đã ở F2 từ A12 |
+| A8 (còn lại), A9, A10 — modal tổng quát, `EmptyState`, hạ tầng form, `DataTable` | ✅ sẽ có | F3 | Sinh ra từ nhu cầu thật của các màn quản trị F3 |
 | A13 — màn Core ở `platform/` | ✅ sẽ có | F2, F3, sau F3 | Hồ sơ cá nhân ở F2; người dùng, vai trò, phân quyền ở F3; khu quản trị đơn vị sau F3, đóng khi B3 xong — [`trien-khai/00-lo-trinh-tong-the.md`](trien-khai/00-lo-trinh-tong-the.md) §1 |
 
 ### 4.2 Cố ý chưa làm ở v1 — kèm lý do và điều kiện mở lại
@@ -133,7 +135,7 @@ Bọc thư viện UI là việc rẻ khi làm trước và đắt khi làm sau. 
 
 ### 5.3 Cổng phải sinh ra cùng lúc với luật
 
-Luật không có cổng là gợi ý ([`../../RULES.md`](../../RULES.md) §10). Điều này đúng gấp đôi ở FE, vì FE không có compiler canh ranh giới.
+Luật không có cổng là gợi ý ([`../../DEBT.md`](../../DEBT.md)). Điều này đúng gấp đôi ở FE, vì FE không có compiler canh ranh giới.
 
 Ở dự án tiền nhiệm, một script cổng FE **không tồn tại trên đĩa** trong khi tài liệu vẫn hướng dẫn chạy nó. Người chạy thấy `No such file or directory` ở lệnh đầu, ba lệnh sau chạy bình thường, và kết luận cổng đã xanh. Ba mục cổng không có gì canh suốt thời gian dài. Xem [`../../audit/2026-08-23-cong-khong-ton-tai.md`](../../audit/2026-08-23-cong-khong-ton-tai.md).
 

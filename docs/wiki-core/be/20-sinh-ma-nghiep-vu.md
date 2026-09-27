@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 20. Sinh mã nghiệp vụ
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Thành phần chưa bật: dưới `src/BE` và `database/scripts/core` không có gì khớp `code_sequence` hay `CodeSequence` (dò 2026-09-24).
 >
 > **Thành phần Nhóm B** ([`01-core-components.md`](01-core-components.md) §2) — ngưỡng bật: *nghiệp vụ đầu tiên cần mã do hệ thống sinh*. Bảng dữ liệu chỉ tạo khi thành phần được bật.
 

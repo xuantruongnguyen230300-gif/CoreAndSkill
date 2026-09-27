@@ -9,9 +9,11 @@
 # core-reviewer. Matcher sai hoặc không được áp thì hook chạy cho MỌI subagent,
 # và một lượt backend-expert kết thúc sẽ được tính là "đã review".
 #
-# Payload không có trường agent_type -> KHÔNG ghi dấu, ghi lý do ra
-# .claude/.state/subagent-stop-error.log. Hook Stop trỏ tới file đó khi vẫn chặn
-# sau một lượt review — lỗi không biến mất im lặng.
+# MỌI lần không ghi dấu đều để lại một dòng lý do ở
+# .claude/.state/subagent-stop-error.log — payload không có agent_type, agent_type
+# rỗng, hay agent_type khác core-reviewer. Matcher đã lọc ^core-reviewer$, nên tới
+# được đây mà không ghi dấu là một dị thường: im lặng ở nhánh đó là để cổng biến
+# mất mà không ai biết. Hook Stop trỏ tới file log khi vẫn chặn sau một lượt review.
 #
 # Không jq, không grep -P, tự ép locale. Luôn thoát 0: hook này không chặn gì.
 
@@ -24,22 +26,37 @@ mkdir -p "$STATE" 2>/dev/null || exit 0
 
 payload=$(cat 2>/dev/null || true)
 
-# Mau BRE tham lam bam lan xuat hien CUOI; khoa that chi xuat hien mot lan, con
-# chuoi "agent_type" nam trong noi dung bao cao thi da bi thoat thanh \" nen
-# khong khop mau (ngay truoc dau nhay dong la dau gach cheo nguoc).
-at=$(printf '%s' "$payload" | sed -n 's/.*"agent_type"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+# top_str nằm ở lib.sh — cùng một bản cho mọi hook. Nạp hỏng thì KHÔNG ghi dấu
+# và để lại lý do: một lượt review không được ghi dấu là hook Stop chặn mãi mà
+# không ai biết vì sao.
+if ! . .claude/hooks/lib.sh 2>/dev/null; then
+  printf '%s %s\n' "$(date '+%F %T' 2>/dev/null)" "không nạp được .claude/hooks/lib.sh — KHÔNG ghi dấu review." >> "$STATE/subagent-stop-error.log"
+  exit 0
+fi
 
-case "$at" in
-  core-reviewer)
-    : > "$STATE/core-reviewed"
-    rm -f "$STATE/subagent-stop-error.log"
-    ;;
-  '')
-    keys=$(printf '%s' "$payload" | grep -o '"[A-Za-z_]*"[[:space:]]*:' | head -20 | tr -d '\n')
-    printf '%s payload SubagentStop không có trường agent_type — KHÔNG ghi dấu review. Khoá có trong payload: %s\n' \
-      "$(date '+%F %T' 2>/dev/null)" "${keys:-(không trích được khoá nào)}" >> "$STATE/subagent-stop-error.log"
-    ;;
-  *) ;;
-esac
+# In an toàn vào log: chỉ ký tự in được, cắt ngắn.
+shown() { printf '%s' "$1" | LC_ALL=C tr -c '[:print:]' '?' | cut -c1-80; }
+
+log() {
+  printf '%s %s\n' "$(date '+%F %T' 2>/dev/null)" "$1" >> "$STATE/subagent-stop-error.log"
+}
+
+if at=$(printf '%s' "$payload" | top_str agent_type); then
+  case "$at" in
+    core-reviewer)
+      : > "$STATE/core-reviewed"
+      rm -f "$STATE/subagent-stop-error.log"
+      ;;
+    '')
+      log "payload SubagentStop có agent_type RỖNG — KHÔNG ghi dấu review."
+      ;;
+    *)
+      log "payload SubagentStop có agent_type '$(shown "$at")', không phải core-reviewer — KHÔNG ghi dấu review. Matcher ^core-reviewer$ lẽ ra đã lọc payload này."
+      ;;
+  esac
+else
+  keys=$(printf '%s' "$payload" | LC_ALL=C grep -o '"[A-Za-z_]*"[[:space:]]*:' | head -20 | tr -d '\n')
+  log "payload SubagentStop không có trường agent_type ở tầng ngoài (hoặc JSON cụt) — KHÔNG ghi dấu review. Khoá có trong payload: ${keys:-(không trích được khoá nào)}"
+fi
 
 exit 0

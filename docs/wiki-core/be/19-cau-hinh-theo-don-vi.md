@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 19. Cấu hình theo đơn vị
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Thành phần chưa bật: dưới `src/BE` và `database/scripts/core` không có gì khớp `core.setting` (dò 2026-09-24).
 >
 > **Thành phần Nhóm B** ([`01-core-components.md`](01-core-components.md) §2) — ngưỡng bật: *có đơn vị thứ hai muốn hiển thị hoặc tính khác nhau*. Bảng dữ liệu chỉ tạo khi thành phần được bật.
 >
@@ -30,7 +30,7 @@ Ba phạm vi, giá trị ở phạm vi hẹp **ghi đè** phạm vi rộng:
 | --- | --- | --- | --- |
 | 1 | **Người dùng** | Người dùng tự đặt | Ngôn ngữ, số dòng mỗi trang |
 | 2 | **Đơn vị** | Quản trị viên của đơn vị | Logo, tên hiển thị, định dạng ngày |
-| 3 | **Hệ thống** | Người vận hành, lúc cài đặt | Giá trị dùng chung cho mọi đơn vị |
+| 3 | **Toàn cục** (`global`) | Người vận hành, lúc cài đặt | Giá trị dùng chung cho mọi đơn vị — không phải cấu hình của đơn vị hệ thống ([`../../adr/0093-pham-vi-cau-hinh-dung-chung-ten-la-global.md`](../../adr/0093-pham-vi-cau-hinh-dung-chung-ten-la-global.md)) |
 | 4 | **Mặc định khai trong code** | Người viết tính năng | Luôn tồn tại, nên đọc cấu hình **không bao giờ** trả về rỗng |
 
 Tầng 4 là tầng quan trọng nhất về mặt thi công: **mọi khoá phải có giá trị mặc định trong code**. Thiếu nó thì một khoá chưa ai đặt sẽ làm tính năng hỏng ở đúng đơn vị chưa cấu hình, và lỗi đó chỉ lộ ra ở nơi khó tái hiện nhất.
@@ -43,7 +43,7 @@ Mỗi module tự khai khoá của mình qua một seam, **cùng khuôn với da
 
 Mỗi khoá khai: mã khoá, kiểu giá trị, giá trị mặc định, phạm vi cho phép đặt, và khoá dịch của nhãn hiển thị.
 
-**Phạm vi cho phép đặt là một phần của khai báo, không phải quy ước miệng.** Một khoá chỉ có nghĩa ở mức hệ thống mà cho đặt ở mức người dùng thì sẽ có người đặt, và hành vi sau đó không ai giải thích được.
+**Phạm vi cho phép đặt là một phần của khai báo, không phải quy ước miệng.** Một khoá chỉ có nghĩa ở mức toàn cục mà cho đặt ở mức người dùng thì sẽ có người đặt, và hành vi sau đó không ai giải thích được.
 
 ---
 

@@ -144,10 +144,47 @@ Bọc VO cho một `decimal`/`string` đơn lẻ không có luật gì là thêm
 `record` cho sẵn so sánh theo giá trị — đúng bản chất của Value Object: hai địa chỉ email cùng chuỗi là
 **một**, không phải hai thứ giống nhau.
 
+Khối mẫu đầy đủ — chuyển từ file luật §4 ngày 2026-09-27; `src/BE` không có tệp nào mang kiểu này:
+
+```csharp
+// Mẫu minh hoạ — src/BE không có tệp nào mang kiểu này
+public sealed record EmailAddress
+{
+    public string Value { get; }
+
+    private EmailAddress(string value) => Value = value;
+
+    public static Result<EmailAddress> Create(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Result.Failure<EmailAddress>(EmailErrors.Required);
+
+        var normalized = value.Trim().ToLowerInvariant();
+
+        if (!MailAddress.TryCreate(normalized, out _))
+            return Result.Failure<EmailAddress>(EmailErrors.Malformed.WithParams(("Value", normalized)));
+
+        return Result.Success(new EmailAddress(normalized));
+    }
+
+    public override string ToString() => Value;
+}
+```
+
 ### 4.1 Ánh xạ EF Core
 
 `.Value` ném trong nhánh đọc là hành vi đúng: dữ liệu đã lưu mà không dựng lại được VO là lỗi ngoài dự
 kiến, không phải lỗi nghiệp vụ.
+
+Khối `HasConversion` mẫu — chuyển từ file luật §4.1 ngày 2026-09-27, gắn với `EmailAddress` ở trên:
+
+```csharp
+builder.Property(x => x.Email)
+    .HasConversion(
+        vo => vo.Value,
+        raw => EmailAddress.Create(raw).Value)
+    .HasMaxLength(256);
+```
 
 ---
 
@@ -157,6 +194,28 @@ kiến, không phải lỗi nghiệp vụ.
 
 **Vì sao module không kế thừa `IdentityDbContext`:** lớp đó khai bảng Identity của schema `core`; kế
 thừa nó thì model của mỗi module mang thêm một bản bảng Identity, và migration của module sinh ra chúng.
+
+Khối mẫu `SkillDbContext` — chuyển từ file luật §5.1 ngày 2026-09-27; minh hoạ cho module, chưa có
+`Modules.*` nào tồn tại trong `src/BE` hôm nay:
+
+```csharp
+// Modules.<X>.Infrastructure/Persistence/<X>DbContext.cs — KHÔNG kế thừa IdentityDbContext
+public class SkillDbContext(
+    DbContextOptions<SkillDbContext> options,
+    ITenantContext tenantContext)
+    : DbContext(options), ITenantFilteredContext
+{
+    public Guid? CurrentTenantId => tenantContext.TenantId;
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema("skill");
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(SkillDbContext).Assembly);
+
+        modelBuilder.ApplyCoreQueryFilters(this);
+    }
+}
+```
 
 **`CurrentTenantId` rỗng ⇒ truy vấn trả rỗng:** thiếu đơn vị làm hệ thống đóng, không làm nó mở.
 `DbContext` nhận `ITenantContext` qua constructor vì `Core.Infrastructure` bị **cấm** phụ thuộc
@@ -238,7 +297,26 @@ Khuôn nhận diện điển hình: một entity vừa nhận **ghi hàng loạt
 
 ### 6.2 Recipe concurrency token cho Npgsql
 
-—
+Khối mẫu đầy đủ — chuyển từ file luật §6.2 ngày 2026-09-27; `CatalogItem` là tên minh hoạ, không có
+tệp nào trong `src/BE/` mang tên đó. Đọc mọi chú thích đường dẫn dưới đây như một chỗ **sẽ** đặt,
+không như một tệp đang có:
+
+```csharp
+// Core.Domain/<Khu>/<Feature>.cs — <Feature> là entity thoả CẢ HAI điều kiện ở §6.1
+public sealed class CatalogItem : BaseEntity
+{
+    public string Code { get; private set; } = string.Empty;
+    public int DisplayOrder { get; private set; }
+
+    // Concurrency token — PHẢI là uint. KHÔNG byte[], KHÔNG shadow property.
+    public uint Version { get; private set; }
+}
+```
+
+```csharp
+// Core.Infrastructure/Persistence/Configurations/<Feature>Configuration.cs
+builder.Property(x => x.Version).IsRowVersion();
+```
 
 ### 6.3 Kiểu CLR nào hợp lệ cho concurrency token
 

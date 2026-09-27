@@ -6,8 +6,15 @@ verified: chua-doi-chieu
 
 # Quy ước Backend — kiến trúc, layout, composition root
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Toàn bộ file mô tả thứ `src/BE` **phải trở thành** ở
-> giai đoạn 2; không đoạn nào được trích dẫn như bằng chứng.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE` đã có trên đĩa: project Core, host `CoreAndSkill.Api`, các project Tests — danh sách gốc ở `src/BE/CoreAndSkill.slnx` | Từng mục lật sang nhãn đã đối chiếu, **riêng lẻ**, khi có người mở source ra so |
+> | Chưa ai đối chiếu **toàn file** này với code, nên `verified:` giữ `chua-doi-chieu` | Một lượt đối chiếu toàn file đổi `verified:` sang ngày |
+>
+> 🛑 Một đoạn ở đây **được** trích dẫn như bằng chứng chỉ khi người trích mở đúng file mã nguồn
+> tương ứng ra so trong cùng lượt, và nêu `file:dòng`. Không tự động coi là đã khớp.
 >
 > 📖 Lý do và phương án đã loại: [`../kien-truc-core-module.md`](../kien-truc-core-module.md),
 > [`../adr/0002-core-5-project.md`](../adr/0002-core-5-project.md). Lý do, bẫy, ví dụ mở rộng của
@@ -38,12 +45,17 @@ Tên đầy đủ của assembly là `CoreAndSkill.Core.<Tầng>`; host là `Cor
 | `ISessionPrincipalFactory` — dựng `ClaimsPrincipal` của một phiên từ `LoginOutcome`; tên loại claim khai một lần ở `CoreClaimTypes`; chữ ký: [`be-api-controller.md`](be-api-controller.md) §7.4 | `Core.Infrastructure` | Chỗ **duy nhất** Identity lõi (`Core.Infrastructure`) và cookie scheme (`Core.Web`) gặp nhau — `Core.Web` phát phiên mà không chạm `UserManager` — [`../adr/0026-ranh-gioi-identity-va-cookie.md`](../adr/0026-ranh-gioi-identity-va-cookie.md) |
 | `ITenantLookup` | `Core.Infrastructure` | Tra đơn vị theo mã ở bước đăng nhập, **trước** khi mở phạm vi đơn vị — chữ ký: [`be-entity-domain.md`](be-entity-domain.md) §7.1 |
 | `ILoginAttemptLimiter` | `Core.Infrastructure` | Hạn mức đăng nhập theo `LoginPartitionKey` kiểm **trong** handler; vượt hạn mức đi ra bằng exception mà `IExceptionHandler` đổi thành 429 — [`be-api-controller.md`](be-api-controller.md) §6.5 |
-| `ITenantProvisioningService` | `Core.Infrastructure` | Lệnh bootstrap và endpoint tạo đơn vị gọi **cùng một** hiện thực — [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md). Các thao tác của khu hệ thống tác động lên một đơn vị nghiệp vụ cũng thuộc service này: khôi phục mật khẩu quản trị đơn vị, ngưng và bật lại đơn vị — [`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md); tạo tài khoản quản trị mới cho một đơn vị ([`../contracts/tenants.md`](../contracts/tenants.md) §6); seed lại dữ liệu mặc định cho mọi đơn vị (lệnh `core seed-tenant-defaults`, §3) |
-| `ICacheStore` | `Core.Infrastructure` | Đổi bản cài trong bộ nhớ sang Redis là đổi **một dòng đăng ký** — [`../adr/0014-mot-instance-key-ring-postgres.md`](../adr/0014-mot-instance-key-ring-postgres.md) |
-| `IBackgroundJobScheduler` | `Core.Infrastructure` | Không lộ cơ chế chạy nền ra Application — [`be-cqrs-handler.md`](be-cqrs-handler.md) §10. v1 hiện thực bằng `BackgroundService` của .NET, không thư viện ([`../wiki-core/be/18-trien-khai-va-van-hanh.md`](../wiki-core/be/18-trien-khai-va-van-hanh.md) §7) |
+| `ITenantProvisioningService` | `Core.Infrastructure` | Lệnh bootstrap và endpoint tạo đơn vị gọi **cùng một** hiện thực — [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md). Các thao tác của khu hệ thống tác động lên một đơn vị nghiệp vụ cũng thuộc service này: khôi phục mật khẩu quản trị đơn vị, ngưng và bật lại đơn vị — [`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md); tạo tài khoản quản trị mới cho một đơn vị ([`../contracts/tenants.md`](../contracts/tenants.md) §6); seed lại dữ liệu mặc định cho mọi đơn vị (`core seed-tenant-defaults`, §3 — 📐 chưa thi công) |
+| `ICacheStore` 📐 **chưa thi công** | `Core.Infrastructure` | Đổi bản cài trong bộ nhớ sang Redis là đổi **một dòng đăng ký** — [`../adr/0014-mot-instance-key-ring-postgres.md`](../adr/0014-mot-instance-key-ring-postgres.md) |
+| `IBackgroundJobScheduler` | `Core.Infrastructure` | Không lộ cơ chế chạy nền ra Application — [`be-cqrs-handler.md`](be-cqrs-handler.md) §10. v1 hiện thực bằng `BackgroundService` của .NET, không thư viện ([`../wiki-core/be/18-trien-khai-va-van-hanh.md`](../wiki-core/be/18-trien-khai-va-van-hanh.md) §7). **Chỉ việc chạy MỘT LẦN theo yêu cầu đi qua seam này** — ngay, hoặc sau một khoảng trễ. Việc **lặp lại theo chu kỳ** là một `BackgroundService` đứng riêng, đăng ký thẳng ở composition root, **không** qua seam; seam không nhận thêm hình dạng định kỳ ở v1 — [`../adr/0047-job-dinh-ky-khong-di-qua-seam-lap-lich.md`](../adr/0047-job-dinh-ky-khong-di-qua-seam-lap-lich.md) |
 | `IExecutionContextScope` | `Core.Infrastructure` | Danh tính và đơn vị cho mã **không có** `HttpContext` — mục *Danh tính và đơn vị khi không có request* bên dưới |
-| `ISettingStore` | `Core.Infrastructure` | Đọc/ghi cấu hình theo đơn vị và cache của nó — [`../wiki-core/be/19-cau-hinh-theo-don-vi.md`](../wiki-core/be/19-cau-hinh-theo-don-vi.md) §4 |
-| `ICodeSequence` | `Core.Infrastructure` | Cấp mã nghiệp vụ kế tiếp trong cùng giao dịch — [`../wiki-core/be/20-sinh-ma-nghiep-vu.md`](../wiki-core/be/20-sinh-ma-nghiep-vu.md) §2 |
+| `ISettingStore` 📐 **chưa thi công** | `Core.Infrastructure` | Đọc/ghi cấu hình theo đơn vị và cache của nó — [`../wiki-core/be/19-cau-hinh-theo-don-vi.md`](../wiki-core/be/19-cau-hinh-theo-don-vi.md) §4 |
+| `ICodeSequence` 📐 **chưa thi công** | `Core.Infrastructure` | Cấp mã nghiệp vụ kế tiếp trong cùng giao dịch — [`../wiki-core/be/20-sinh-ma-nghiep-vu.md`](../wiki-core/be/20-sinh-ma-nghiep-vu.md) §2 |
+| `IFileStorage` | `Core.Infrastructure`; **dự án thay được**, đăng ký trước `AddCore` (ADR-0106). 🚧 Lệch 2026-09-25: [nợ](../DEBT.md) B23 | Lưu, mở, xoá, liệt kê tệp theo khoá do hệ thống sinh, cùng kho tạm — [`../wiki-core/be/14-file-storage.md`](../wiki-core/be/14-file-storage.md) §1 |
+| `IFileOwnerAccessChecker` · `IFilePurposeSource` | Checker: Core cho `core.job`, mỗi module cho bảng của mình. Purpose: **chỉ module** — tệp hệ thống Core sinh ra dùng purpose riêng ngoài catalog | Quyền của tệp là quyền của **bản ghi chủ** — không có checker cho bảng chủ thì tệp đó không ai đọc được; module khai mục đích tệp (kiểu cho phép, trần dung lượng hẹp hơn). Core giữ cơ chế — [`../contracts/files.md`](../contracts/files.md) §4 |
+| `IOutboxEventHandler` · `IImportDefinition` | Core cho sự kiện việc nền và thông báo; module cho sự kiện và luồng nhập của mình | Điểm cắm của outbox và của nhập dữ liệu — [`../wiki-core/be/12-notifications.md`](../wiki-core/be/12-notifications.md) §2, [`../wiki-core/be/15-import-export.md`](../wiki-core/be/15-import-export.md) §3 |
+| `IEmailSender` · `INotificationTemplateRenderer` · `INotificationPreferences` | **Dự án** — Core **không** có bản mặc định cho hai seam đầu (thiếu thì lỗi rõ ràng, không im lặng nuốt thư); seam thứ ba mặc định bật hết | Kênh email và tuỳ chọn thông báo — [`../wiki-core/be/12-notifications.md`](../wiki-core/be/12-notifications.md) §3-§4 |
+| `IAuditTrail` | `Core.Infrastructure` | Ghi nhật ký kiểm toán **tường minh** (xuất dữ liệu, phát lại outbox), bổ sung cho interceptor tự động thấy được thay đổi entity |
 | `IPermissionCatalogSource` | Mỗi module, và Core cho khoá của chính nó | Core giữ cơ chế phân quyền, module cấp dữ liệu — mục *Danh mục khoá quyền do module cấp* bên dưới |
 | `ITenantSeedSource` | Mỗi module có dữ liệu mặc định cho đơn vị mới, và Core cho menu của chính nó | Core giữ cơ chế dựng đơn vị, module cấp vai trò, ánh xạ quyền và menu — mục *Nguồn seed cho đơn vị mới* bên dưới |
 
@@ -94,9 +106,10 @@ public sealed record ExecutionContextSnapshot(Guid? UserId, string? UserName, Gu
 | Luật |
 | --- |
 | Chỉ **bộ lọc job nền**, **bộ phát outbox**, **service tạo đơn vị cùng runner lệnh bootstrap** ([`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)), **bước đăng nhập** (nạp đơn vị trước khi gọi `UserManager`) và **phép kiểm security stamp của cookie** (mở phạm vi bằng `TenantId` lấy từ claim của chính principal đang kiểm — [`../adr/0026-ranh-gioi-identity-va-cookie.md`](../adr/0026-ranh-gioi-identity-va-cookie.md)) được mở phạm vi — luật A12 ở [`../RULES.md`](../RULES.md) §3. Bước đăng nhập là ngoại lệ đã khai của M2 |
-| Service tạo đơn vị mở phạm vi của đơn vị **vừa tạo** để dữ liệu seed ghi đúng chỗ, và của đơn vị **đích** khi khôi phục mật khẩu quản trị đơn vị, tạo quản trị mới cho đơn vị ([`../contracts/tenants.md`](../contracts/tenants.md) §6), ngưng, bật lại đơn vị ([`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md)), hay seed lại từng đơn vị (`core seed-tenant-defaults`, §3) — các thao tác đó nằm trong service, không phải mục riêng của allowlist |
+| Bộ **khôi phục việc dở dang lúc khởi động** (`JobRecoveryHostedService`) là một job nền: nó mở phạm vi theo **từng việc** bằng đơn vị và người khởi tạo của chính việc đó, để đánh dấu việc `failed` qua đường `Job.Fail` — sự kiện kết thúc vào outbox và thông báo tới đúng người. Lệnh `core outbox-replay` **không** mở phạm vi: nó chạm dòng của nhiều đơn vị nên ghi nhật ký với đơn vị **của dòng đó** (`AuditEntry.TenantId`), không suy từ ngữ cảnh |
+| Service tạo đơn vị mở phạm vi của đơn vị **vừa tạo** để dữ liệu seed ghi đúng chỗ, và của đơn vị **đích** cho mọi thao tác khác của nó — danh sách ở dòng `ITenantProvisioningService` của bảng seam §1.1. Các thao tác đó nằm trong service, không phải mục riêng của allowlist |
 | `Dispose` khôi phục phạm vi đang mở **trước đó**, không xoá về rỗng |
-| Đơn vị và người kích hoạt đi theo việc nền bằng **dữ liệu**, không bằng trí nhớ của chỗ gọi: interceptor ghi outbox lưu `tenant_id`, `triggered_by_user_id`, `triggered_by_user_name` lên chính dòng outbox ([`../database/schema-core.md`](../database/schema-core.md) §8); bộ phát gọi `Enter(tenant, user, name)` **theo từng dòng**; job enqueue từ bên trong phạm vi đó được hiện thực `IBackgroundJobScheduler` chụp lại và khôi phục lúc chạy |
+| Đơn vị và người kích hoạt đi theo việc nền bằng **dữ liệu**, không bằng trí nhớ của chỗ gọi: interceptor ghi outbox lưu `tenant_id`, `triggered_by_user_id`, `triggered_by_user_name` lên chính dòng outbox ([`../database/schema-core.md`](../database/schema-core.md) §8); bộ phát gọi `Enter(tenant, user, name)` **theo từng dòng**; job enqueue từ bên trong phạm vi đó được hiện thực `IBackgroundJobScheduler` chụp lại và khôi phục lúc chạy. **Ngoài** một phạm vi có đơn vị thì hiện thực đó **ném** `InvalidOperationException`, không suy đơn vị từ claim: lời gọi hợp lệ duy nhất là bên nhận outbox, luôn chạy trong phạm vi của dòng outbox (`src/BE/Core/CoreAndSkill.Core.Infrastructure/Jobs/BackgroundJobScheduler.cs`, chuỗi `bị gọi ngoài phạm vi ngữ cảnh thực thi`; đọc mã 2026-09-24) |
 | **Không** chụp vai trò hay quyền. Job cần phân quyền thì đọc quyền **hiện tại** từ DB |
 | Bộ phát outbox mở phạm vi bằng giá trị của **chính dòng đang phát**, mỗi dòng một phạm vi |
 | Không có **người** là hợp lệ — nhật ký ghi `system`. Không có **đơn vị** thì không hợp lệ: [`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §2 |
@@ -136,10 +149,10 @@ public interface IPermissionCatalogSource
 | Mỗi module đăng ký **đúng một** nguồn trong `AddXModule()`; Core gộp mọi nguồn (luật A3) |
 | Danh mục đã gộp được kiểm **lúc khởi động** bằng hosted service: `Key` hoặc `Code` trùng giữa các nguồn, `Code` sai khuôn `<tài nguyên>.<hành động>` hoặc không bằng `ResourceKey + "." + Action`, `ResourceKey` không có `PermissionResourceDefinition` nào trong **cùng** nguồn, `NameKey` rỗng ⇒ **tiến trình không khởi động** |
 | Tài nguyên và khoá của một module nằm trong **cùng một** nguồn; `ResourceKey` không trỏ sang tài nguyên của nguồn khác |
-| **Dòng** vào `core.permission` / `core.permission_resource` bằng **migration idempotent** — `ON CONFLICT … DO NOTHING`, định danh cố định, không xoá tự động ([`../database/migration-policy.md`](../database/migration-policy.md) §4.1); test CI đối chiếu **hai chiều** `Code` và `ResourceKey` của mọi `PermissionDefinition` với `code` và `resource_key` seed trong migration (luật B7). Khoá của Core do migration của Core ghi; khoá của module do migration của **chính module** ghi — ngoại lệ có tên của luật E6 ([`../database/migration-policy.md`](../database/migration-policy.md) §1); test B7 phủ cả khoá của module |
+| **Dòng** vào `core.permission` / `core.permission_resource` bằng **migration idempotent** — `ON CONFLICT … DO NOTHING`, định danh cố định, không xoá tự động ([`../database/migration-policy.md`](../database/migration-policy.md) §4.1); test CI đối chiếu **hai chiều** `Code` và `ResourceKey` của mọi `PermissionDefinition` với `code` và `resource_key` seed trong migration (luật B7). Khoá của Core do migration của Core ghi; khoá của module do migration của **chính module** ghi — ngoại lệ có tên của luật E6 ([`../database/migration-policy.md`](../database/migration-policy.md) §1). Nửa đối chiếu **hai chiều** đó đọc nguồn khoá trong assembly `Core.Infrastructure`, nên nó phủ **khoá của Core**; khoá của module cần cổng đi cùng module đó (nợ **B9**, [`../DEBT.md`](../DEBT.md)). Ranh giới *nguồn khoá phải nằm đúng chỗ* thì quét rộng hơn: năm assembly Core **và host** (nhận theo tên project) — composition root là chỗ dễ cắm nhầm nguồn khoá nhất (ADR-0100). Một nửa nữa đối chiếu tập khoá với danh mục gốc ở [`../database/schema-core.md`](../database/schema-core.md) §5.2 — chi tiết bốn nửa ở [`../RULES.md`](../RULES.md) §6, luật B7 |
 | Tiến trình ứng dụng **không ghi** danh mục — lúc khởi động hay lúc chạy. Tài khoản DB của ứng dụng chỉ `SELECT` trên hai bảng đó (luật M13). Hướng ngược lại là hướng đã khoá `K52` |
 | `NameKey` là **khoá dịch**, không phải câu hiển thị — [`be-cqrs-handler.md`](be-cqrs-handler.md) §7.2 |
-| **Không** có hiện thực mặc định — thiếu đăng ký thì DI hỏng ngay lúc khởi động |
+| **Không** có hiện thực mặc định. Nhưng thiếu đăng ký thì DI **không** hỏng: consumer nhận `IEnumerable<IPermissionCatalogSource>`, và tập rỗng là giá trị hợp lệ — hosted service validate tập rỗng rồi trả về xanh, `MenuQueryService` nhận danh mục rỗng, không một lỗi nào (đo 2026-09-20). Vì vậy seam này được canh bằng test seam động chứ không bằng niềm tin vào DI: `CoreCatalogSource_IsRegistered_InTheContainer` và `ValidationHostedService_IsRegistered_InTheContainer` |
 | Ánh xạ vai trò → quyền **không** đi qua seam này. Giá trị mặc định cho đơn vị mới đi qua `ITenantSeedSource` (mục dưới); Core không có hằng số vai trò nào (luật S1) |
 
 #### Nguồn seed cho đơn vị mới — định nghĩa gốc
@@ -177,7 +190,7 @@ Cột đích: [`../database/schema-core.md`](../database/schema-core.md) §4.2 (
 | Một nguồn trả ba thứ: **vai trò mặc định** (kèm cờ `is_system`), **ánh xạ vai trò → khoá quyền**, **menu** — [`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §11.4 |
 | Nhiều đăng ký được **gộp**; Core tự đăng ký một nguồn cho menu của Core (luật A3) |
 | Nguồn của Core **không** khai vai trò nào — vai trò mặc định là của dự án (luật S1) |
-| Nguồn đã gộp được kiểm **lúc khởi động**: một khoá quyền trong ánh xạ không có trong danh mục đã gộp ⇒ **tiến trình không khởi động** |
+| Nguồn đã gộp được kiểm **lúc khởi động và trước dòng ghi đầu tiên của `CreateTenantAsync`** (lệnh `core bootstrap` không chạy bước khởi động), mọi thứ bước dựng đơn vị sẽ vấp mà không cần database — vai trò trùng (theo tên chuẩn hoá của Identity), ánh xạ trỏ vai trò chưa khai hoặc khoá ngoài danh mục đã gộp, cặp ánh xạ lặp, mã menu trùng, cây menu trái hai luật cây ở [`../database/schema-core.md`](../database/schema-core.md) §6.1, khoá của menu ngoài danh mục ⇒ **tiến trình không khởi động**; ở `CreateTenantAsync` ⇒ `CORE.TENANT.SEED_FAILED`, không dòng nào được ghi |
 | Không nguồn nào khai vai trò ⇒ đơn vị mới chạy bằng cờ `has_permission_bypass` của tài khoản quản trị đầu tiên — trạng thái hợp lệ, không phải lỗi ([`../contracts/tenants.md`](../contracts/tenants.md) §2) |
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-architecture.md`](../wiki-core/be/ly-do/be-architecture.md) §1.1
@@ -209,7 +222,8 @@ Cột đích: [`../database/schema-core.md`](../database/schema-core.md) §4.2 (
                      Modules.<X>.Domain
 
 
-   Contracts ── không tham chiếu ai, và được cả Core lẫn mọi module tham chiếu
+   Core.Contracts ── chỉ BCL; thứ Core phát ra
+   Modules.<X>.Contracts ── chỉ BCL; project DUY NHẤT của X mà module khác thấy
 ```
 
 **Cạnh `Modules.<X>.Infrastructure → Core.Infrastructure` là cạnh BẮT BUỘC**: `DbContext` của mỗi module
@@ -221,22 +235,20 @@ phải áp **cùng** bộ lọc truy vấn (đơn vị, xoá mềm) sống ở `
 
 ### 1.3 Danh sách cấm — mỗi dòng là một ArchTest
 
-Mỗi dòng có **một** ArchTest canh; tên khai ở cột "Ép bằng gì" của [`../RULES.md`](../RULES.md) §3, không
-chép lại ở đây.
+Mỗi dòng ứng với **một** luật A1–A7 ở [`../RULES.md`](../RULES.md) §3. Tên ArchTest và việc nó đã
+có thật hay còn `📐` chỉ khai ở cột "Ép bằng gì" / "Trạng thái" bên đó, không chép lại ở đây.
 
 | Cấm |
 | --- |
 | `Core.Domain` có bất kỳ `PackageReference` nào |
 | `Core.Application` chạm EF Core / ASP.NET Core / bất kỳ Infrastructure nào |
 | `Core.*` tham chiếu bất kỳ assembly `Modules.*` nào |
-| `Modules.A` tham chiếu `Modules.B` |
+| `Modules.A` tham chiếu `Modules.B` ngoài `Modules.B.Contracts` |
 | Source của `Core.*` chứa chuỗi literal đặt tên tầng nghiệp vụ |
 | Project trên đĩa không được khai trong solution |
 | Host chứa middleware hoặc controller |
 
 ### 1.4 Vì sao giữ luật này từ slice đầu tiên
-
-**Không có "code cũ" nào biện minh cho việc phá luật** — repo này chưa có code cũ.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-architecture.md`](../wiki-core/be/ly-do/be-architecture.md) §1.4
 
@@ -250,11 +262,11 @@ Khai **interface hẹp** ở `Core.Application`, module implement ở `Modules.<
 public interface IStaleDataCleaner
 {
     string Name { get; }
-    Task<int> CleanAsync(DateTimeOffset olderThan, CancellationToken ct);
+    Task<int> CleanAsync(CancellationToken ct);   // KHÔNG nhận mốc thời gian — ADR-0060
 }
 ```
 
-Job nền của Core inject `IEnumerable<IStaleDataCleaner>` và chạy hết.
+Job nền của Core resolve cleaner qua `IServiceScopeFactory`, mỗi cleaner một phạm vi DI mới ở mỗi lượt quét. **Mỗi cleaner tự khai ngưỡng lưu giữ của chính nó** trong options riêng có `ValidateOnStart` (ngưỡng > 0), rồi tính mốc cắt từ `TimeProvider`; cleaner chưa có ngưỡng khai tường minh thì không được đăng ký ([`../adr/0060-cleaner-tu-khai-nguong-luu-giu.md`](../adr/0060-cleaner-tu-khai-nguong-luu-giu.md)).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-architecture.md`](../wiki-core/be/ly-do/be-architecture.md) §1.5
 
@@ -281,19 +293,13 @@ Job nền của Core inject `IEnumerable<IStaleDataCleaner>` và chạy hết.
 | `PasswordChangeRequiredMiddleware` | Chặn tài khoản đang ở trạng thái bắt buộc đổi mật khẩu, trừ allowlist ở [`../contracts/auth.md`](../contracts/auth.md) §1.2. Chặn ở BE, không để FE điều hướng |
 | `ModelBindingProblemFactory` | Thay `InvalidModelStateResponseFactory` mặc định để lỗi model binding cũng ra đúng envelope |
 | Controller của Core | Auth, người dùng, vai trò, permission, menu động — những màn hình mọi sản phẩm đều cần |
-| `AddCore()` / `UseCore()` | Hai extension method là **toàn bộ** bề mặt lắp ghép của Core |
+| `AddCore()` / `UseCoreAsync()` | Hai extension method là **toàn bộ** bề mặt lắp ghép của Core |
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-architecture.md`](../wiki-core/be/ly-do/be-architecture.md) §2.1
 
 ### 2.2 Vì sao chúng không được ở host
 
-Phép thử một dòng:
-
-> Một dự án mới, chưa viết gì, chỉ tham chiếu `Core.Web` và gọi `AddCore()` + `UseCore()`
-> — phải có ngay: đăng nhập, đổi mật khẩu, quản trị người dùng, phân quyền, menu động,
-> envelope thống nhất, rate limit, CSRF. Không chép file nào.
-
-> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-architecture.md`](../wiki-core/be/ly-do/be-architecture.md) §2.2
+> 📖 Lý do, bẫy, ví dụ mở rộng (gồm phép thử một dòng): [`ly-do/be-architecture.md`](../wiki-core/be/ly-do/be-architecture.md) §2.2
 
 ### 2.3 Ranh giới của `Core.Web`
 
@@ -301,24 +307,25 @@ Phép thử một dòng:
 
 - Gọi thẳng `CoreDbContext`. Mọi truy cập dữ liệu đi qua MediatR.
 - Chứa nghiệp vụ. Controller chỉ `Send` rồi `HandleResult` — **trừ** action phát hoặc cấp lại cookie phiên ([`be-api-controller.md`](be-api-controller.md) §7.4).
-- Biết tên bất kỳ module nào. Luật `CoreSource_MustNotContain_BusinessNameStringLiteral`
-  áp cho cả `Core.Web`.
+- Biết tên bất kỳ module nào. Luật A5 ([`../RULES.md`](../RULES.md) §3) áp cho cả `Core.Web`.
 
 ---
 
 ## 3. Host mỏng — composition root duy nhất
 
-Project `CoreAndSkill.Api` **chỉ được** chứa: `Program.cs`, `appsettings*.json`, và lời
-gọi đăng ký module của dự án.
+Project `CoreAndSkill.Api` thuộc **vùng dự án** (ADR-0100) và **chỉ được** chứa: `Program.cs` với lời gọi
+đăng ký module, `appsettings*.json`, `.csproj` (mang `UserSecretsId`), `Properties/launchSettings.json`, `Dockerfile`;
+cộng tệp `*.user` do IDE sinh, ở gốc project và có tên trước đuôi — bị `.gitignore` loại như `bin/`, `obj/` (người dùng chốt).
 
-**CẤM** chứa: middleware, controller, entity, handler, migration, filter, extension method
-có logic. Luật `Host_MustNotContain_MiddlewareOrController` bắt điều này.
+**Kiểu duy nhất được khai là `Program`**, không kế thừa, không interface, không thành viên ngoài phần câu lệnh cấp cao
+sinh ra — chặt hơn danh sách cấm (middleware, controller, entity, handler, migration, filter, extension method có logic) — luật A7 ([`../RULES.md`](../RULES.md) §3).
 
-**`Program.cs` dưới 50 dòng.** Vượt ngưỡng thì chuyển thứ thừa vào `Core.Web`, không nới ngưỡng.
+**`Program.cs` dưới 50 dòng vật lý**, tính cả dòng trống và chú thích. Vượt thì chuyển thứ thừa vào `Core.Web`, không nới ngưỡng.
 
 ```csharp
 // CoreAndSkill.Api/Program.cs — đích đến
-using CoreAndSkill.Core.Web;
+using CoreAndSkill.Core.Web.Commands;
+using CoreAndSkill.Core.Web.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -329,17 +336,17 @@ var app = builder.Build();
 
 if (await app.RunCoreCommandAsync(args)) return;
 
-app.UseCore();
+await app.UseCoreAsync();
 // app.UseSkillModule();
 
 app.Run();
 ```
 
 - **Không có `AddControllers()`, `AddCors()`, `UseAuthentication()`** ở host — chúng nằm trong
-  `AddCore()`/`UseCore()`.
-- **`AddCore` nhận cả `IHostEnvironment`** — cho Swagger ([`be-api-controller.md`](be-api-controller.md) §8.2)
-  và ghi tham số SQL vào log ([`be-performance.md`](be-performance.md) §4.3); kiểm cấu hình lúc khởi động
-  **không** thuộc số đó (§4.3).
+  `AddCore()`/`UseCoreAsync()`.
+- **`AddCore` nhận cả `IHostEnvironment`** — hôm nay chỉ để ẩn endpoint chẩn đoán ở Production (`AddCoreWeb`,
+  chuỗi `environment.IsProduction()`). Swagger ([`be-api-controller.md`](be-api-controller.md) §8.2) và log SQL
+  (§4.3 của `be-performance.md`) 📐 chưa có. Kiểm cấu hình lúc khởi động **không** dùng nó (§4.3).
 - **Host không phân tích dòng lệnh.** `RunCoreCommandAsync` nhận lệnh khi tham số đầu tiên là
   `core`: chạy lệnh rồi trả `true` để host thoát — không dựng pipeline HTTP, không mở cổng. Tham số
   đầu không phải `core` ⇒ `false`.
@@ -353,10 +360,11 @@ app.Run();
 | --- | --- | --- | --- |
 | `core bootstrap` | Không có | Mã và tên đơn vị hệ thống; mã và tên đơn vị nghiệp vụ đầu tiên; tên đăng nhập và mật khẩu của tài khoản vận hành và của tài khoản quản trị đơn vị | Gọi `ITenantProvisioningService`: đơn vị hệ thống kèm tài khoản vận hành, rồi đơn vị nghiệp vụ đầu tiên kèm tài khoản quản trị |
 | `core reset-operator-password` | Không có | Tên đăng nhập của tài khoản vận hành; mật khẩu mới | Đặt lại mật khẩu của một tài khoản mang `is_system_operator` thuộc đơn vị hệ thống |
-| `core seed-tenant-defaults` | Không có | Không có | Chạy lại seed `ITenantSeedSource` đã gộp cho **mọi** đơn vị nghiệp vụ, idempotent — vai trò, ánh xạ quyền, menu đã có thì bỏ qua. Dùng khi lắp module mới vào bản cài đã có đơn vị; mỗi đơn vị một transaction |
+| `core seed-tenant-defaults` 📐 **chưa thi công** — runner chưa có động từ này | Không có | Không có | Chạy lại seed `ITenantSeedSource` đã gộp cho **mọi** đơn vị nghiệp vụ, idempotent — vai trò, ánh xạ quyền, menu đã có thì bỏ qua. Dùng khi lắp module mới vào bản cài đã có đơn vị; mỗi đơn vị một transaction |
 | `core outbox-replay` | `--id <id>` **hoặc** `--all-dead` | Không có | Đặt lại `status = 'pending'`, `attempt_count = 0` cho một dòng `core.outbox_message` đang `dead` (hoặc mọi dòng `dead`); ghi nhật ký kiểm toán. Ngưỡng và cột: [`../wiki-core/be/12-notifications.md`](../wiki-core/be/12-notifications.md) §2.5 |
+| `core encrypt-secret` 📐 **chưa thi công** | `--key <mã khoá>` | Khoá `Core:ConfigEncryption:Keys:<mã khoá>`; giá trị cần mã hoá đọc từ **đầu vào chuẩn** | In đúng một dòng dạng mã hoá của [`repo-artifact.md`](repo-artifact.md) §6.4; không mở kết nối database — [`../adr/0097-mat-khau-db-dev-chung-vao-git-ma-hoa-aes-gcm-khoa-ngoai-repo.md`](../adr/0097-mat-khau-db-dev-chung-vao-git-ma-hoa-aes-gcm-khoa-ngoai-repo.md) |
 
-Mọi **giá trị** đi qua hệ cấu hình, không qua tham số dòng lệnh; tham số sau động từ chỉ **chọn đối tượng** tác động. Tên khoá cấu hình và cách gọi:
+Mọi **giá trị** đi qua hệ cấu hình, không qua tham số dòng lệnh; tham số sau động từ chỉ **chọn đối tượng** tác động. Ngoại lệ có tên duy nhất: bản rõ của `core encrypt-secret` đi qua đầu vào chuẩn — đưa nó vào hệ cấu hình là ghi nó ra tệp hoặc biến môi trường. Tên khoá cấu hình và cách gọi:
 [`../database/script-runbook.md`](../database/script-runbook.md) §3.3, §8, §9, §10; hành vi khi thiếu giá trị, chạy
 lại, nhật ký kiểm toán: [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md) §3, §5.
 
@@ -364,14 +372,15 @@ lại, nhật ký kiểm toán: [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`]
 
 ### 3.1 Thứ tự pipeline — định nghĩa gốc
 
-Thứ tự pipeline khai **một lần** trong `UseCore()` — khối dưới đây là **nguồn duy nhất**, file khác trỏ
+Thứ tự pipeline khai **một lần** trong `UseCoreAsync()` — khối dưới đây là **nguồn duy nhất**, file khác trỏ
 về đây ([`../OWNERSHIP.md`](../OWNERSHIP.md) §2):
 
 ```csharp
 // Core.Web/DependencyInjection/CoreApplicationBuilderExtensions.cs
-public static WebApplication UseCore(this WebApplication app)
+public static async Task<WebApplication> UseCoreAsync(this WebApplication app)
 {
-    app.UseForwardedHeaders();              // ĐẦU TIÊN — ràng buộc 4 bên dưới
+    await app.VerifyDatabaseSchemaAsync();  // TRƯỚC mọi middleware — luật E8, database/script-runbook.md §5.2
+    app.UseForwardedHeaders();              // middleware ĐẦU TIÊN — ràng buộc 4 bên dưới
     app.UseMiddleware<TraceIdMiddleware>();
     app.UseExceptionHandler();              // đăng ký IExceptionHandler ở AddCore
     app.UseMiddleware<EnvelopeMiddleware>();
@@ -400,11 +409,12 @@ Bốn chỗ không hoán đổi được:
 2. **`AntiforgeryValidationMiddleware` SAU `UseAuthentication`, TRƯỚC `UseAuthorization`**
    ([`be-api-controller.md`](be-api-controller.md) §7.2).
 3. **`UseCors` TRƯỚC mọi middleware chặn.**
-4. **`UseForwardedHeaders` ĐẦU TIÊN.** `AddCore` **xoá danh sách proxy tin cậy mặc định của framework** rồi
-   nạp lại từ cấu hình; danh sách rỗng nghĩa là **không tin proxy nào**.
+4. **`UseForwardedHeaders` là middleware ĐẦU TIÊN.** Proxy tin cậy cấu hình qua `CoreNetworkOptions`; rỗng nghĩa
+   là **không tin proxy nào**. Khoá cấu hình và bẫy "rỗng mà vẫn bật":
+   [`../wiki-core/be/18-trien-khai-va-van-hanh.md`](../wiki-core/be/18-trien-khai-va-van-hanh.md) §3.
 
-Luật `EveryMiddlewareClass_IsWiredInto_Pipeline` canh chiều ngược lại: middleware khai mà **không** ai nối
-vào pipeline.
+Chiều ngược lại — middleware khai mà **không** ai nối vào pipeline — là luật A9
+([`../RULES.md`](../RULES.md) §3).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-architecture.md`](../wiki-core/be/ly-do/be-architecture.md) §3.1
 
@@ -420,6 +430,8 @@ root của Core được inject `IConfiguration` trực tiếp.
 
 Chuỗi kết nối của ứng dụng nằm ở khoá **`ConnectionStrings:Core`** — `AddCore` đọc **một lần**, thiếu hoặc rỗng
 ⇒ không khởi động; tài khoản trong chuỗi: [`../database/script-runbook.md`](../database/script-runbook.md) §3.3.
+Phần mật khẩu được phép ở dạng mã hoá, và dạng mã hoá không giải được cũng ⇒ không khởi động:
+[`repo-artifact.md`](repo-artifact.md) §6.4 (📐 chưa thi công).
 
 ```csharp
 // Core.Application/Configuration/CoreAuthOptions.cs — POCO thuần, không package hạ tầng
@@ -454,18 +466,17 @@ services.AddOptions<CoreAuthOptions>()
 
 ### 4.2 Vì sao `?? []` là một cái bẫy, không phải một mặc định lịch sự
 
-**Không** đọc thẳng `IConfiguration` rồi kết thúc bằng `?? []` hay một mặc định rỗng: cấu hình
-**thiếu** phải làm app dừng. `[Required]` + `[MinLength(1)]` trên `AllowedOrigins` là bắt buộc.
-
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-architecture.md`](../wiki-core/be/ly-do/be-architecture.md) §4.2
 
 ### 4.3 `ValidateOnStart` ở MỌI môi trường
 
-`ValidateOnStart()` gắn **không điều kiện**, như nhau ở mọi môi trường. Máy dev khởi động được vì **có đủ
+`ValidateOnStart()` gắn **như nhau ở mọi môi trường**. Máy dev khởi động được vì **có đủ
 giá trị** — không bí mật ở `appsettings.Development.json`, bí mật ở user-secrets
 ([`repo-artifact.md`](repo-artifact.md) §6.3); thiếu một khoá thì `dotnet run` dừng và nêu tên khoá.
 
-Luật `EveryRequiredOptions_HasA_ValidateOnStart_CodePath` canh: mỗi `Options` bắt buộc có `ValidateOnStart`.
+Mỗi `Options` bắt buộc có `ValidateOnStart` khi thành phần đọc nó có mặt — luật A8 ([`../RULES.md`](../RULES.md) §3).
+Điều kiện chỉ được là nhánh đăng ký thành phần, không phải môi trường hay cờ: `Core:File:RootPath` chỉ kiểm
+cùng `LocalFileStorage` của Core (ADR-0107). 🚧 Lệch 2026-09-25: [nợ](../DEBT.md) B23.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-architecture.md`](../wiki-core/be/ly-do/be-architecture.md) §4.3
 
@@ -494,29 +505,17 @@ Phép kiểm chạy **trước** thao tác ghi đầu tiên — không có trạ
 
 ### 5.1 Đăng ký theo nhóm, không liệt kê tay ở host
 
-`AddCore()` gọi các nhóm con, mỗi nhóm sống cùng project mà nó đăng ký:
-
-```csharp
-public static IServiceCollection AddCore(
-    this IServiceCollection services,
-    IConfiguration configuration,
-    IHostEnvironment environment)
-{
-    services.AddCoreOptions(configuration);                 // Core.Web: IOptions + ValidateOnStart (§4)
-    services.AddCoreApplication();                          // Core.Application: gom assembly module đã ghi nhận; MediatR, validator, behavior
-    services.AddCorePersistence(configuration);             // Core.Infrastructure: kết nối chung, DbContext, UnitOfWork, interceptor
-    services.AddCoreIdentity(configuration);                // Core.Infrastructure: Identity lõi, chính sách mật khẩu, security stamp, permission
-    services.AddCoreWeb(environment);                       // Core.Web: controller, CORS, rate limit, antiforgery, cookie scheme, IExceptionHandler
-    return services;
-}
-```
+`AddCore()` chỉ gọi các nhóm con `AddCore<Nhóm>()`, mỗi nhóm sống cùng project mà nó đăng ký: options
+(§4) đứng đầu, `AddCoreApplication()` đứng sau nó. Danh sách và thứ tự đọc thẳng ở mã, không chép vào đây:
+`src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreServiceCollectionExtensions.cs`, chuỗi
+`services.AddCoreApplication();`.
 
 **Assembly của module — ghi nhận ở module, gom ở Core**
 ([`../adr/0025-luu-du-lieu-module-mot-transaction.md`](../adr/0025-luu-du-lieu-module-mot-transaction.md)):
 
 | Bước | Ở đâu | Làm gì |
 | --- | --- | --- |
-| Ghi nhận | `AddXModule()` của module | Gọi **một** hàm mở rộng của `Core.Application` (tên chốt khi thi công), truyền assembly chứa handler và validator của module. Hàm chỉ **ghi nhận** assembly vào một danh sách giữ trong `IServiceCollection` — không gọi thư viện mediator, không quét validator |
+| Ghi nhận | `AddXModule()` của module | Gọi `RegisterModuleAssembly` (`Core.Application/ModuleAssemblyRegistration.cs`), truyền assembly chứa handler và validator của module. Hàm chỉ **ghi nhận** assembly vào một danh sách giữ trong `IServiceCollection` — không gọi thư viện mediator, không quét validator |
 | Gom | `AddCoreApplication()`, bên trong `AddCore` | Đọc danh sách, rồi quét Core cùng mọi assembly đã ghi nhận trong **một** lời đăng ký mediator — behavior đăng ký đúng một lần (luật A10). Mã đăng ký: [`be-cqrs-handler.md`](be-cqrs-handler.md) §5.1 |
 
 **Vì vậy dòng của module ở `Program.cs` đứng TRƯỚC `AddCore`** (§3). Bước gom **niêm** danh sách:
@@ -533,8 +532,8 @@ Bảng dưới đây là **nguồn duy nhất** của vòng đời từng seam C
 
 | Vòng đời | Dùng cho | Seam / kiểu của Core |
 | --- | --- | --- |
-| `Singleton` | Không giữ state theo request, thread-safe, khởi tạo đắt | `ResultToHttpMapper` (static), bảng ánh xạ, `IOptions<T>`, `ICacheStore`, `IExecutionContextScope` (giá trị nằm trong `AsyncLocal`, không ở instance), `IPermissionCatalogSource`, `ITenantSeedSource`, `IExceptionHandler` của Core, `ILoginAttemptLimiter` (bộ đếm nằm trong bộ nhớ tiến trình — [`be-api-controller.md`](be-api-controller.md) §6.3 ràng buộc 4) |
-| `Scoped` | Bám theo một request / một đơn vị công việc | `DbConnection` dùng chung, mọi `DbContext` (Core và module), mọi repository, `IUnitOfWork`, `ICurrentUser`, **`ITenantContext`**, `IPermissionChecker`, `IIdentityService`, `IUserLookupService`, `IUserAdminService`, `ITenantLookup`, `ISessionPrincipalFactory`, `ITenantProvisioningService` |
+| `Singleton` | Không giữ state theo request, thread-safe, khởi tạo đắt | `ResultToHttpMapper` (static), bảng ánh xạ, `IOptions<T>`, `ICacheStore` (📐 chưa thi công), `IExecutionContextScope` (giá trị nằm trong `AsyncLocal`, không ở instance), `IPermissionCatalogSource`, `ITenantSeedSource`, `IFilePurposeSource` (vì `FilePurposeCatalog` là `Singleton`), `IExceptionHandler` của Core, `ILoginAttemptLimiter` (bộ đếm nằm trong bộ nhớ tiến trình — [`be-api-controller.md`](be-api-controller.md) §6.3 ràng buộc 4), `IFileStorage` (bản thay của dự án cũng `Singleton` — 🚧 Lệch 2026-09-25: [nợ](../DEBT.md) B23), `ITabularReader` · `ITabularWriterFactory`, bộ phát outbox |
+| `Scoped` | Bám theo một request / một đơn vị công việc | `DbConnection` dùng chung, mọi `DbContext` (Core và module), mọi repository, `IUnitOfWork`, `ICurrentUser`, **`ITenantContext`**, `IPermissionChecker`, `IIdentityService`, `IUserLookupService`, `IUserAdminService`, `ITenantLookup`, `ISessionPrincipalFactory`, `ITenantProvisioningService`, `IAuditTrail`, `IImportRowWriter` (giữ các `DbContext` của scope để huỷ theo dõi sau mỗi dòng nhập), `IOutboxReplayService`, mọi `IFileOwnerAccessChecker` |
 | `Transient` | Rẻ, không state, mỗi lần dùng một bản mới | Validator, pipeline behavior, `IBackgroundJobScheduler` |
 
 > **`ITenantContext` bắt buộc là `Scoped`.**
@@ -554,19 +553,19 @@ tạo scope bằng `IServiceScopeFactory` cho mỗi lượt chạy.
 Thư mục trong `*.Application` chia theo **nghiệp vụ**, không theo loại kỹ thuật:
 
 ```
-Core.Application/
+Core.Application/                      ← trích, đối chiếu 2026-09-25
 ├── Users/
 │   ├── CreateUserCommand.cs
 │   ├── CreateUserCommandHandler.cs
 │   ├── CreateUserCommandValidator.cs
-│   ├── UpdateUserCommand.cs
-│   ├── GetUserByIdQuery.cs
 │   ├── GetUsersListQuery.cs
-│   ├── UserDto.cs
+│   ├── IUserQueryService.cs
 │   └── UserErrors.cs
 ├── Permissions/
 ├── Menu/
-│   └── IMenuItemRepository.cs
+│   ├── GetMenuQuery.cs
+│   ├── GetMenuQueryHandler.cs
+│   └── IMenuQueryService.cs
 └── Common/
     ├── Behaviors/
     ├── Interfaces/
@@ -574,6 +573,11 @@ Core.Application/
 ```
 
 Một use case = một Command/Query + một Handler + (nếu cần) một Validator, đặt cạnh nhau.
+
+**Cùng quy ước áp cho `*.Domain` và `*.Infrastructure`**: entity ở `<Phía>.Domain/<Feature>/`, implementation ở
+`<Phía>.Infrastructure/<Feature>/`. Ngoại lệ có tên: `Infrastructure/Persistence/` giữ hạ tầng EF dùng chung —
+`DbContext`, `Configurations/`, `Interceptors/`. Đối chiếu 2026-09-22 ✅: `Core.Domain/Tenants/Tenant.cs`,
+`Core.Infrastructure/Files/EfFileRepository.cs`, `Core.Infrastructure/Persistence/Configurations/`.
 
 ### 6.2 So sánh hai cách
 
@@ -590,7 +594,7 @@ file chỉ vào `Common/` khi **từ hai slice trở lên** dùng nó.
 
 1. **Quyết định phía nào sở hữu.** Từ hai module trở lên cần → Core; một module cần → ở module đó
    ([`../kien-truc-core-module.md`](../kien-truc-core-module.md) §4).
-2. **Entity** → `<Phía>.Domain/Entities/`. Kế thừa `BaseEntity`, field nghiệp vụ
+2. **Entity** → `<Phía>.Domain/<Feature>/` (§6.1). Kế thừa `BaseEntity`, field nghiệp vụ
    `private set`, dựng bằng factory trả `Result<T>` — [`be-entity-domain.md`](be-entity-domain.md).
 3. **Catalog lỗi** → `<Phía>.Application/<Feature>/<Feature>Errors.cs`. Khai mã **trước**
    khi viết handler; mã không được dựng từ chuỗi literal ngoài catalog —
@@ -599,7 +603,7 @@ file chỉ vào `Common/` khi **từ hai slice trở lên** dùng nó.
    `<Phía>.Application/<Feature>/`. Handler trả `Result<T>`, **không** tự mở transaction,
    **không** tự gọi `SaveChangesAsync`.
 5. **Interface repository** → khai ở `<Phía>.Application/<Feature>/`, implement ở
-   `<Phía>.Infrastructure/Persistence/Repositories/`.
+   `<Phía>.Infrastructure/<Feature>/` (§6.1).
 6. **EF configuration** → `<Phía>.Infrastructure/Persistence/Configurations/`. Entity của
    Core vào schema `core`; entity của module vào schema của module. **Không FK vật lý
    xuyên schema** — [`../database/migration-policy.md`](../database/migration-policy.md).
@@ -610,7 +614,7 @@ file chỉ vào `Common/` khi **từ hai slice trở lên** dùng nó.
    Kế thừa `ApiControllerBase`; mỗi action không `[AllowAnonymous]` khai **đúng một** mức phân
    quyền — `[RequirePermission]`, `[RequireSystemOperator]` hoặc `[AuthenticatedOnly]` (luật S11,
    [`../adr/0024-ba-muc-khai-bao-phan-quyen-endpoint.md`](../adr/0024-ba-muc-khai-bao-phan-quyen-endpoint.md));
-   route tường minh — [`be-api-controller.md`](be-api-controller.md).
+   tiền tố route từ hằng số dùng chung — [`be-api-controller.md`](be-api-controller.md) §3, §8.1.
 9. **Hợp đồng API** → thêm card vào [`../contracts/`](../contracts/) **trước khi** FE bắt đầu.
 10. **Test** — theo thứ tự ba tầng ở §9.1: unit Domain, unit Application, integration.
 11. **Chạy cổng.** `dotnet test` (gồm ArchTests) phải xanh trước khi báo xong.
@@ -636,9 +640,8 @@ tách vụn thành interface một method.
 
 **D — Dependency Inversion.** Toàn bộ §1 chính là DIP viết thành đồ thị tham chiếu.
 
-**Encapsulation.** Field nghiệp vụ `private set`; mutate qua method mang tên nghiệp vụ
-(`user.Deactivate()`, không `user.IsActive = false`). Ngoại lệ có giới hạn: field audit của
-`BaseEntity` và của kiểu mang `IAuditableEntity` có public setter — [`be-entity-domain.md`](be-entity-domain.md) §1.
+**Encapsulation.** Field nghiệp vụ `private set`, mutate qua method mang tên nghiệp vụ; ngoại lệ có
+giới hạn ở field audit — chi tiết và ví dụ: [`be-entity-domain.md`](be-entity-domain.md) §1, §2.
 
 **Abstraction.** Trong `Domain` và `Application` **không bao giờ** `new` một class của
 Infrastructure — cần thì khai interface.
@@ -658,10 +661,11 @@ cận kề.
 ### 9.1 Layout
 
 ```
-src/BE/Tests/
-├── CoreAndSkill.ArchTests/            ← luật kiến trúc; chạy trong mọi `dotnet test`
+src/BE/Tests/                          ← chỉ của Core; test của module ở src/BE/Modules/<X>/Tests/
+├── CoreAndSkill.ArchTests/            ← luật kiến trúc; chạy trong mọi `dotnet test`; quét module: 📐 ADR-0102
 ├── CoreAndSkill.Core.UnitTests/       ← Domain + Application; không DB, không HTTP
-└── CoreAndSkill.Core.IntegrationTests/ ← endpoint thật + PostgreSQL thật (Testcontainers)
+├── CoreAndSkill.Core.IntegrationTests/ ← endpoint thật + PostgreSQL thật (Testcontainers)
+└── Shared/                            ← tệp nguồn test dùng chung (ADR-0070)
 ```
 
 | Tầng test | Test gì | Không test gì |
@@ -670,6 +674,13 @@ src/BE/Tests/
 | Unit — Application | Handler với repository giả lập: nhánh thành công, từng nhánh lỗi, đúng `ErrorType` | EF Core thật, ánh xạ HTTP |
 | Integration | Endpoint qua `WebApplicationFactory`, migration áp được, bộ lọc tenant và xoá mềm có hiệu lực, transaction commit/rollback trọn vẹn, envelope đúng hình dạng, rate limit chặn thật | — |
 | Arch | Ranh giới tầng, quy ước đặt tên, mọi thứ "khai rồi có được nối vào không" | Hành vi |
+
+**Test không database của kiểu `internal` thuộc `Core.Infrastructure` hay `Core.Web`** — ví dụ phân loại của
+`CoreExecutionStrategy` (E11), bọc lỗi commit của `UnitOfWork` (E12) — nằm ở `Core.IntegrationTests`, không ở
+`Core.UnitTests`. `InternalsVisibleTo` của hai project đó khai cho `Core.IntegrationTests` (`Core.Web` thêm `ArchTests`), không cho
+`Core.UnitTests`; `Core.UnitTests` chỉ
+tham chiếu Domain và Application, nên sàn coverage của nó đo đúng hai tầng đó và không test nào ở đó chạm được EF.
+Tên project nói *tầng được test*, không nói *có database hay không*.
 
 **Seam hạ tầng** — biên duy nhất được giả lập trong unit test (luật T8) — là interface khai ở
 `*.Application` và **chỉ** có hiện thực ở `*.Infrastructure`. Bộ lọc tenant, xoá mềm và transaction
@@ -699,11 +710,8 @@ phạm cố ý và kiểm rằng nó đỏ.
 
 ### 9.4 Bẫy khi thi công detector
 
-Detector cho `CoreSource_MustNotContain_BusinessNameStringLiteral` **ưu tiên phân tích AST, không
-quét văn bản nguồn**. Nếu buộc phải quét văn bản, detector phải có test chứng minh nó bỏ qua comment
-và định danh.
-
-> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-architecture.md`](../wiki-core/be/ly-do/be-architecture.md) §9.4
+> 📖 Bẫy AST-trước-text-scan cho detector `CoreSource_MustNotContain_BusinessNameStringLiteral` (luật A5)
+> — cùng nội dung đã có ở [`../kien-truc-core-module.md`](../kien-truc-core-module.md) §3, không chép lại.
 
 ---
 

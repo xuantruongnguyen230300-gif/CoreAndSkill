@@ -149,6 +149,18 @@
       "PowerShell(dotnet test:*)",
       "Bash(dotnet format:*)",
       "PowerShell(dotnet format:*)",
+      "Bash(dotnet new:*)",
+      "PowerShell(dotnet new:*)",
+      "Bash(dotnet sln:*)",
+      "PowerShell(dotnet sln:*)",
+      "Bash(dotnet add:*)",
+      "PowerShell(dotnet add:*)",
+      "Bash(dotnet restore:*)",
+      "PowerShell(dotnet restore:*)",
+      "Bash(npx ng new:*)",
+      "PowerShell(npx ng new:*)",
+      "Bash(npx ng generate:*)",
+      "PowerShell(npx ng generate:*)",
       "Bash(dotnet ef migrations add:*)",
       "Bash(dotnet ef migrations script:*)",
       "Bash(dotnet ef migrations list:*)",
@@ -200,7 +212,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/on-pretool.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/on-pretool.sh\"",
             "timeout": 10
           }
         ]
@@ -212,7 +224,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/on-subagent-stop.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/on-subagent-stop.sh\"",
             "timeout": 10
           }
         ]
@@ -224,7 +236,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/on-edit.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/on-edit.sh\"",
             "timeout": 10
           }
         ]
@@ -235,7 +247,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/on-stop.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/on-stop.sh\"",
             "timeout": 120,
             "statusMessage": "Chay cong tai lieu..."
           }

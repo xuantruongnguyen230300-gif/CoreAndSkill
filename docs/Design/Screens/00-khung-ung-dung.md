@@ -1,17 +1,33 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-09-17
 ---
 
 # Khung ứng dụng — màn hình
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo chưa có `src/`. Khung **sẽ được dựng** ở pha F2 ([03-f2-auth-routing.md](../../wiki-core/fe/trien-khai/03-f2-auth-routing.md) §2).
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Bản tối thiểu đã có ở `src/FE` (F2, [ADR-0037](../../adr/0037-f2-dung-du-component-core-khong-hoan-ngam.md)) — `platform/shell` dựng `Sidebar`/`Topbar`/`Footer` thật qua `input()`/`output()`, không còn markup tay; nhiều mảng của sơ đồ dưới đây (biến thể `collapsed`/`drawer`, menu tài khoản dạng lớp nổi, nút theme, `LanguageSwitcher`) **chưa** có trong code. Hộp hỏi thay đổi chưa lưu thì **đã có** — `<app-unsaved-changes-dialog />` (lớp `UnsavedChangesDialogComponent`) render một lần ở gốc app, xem dòng `unsavedChangesGuard` của bảng. Bảng "Có thật hôm nay → sẽ thành" ngay dưới đây.
 
-Khung bọc mọi màn sau khi đăng nhập: `Sidebar`, `Topbar` (tiêu đề tuyến + menu tài khoản), `main`, `Footer`; giữ hai lớp nổi dùng chung của `Topbar`: **menu tài khoản** và **menu theme**. Màn con ([02](./02-trang-loi.md), [03](./03-ho-so-ca-nhan.md), [10](./10-nguoi-dung.md), [11](./11-vai-tro.md), [12](./12-ma-tran-phan-quyen.md), [20](./20-don-vi.md)) chỉ vẽ phần trong `main`. Nghiệp vụ lấy từ các nguồn trích trong file — không chép lại.
+Khung bọc mọi màn sau khi đăng nhập: `Sidebar`, `Topbar` (tiêu đề tuyến + menu tài khoản), `main`, `Footer`; giữ hai lớp nổi dùng chung của `Topbar`: **menu tài khoản** và **menu theme**. Màn con ([02](./02-trang-loi.md), [03](./03-ho-so-ca-nhan.md), [04](./04-trang-chu.md), [10](./10-nguoi-dung.md), [11](./11-vai-tro.md), [12](./12-ma-tran-phan-quyen.md), [20](./20-don-vi.md)) chỉ vẽ phần trong `main`. Nghiệp vụ lấy từ các nguồn trích trong file — không chép lại.
 
 > **Khung:** chính là thứ file này mô tả. Tầng smart `platform/shell` inject phiên và menu, truyền xuống `Sidebar`/`Topbar` qua `input()` ([fe-architecture.md](../../quy-uoc/fe-architecture.md) §2.3).
 > **Quyền:** không cần permission. Mọi tuyến qua `authGuard` và `mustChangePasswordGuard` ([fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §2.1, §4). Cây menu do máy chủ lọc theo quyền ([meta-menu.md](../../contracts/meta-menu.md) §1.4).
+
+## Có thật hôm nay → sẽ thành (F2, ADR-0037)
+
+Đối chiếu 2026-09-17 với `src/FE/src/app/platform/shell/shell.component.html`, `shell.component.ts`, `shell.component.scss`, `src/FE/src/app/core/guards/unsaved-changes.guard.ts`, `src/FE/src/app/platform/ho-so/ho-so.routes.ts`. Neo chuyển sang chuỗi tìm được (ADR-0046) và kiểm lại chuỗi ngày 2026-09-22, kèm `src/FE/src/app/app.html`.
+
+| Khoản | Có thật hôm nay | Sẽ thành |
+| --- | --- | --- |
+| `Sidebar`/`Topbar` là component dumb riêng | Có — `<app-sidebar>`/`<app-topbar>` nhận dữ liệu qua `input()`, phát `output()`; không còn markup tay trong `shell.component.html` (`shell.component.html`, chuỗi `<app-sidebar` và `<app-topbar`) | — (đủ, đúng `fe-architecture.md` §2.3) |
+| Liên kết "Bỏ qua tới nội dung chính" | Có, đúng vị trí — trước `Sidebar`/`Topbar` trong DOM (`shell.component.html`, chuỗi `class="bo-qua"`) | — (đủ) |
+| Biến thể `Sidebar`/`sidebarMode` của `Topbar` | Cố định `'expanded'`/`'default'` — `shell.component.html` không truyền `mode`/`sidebarMode`, không có logic đọc breakpoint (`shell.component.ts` không có `modeChange`/`drawerOpen`) | `collapsed`, `drawer`, hamburger, ghi nhớ `localStorage` — xem [Sidebar.md](../Components/Sidebar.md) §"Đã có → còn thiếu", [Topbar.md](../Components/Topbar.md) §"Đã có → còn thiếu" |
+| Khu tài khoản trên `Topbar` | `menuItems` (Hồ sơ cá nhân, Đăng xuất) hiện **INLINE** thành nút, không phải lớp nổi (`shell.component.ts`, chuỗi `taiKhoanMenuItems`) | Menu dạng lớp nổi (cần `Menu.md`, chưa dựng) — [Topbar.md](../Components/Topbar.md) |
+| Mục "Ngôn ngữ", nút theme + Menu theme, `aria-live` khi đổi theme/ngôn ngữ | Chưa dựng — `shell.component.html` không có nút theme, không truyền `theme`/`languages`/`currentLanguage` xuống `Topbar` | Cần `Menu.md` + `LanguageSwitcher.md` (v1 `CORE_I18N.languages` một mục nên chưa có màn nào ép phải thử) — [Topbar.md](../Components/Topbar.md) |
+| Đăng xuất | Có — `POST` qua `AuthService.dangXuat()` rồi điều hướng về đăng nhập (`shell.component.ts`, chuỗi `private async dangXuat()`) | — (đủ ở mức luồng; chi tiết "lấy lại token chống giả mạo" nằm trong `AuthService`, ngoài hai file đã đối chiếu) |
+| "Còn thay đổi chưa lưu ở màn con — hỏi TRƯỚC khi gửi request" (`unsavedChangesGuard`) | Có — guard đọc `UnsavedChangesService.xinRoiTrang()` (`src/FE/src/app/core/guards/unsaved-changes.guard.ts`, chuỗi `export const unsavedChangesGuard` rồi `thayDoi.xinRoiTrang()`; phiên đã dọn thì cho rời, không hỏi lại — chuỗi `if (!auth.daDangNhap())`, so 2026-09-26); gắn `canDeactivate: [unsavedChangesGuard]` trên tuyến `/ho-so` (`src/FE/src/app/platform/ho-so/ho-so.routes.ts`, chuỗi `canDeactivate: [unsavedChangesGuard]`); đăng xuất gọi thẳng cùng `xinRoiTrang()` vì không đi qua Router (`shell.component.ts`, chuỗi `private async dangXuat()`, ADR-0040); hộp hỏi dùng chung render một lần ở gốc app (`src/FE/src/app/app.html`, chuỗi `<app-unsaved-changes-dialog />`) | — (đủ) |
+| `Footer` `full`, cỡ `md` | Có, đúng (`shell.component.html`, chuỗi `variant="full"`; `size` mặc định `'md'` ở `footer.component.ts`, chuỗi `readonly size = input`) | — (đủ) |
+| Toast 5xx không envelope | Có (so 2026-09-26) — `core/interceptors/error.interceptor.ts` chuỗi `translate.instant('loi.CORE.CLIENT.SERVER_UNAVAILABLE')`, nhánh `body === null` của lớp xuyên suốt, `traceId` là `null`; câu ở `vi.json` khớp bảng Câu chữ (vẫn *Chờ duyệt*) | — |
 
 ---
 
@@ -61,6 +77,7 @@ Số đo: token [DESIGN.md](../DESIGN.md) §6.1 qua [Sidebar.md](../Components/S
 | Không có mục "Đổi mật khẩu" — đổi tự nguyện nằm trong màn hồ sơ | [03-ho-so-ca-nhan.md](./03-ho-so-ca-nhan.md) |
 | Đăng xuất là mục menu gửi request, không phải liên kết | [D6](../../luong/D6-dang-xuat.md) §3 |
 | Menu không khai cứng trong FE; khung **không** rẽ nhánh theo cờ `isSystemOperator` | [07-auth-identity.md](../../wiki-core/fe/07-auth-identity.md) §6 · [auth.md](../../contracts/auth.md) §3 |
+| 🛑 **`Sidebar` không có mục nào trỏ vào khu hệ thống (`/he-thong/…`).** Người vận hành tới [20-don-vi.md](./20-don-vi.md) bằng **URL gõ thẳng**; `systemOperatorGuard` là chỗ duy nhất chặn người không có cờ. Hệ quả trực tiếp của dòng trên: khung không rẽ nhánh theo cờ, nên một mục như vậy chỉ có thể đến từ dữ liệu menu — mà ba bước lọc của máy chủ chỉ đọc **quyền** hoặc **vai trò**, không bước nào đọc cờ. Mục trỏ vào đó hôm nay hiện sai người dù khai cách nào. Muốn đổi thì xem §Cần chốt, không tự thêm mục | [meta-menu.md](../../contracts/meta-menu.md) §1.4 · duyệt 2026-09-23 |
 | Không có hộp cảnh báo sớm hết phiên ở v1 — hết phiên xử lý khi gặp 401 bởi `SessionExpiryHandler`; khung không dựng lớp nổi nào cho việc này | [fe-api-client.md](../../quy-uoc/fe-api-client.md) §2.5 · [07-auth-identity.md](../../wiki-core/fe/07-auth-identity.md) §7.5, §10 · duyệt 2026-09-16 |
 
 **Đổi ngôn ngữ khi đã đăng nhập.** `Topbar` phát `languageChangeRequested` mang mã ngôn ngữ ([Topbar.md](../Components/Topbar.md) §API); khung đặt `pendingLanguage`, rồi: tải gói dịch → áp → ghi `preferredLanguage` qua `PUT /api/v1/core/profile` ([profile.md](../../contracts/profile.md) §2 — request mang cả ba trường sửa được nên khung đọc hồ sơ hiện tại, §1, để gửi lại đúng họ tên và số điện thoại) → `PUT` xong gọi `lamMoiPhien()` để phiên mang `preferredLanguage` mới ([fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §3.3). Phải ghi hồ sơ vì ngôn ngữ mỗi lần đăng nhập áp theo `preferredLanguage` của phiên ([auth.md](../../contracts/auth.md) §5 · [08-i18n.md](../../wiki-core/fe/08-i18n.md) §7 · [LanguageSwitcher.md](../Components/LanguageSwitcher.md) §API).
@@ -95,7 +112,8 @@ Câu không ghi nguồn: người dùng duyệt 2026-09-15 ([Screen.md](../Templ
 | Bản quyền ở `Footer` | Như màn Đăng nhập | `chung.chanTrang.banQuyen` | [01-dang-nhap.md](./01-dang-nhap.md) |
 | Hộp cảnh báo sắp hết phiên | **Bỏ** — v1 không có hộp cảnh báo sớm; nhóm khoá `khung.hetPhien.*` không khai | — | [07-auth-identity.md](../../wiki-core/fe/07-auth-identity.md) §10 · duyệt 2026-09-16 |
 | Câu hỏi khi đăng xuất còn thay đổi chưa lưu | Câu chung của `unsavedChangesGuard` | khoá chung của guard — không đặt ở khung | [fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §4.1 |
-| Toast lỗi đăng xuất, lỗi ghi ngôn ngữ | Câu dịch theo mã; không có mã thì câu mất kết nối | `loi.<mã>` · `loi.CORE.CLIENT.NO_CONNECTION` | [fe-api-client.md](../../quy-uoc/fe-api-client.md) §2.2 |
+| Toast lỗi đăng xuất, lỗi ghi ngôn ngữ | Câu dịch theo mã; không có phản hồi (status 0) thì câu mất kết nối; 5xx không envelope → dòng dưới | `loi.<mã>` · `loi.CORE.CLIENT.NO_CONNECTION` | [fe-api-client.md](../../quy-uoc/fe-api-client.md) §2.2 |
+| Toast 5xx không envelope (proxy 502/504), mọi request — lớp xuyên suốt, không `traceId` | *Chờ duyệt:* Máy chủ tạm thời không phản hồi, vui lòng thử lại sau. | `loi.CORE.CLIENT.SERVER_UNAVAILABLE` | [fe-api-client.md](../../quy-uoc/fe-api-client.md) §2.2 |
 
 ### Trạng thái
 
@@ -105,7 +123,7 @@ Câu không ghi nguồn: người dùng duyệt 2026-09-15 ([Screen.md](../Templ
 - **đang tải** — `Sidebar` `loading` ([Sidebar.md](../Components/Sidebar.md) §Trạng thái); `Topbar`, `main` vẽ ngay, hamburger bấm được. Khu tài khoản không có ca tải; tải nội dung thuộc màn con.
 - **rỗng** — menu rỗng → `Sidebar` `empty`; hồ sơ và đăng xuất vẫn ở `Topbar`.
 - **lỗi**:
-  - Tải menu hỏng → `Sidebar` `error` kèm Thử lại; request menu tắt toast (`BO_QUA_TOAST_LOI`) vì `Sidebar` tự hiện lỗi.
+  - Tải menu hỏng → `Sidebar` `error` kèm Thử lại. Request menu mang `BO_QUA_TOAST_LOI`: lỗi khác không toast, riêng 5xx và 403 `CORE.AUTH.*` vẫn toast kèm `traceId` ([ADR-0094](../../adr/0094-lop-loi-xuyen-suot-luon-toast-ke-ca-khi-man-tat-toast.md)).
   - 401 → `SessionExpiryHandler`: dọn phiên, về đăng nhập kèm `returnUrl`, không toast.
   - 403 `CORE.AUTH.FORBIDDEN` → toast, làm mới tập quyền **và nạp lại menu cùng bước**; ở lại màn.
   - 403 `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` → interceptor **không toast, không điều hướng**: gọi `AuthService.lamMoiPhien()`, router chạy lại guard của URL hiện tại, `mustChangePasswordGuard` trả `UrlTree` sang màn đổi mật khẩu bắt buộc ([fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §5.4 · [auth.md](../../contracts/auth.md) §11).
@@ -140,8 +158,11 @@ Theo [Icons.md](../Icons.md) §5, trừ dòng có căn cứ riêng.
 
 ### Ảnh màn hình
 
-Chưa có — repo chưa có `src/`, không có gì để chụp.
+Chưa có — khung đã dựng ở `src/FE` (bảng "Có thật hôm nay → sẽ thành" ở đầu file) nhưng chưa ai chạy ứng dụng chụp màn hình.
 
 ### Cần chốt
 
-Không còn.
+| # | Câu hỏi | Ai trả lời được |
+| --- | --- | --- |
+| 1 | **Đã quyết, hoãn.** Đường vào nhìn thấy được tới khu `/he-thong`: v1 **không** có và không dựng cơ chế nào — URL gõ thẳng cộng `systemOperatorGuard` là toàn bộ đường vào (bảng Quyết định bố cục). Hai lối có sẵn đều sai: (a) khung rẽ nhánh theo cờ `isSystemOperator` — bảng Quyết định bố cục đã cấm; (b) một mục menu do máy chủ trả — `core.menu_item` chỉ diễn đạt được *quyền* và *vai trò*, nên mục đó hoặc hiện cho mọi người dùng của mọi đơn vị, hoặc đẻ một khoá quyền cho khu hệ thống, tức đường phân quyền thứ hai mà [ADR-0017](../../adr/0017-khu-quan-tri-he-thong.md) chặn. Các phương án cơ chế và lý do hoãn: [ADR-0079](../../adr/0079-khu-he-thong-khong-nhan-duong-vao-nhin-thay-duoc-o-v1.md) | Không ai, cho tới khi một trong sáu điều kiện kích hoạt ở [ADR-0079](../../adr/0079-khu-he-thong-khong-nhan-duong-vao-nhin-thay-duoc-o-v1.md) xảy ra. Lúc đó `architect` viết ADR mới chốt cơ chế, rồi `design-expert` quyết chỗ đặt và câu chữ. Cổng thi hành quyết định: [meta-menu.md](../../contracts/meta-menu.md) §1 |
+| 2 | Duyệt các câu mang `*Chờ duyệt:*` ở bảng Câu chữ | Người dùng |

@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0016 — Dự án hạ nguồn lấy Core bằng CLONE, phiên bản bằng TAG
 
-> **Trạng thái:** Đã chấp nhận (2026-09-10)
+> **Trạng thái:** Đã chấp nhận (2026-09-10) · Sửa một phần bởi [ADR-0100](0100-host-thuoc-vung-du-an-ba-vung-so-huu-tep.md) (2026-09-25)
 
 ## Bối cảnh
 

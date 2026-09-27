@@ -47,7 +47,7 @@ Vì sao `code` chuẩn hoá về chữ HOA ở tầng ứng dụng trước khi 
 
 **Vì sao miễn trừ `core.setting` kéo theo một nghĩa vụ, không phải chỉ một ngoại lệ.** Cảnh báo ở §3.7 vẫn
 đúng nguyên: bộ lọc `tenant_id = @tenant` **giấu** dòng NULL khỏi mọi người. Nếu đường đọc cấu hình chỉ dựa vào bộ lọc mặc định thì
-tầng hệ thống biến mất và mọi khoá rơi thẳng xuống mặc định trong code, im lặng.
+tầng toàn cục biến mất và mọi khoá rơi thẳng xuống mặc định trong code, im lặng.
 
 **Vì sao danh sách miễn trừ phải NGẮN.** Một danh sách miễn trừ dài là dấu hiệu ranh giới tenant đang bị
 hiểu sai — thường là ai đó gặp một bảng khó gắn `tenant_id` rồi miễn trừ nó thay vì hỏi tại

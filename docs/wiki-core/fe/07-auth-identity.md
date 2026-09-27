@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 07. Xác thực và danh tính phía FE
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`; đây là luồng phải dựng ở pha F2.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Đây là luồng phải dựng ở pha F2.
 >
 > Hợp đồng endpoint: [`../../contracts/auth.md`](../../contracts/auth.md). Cơ chế phía BE: [`../be/02-identity-auth.md`](../be/02-identity-auth.md). Quy ước guard và route: [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md).
 

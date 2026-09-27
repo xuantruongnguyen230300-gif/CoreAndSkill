@@ -6,7 +6,11 @@ verified: chua-doi-chieu
 
 # 11. Bảng dữ liệu server-side
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`; đây là component `DataTable` ở `shared/ui/data-table` phải dựng ở pha F3 — thư mục theo cột "Nền" ([`05-component-library.md`](05-component-library.md) §3).
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §2**; phần còn lại, gồm §3 tới §9, chưa ai đối chiếu). Thư mục `DataTable` theo cột "Nền" ([`05-component-library.md`](05-component-library.md) §3):
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/FE/src/app/core/http/paged.model.ts` — `interface PagedList` có `page`, `totalCount`, không `totalPages`; `src/FE/src/app/shared/ui/data-table/data-table.component.ts` — `sortChange` phát `sortBy`, `sortDescending` đúng tên trên dây | — |
 >
 > Hợp đồng phân trang phía BE: [`../../contracts/README.md`](../../contracts/README.md). Truy vấn và chỉ mục: [`../../quy-uoc/be-performance.md`](../../quy-uoc/be-performance.md).
 

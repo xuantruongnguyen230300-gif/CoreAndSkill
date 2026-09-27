@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 10. Vòng đời dữ liệu — xoá mềm, lưu giữ, kiểm toán
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Code của chủ đề này đã có một phần dưới `src/BE`, nhưng **chưa mục nào trong tệp được đối chiếu** với nó — tệp vẫn trong tầm chấm review (2026-09-24).
 >
 > Cách khai xoá mềm trên entity là thi công: [`../../quy-uoc/be-entity-domain.md`](../../quy-uoc/be-entity-domain.md). File này lo **hệ quả và chính sách**.
 
@@ -163,7 +163,7 @@ Nhật ký kiểm toán **chỉ được ghi thêm**. Không sửa, không xoá 
 
 Không phải mọi thứ. Ghi hết thì bảng phình và không ai đọc nổi. Ghi:
 
-- Thay đổi phân quyền và vai trò.
+- Thay đổi phân quyền và vai trò. Với ma trận phân quyền, mỗi vai trò có ô đổi một dòng, kèm các khoá được cấp và bị thu. Hình dạng dòng: [`../../contracts/permissions.md`](../../contracts/permissions.md) §6 mục *Nhật ký kiểm toán*. Với vai trò của một người dùng, mỗi người dùng bị chạm một dòng: [`../../contracts/users.md`](../../contracts/users.md) §7 mục *Nhật ký kiểm toán*.
 - Tạo, khoá, mở khoá tài khoản; đổi mật khẩu.
 - Xuất dữ liệu: ai xuất, bộ lọc nào, bao nhiêu dòng ([`15-import-export.md`](15-import-export.md) §5.5).
 - Phát lại bản ghi outbox chết bằng lệnh `core outbox-replay` — mỗi dòng phát lại một dòng nhật ký ([`../../database/script-runbook.md`](../../database/script-runbook.md) §10).
@@ -231,7 +231,7 @@ Khoá ký phiếu xác thực và token antiforgery nằm **trong DB** ([`../../
 | Xoá mềm là quyết định theo từng bảng | ✅ sẽ có | Không bật mặc định cho bảng nối |
 | Nhật ký kiểm toán trong schema `core` | ✅ sẽ có | Chỉ ghi thêm; lưu cả nhãn hiển thị tại thời điểm ghi — bảng ở [`../../database/schema-core.md`](../../database/schema-core.md) §9.4 |
 | Dọn bản ghi outbox đã phát | ✅ sẽ có | |
-| **Job xoá cứng theo chính sách lưu giữ** | ❌ chưa | Cần chính sách nghiệp vụ trước. Khi làm: chạy theo lô, có chế độ thử |
+| **Job xoá cứng theo chính sách lưu giữ** | ❌ chưa | Cần chính sách nghiệp vụ trước. Khi làm: chạy theo lô, có chế độ thử. **Cơ chế** job thì tách khỏi chính sách và được nghiệm thu riêng bằng một bộ dọn **giả** — [`trien-khai/04-b3-van-hanh.md`](trien-khai/04-b3-van-hanh.md) §5 |
 | **Ẩn danh hoá theo yêu cầu** | ❌ chưa | Thiết kế sẵn chỗ (nhật ký kiểm toán tự chứa nhãn) để sau này làm được mà không phải sửa lược đồ |
 | **Lưu trữ sang kho khác** | ❌ chưa | Chỉ cần khi bảng đủ lớn để ảnh hưởng truy vấn. Đo trước |
 | **Sao lưu và thử phục hồi** | ❌ ngoài phạm vi Core | Thuộc vận hành — **trừ** ba luật về bảng khoá bảo vệ dữ liệu ở §7.1, thứ do chính Core sinh ra. Có file ngoài DB thì sao lưu DB không đủ |

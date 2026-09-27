@@ -145,7 +145,7 @@ Không phải feature nào cũng đi hết sáu bước:
 - **Sửa lỗi nhỏ trong một module**: [3] → [4]. Không cần [1], [2], [5].
 - **Feature kết luận thuộc Core, hoặc thay đổi chạm `Core/`**: **luôn** qua `architect` **trước** [3], và bắt buộc có [5] sau đó.
 - **Chỉ đổi giao diện, không đổi hành vi**: [2] → [3] FE → [5] nếu chạm Core FE.
-- **Giai đoạn chưa có `src/`** (trạng thái hiện tại của repo — đọc `docs/README.md` §Trạng thái repo): phần lớn việc dừng ở [1], [2] và `architect`. Đây là lúc quyết định kiến trúc rẻ nhất để đưa ra và rẻ nhất để đảo. Điều kiện chuyển sang giai đoạn 2 và danh sách chỗ phải lật nhãn: `docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md`. Nhãn giai đoạn trong `.claude/` và `README.md` gốc do **phiên chính** lật, theo đúng danh sách đó.
+- **Khi chưa có `src/`**: phần lớn việc dừng ở [1], [2] và `architect` — đó là lúc quyết định kiến trúc rẻ nhất để đưa ra và rẻ nhất để đảo. Giai đoạn hiện tại của repo đọc ở `docs/README.md` §Trạng thái repo, không khai ở đây. Điều kiện chuyển giai đoạn và danh sách chỗ phải lật nhãn: `docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md`; nhãn trong `.claude/` và `README.md` gốc do **phiên chính** lật, theo đúng danh sách đó.
 
 ---
 
@@ -187,7 +187,7 @@ Phép thử ([`CLAUDE.md`](CLAUDE.md) §2): **`.claude/` không được chứa 
 
 Hệ quả cứng: file trong `.claude/` **không được chứa code block ngôn ngữ lập trình**. Code mẫu là tri thức. Cổng `check-docs.sh` bắt việc này.
 
-Bốn lý do đã trả giá thật ở dự án tiền nhiệm nằm ở [`CLAUDE.md`](CLAUDE.md) §3. Lý do đáng nhớ nhất: **agent không "thấy" conflict — nó im lặng dùng bản sao.** Đọc file agent xong nó đã có câu trả lời tự tin, đầy đủ, có code mẫu, nên không bao giờ mở `docs/`. Lỗi loại này không tự lộ ra, và không test nào bắt được.
+Bốn lý do đã trả giá thật ở dự án tiền nhiệm nằm ở mục *Vì sao* cuối file này, phần §3 — lý do thứ ba là lý do đáng nhớ nhất.
 
 ### Agent đọc theo bảng định tuyến, không đọc cả `docs/`
 
@@ -278,8 +278,8 @@ Nhiều agent khai trong `description` rằng nên được dùng "PROACTIVELY" 
 | Việc | Hook | Làm gì |
 | --- | --- | --- |
 | Không chạy lệnh cấm | `PreToolUse` | Chặn trước khi lệnh chạy — lớp thứ hai sau `permissions.deny` |
-| Chạy cổng tài liệu sau khi sửa `docs/`, `.claude/` hoặc `spec/` | `PostToolUse` ghi dấu, `Stop` chạy cổng | Cổng đỏ thì **chặn lượt**, lặp tới khi xanh |
-| Gọi `core-reviewer` sau khi chạm Core | `SubagentStop` ghi dấu review, `Stop` so dấu với file đã sửa | **Chặn mỗi lần kết thúc lượt** tới khi có lượt review mới hơn — **chỉ khi có `src/`** |
+| Chạy cổng tài liệu sau khi sửa `docs/`, `.claude/` hoặc `spec/` | `Stop` chạy cổng khi có tệp mới hơn lần xanh cuối | Cổng đỏ thì **chặn lượt**, lặp tới khi xanh |
+| Gọi `core-reviewer` sau khi chạm Core | `PostToolUse` ghi file chạm Core, `SubagentStop` ghi dấu review, `Stop` so dấu với file đã sửa | **Chặn phiên đã chạm Core** mỗi lần kết thúc lượt mà không còn agent nền nào chạy, tới khi có lượt review mới hơn — **chỉ khi có `src/`** |
 | Chạy cổng build/test sau khi sửa `src/` | `Stop` | **Nhắc**, không chặn — CI là nơi chặn |
 
 Hook do harness chạy, không do model quyết định — nó không quên. Cơ chế ba lớp của `core-reviewer` và lối thoát: [`CLAUDE.md`](CLAUDE.md) §8.
@@ -290,7 +290,7 @@ Hook do harness chạy, không do model quyết định — nó không quên. C�
 - Người dùng vẫn bỏ qua được lớp chặn đó bằng cách tự xoá dấu — đó là quyết định có chủ ý, không phải lỗ hổng.
 - Hook chỉ canh các việc trong bảng. Mọi "PROACTIVELY" khác — gọi `ba-analyst` khi thiếu spec, gọi `design-expert` khi thiếu spec màn hình, gọi `test-engineer` tìm ca biên — vẫn hoàn toàn phụ thuộc trí nhớ.
 - Việc agent thi công có ghi dòng `CẦN CORE-REVIEW` hay không cũng là niềm tin. Lưới đỡ của nó là hook `Stop` ở trên — hook tự nhìn file đã sửa, không đọc báo cáo.
-- Hook `PreToolUse` chỉ đọc chuỗi lệnh của một lời gọi công cụ. Đường vòng nó không thấy: các dòng nợ C4 ở `docs/RULES.md` §10.
+- Hook `PreToolUse` chỉ đọc chuỗi lệnh của một lời gọi công cụ. Đường vòng nó không thấy: các dòng nợ C4 ở `docs/DEBT.md`.
 
 Đó là cải thiện thật, không phải giải pháp trọn vẹn.
 
@@ -316,15 +316,23 @@ Ràng buộc *"chỉ ghi file test"* của `test-engineer` và *"không sửa co
 
 Chỗ nào ép được bằng `tools` hoặc bằng `permissions.deny` thì ép; chỗ nào không, biết rằng nó chỉ được tuân khi agent nhớ.
 
-### Bộ agent này chưa chạy trên code thật
+### Luồng sáu bước ở §3 chưa chạy trọn lần nào
 
-Repo đang ở giai đoạn chưa có `src/` — đọc `docs/README.md` §Trạng thái repo. Toàn bộ luồng ở §3 mới là **thiết kế**, chưa có lượt nào chạy hết sáu bước trên một feature thật. Chỗ nào của nó không hoạt động thì hiện chưa ai biết.
+Một phần bộ agent **đã** chạy trên code thật: `architect`, `backend-expert`, `frontend-expert`, `test-engineer` và `core-reviewer` đã đi qua nhiều lượt dựng và soát Core.
+
+Chưa chạy: **trọn vẹn sáu bước trên một feature nghiệp vụ**. Nhánh `ba-analyst` → `spec/<feature>/` → thi công → `tech-writer` chưa có lượt nào — kiểm bằng lệnh, đừng tin câu này:
+
+```bash
+ls spec/            # chỉ có README.md và _template thì nhánh đó chưa chạy
+```
+
+Nên các bước [1] và [6] vẫn là **thiết kế**; chỗ nào của chúng không hoạt động thì hiện chưa ai biết.
 
 ---
 
 ## 9. Đọc thêm
 
-- [`CLAUDE.md`](CLAUDE.md) — luật toàn repo, mười mục
+- [`CLAUDE.md`](CLAUDE.md) — luật toàn repo; lý do của từng luật ở mục *Vì sao* cuối file này
 - [`../docs/README.md`](../docs/README.md) — mục lục cấp cao nhất, đường vào duy nhất tới mọi tri thức
 - [`../docs/RULES.md`](../docs/RULES.md) — toàn bộ luật và cột "ép bằng gì"
 - [`../docs/kien-truc-core-module.md`](../docs/kien-truc-core-module.md) — ranh giới Core ↔ Module
@@ -336,3 +344,105 @@ Repo đang ở giai đoạn chưa có `src/` — đọc `docs/README.md` §Trạ
 ## 10. Ngôn ngữ
 
 Toàn bộ `.claude/` viết bằng **tiếng Việt**. Định danh kỹ thuật — tên agent, tên công cụ, tên file — giữ nguyên tiếng Anh.
+
+---
+
+## Vì sao — lý do của các luật trong CLAUDE.md
+
+> [`CLAUDE.md`](CLAUDE.md) được nạp ở mọi phiên và mọi subagent, nên nó chỉ giữ câu luật. Lý do, chuyện đã trả giá ở dự án tiền nhiệm, ví dụ và cơ chế bên trong của hook nằm ở đây, chia theo số mục của `CLAUDE.md`. Đọc khi cần hiểu một luật, và trước khi sửa nó.
+
+### §1 — Git
+
+- `git restore` nằm trong danh sách cấm vì nó là bản thay thế hiện đại của `git checkout -- <file>` và xoá thay đổi working tree **không hoàn tác được**.
+- Bảng cấm và hai dòng liệt kê ngay dưới nó là **đầu vào của cổng**, không phải văn xuôi: `check-docs.sh` §1 đọc chính chúng rồi đối chiếu từng lệnh với `permissions.deny`, và kiểm đủ ba dạng cho mọi mục cấm lệnh.
+- Vì sao cần đủ ba dạng: dạng `Bash(…)` không khớp lệnh chạy qua công cụ PowerShell hay lệnh mang tiền tố `rtk` — thiếu một dạng là lệnh lọt qua đúng đường đó.
+- Mục chặn **công cụ ghi tệp** vào thư mục trạng thái khai theo tên từng công cụ vì nó không nhận một chuỗi lệnh nào. Đường qua lệnh shell vào thư mục đó vẫn hở, và hở đó là một dòng nợ C4 ở `docs/DEBT.md`.
+- Vì sao cần lớp chặn thứ hai: `permissions.deny` chỉ so tiền tố của cả chuỗi lệnh. Hook `PreToolUse` gắn cho công cụ Bash và PowerShell, đọc danh sách tiền tố cấm từ chính `permissions.deny` — không giữ danh sách riêng — rồi tách chuỗi lệnh thành từng đoạn, bóc tiền tố bọc và khớp từng đoạn. Lệnh cấm đứng sau `&&`, mang tiền tố `rtk`, hay chạy qua PowerShell đều bị chặn; lệnh chỉ *nhắc tới* chuỗi cấm, như tìm chữ trong file, thì được cho qua.
+- Hook không phân tích được một lệnh thì không chặn vì lỗi đó, và ghi lý do vào tệp `pretool-error.log` trong thư mục trạng thái.
+
+### §2 — Ranh giới `.claude` ↔ `docs`
+
+- Ba khu, đủ chi tiết: `.claude/` giữ **quy trình và ràng buộc** — agent nào tồn tại, làm gì, đọc file nào, bàn giao ra sao, bị cấm gì — cùng cấu hình harness. `docs/` giữ **quy tắc**: kiến trúc, quy ước code, hợp đồng API, schema, giao diện. `spec/` giữ **nghiệp vụ** theo từng feature: `spec/<feature>/business-rules.md`, `spec/<feature>/ui-spec.md`. Ngoại lệ "tài liệu VỀ chính hệ thống agent" là loại tài liệu nói agent nào tồn tại, nạp tri thức từ đâu, kích hoạt thế nào.
+- Ví dụ áp phép thử "câu này có thể thành SAI khi code đổi không":
+
+| Câu | Code đổi thì có sai không? | Thuộc |
+| --- | --- | --- |
+| "Không chạy lệnh git ghi" | Không | `.claude` ✓ |
+| "Sửa envelope thì đọc `docs/quy-uoc/be-api-controller.md` trước" | Không (chỉ sai nếu **doc** đổi chỗ) | `.claude` ✓ |
+| "Xong việc chạm Core thì gọi `core-reviewer`" | Không | `.claude` ✓ |
+| "Handler trả `Result<T>`, lỗi khai qua `ErrorDescriptor`" | **Có** | `docs` |
+| "`Core/` có 5 project" | **Có** | `docs` |
+| "Màu cảnh báo là `#965e08`" | **Có** | `docs` |
+
+- Ví dụ ngôn ngữ lập trình bị cấm trong code block: `csharp`, `typescript`, `scss`, `sql`, `json`. Danh sách ngôn ngữ **được phép** không chép ra đây vì bản chép tay sẽ lệch — lệnh đọc nó nằm ở `CLAUDE.md` §2. Đại ý: lệnh chạy, mẫu báo cáo, khối placeholder, và khối không gắn ngôn ngữ (sơ đồ cây, ASCII).
+
+### §3 — Chiều cập nhật
+
+Đây là luật chống tái phát. Bốn lý do đã trả giá thật ở dự án tiền nhiệm:
+
+1. **Hai nguồn thì chúng sẽ lệch nhau.** Một file luật khẳng định *"cả 5 project đã tồn tại"* trong khi chưa có project nào; một đoạn mẫu rate limit dùng sai overload kèm lý do sai, và code chép y theo nên mang nguyên lỗi. **Rule sai không nằm yên — nó sinh ra code sai.**
+2. **Bản sao không bao giờ được sửa cùng lúc.** Một recipe concurrency sai provider tồn tại **song song** ở hai chỗ. Sửa một nơi không chạm nơi kia.
+3. **Agent không "thấy" conflict — nó im lặng dùng bản sao.** Đọc file agent xong nó đã có câu trả lời tự tin, đầy đủ, có code mẫu, nên **không bao giờ mở `docs/`**. Lỗi loại này không tự lộ ra, và không test nào bắt được.
+4. **Chép nội dung làm agent chết vì cạn context.** Số đo nằm ở §5 của file này, mục *Agent đọc theo bảng định tuyến*.
+
+- Sửa một luật viết sai thì chỉ ghi bản mới, vì bản cũ đã nằm trong lịch sử git.
+- Ví dụ dòng trỏ đường đúng dạng chuẩn:
+
+```markdown
+> 📖 Envelope & error → HTTP: đọc `docs/quy-uoc/be-api-controller.md`
+```
+
+- Chọn phần cho dòng trỏ tới file chủ mới: *Bộ luật* nếu agent phải tuân file đó ở mọi việc, *Tra cứu* nếu chỉ mở khi chủ đề chạm tới. "Vào agent cần nó" nghĩa là không thêm vào mọi agent cho đủ bộ. Hai mục lục đưa agent tới chủ đề mới là `docs/README.md` và `docs/wiki-core/README.md`.
+
+### §4 — Nhãn trạng thái
+
+- Ngoại lệ "một câu khai thay bảng" của nhãn `🚧` tồn tại vì ép điền bảng cho một file chưa ai mở source ra so chỉ sinh ra những dòng "có thật" bịa, đúng khuôn sai mà §4 cấm. Nó **không** phải đường để né bảng khi đã có thứ đối chiếu được.
+- "Chỉ lật khi có người mở đúng file đó" loại mọi sự kiện thay thế: một quyết định chuyển giai đoạn, một lần `src/` xuất hiện, một đợt build xanh — không cái nào cho phép lật nhãn thay cho việc đối chiếu. `verified: chua-doi-chieu` vì thế giữ nguyên kể cả khi `src/` đã tồn tại và build xanh; đóng dấu ngày cho một file chưa ai mở source ra so mới đúng là khuôn sai §4 cấm.
+- Vì sao cấm tuyệt đối việc sửa mô tả cho khớp rồi đánh dấu xong: ở dự án tiền nhiệm, một đợt rà soát tìm ra **7 ca** cùng khuôn này — `"FIXED"` khi giá trị chưa hề vào code, `"Đã bật"` cho một hằng số chỉ tồn tại trong đúng câu nói nó tồn tại, `"✅ Xong"` cho năm mục chưa làm. Đây là dạng sai đắt nhất: nó không gây lỗi biên dịch, không bị test bắt, và nhãn "đã xong" được thiết kế để **không ai kiểm lại**.
+
+### §5 — Một nguồn
+
+- **Không "giữ cả hai cho chắc"** — đó là cách một repo có thể có bốn sơ đồ đặt tên project và bốn nguồn mô tả database nói ngược nhau.
+- Sửa bằng cách gỡ một bản vì hai bản đã đồng bộ sẽ lệch lại — người sửa chỉ sửa một, và không có gì báo. Đồng bộ là hoãn vấn đề; gỡ một bản mới là giải nó.
+- Luật này có cổng: sổ `docs/OWNERSHIP.md` khai *nội dung nào thuộc file nào*, và `check-docs.sh` §15 đọc chính sổ đó để kiểm. Sổ là **đầu vào của cổng**, nên nó không lệch khỏi thứ nó ép được. Câu văn xuôi chép nguyên văn sang file khác thì §24 bắt (luật D37) — không cần đăng ký vào sổ.
+- "Định nghĩa mới" cần tra sổ là, ví dụ, một catalog, một bảng ánh xạ, một chữ ký kiểu.
+
+### §6 — Thứ đếm được bằng lệnh
+
+Bảng liệt kê tay sẽ luôn mục ruỗng. Ở dự án tiền nhiệm, một đợt rà tìm ra **7 chỗ đếm sai** cùng lúc, và một bảng "9 chỗ hardcode màu" sai 4 trong 7 dòng đồng thời bỏ sót 2 dòng đúng.
+
+### §7 — Nguồn giao diện
+
+"Tham chiếu giao diện" gồm layout, câu chữ, token, trạng thái component, ảnh màn hình. Quy tắc riêng của khu Design nằm ở `docs/Design/CLAUDE.md` vì đó là tri thức — thuộc `docs/`, đúng chỗ.
+
+### §8 — Cổng và hook
+
+- Cổng chỉ có tác dụng khi harness không hỏi lại giữa chừng: một cổng bị prompt chặn là một cổng, trên thực tế, không ai chạy.
+- Cổng BE và cổng FE là **hai job CI** khai trong `.github/workflows/docs-gate.yml`, bật theo điều kiện thư mục `src/BE` / `src/FE` có mặt trong cây CI checkout — tức có trong **git**, không phải trên đĩa máy ai đó.
+- Cơ chế bên trong từng hook, ngoài bảng ở §8 của file này:
+  - `PreToolUse` không ghi dấu, không chạy cổng.
+  - `PostToolUse` chạy sau mỗi lần ghi file bằng Edit / Write / NotebookEdit **và sau mỗi lệnh Bash hoặc PowerShell**. Chỉ khi có `src/`, nó ghi dấu "phiên này đã sửa `src/`", và ghi file chạm Core vào nhật ký chung kèm cờ "phiên này đã chạm Core". Lệnh shell không bị đoán từ chuỗi lệnh — hook hỏi hệ thống tệp xem file nào đổi sau lần quét trước của phiên. Nó không chạy cổng.
+  - `SubagentStop` không chặn gì. Payload không khai tên agent thì **không** ghi dấu, và ghi lý do vào `subagent-stop-error.log`.
+  - `Stop`: còn agent nền thì hook không làm gì vì phiên đang chờ, chưa dừng. Cổng **không chạy được** (mã thoát 2 — sai thư mục, cây repo thiếu) thì chặn **một lần** để nói ra rồi thả — đó không phải vi phạm tài liệu, và chặn lặp thì thành vòng không đáy. Không đọc được khối `core-paths` thì chặn một lần mỗi phiên để nói ra. Phiên không chạm Core thì không bị chặn vì việc của phiên khác.
+  - Hook đọc thẳng khối `core-paths`, không giữ bản sao.
+- Thư mục trạng thái là thư mục `.state` bên trong `.claude`, bị gitignore. Dấu riêng của từng phiên nằm trong thư mục con theo `session_id`; nhật ký chạm Core và dấu review là chung, vì review phủ cả cây.
+- Chặn cứng ở lớp 3 cần hook `SubagentStop` vì không có gì ghi dấu review thì không lượt nào thoát được.
+- Lớp chặn `core-reviewer` bật theo `src/` vì vai của agent đó là *đối chiếu code thật với quy tắc*: khi chưa có code thì nó không có thứ gì để đối chiếu, và chặn lúc đó chỉ ép chạy agent mà không được gì.
+- Nới luật để qua cổng là đúng hành vi §4 tồn tại để ngăn.
+- Script hook không dùng `grep -P` và tự ép locale vì trên Git Bash với `LANG` rỗng, `grep -P` thoát lỗi mà **bên trong một hook thì lỗi đó không hiện ra đâu cả** — dấu đơn giản không được ghi và cổng không bao giờ chạy.
+- Ví dụ cho ba loại lỗi cổng không bắt (danh sách ở §8 của file này): gỡ một trích dẫn chết làm cổng xanh, nhưng đoạn văn bên cạnh vẫn có thể đang tả một màn hình chưa ai xây; khối không gắn ngôn ngữ không bị §2 chặn, nên một cây thư mục sai từng lọt qua mọi luật cho tới khi có người đọc; một tuyên bố `✅ Xong` kèm ngày hợp lệ vẫn qua được cổng kể cả khi việc đó chưa làm.
+
+### §9 — Ba khoá phân loại
+
+- Ba khoá biến ba câu hỏi phải-đọc-mới-biết thành ba câu **máy đọc được**.
+- `kind: tham-chieu` quan trọng nhất vì tài liệu mô tả lộ trình của một dự án khác mà bị nhầm thành luật sẽ khiến agent báo *"doc yêu cầu X, code không có X"* cho những X chưa bao giờ là luật của repo này. Đã xảy ra thật ở dự án tiền nhiệm.
+- Cổng chỉ nhận `khong-ap-dung` theo điều kiện máy kiểm được vì lý do miễn trừ phải là một sự thật, không phải một câu tự nhận. Đây là chỗ dễ lạm dụng nhất của cả ba khoá: dán `khong-ap-dung` lên một file khó đối chiếu là cách nhanh nhất để làm con số đẹp lên mà không kiểm gì cả.
+- Neo được thì máy kiểm được; không neo thì không ai kiểm. Chuỗi neo vào `src/` là tên thành viên, tên khoá, hoặc một đoạn trích đủ duy nhất. Vì sao chuỗi chứ không số dòng: ADR-0046, nơi `CLAUDE.md` §9 trỏ tới.
+
+### §10 — Ngôn ngữ
+
+"Định danh kỹ thuật" gồm tên class, tên file, tên package, thuật ngữ chuẩn ngành — giữ nguyên tiếng Anh, không dịch.
+
+### §11 — Điều phối agent
+
+Model đang ghim của từng agent đọc bằng lệnh, không chép ra đây: `grep -m1 '^model:' .claude/agents/*.md`.

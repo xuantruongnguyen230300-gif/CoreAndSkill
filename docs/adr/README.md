@@ -30,18 +30,21 @@ Ba tính chất khiến nó khác một trang tài liệu thường:
 
 ## 2. Khi nào viết một ADR mới
 
-Viết khi quyết định có **ít nhất một** trong các dấu hiệu sau:
+Viết khi quyết định có **ít nhất một** trong các dấu hiệu sau (người dùng chốt 2026-09-27):
 
-- **Đắt để đảo ngược.** Đổi lại sau này tốn tuần, không tốn giờ.
-- **Chạm ranh giới.** Nó thay đổi cái gì thuộc Core, cái gì thuộc module, hoặc chiều phụ thuộc giữa các tầng.
-- **Có phương án thay thế hợp lý.** Có người tỉnh táo sẽ chọn khác — cần ghi vì sao ta không chọn.
-- **Trái với thói quen ngành.** Người mới đọc code sẽ tưởng là sai sót và "sửa lại cho đúng".
+- **Đổi ranh giới tầng.** Cái gì thuộc Core, cái gì thuộc module, chiều phụ thuộc giữa các tầng.
+- **Thêm phụ thuộc ngoài.** Thư viện, dịch vụ hay hạ tầng mới.
+- **Đổi hợp đồng API hoặc DB.** Envelope, route, mã lỗi công khai, schema.
+- **Đổi quy trình của repo.** Cổng, hook, cách giao việc cho agent.
 - **Lật một ADR cũ.**
+
+Không mang dấu hiệu nào ở trên là **quyết định nhỏ**: một dòng ở [`nhat-ky-quyet-dinh.md`](nhat-ky-quyet-dinh.md), rồi sửa thẳng tệp chủ của nội dung.
 
 ### Khi nào KHÔNG viết
 
 | Tình huống | Ghi ở đâu thay vì ADR |
 | --- | --- |
+| Quyết định nhỏ — chọn giữa hai cách sửa, chốt câu chữ, chốt một giá trị | Một dòng ở [`nhat-ky-quyet-dinh.md`](nhat-ky-quyet-dinh.md) |
 | Quy ước đặt tên, thứ tự tham số, kiểu định dạng | [`../quy-uoc/`](../quy-uoc/) |
 | Chọn một thư viện tương đương với thư viện khác, đổi lại trong một buổi | Không cần ghi |
 | Kể lại một sự cố đã xảy ra | [`../audit/`](../audit/) |
@@ -122,42 +125,7 @@ Trạng thái và ngày chấp nhận của từng ADR nằm ở **chính file A
 grep -H '^> \*\*Trạng thái:\*\*' docs/adr/[0-9]*.md
 ```
 
-| ADR | Quyết định một dòng |
-| --- | --- |
-| [0001](0001-modular-monolith.md) | Một solution, một process, N module — Modular Monolith, không microservices, không monolith phẳng |
-| [0002](0002-core-5-project.md) | Core tách thành `Domain` · `Application` · `Infrastructure` · `Web` · `Contracts`; host chỉ là composition root |
-| [0003](0003-result-thuan.md) | Domain và Application trả `Result<T>` cho lỗi nghiệp vụ; exception chỉ dành cho lỗi ngoài dự kiến |
-| [0004](0004-giu-aspnet-identity.md) | Giữ ASP.NET Core Identity, khoanh `AppUser`/`AppRole` trong `Core.Infrastructure` |
-| [0005](0005-permission-based.md) | Không hằng số role trong Core — phân quyền bằng permission, role là dữ liệu trong DB |
-| [0006](0006-pipeline-behavior.md) | Đúng hai pipeline behavior ở v1: `Validation` và `Transaction` |
-| [0007](0007-fe-giu-cau-truc-thu-muc.md) | FE giữ `core/ shared/ platform/ modules/` là thư mục; ranh giới ép bằng ESLint + cấm `eslint-disable` |
-| [0008](0008-core-so-huu-migration.md) | Core sở hữu migration của schema `core`; module sở hữu migration của schema mình |
-| [0009](0009-ap-schema-chay-tay.md) | Không auto-migrate — sinh script cho người vận hành, kèm cơ chế chặn khởi động khi DB lệch model |
-| [0010](0010-comment-toi-thieu.md) | Comment trong code tối thiểu; lịch sử sự cố và lý do sâu sống ở [`../audit/`](../audit/) và khu này |
-| [0011](0011-ci-github-actions.md) | Có CI chạy đủ cổng trên mỗi PR — cổng chạy tay là cổng có thể bị bỏ |
-| [0012](0012-giai-doan-1-chi-docs.md) | Giai đoạn 1 chỉ xây `docs/` + `.claude/`; `src/` làm sau và bám theo tài liệu |
-| [0013](0013-multi-tenant.md) | Multi-tenant bằng cột phân biệt — nhiều cơ quan chung một bản cài, cách ly tuyệt đối, một tài khoản một tenant |
-| [0014](0014-mot-instance-key-ring-postgres.md) | Chạy một instance; bộ khoá bảo vệ dữ liệu để trong PostgreSQL; chưa dùng Redis |
-| [0017](0017-khu-quan-tri-he-thong.md) | Khu quản trị hệ thống: tài khoản vận hành thấy **danh sách đơn vị**, không thấy dữ liệu nghiệp vụ của đơn vị nào |
-| [0016](0016-phan-phoi-core-bang-clone.md) | Dự án hạ nguồn lấy Core bằng **clone**, phiên bản bằng **tag**; dự án không sửa tệp thuộc `Core/` |
-| [0015](0015-fe-va-api-khac-nguon.md) | FE và API phục vụ ở **hai origin khác nhau** ở mọi môi trường; dev bật CORS và HTTPS như thật, không dùng proxy dev để giấu ranh giới |
-| [0018](0018-thang-trung-tinh-sang-va-theme-mac-dinh.md) | Thang trung tính sáng nhấc lên một bậc; viền chỉ nhạt được tới `#7f8da3` vì ngưỡng chặn là viền **trên nền trang**; theme mặc định là `light`, không theo hệ điều hành |
-| [0019](0019-ba-component-nang-thuoc-core.md) | Biểu đồ, lưới nhập liệu và chọn khoảng ngày **thuộc Core** — lật bốn luật cũ. Kèm ba ràng buộc: thư viện biểu đồ không vào bundle khởi động, cả ba nằm ở nhánh tải chậm, và không mang từ vựng nghiệp vụ |
-| [0020](0020-seed-dev-ba-dieu-kien-va-dau-nhan-dang.md) | Seed dev đi bằng **lệnh riêng**, chạy chỉ khi **ba điều kiện** cùng đúng; hàng dữ liệu nó tạo mang định danh cố định mà môi trường thật **từ chối khởi động** khi thấy; chính sách mật khẩu **không đổi theo môi trường** |
-| [0021](0021-hai-co-dac-quyen-la-hai-cot-loai-tru.md) | `has_permission_bypass` và `is_system_operator` là **hai cột boolean loại trừ nhau**, không phải một enum; đơn vị hệ thống nhận ra bằng cột `is_system`, không bằng định danh cố định |
-| [0022](0022-seed-dev-khong-co-duong-code-rieng.md) | **Lật [0020](0020-seed-dev-ba-dieu-kien-va-dau-nhan-dang.md).** Không có đường code nào chứa sẵn thông tin tài khoản: một tệp `.sql` trong `src/BE/` lo **dữ liệu** dev, **lệnh bootstrap đã có** lo tài khoản với mật khẩu từ `user-secrets`, một script bọc gọi cả hai |
-| [0023](0023-dich-vu-tao-don-vi-dung-chung.md) | Cài đặt lần đầu và tạo đơn vị ở khu hệ thống đi qua **một** service C# dùng chung; lệnh bootstrap tạo đơn vị hệ thống, đơn vị nghiệp vụ đầu và hai tài khoản từ cấu hình + `user-secrets`; không còn tệp `.sql` dev. **Sửa một phần [0022](0022-seed-dev-khong-co-duong-code-rieng.md)** |
-| [0024](0024-ba-muc-khai-bao-phan-quyen-endpoint.md) | Mọi action không `[AllowAnonymous]` khai **đúng một** mức phân quyền: `[RequirePermission]` · `[RequireSystemOperator]` · `[AuthenticatedOnly("lý do")]`; đóng câu hỏi mở của [0021](0021-hai-co-dac-quyen-la-hai-cot-loai-tru.md) |
-| [0025](0025-luu-du-lieu-module-mot-transaction.md) | Dữ liệu module lưu bằng `DbContext` riêng **không** kế thừa `IdentityDbContext`; `IUnitOfWork` điều phối mọi `DbContext` trên **một** kết nối và **một** transaction; mỗi `AddXModule()` tự đăng ký assembly của nó, `AddCore`/`AddCoreApplication` gom lại |
-| [0026](0026-ranh-gioi-identity-va-cookie.md) | Kho người dùng của Identity ở `Core.Infrastructure`; scheme cookie, sự kiện cookie, đăng nhập/đăng xuất phiên ở `Core.Web`; `ClaimsPrincipal` dựng qua seam `ISessionPrincipalFactory` ở `Core.Application` |
-| [0027](0027-errortype-unauthorized.md) | `ErrorType` thêm `Unauthorized`, **chỉ hạ tầng được phát**; ánh xạ `Result` → HTTP không có nhánh mặc định. **Bổ sung [0003](0003-result-thuan.md)** |
-| [0028](0028-toolchain-fe-va-ke-hoach-nang-cap.md) | FE dựng trên Angular 20.3 / PrimeNG 20 / ngx-translate 18, nâng lên 21 trước khi 20 hết hỗ trợ; Node/TypeScript/angular-eslint chốt ở F0 theo bảng tương thích chính thức; Karma + Jasmine; không path alias ở v1 |
-| [0029](0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md) | Quên mật khẩu tự phục vụ **ngoài v1**; quản trị đặt lại hộ trong đơn vị mình; tài khoản vận hành chỉ khôi phục tài khoản quản trị của một đơn vị; thao tác xuyên đơn vị ghi nhật ký **hai** dòng. **Bổ sung [0017](0017-khu-quan-tri-he-thong.md)** |
-| [0030](0030-dieu-kien-chuyen-giai-doan-2.md) | Sang giai đoạn 2 khi đủ một danh sách điều kiện **kiểm được bằng lệnh**; chưa đạt thì không tạo `src/`; `architect` lật nhãn trạng thái trong `docs/`, phiên chính lật `.claude/` và `README.md` gốc, theo danh sách trong ADR |
-| [0031](0031-khoa-mediatr-12-5.md) | Khoá MediatR ở dòng **12.5.x** — bản cuối trước khi dự án chuyển sang giấy phép thương mại; lộ trình thoát nằm ở điều kiện lật |
-| [0032](0032-module-mau-o-du-an-ha-nguon.md) | Module mẫu là module nghiệp vụ thật đầu tiên của **dự án hạ nguồn đầu tiên**, không nằm trong repo Core; skill scaffold viết ở đó rồi đưa về Core |
-| [0033](0033-luong-dang-nhap-outcome-va-claim.md) | Handler đăng nhập trả `LoginOutcome`; `Core.Web` dựng principal từ đó với `issuedAt` truyền từ ngoài; stamp lấy từ `CredentialCheck`; `LoginCommand` cài `INoTransaction`; permission **không** vào cookie. **Sửa một phần [0026](0026-ranh-gioi-identity-va-cookie.md)**, **bổ sung [0006](0006-pipeline-behavior.md)** |
-| [0034](0034-errortype-unexpected.md) | `ErrorType` có giá trị thứ bảy `Unexpected` → 500, mang `CORE.SYSTEM.UNEXPECTED`; chỉ `IExceptionHandler` phát; `DbUpdateConcurrencyException` dịch ở đúng một chỗ là `IExceptionHandler` — bổ sung 0027 (2026-09-16) |
+> 📖 Bảng mục lục đầy đủ — một dòng mỗi ADR, cập nhật mỗi khi có ADR mới: đọc [`muc-luc.md`](muc-luc.md)
 
 ## 7. Khuôn rỗng để chép
 

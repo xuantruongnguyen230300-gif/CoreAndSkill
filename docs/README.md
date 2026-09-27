@@ -12,13 +12,27 @@ verified: chua-doi-chieu
 
 ## ⚠️ Trạng thái repo — đọc trước tiên
 
-**Repo này đang ở giai đoạn 1: chưa có `src/`.**
+**🚧 ĐÃ CHỐT — ĐANG THI CÔNG.** Tám điều kiện chuyển sang giai đoạn 2 ở
+[`adr/0030-dieu-kien-chuyen-giai-doan-2.md`](adr/0030-dieu-kien-chuyen-giai-doan-2.md) đã đạt —
+điều kiện 3 hoãn hợp lệ theo cơ chế thay thế ở
+[`adr/0035-hoan-dieu-kien-3-den-pr-cham-core-dau-tien.md`](adr/0035-hoan-dieu-kien-3-den-pr-cham-core-dau-tien.md)
+(chứng minh ở PR đầu tiên chạm một đường dẫn `core-paths`, chưa xảy ra). `architect` đối chiếu
+tám điều kiện và lật nhãn này ngày 2026-09-16.
 
-Vì vậy **mọi mô tả kiến trúc trong `docs/` đều là `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG`**, không phải mô tả hiện trạng. Đây là trạng thái đúng theo thiết kế: `src/` sẽ được xây ở giai đoạn 2 và phải bám theo những tài liệu này.
+| Có thật hôm nay | Sẽ thành |
+| --- | --- |
+| **`src/BE` đã có trên đĩa** — project Core, host `CoreAndSkill.Api` và các project Tests khai ở `src/BE/CoreAndSkill.slnx` (danh sách gốc: [`kien-truc-core-module.md`](kien-truc-core-module.md) §2); `dotnet test` trên `src/BE/Tests/CoreAndSkill.ArchTests` xanh (đối chiếu 2026-09-19) | — |
+| **`src/FE` đã có trên đĩa** các tầng `core/`, `platform/`, `shared/` — **chưa có `modules/`** | Đủ bốn tầng theo [`quy-uoc/fe-architecture.md`](quy-uoc/fe-architecture.md) §1 khi module đầu tiên về |
+| **`src/`, `scripts/`, `database/` chưa vào git** — `git status` in chúng ở dạng chưa theo dõi. Vì vậy job `backend-gate` và `frontend-gate` trong [`../.github/workflows/docs-gate.yml`](../.github/workflows/docs-gate.yml) **chưa chạy lần nào**: điều kiện bật của chúng đọc cây thư mục của lần checkout | Ba thư mục vào git ở lần commit đầu tiên → hai job tự bật, không phải sửa workflow |
+| Mọi mô tả kiến trúc trong `docs/` chưa đối chiếu với code thật | Từng file lật sang nhãn đã đối chiếu — mức cao nhất ở [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) §4 — **riêng lẻ**, khi có người mở source ra so; không lật hàng loạt theo dòng này |
+| Lớp 3 chặn Core (hook `Stop`) chưa thử bằng payload thật | Chứng minh sống ở PR đầu tiên chạm Core — xem ADR-0035 |
 
-Điều kiện chuyển sang giai đoạn 2, và ai lật nhãn trạng thái: [`adr/0030-dieu-kien-chuyen-giai-doan-2.md`](adr/0030-dieu-kien-chuyen-giai-doan-2.md).
+Vì vậy **mọi mô tả kiến trúc trong `docs/` vẫn mang `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG` hoặc
+`verified: chua-doi-chieu`** cho tới khi có người đối chiếu trực tiếp đúng file đó với `src/`.
+Nhãn ở mục này chỉ nói *quyết định chuyển giai đoạn đã chốt*, không lật nhãn của từng file nội
+dung — việc đó xảy ra từng file, khi có người đối chiếu.
 
-Hệ quả: gần như mọi file mang `verified: chua-doi-chieu`. Đó là giá trị **trung thực** — chưa có source để đối chiếu. Xem [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) §4 và §9.
+Xem [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) §4 và §9 cho khuôn nhãn.
 
 ## Tra theo chủ đề
 
@@ -37,6 +51,7 @@ Hệ quả: gần như mọi file mang `verified: chua-doi-chieu`. Đó là giá
 | **Chấm review: cái gì là finding, cái gì không** | [`quy-uoc/tieu-chi-review.md`](quy-uoc/tieu-chi-review.md) |
 | **Ranh giới Core ↔ Module, khi nào tách module** | [`kien-truc-core-module.md`](kien-truc-core-module.md) |
 | **Luật nào được ép bằng gì** | [`RULES.md`](RULES.md) |
+| **Luật nào CHƯA có cổng nào ép — sổ nợ** | [`DEBT.md`](DEBT.md) |
 | **Nội dung nào thuộc file nào — nguồn đối chiếu duy nhất** | [`OWNERSHIP.md`](OWNERSHIP.md) |
 | **Giao diện: layout, câu chữ, token, component, ảnh màn hình** | [`Design/`](Design/) — nguồn UI **duy nhất** |
 | **Hợp đồng API một endpoint cụ thể** | [`contracts/`](contracts/) |
@@ -81,7 +96,7 @@ Ba hệ quả cho người viết:
 
 - Bảng nào muốn được canh thì đặt tiêu đề cột cuối theo tập đó. Đường dẫn khi ấy nằm ở **ô nào cũng được**.
 - Bảng **văn xuôi** có kèm liên kết (bảng lý do, bảng nhật ký quyết định) cố ý **không** dùng tiêu đề trong tập — nếu không, định danh ở cột đầu sẽ bị đối chiếu với một file chỉ được nhắc làm dẫn chứng.
-- 🛑 **Giới hạn đã biết:** đổi tiêu đề một bảng sang chữ ngoài tập sẽ **âm thầm** đưa bảng đó ra khỏi tầm canh. Cổng chỉ đỏ khi **mọi** bảng đều rơi ra ngoài. Đây là nợ có ý thức, ghi ở [`RULES.md`](RULES.md) §10.
+- 🛑 **Giới hạn đã biết:** đổi tiêu đề một bảng sang chữ ngoài tập sẽ **âm thầm** đưa bảng đó ra khỏi tầm canh. Cổng chỉ đỏ khi **mọi** bảng đều rơi ra ngoài. Đây là nợ có ý thức, ghi ở [`DEBT.md`](DEBT.md).
 - Bảng định tuyến của một **agent** còn tách hai phần theo **tiêu đề mục**: mục *Bộ luật* (cộng dồn, có ngưỡng cỡ) và mục *Tra cứu* (mở đúng một file, không cộng). Luật D36 ở [`RULES.md`](RULES.md) §1; cổng §23 đọc thẳng tiêu đề mục. Muốn thêm một file vào bảng của agent thì hỏi trước: *agent phải tuân nó ở mọi việc, hay chỉ mở khi chủ đề chạm tới?* — câu trả lời quyết định phần.
 
 ---
@@ -90,11 +105,11 @@ Ba hệ quả cho người viết:
 
 | Khu | Trạng thái |
 | --- | --- |
-| [`quy-uoc/`](quy-uoc/) | 📐 **ĐÍCH ĐẾN** — quy ước cho `src/` sẽ xây ở giai đoạn 2 |
+| [`quy-uoc/`](quy-uoc/) | 🚧 **ĐANG THI CÔNG** — `src/BE` và `src/FE` đã có trên đĩa, nên quy ước ở khu này **đã có code để đối chiếu** và thuộc tầm chấm của một lượt review. Nhãn của từng file vẫn đọc ở đầu chính file đó |
 | [`wiki-core/`](wiki-core/) | ✅ sống — kiến thức nền, không phụ thuộc có `src/` hay chưa |
 | [`Design/`](Design/) | ✅ sống — nguồn UI duy nhất |
-| [`contracts/`](contracts/) | 📐 **ĐÍCH ĐẾN** — đọc `Status:` ở đầu **từng** card |
-| [`database/`](database/) | 📐 **ĐÍCH ĐẾN** |
+| [`contracts/`](contracts/) | 🚧 **ĐANG THI CÔNG** — controller đã có trong `src/BE`; trạng thái thật của một endpoint đọc ở dòng `Status:` của **từng** card, không đọc ở dòng này |
+| [`database/`](database/) | 🚧 **ĐANG THI CÔNG** — migration EF và script DDL đã có trên đĩa; **chưa script nào được áp lên một Postgres thật** ([`database/schema-core.md`](database/schema-core.md) đầu file) |
 | [`luong/`](luong/) | 📐 **ĐÍCH ĐẾN** — mục lục khai đủ luồng |
 | [`adr/`](adr/) | ✅ sống |
 | [`audit/`](audit/) | ✅ sống |

@@ -67,8 +67,19 @@ if (saved.IsFailure) return Result.Failure<Guid>(saved.Error!);
 return Result.Success(saved.Value.Id);
 ```
 
-Bản `Bind` tương đương ở [`be-cqrs-handler.md`](../../../quy-uoc/be-cqrs-handler.md) §2.3.
-`EnsureParentAttachableAsync` kiểm luật "cây menu đúng một cấp", `AddWhenCodeIsFreeAsync` kiểm mã
+Bản `Bind` tương đương:
+
+```csharp
+// ✅ Bind — nhánh lỗi tự truyền, chỉ còn nhánh thành công phải đọc
+return await MenuItem.Create(cmd.Code, cmd.LabelKey, cmd.ParentId)
+    .BindAsync(item => EnsureParentAttachableAsync(item, ct))
+    .BindAsync(item => AddWhenCodeIsFreeAsync(item, ct))
+    .MapAsync(item => item.Id);
+```
+
+> ⚠️ Ví dụ minh hoạ — `MenuItem`, `EnsureParentAttachableAsync` và `AddWhenCodeIsFreeAsync` chưa có
+> thật trong `src/BE` (đối chiếu 2026-09-27); dùng để dạy khuôn `Bind`, không phải mã đang chạy.
+> `EnsureParentAttachableAsync` kiểm luật "cây menu đúng một cấp", `AddWhenCodeIsFreeAsync` kiểm mã
 trùng trong đơn vị rồi thêm vào repository — luật của bảng ở
 [`schema-core.md`](../../../database/schema-core.md) §6.1.
 
@@ -160,7 +171,9 @@ internal sealed class UnitOfWork(
                 {
                     foreach (var db in all)
                         await db.SaveChangesAsync(innerCt);
-                    await tx.CommitAsync(innerCt);
+                    // Lỗi đường truyền lúc commit KHÔNG được thử lại: CommitAsync bọc mọi lỗi không phải
+                    // PostgresException thành ngoại lệ không tạm thời — luật 2 ở be-cqrs-handler.md §4.
+                    await CommitAsync(tx, innerCt);
                 }
                 else
                 {
@@ -366,6 +379,49 @@ Vì sao luật này đáng có một cổng riêng: một chuỗi gõ tại ch�
 hệ có kiểm, một hệ không. FE tra bảng dịch theo mã, nên mã ngoài catalog nghĩa là một câu không bao
 giờ dịch được.
 
+Mẫu catalog theo tài nguyên ([`be-cqrs-handler.md`](../../../quy-uoc/be-cqrs-handler.md) §7.1):
+
+```csharp
+// Core.Application/Users/UserErrors.cs
+public static class UserErrors
+{
+    public static readonly Error NotFound = new(
+        "CORE.USER.NOT_FOUND", "Không tìm thấy người dùng.", ErrorType.NotFound);
+
+    public static readonly Error EmailDuplicated = new(
+        "CORE.USER.EMAIL_DUPLICATED", "Email '{Email}' đã được dùng.", ErrorType.Conflict);
+
+    public static readonly Error CannotLockSelf = new(
+        "CORE.USER.CANNOT_LOCK_SELF", "Không tự khoá tài khoản của chính mình.", ErrorType.BusinessRule);
+
+    public static readonly Error SelfSystemRoleRemovalForbidden = new(
+        "CORE.USER.SELF_SYSTEM_ROLE_REMOVAL_FORBIDDEN",
+        "Không tự gỡ vai trò hệ thống của chính mình.", ErrorType.BusinessRule);
+
+    public static readonly Error RoleEscalationForbidden = new(
+        "CORE.USER.ROLE_ESCALATION_FORBIDDEN",
+        "Không thao tác trên vai trò cấp quyền mà người gọi không có.", ErrorType.Forbidden);
+
+    public static readonly Error SystemRoleLockForbidden = new(
+        "CORE.USER.SYSTEM_ROLE_LOCK_FORBIDDEN",
+        "Không đủ quyền khoá tài khoản này.",
+        ErrorType.Forbidden);
+
+    public static readonly Error RoleNotFound = new(
+        "CORE.USER.ROLE_NOT_FOUND", "Vai trò '{RoleId}' không tồn tại.", ErrorType.BusinessRule);
+}
+```
+
+**Các mã cuối là chỗ hay chọn sai `ErrorType` nhất, và ranh giới nằm ở §3.2.**
+
+| Mã | `ErrorType` | Vì sao |
+| --- | --- | --- |
+| `ROLE_ESCALATION_FORBIDDEN` · `SYSTEM_ROLE_LOCK_FORBIDDEN` | `Forbidden` | Người gọi **thiếu tư cách** trên bản ghi cụ thể: họ không có đủ tập quyền mà vai trò đích cấp, không mang vai trò hệ thống, hoặc đích là tài khoản mang cờ đặc quyền. Đó là hàng "không đủ quyền trên bản ghi cụ thể" |
+| `CANNOT_LOCK_SELF` · `SELF_SYSTEM_ROLE_REMOVAL_FORBIDDEN` | `BusinessRule` | Người gọi **có đủ quyền**; thứ bị từ chối là *thao tác nhắm vào chính mình*. Trả 403 ở đây làm FE hiện "bạn không có quyền" cho một người đang có quyền |
+| `ROLE_NOT_FOUND` | `BusinessRule` | Id **trong payload** trỏ tới bản ghi không tồn tại — §3.2 hàng 2. Không phải `Validation`: `Validation` theo định nghĩa tính được từ payload mà **không cần DB**, còn "vai trò này có tồn tại không" bắt buộc đọc DB. Kèm theo, mã `Validation` luôn đi cùng `fieldErrors`; mã này thì không |
+
+Hợp đồng phía dây của các mã này: [`../contracts/users.md`](../../../contracts/users.md) §2.
+
 ### 7.2 Ranh giới của luật R8 — chuỗi tiếng Việt được phép ở ĐÚNG một chỗ
 
 Luật R8 và catalog chỉ cùng đúng khi ranh giới được khai ra — nếu không, detector viết theo đúng tên
@@ -385,16 +441,16 @@ thêm danh sách miễn trừ theo tên file — danh sách đó sẽ mục ru�
 - *Đổi mã là breaking change* — mã nằm trong bảng dịch của FE và có thể nằm trong tài liệu người dùng.
 - *Mã mô tả nguyên nhân* — `CORE.USER.SHOW_RED_TOAST` khoá chặt BE vào một quyết định giao diện.
 
-### 7.4 Mã cho điều kiện PHÍA CLIENT — vẫn do BE khai
+### 7.4 Mã cho điều kiện phía client
 
-**Vì sao vẫn để BE khai một thứ BE không phát ra:** luật R3 đòi mã **duy nhất trong toàn hệ**, và
-ArchTest ép nó bằng cách quét catalog của BE. Một mã sống ngoài catalog thì không phép kiểm nào chạm tới
-— nó có thể trùng với một mã BE thêm sau, và bảng dịch có thể thiếu nó mà không gì báo. Một danh mục,
-một phép kiểm.
+**Vì sao danh mục nằm ở tệp luật BE mà hằng số thì không nằm trong mã BE:** luật R3 đòi mã **duy nhất
+trong toàn hệ**. Cách rẻ nhất để một mã phía client không bao giờ trùng mã BE là **tách không gian tên**:
+tài nguyên `CLIENT` chỉ dùng cho bảng §7.4, và không catalog BE nào khai mã mang nó. Đặt hằng số cho
+những mã đó trong catalog BE sẽ để BE mang những mã nó không bao giờ phát; phép dò *"mã trong catalog
+có lên dây không"* của nợ **F16** ([`DEBT.md`](../../../DEBT.md)) lại phải miễn trừ chúng.
 
-Hệ quả cho nợ **F16** ([`RULES.md`](../../../RULES.md) §10): script đối chiếu *"mọi khoá i18n FE tra cứu
-phải khớp một mã BE đã khai"* chạy được **hai chiều** mà không cần ngoại lệ — vì nhóm `CORE.CLIENT.*`
-cũng nằm trong catalog.
+Bảng nằm cạnh khuôn mã ở §7.3 vì đó là chỗ người thêm mã mới — ở bất kỳ phía nào — đã phải mở ra.
+FE tra bảng dịch theo mã; mã phía client chưa có dòng ở bảng thì chưa được dùng.
 
 ### 7.5 Ranh giới với mã của `fieldErrors`
 
@@ -504,32 +560,35 @@ người dùng phải chờ.
 
 ### 10.3 Khuôn `jobId + polling`
 
-Khối handler đầy đủ:
+Khối handler, rút gọn từ mã thật — bỏ các tham số và phép kiểm đứng trước lần ghi đầu tiên.
+✅ CÓ THẬT (đối chiếu 2026-09-25): `src/BE/Core/CoreAndSkill.Core.Application/Import/StartImportCommandHandler.cs`
+(chuỗi `var job = Job.Create(definition.Type, callerId, tempKey);`).
 
 ```csharp
 // Handler làm TRỌN use case: lưu dữ liệu tạm + tạo bản ghi job + GHI Ý ĐỊNH enqueue vào outbox
 internal sealed class StartImportCommandHandler(
-    IImportJobRepository jobs,
-    IFileStorage storage) : IRequestHandler<StartImportCommand, Result<Guid>>
+    IFileStorage storage,
+    IJobRepository jobs,
+    ICurrentUser currentUser /* , … */) : IRequestHandler<StartImportCommand, Result<Guid>>
 {
-    public async Task<Result<Guid>> Handle(StartImportCommand cmd, CancellationToken ct)
+    public async Task<Result<Guid>> Handle(StartImportCommand command, CancellationToken ct)
     {
-        // Ghi file tạm nằm NGOÀI transaction — xem ràng buộc 4.
-        var stored = await storage.SaveTempAsync(cmd.Content, cmd.FileName, ct);
-        if (stored.IsFailure)
-            return Result.Failure<Guid>(stored.Error!);
+        // … mọi phép kiểm (định dạng, cột, trần số dòng) chạy TRƯỚC lần ghi đầu tiên.
 
-        var job = ImportJob.Create(stored.Value, cmd.FileName);
+        // Ghi file tạm nằm NGOÀI transaction — xem ràng buộc 4. Lỗi hạ tầng là exception, không Result.
+        content.Position = 0;
+        var tempKey = await storage.SaveTempAsync(content, ct);
+
+        var job = Job.Create(definition.Type, callerId, tempKey);
         if (job.IsFailure)
             return Result.Failure<Guid>(job.Error!);
 
-        // ImportJob.Create ghi nhận domain event ImportJobQueued lên chính entity.
+        // Job.Create ghi nhận domain event JobQueuedEvent lên chính entity.
         // KHÔNG gọi scheduler ở đây: bộ chặn ở tầng dữ liệu chuyển event đó thành một dòng
         // outbox trong CÙNG transaction, và tiến trình phát nền gọi
         // IBackgroundJobScheduler sau khi commit.
         await jobs.AddAsync(job.Value, ct);
-
-        return Result.Success(job.Value.Id);
+        return job.Value.Id;
     }
 }
 ```
@@ -549,7 +608,7 @@ Lý do của từng ràng buộc ở [`be-cqrs-handler.md`](../../../quy-uoc/be-
 
    | Ca | Chuyện gì xảy ra |
    | --- | --- |
-   | Enqueue xong, transaction **rollback** | Job chạy đi tìm một bản ghi `ImportJob` **không tồn tại** — worker ném ở một chỗ rất xa nguyên nhân |
+   | Enqueue xong, transaction **rollback** | Job chạy đi tìm một bản ghi `Job` **không tồn tại** — worker ném ở một chỗ rất xa nguyên nhân |
    | Enqueue **chậm** (hàng job ở xa, đang nghẽn) | Transaction đứng mở suốt lượt gọi đó, giữ khoá trên bảng job. Đây là công thức của khoá kéo dài |
 
    Dòng outbox ghi trong **cùng** transaction với bản ghi job, nên hai thứ đó hoặc cùng có hoặc cùng

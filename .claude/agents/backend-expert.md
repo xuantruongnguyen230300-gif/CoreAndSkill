@@ -8,7 +8,7 @@ description: >
   Xong việc chạm tới Core thì kết thúc báo cáo bằng dòng CẦN CORE-REVIEW: BE —
   không tự gọi core-reviewer.
 tools: Read, Grep, Glob, Bash, Edit, Write, TodoWrite, SendMessage
-model: inherit
+model: sonnet
 ---
 
 # Vai trò
@@ -37,7 +37,17 @@ Bạn **không** quyết định kiến trúc. Quyết định kiến trúc thu�
 
 File này mô tả **quy trình**. Mọi quy ước kỹ thuật, code mẫu và quyết định kiến trúc nằm ở `docs/`. Mở đúng file của chủ đề đang làm — **không đọc cả thư mục**.
 
-## Bộ luật — đọc theo việc đang làm
+## Bộ luật — luôn đọc
+
+| Đọc | Vì sao |
+| --- | --- |
+| `docs/RULES-BE.md` | Checklist mọi luật BE — mã, câu luật, ép bằng gì, chi tiết ở đâu. `core-reviewer` chấm theo đúng bảng này |
+| `docs/RULES-CHUNG.md` | Luật chung cho mọi phạm vi |
+| `docs/kien-truc-core-module.md` | Danh sách project của Core, ranh giới Core ↔ Module, ngưỡng tách module, đường dẫn nào tính là chạm Core |
+
+## Tra cứu — luật theo chủ đề: mở khi việc chạm tới
+
+Việc chạm chủ đề nào thì đọc **trọn** tệp của chủ đề đó trước khi sửa. Phần chưa thi công của một tệp luật nằm ở tệp `<tên>-chua-thi-cong.md` cạnh nó.
 
 | Đang làm | Đọc |
 | --- | --- |
@@ -46,8 +56,8 @@ File này mô tả **quy trình**. Mọi quy ước kỹ thuật, code mẫu và
 | Command/Query, Handler, Validator, `Result<T>`, `ErrorDescriptor`, pipeline behavior | `docs/quy-uoc/be-cqrs-handler.md` |
 | Controller, envelope, ánh xạ `Result` → HTTP, rate limit, CORS, antiforgery, phân quyền | `docs/quy-uoc/be-api-controller.md` |
 | Repository, query, index, N+1, phân trang, cache | `docs/quy-uoc/be-performance.md` |
-| Danh sách project của Core và ranh giới từng project, ranh giới Core ↔ Module, ngưỡng tách module, đường dẫn nào tính là chạm Core | `docs/kien-truc-core-module.md` |
 | Khuôn API Contract Card, tham số danh sách dùng chung | `docs/contracts/README.md` |
+| Migration, script schema | `docs/database/migration-policy.md` |
 
 ## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
 
@@ -57,7 +67,7 @@ File này mô tả **quy trình**. Mọi quy ước kỹ thuật, code mẫu và
 | Schema `core`: bảng, cột, index | `docs/database/schema-core.md` |
 | Chạy script schema, phát hiện DB lệch model | `docs/database/script-runbook.md` |
 | Cái gì được commit | `docs/quy-uoc/repo-artifact.md` |
-| Luật nào được ép bằng cổng nào | `docs/RULES.md` |
+| Luật của phạm vi khác (FE, tài liệu) | `docs/RULES.md` — mục lục, trỏ tới tệp của phạm vi |
 | Đăng nhập, phiên, permission, seed quyền, khoá tài khoản | `docs/wiki-core/be/02-identity-auth.md` |
 | Chiến lược test, ArchTest, meta-test | `docs/wiki-core/be/04-testing-strategy.md` |
 | Vì sao cần token đồng thời, xử lý xung đột, khi nào cần khoá bi quan | `docs/wiki-core/be/06-concurrency-control.md` |

@@ -29,13 +29,13 @@ Quản trị đơn vị, từ màn chi tiết một người dùng.
 | # | Ai làm | Hệ thống làm gì | Chi tiết ở |
 | --- | --- | --- | --- |
 | 1 | Quản trị | Mở chi tiết người dùng, xem tập vai trò hiện có | [`../contracts/users.md`](../contracts/users.md) §4 |
-| 2 | Quản trị | `PUT /api/v1/core/users/{id}/roles` với **toàn bộ** tập vai trò mong muốn | cùng trên §7 |
+| 2 | Quản trị | `PUT /api/v1/core/users/{id}/roles` với **toàn bộ** tập vai trò mong muốn, kèm `version` của tài khoản từ bước 1 | cùng trên §7 |
 | 3 | BE | Kiểm các luật bảo vệ tài khoản quản trị — **trước khi** chạm tầng ghi | [`../contracts/users.md`](../contracts/users.md) §2 |
-| 4 | BE | Thay thế tập vai trò, không cộng dồn | cùng trên §7 |
+| 4 | BE | So-và-đổi token của tài khoản, rồi thay thế tập vai trò, không cộng dồn; ghi một dòng nhật ký `core.user.role_assign` | cùng trên §7 |
 
 ### Vì sao gửi toàn bộ tập, không gửi "thêm/bớt"
 
-Gửi thao tác thêm–bớt thì hai người sửa cùng lúc sẽ chồng lên nhau theo cách không ai đoán được. Gửi cả tập thì lần ghi sau thắng, và đó là một hành vi **giải thích được cho người dùng**.
+Gửi thao tác thêm–bớt thì hai người sửa cùng lúc sẽ chồng lên nhau theo cách không ai đoán được. Gửi cả tập **kèm `version`** thì lượt ghi dựa trên bản chụp cũ nhận 409 thay vì âm thầm gỡ vai trò người kia vừa cấp ([ADR-0082](../adr/0082-gan-vai-tro-dung-token-cua-tai-khoan.md)); người dùng tải lại, thấy tập mới, rồi quyết.
 
 Kèm theo: `roleIds` trùng lặp là lỗi kiểm hợp lệ, **không** phải "tự lọc trùng" — một mảng có khoá trùng là dấu hiệu FE đang dựng sai, và im lặng bỏ qua nó là giấu lỗi ([`../contracts/users.md`](../contracts/users.md) §7).
 
@@ -47,6 +47,7 @@ Kèm theo: `roleIds` trùng lặp là lỗi kiểm hợp lệ, **không** phải
 | --- | --- | --- |
 | Thiếu `core.user.role.assign` | `CORE.AUTH.FORBIDDEN` | Người này sửa được email nhưng không gán được vai trò — đúng thiết kế |
 | `roleIds` có phần tử trùng | `CORE.USER.DUPLICATE_ROLE_ENTRY` | Lỗi rõ, không tự dọn hộ |
+| Người khác vừa ghi tài khoản này — đổi vai trò, sửa, khoá | `CORE.CONCURRENCY.CONFLICT` | Cảnh báo xung đột, tải lại tập vai trò hiện tại; không gì bị ghi |
 | Vai trò không thuộc đơn vị này | `CORE.USER.ROLE_NOT_FOUND` | Bộ lọc đơn vị làm vai trò của đơn vị khác **không tồn tại** với người gọi |
 | Tự gỡ vai trò hệ thống của chính mình | `CORE.USER.SELF_SYSTEM_ROLE_REMOVAL_FORBIDDEN` | Luật 2 ở [`../contracts/users.md`](../contracts/users.md) §2 — một thao tác vô ý không được làm mất quyền quản trị mà không lỗi nào bật ra |
 | Gán vai trò rỗng quyền | không có mã lỗi | 🛑 Người dùng có vai trò, đăng nhập được, bấm gì cũng bị từ chối. Cùng triệu chứng với `P1` bước 5 bị quên |

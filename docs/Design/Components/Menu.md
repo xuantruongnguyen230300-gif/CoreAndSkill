@@ -6,9 +6,36 @@ verified: chua-doi-chieu
 
 # Menu
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`, bọc `primeng/menu`; hiện thực **một** trong hai biến thể. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** **bọc PrimeNG**. Theo [`../COMPONENTS.md`](../COMPONENTS.md) §4, định vị một lớp nổi khi trang cuộn hoặc khi nó chạm mép màn hình là hành vi thuộc nhóm "khó": phải xử lý container cuộn, `position: fixed` lồng nhau, và lật hướng khi hết chỗ. Tự dựng là viết lại một bài toán đã được giải đúng.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/ui/menu/menu.component.ts` — selector `app-menu`, chữ ký mục `UiMenuItem`, `styleClass` gắn `.app-menu` và `.app-menu--<cỡ>`. Phần chạm DOM do PrimeNG dựng nằm ở `src/FE/src/styles/_thu-vien.scss` (khối `.app-menu`).
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| Nơi duy nhất import `primeng/menu` | Đúng — chú thích đầu file khai vai trò này | Chưa tự kiểm bằng lệnh là không còn chỗ nào khác import |
+| API | `items`, `variant`, `size`, `header`, `ariaLabel` (`input.required`), `open`; output `selected`, `openChange` | — |
+| `anchorEvent` | Có — input **không nằm trong** §API dự kiến | ⚠️ **Sai lệch có chủ đích, đã ghi rõ chứ không giấu.** PrimeNG không có `[visible]` khai báo cho popup: nó cần một sự kiện DOM thật để định vị overlay (`Menu.show(event)`). Chú thích đầu file giải thích đầy đủ. Cần một lượt bổ sung §API dự kiến cho khớp, không phải sửa code |
+| Biến thể `anchored` | Có, là hình dạng duy nhất dựng | — |
+| Biến thể `context` | Khai trong kiểu của `variant` | **Không render khác gì** — không có nhánh nào đọc `variant()`. Chú thích component khai không màn nào cần |
+| `header` | Có, qua `<ng-template #start>`; dòng tiêu đề không bấm được, `--fs-2xs` `--fw-semibold` `--color-text-muted`, có vạch dưới `--color-border-subtle` | — |
+| `separators` tách mục phá huỷ | Có, đúng luật Do / Don't: `model` xếp mục thường trước, chèn `{ separator: true }` rồi tới nhóm `danger` — vạch chỉ chèn khi **cả hai** nhóm đều có mục | — |
+| Mục `danger` | Có, `styleClass` gắn `.app-menu__muc--nguy-hiem`, override màu `--color-danger` ở `_thu-vien.scss` | — |
+| Mục khoá | Có: `disabled` truyền xuống, `command` chặn lại lần nữa, và lý do hiện qua `tooltip` của PrimeNG đặt `tooltipPosition: 'left'` | Spec đòi "một dòng lý do ngắn ở **mép phải**" của chính mục; code dùng tooltip nổi bên trái. Khác cách trình bày — cần chốt bên nào đúng |
+| `selected` không phát khi mục khoá | Có, chặn trong `command` | — |
+| Hai cỡ | Có ở `_thu-vien.scss`: `sm` → `min-height: --size-control-sm`, `--fs-xs`; `md` → `--size-control-md`, `--fs-sm`; cả hai đệm ngang `--sp-4` — khớp §Kích thước | Cỡ icon theo cỡ menu (`--icon-sm` / `--icon-md`) **không** đặt ở đâu cả |
+| `groups` nhiều nhóm có nhãn | — | **Chưa có.** `UiMenuItem` có trường `group` nhưng `model` **không đọc tới nó** — mục chỉ được chia theo `danger`. Đây là một trường khai rồi bỏ không, dễ làm nơi gọi tưởng nó có tác dụng |
+| `selectedKey` (menu chọn giá trị) | — | Chưa có. Chú thích component khai ca dùng là `Topbar`, không thuộc phạm vi đã dựng |
+| `loading` / `error` | — | Chưa có `loadingTemplate`, `errorTemplate`, `aria-busy`. Chú thích component khai danh sách mục hiện luôn tĩnh nên chưa cần |
+| `empty` | — | **Chưa có.** Không mục nào thì `model` ra mảng rỗng và menu mở ra trống trơn — đúng thứ §Trạng thái cấm ("không mở một menu rỗng không chữ"). Không có dòng chữ giải thích nào |
+| Icon mục | `sangMenuItem` ghép `pi pi-${icon}`, tức nơi gọi truyền tên trần — **đúng** chiều đã chốt ở [`../Icons.md`](../Icons.md) §5 và đúng [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 | — |
+| §Trạng thái `hover` + §Token dùng — `--dur-fast` (đối chiếu 2026-09-23, chỉ đọc mã) | Nền mục đổi có chuyển tiếp, thời lượng đọc từ `@primeuix/styles/menu` § `transition:` với `dt('menu.transition.duration')` — một biến CSS lấy giá trị từ primitive `transition.duration` của Aura, `0.2s`. Đo được: **200ms**, không phải `120ms` như spec đòi | Nối `--p-menu-transition-duration` về token là đủ — token **tới được** chỗ này |
+| §Trạng thái — chuyển động mở/đóng lớp nổi (phát hiện 2026-09-23, chỉ đọc mã) | Lớp nổi có hoạt ảnh vào/ra chạy bằng hoạt ảnh Angular, hai mặc định của thư viện: `primeng/menu` § `showTransitionOptions = '.12s cubic-bezier(0, 0, 0.2, 1)'` và § `hideTransitionOptions = '.1s linear'`. Lớp bọc Core không truyền gì vào hai input đó | Spec nay **quyết** khoản này: một thời lượng `--dur-base` cho cả hai chiều, `--ease-decelerate` lúc mở và `--ease-accelerate` lúc đóng (§Trạng thái, mục "Mở và đóng lớp nổi"). Lớp bọc truyền vào hai input trên hai chuỗi dựng từ **hằng số có tên**, mỗi hằng nêu đích danh token nó phản chiếu — luật **F37** ([`../../RULES.md`](../../RULES.md) §7); khuôn có sẵn ở lớp bọc [`Toast.md`](./Toast.md), đừng dựng khuôn thứ hai. Hai mặc định ở cột trái vì thế rời khỏi mã, kể cả `.12s` — [`../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md`](../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md) quyết định 1, 2, 3 |
+
+Chưa đối chiếu — **lỗ mù chính của file này**: toàn bộ hình thức ở §Trạng thái (`default` nền/viền/`--radius-md`/`--shadow-3`, `hover` nền `--color-surface-2`, `focus-visible` với `outline-offset` **âm**, `active` nền `--color-surface-3`, `disabled` màu chữ và `aria-disabled`) **không nằm trong** hai tệp style đã mở. Chúng đến từ sub-preset `menu` của PrimeNG; tôi chưa soát preset nên chưa kết luận được khớp hay lệch. Cũng chưa đối chiếu §Responsive và §Accessibility (ngoài `ariaLabel` bắt buộc).
 
 ---
 
@@ -70,6 +97,14 @@ Bo góc `--radius-md`, đổ bóng `--shadow-3`, lớp `--z-popover`.
 | `error` | Tải danh sách mục hỏng: thân menu hiện `errorTemplate` — màn ghép một dòng chữ lỗi màu `--color-danger` kèm nút "Thử lại". Menu **không tự đóng** khi lỗi — đóng đi thì người dùng không biết vừa có chuyện gì | Có |
 | `empty` | Không mục nào khả dụng: hiện đúng một dòng chữ `--color-text-muted` nói vì sao rỗng ("Không có hành động nào cho bản ghi này"). 🛑 **Không mở một menu rỗng không chữ** — người dùng sẽ bấm lại vài lần rồi nghĩ chức năng hỏng | Có |
 
+**Mở và đóng lớp nổi:** hộp menu mờ dần lúc bung ra và lúc thu lại. **Một** thời lượng cho cả hai chiều — `--dur-base`; đường cong thì tách theo hướng: `--ease-decelerate` lúc mở, `--ease-accelerate` lúc đóng. Ở màn nhỏ hộp vẫn là popover (§Responsive) nên nhịp không đổi theo điểm ngắt. Tắt khi `prefers-reduced-motion: reduce` ([`../DESIGN.md`](../DESIGN.md) §7).
+
+**Vì sao `--dur-base` chứ không phải bậc ngắn hơn.** Bung một lớp nổi là chuyển động `transform` và `opacity`, và [`../DESIGN.md`](../DESIGN.md) §7 giao đúng vai đó cho `--dur-base`; bậc `--dur-fast` giữ một vai duy nhất là sơn màu. Bậc chọn theo **vai** chứ không theo con số mà mặc định của thư viện đang trùng — [`../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md`](../../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md) quyết định 2. Cái giá đã được duyệt và người dùng sẽ thấy: hộp bung chậm hơn nhịp thư viện đang chạy. Nhịp mới có nặng tay hay không là một câu hỏi thẩm mỹ, còn mở ở [`../DESIGN.md`](../DESIGN.md) §10.
+
+**Chỉ đường cong tách theo hướng, thời lượng thì không.** Hai input rời nhau chở được hai thời lượng khác nhau, nên giữ bất đối xứng của thư viện là chuyện làm được về mặt kỹ thuật — nhưng thang §7 không có bậc nào ở giá trị mặc định thứ hai, và một mặc định của gói chưa bao giờ là ý đồ của hệ này. Hai vai hướng thì §7 khai đích danh, nên chúng dùng được ngay.
+
+⚠️ Đừng đọc lẫn khoản này với `--dur-fast` mà dòng `hover` của bảng trên đòi. Cả hai nay đều có token, nhưng khác bậc và khác chỗ áp: nhịp đổi nền của **một mục** chạy bằng CSS nên token tới thẳng; nhịp bung/thu của **cả hộp** đi qua tham số hoạt ảnh Angular nên token tới bằng một đường vòng (§Token dùng).
+
 ## Token dùng
 
 | Nhóm | Token |
@@ -80,7 +115,9 @@ Bo góc `--radius-md`, đổ bóng `--shadow-3`, lớp `--z-popover`.
 | Hình dạng | `--radius-sm`, `--radius-md`, `--border-w`, `--border-w-strong` |
 | Kích thước | `--size-control-sm`, `--size-control-md`, `--size-control-lg` (chỉ dưới `$bp-sm`, §Responsive), `--icon-sm`, `--icon-md`, `--layout-sidebar-w` |
 | Bóng, lớp | `--shadow-3`, `--z-popover` |
-| Chuyển động | `--dur-fast`, `--ease-standard` |
+| Chuyển động | `--dur-fast`, `--dur-base`, `--ease-standard`, `--ease-decelerate`, `--ease-accelerate` |
+
+🛑 **Năm token chuyển động ở dòng cuối tới đích bằng hai đường, và một đường không phải CSS.** `--dur-fast` cùng `--ease-standard` phủ nhịp đổi nền của một mục khi hover và focus — đường CSS, nối một biến của thư viện về token là xong. `--dur-base` cùng hai đường cong hướng phủ nhịp bung và thu của cả hộp: chỗ áp chúng nằm trong TypeScript, vì hai input nhận chuỗi tham số hoạt ảnh Angular và chuỗi đó bị phân tích thành số trước khi có ai giải `var()`. Hằng số dựng chuỗi phải nêu **đích danh** tên token nó phản chiếu — luật **F37** ([`../../RULES.md`](../../RULES.md) §7). Cả năm ở lại bảng vì `Menu` vẫn là nơi **quyết** giá trị; một hằng số trong mã chỉ là chỗ áp. Khuôn ngược lại — spec thôi quyết vì nền không nhận số nào — là [`Tooltip.md`](./Tooltip.md).
 
 ## Responsive
 
@@ -113,7 +150,7 @@ Menu mở bằng bấm và đóng bằng chọn mục, `Escape` hoặc bấm ra 
 
 | Tên | Chiều | Kiểu | Mặc định | Ghi chú |
 | --- | --- | --- | --- | --- |
-| `items` | input | `ReadonlyArray<UiMenuItem>` | `[]` | Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9. Tên mang tiền tố `Ui` để không trùng entity `MenuItem` phía backend |
+| `items` | input | `ReadonlyArray<UiMenuItem>` | `[]` | Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9. Tên mang tiền tố `Ui` để không trùng entity `MenuItem` phía backend. Trường `icon` là **tên trần**, không tiền tố — [`../Icons.md`](../Icons.md) §5; cùng kiểu này đi vào `menuItems` của [`Topbar.md`](./Topbar.md), nên một mục chuyển giữa hai chỗ phải đọc được y nguyên |
 | `variant` | input | `'anchored' \| 'context'` | `'anchored'` | |
 | `size` | input | `'sm' \| 'md'` | `'md'` | |
 | `header` | input | `string \| null` | `null` | `null` = không có dòng tiêu đề |
@@ -144,4 +181,6 @@ Mục menu vào qua `items` chứ **không** qua slot. Lý do: hành vi bàn ph�
 
 ## Cần chốt
 
-Không còn.
+Không còn câu hỏi để ngỏ ở mục này.
+
+Hai khoản spec và mã chưa khớp — cách hiện lý do của một mục bị khoá, và cỡ icon theo cỡ menu — ghi ở §Đã có → còn thiếu. Chúng chờ một lượt đối chiếu, không phải một hướng thiết kế chưa ai chọn.

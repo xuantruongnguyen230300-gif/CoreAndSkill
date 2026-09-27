@@ -6,7 +6,48 @@ verified: chua-doi-chieu
 
 # Table
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có thật ở `src/FE/src/app/shared/components/table/` — selector `app-table`, class `TableComponent<T>`. Bảng dưới khai **đúng những mục đã mở ba tệp `.ts` / `.html` / `.scss` ra so, ngày 2026-09-20**; mục không có tên trong bảng thì chưa ai đối chiếu. Bản đang chạy tự khai là **F3 tối giản** trong chính chú thích đầu `table.component.ts`.
+
+| Mục trong spec | Có thật hôm nay (neo bằng chuỗi trong `src/FE`) | Sẽ thành |
+| --- | --- | --- |
+| §Nền — tự dựng, không bọc PrimeNG | `table.component.ts` không import gì từ `primeng/`; template dựng `<table>` thật với `<thead>`/`<tbody>` | Giữ nguyên |
+| Component dumb | `.ts` không inject service nào; chỉ `input`/`output`/`computed`, và `retry = output<void>()` | Giữ nguyên |
+| `<caption>` bắt buộc, ẩn **không** bằng `display: none` | `caption` là `input.required<string>()`; template vẽ `<caption [class.sr-only]="!captionVisible()">` | Giữ nguyên. Định nghĩa lớp `sr-only` nằm ngoài `table.component.scss` — **chưa so** |
+| `<th scope="col">` mọi cột | Vòng `@for (cot of columns(); track cot.key)` trong `<thead>` vẽ `<th scope="col">` | Giữ nguyên |
+| Vùng cuộn ngang: `tabindex="0"` + `role="region"` + nhãn, đặt luôn không đo | `.table-vung-cuon` mang cả ba (`tabindex="0"`, `role="region"`, `[attr.aria-label]="caption()"`) và không có phép đo nào lúc chạy | Giữ nguyên |
+| `focus-visible` của vùng cuộn | `.table-vung-cuon:focus-visible` khai `outline: var(--border-w-strong) solid var(--color-focus)` | Giữ nguyên. `outline-offset: -2px` — **chưa so** với số ở `../DESIGN.md` §2.6 |
+| Vạch hàng `--color-border-subtle`, nền `--color-surface`, `border-collapse: collapse` | `.table th, .table td` khai `border-bottom: var(--border-w) solid var(--color-border-subtle)`; `.table` khai `background: var(--color-surface)` và `border-collapse: collapse` | Giữ nguyên |
+| `th`: nền `--color-surface-2`, `--fw-semibold`, `--color-text` | `.table thead th` khai đủ cả ba | Giữ nguyên |
+| Biến thể `bordered` | `.table-vung-cuon--bordered` khai `border: var(--border-w) solid var(--color-border)` và `border-radius: var(--radius-lg)` | Giữ nguyên |
+| `zebra` và hover không sống chung: hover đổi sang `--color-surface-3` | `.table--zebra tbody tr:nth-child(even)` dùng `--color-surface-2`; khối `.table--zebra tbody tr` `:hover` dùng `--color-surface-3` | Giữ nguyên |
+| Hover bọc trong `@media (hover: hover)` | Cả hai khối `:hover` trong `.scss` đều nằm trong `@media (hover: hover)` | Giữ nguyên |
+| `stickyHeader` dùng `--z-sticky` | `.table--sticky thead th` khai `position: sticky; top: 0; z-index: var(--z-sticky)` | Giữ nguyên |
+| §Gom nhóm luật 1 — không sắp xếp lại | `nhomHang` là `computed`: duyệt `rows()` theo đúng thứ tự nhận vào, mở nhóm mới khi `nhomHienTai.nhan !== nhan` | Giữ nguyên |
+| `emptyGroupLabel` cho giá trị gom rỗng | Cùng `computed` đó kiểm `giaTri === null`, `undefined` và chuỗi rỗng rồi lấy `this.emptyGroupLabel() ?? ''` | Giữ nguyên |
+| Mỗi nhóm một `<tbody>`, hàng nhóm là `<th scope="rowgroup">` mang `colspan` | Template mở `<tbody>` bên trong `@for (nhom of nhomHang(); ...)`, rồi vẽ `<tr class="table__hang-nhom"><th scope="rowgroup" [attr.colspan]="columns().length">` | Giữ nguyên |
+| §Gom nhóm luật 3 — `stickyHeader` chỉ ghim `<thead>` | `.table--sticky` chỉ nhắm `thead th`, không nhắm `.table__hang-nhom` | Giữ nguyên |
+| §Gom nhóm luật 4 — nhóm không thu gọn được | Template không có nút mở/đóng nào trong `.table__hang-nhom` | Giữ nguyên |
+| `<thead>` sống sót qua `loading` / `error` / `empty` | `<thead>` nằm ngoài cả bốn nhánh `@if` / `@else if` của thân bảng | Giữ nguyên |
+| `loading` — hai ca | `dangTaiLanDau` (không còn hàng nào) đổi thân sang khung chờ; `dangTaiLai` (còn hàng cũ) giữ hàng cũ và phủ `.table__phu-tai` dùng `background: var(--color-scrim)` | Giữ nguyên |
+| `aria-busy` khi `loading` | `<table>` mang `[attr.aria-busy]` gắn theo `loading()` | Giữ nguyên |
+| Khung chờ không vẽ hàng nhóm | Nhánh `dangTaiLanDau()` chỉ vẽ `<tr><td colspan>`, không có `.table__hang-nhom` | Giữ nguyên |
+| `error` — hàng `colspan` chứa `NoticeBanner` vai `danger` + nút thử lại | Nhánh `@else if (coLoi())` (`coLoi` xét cả `errorHeading` lẫn `errorMessage`) vẽ `<app-notice-banner severity="danger" [heading]="errorHeading()">` và `<app-button ... icon="refresh" (clicked)="retry.emit()">`; `.ts` khai `readonly errorHeading = input<string \| null>(null);` (so 2026-09-26) | Giữ nguyên |
+| Kiểu cột dùng **thẳng** `ColumnDef` của `../../quy-uoc/fe-ui-conventions.md` §9 | **Không.** `table.component.ts` tự khai `export interface TableColumnDef<T>`, và không tệp `.ts` nào dưới `src/FE/src` khai `interface ColumnDef`. Bản tự khai bắt buộc `cell` (gốc để tuỳ chọn) và **không có** `hideBelow` | Dùng lại kiểu gốc, hoặc chuyển chủ quyền kiểu — quyết định này vượt ra ngoài spec component |
+| Đệm ô theo cỡ `sm` / `md` / `lg` | **Chưa có.** `.table th, .table td` khai `padding: var(--sp-3) var(--sp-5)` cố định; `.table--sm` / `.table--lg` chỉ đổi `font-size`, và `.table--lg` đặt lại đúng `--fs-sm` của mặc định | Dựng ba bậc đệm theo bảng §Kích thước |
+| Cỡ chữ `th` theo cỡ bảng | **Chưa có.** `.table thead th` cố định `font-size: var(--fs-xs)`; cỡ `sm` đáng lẽ `--fs-2xs` | Dựng theo bảng §Kích thước |
+| Cỡ chữ hàng tiêu đề nhóm bằng cỡ chữ `th` | **Chưa có.** `.table__hang-nhom th` chỉ đặt nền và `font-weight`, không đặt `font-size` | Đặt theo §Gom dòng theo nhóm |
+| Vạch trên hàng nhóm, trừ nhóm đầu | **Chưa có** luật riêng nào — hàng nhóm chỉ nhận `border-bottom` chung của `th, td` | Dựng theo §Gom dòng theo nhóm |
+| §Gom nhóm luật 2 — hàng nhóm không tính vào nhịp `zebra` | **Chưa có.** `.table--zebra tbody tr:nth-child(even)` đếm cả `<tr class="table__hang-nhom">`, nên khi có nhóm thì hàng dữ liệu đầu mỗi nhóm rơi vào `even` — nhịp lệch một bậc so với bảng không nhóm | Loại hàng nhóm khỏi phép đếm |
+| Khung chờ `SkeletonLoader` đúng số cột | **Chưa có.** Mỗi hàng chờ là **một** `<td colspan>` chứa `<span class="table__skeleton">`; `.scss` tự dựng `@keyframes table-skeleton-pulse` thay vì dùng `SkeletonLoader` | Dùng `SkeletonLoader.md`, một khung chờ mỗi cột |
+| `empty` — `EmptyState` thu nhỏ, icon `pi-inbox`, đệm dọc `--sp-10`, nội dung qua slot | **Chưa có.** Nhánh hàng rỗng chỉ in chuỗi từ input `emptyLabel` trong một `<td colspan>` | Dựng theo §Trạng thái |
+| `<th scope="row">` cho cột định danh | **Chưa có.** Mọi ô thân bảng là `<td>`; không có `scope="row"` ở đâu trong template | Dựng theo §Accessibility |
+| `cardLayout` | Input `cardLayout` **có khai** nhưng không `@media` nào và không class nào đọc tới nó; chú thích ngay trên input nói rõ chỉ hỗ trợ `false` — trong khi mặc định lại là `true` | Dựng dạng thẻ, hoặc đổi mặc định cho khớp thứ dựng được |
+| §Responsive — ẩn cột phụ, hạ mật độ, `colspan` bám số cột đang hiện | **Chưa có.** `.scss` không có `@media` theo điểm ngắt nào (hai `@media` duy nhất là `(hover: hover)`); `colspan` luôn là `columns().length` | Dựng cả bốn ngưỡng |
+| `aria-live="polite"` khi số hàng đổi do lọc | **Chưa có** trong template | Dựng theo §Accessibility |
+
+📐 **Những mục dưới đây CHƯA đối chiếu, và vẫn là đích đến:** ô trống phải có nội dung, và nhãn phân biệt của nút hành động trong hàng — cả hai thuộc template của **nơi gọi**, không đọc ra được từ ba tệp này; khoản i18n của tiêu đề cột và `<caption>`; căn phải của cột số trên dữ liệu thật; §Khi nào dùng / khi nào KHÔNG dùng; §Do / Don't.
+
+⚠️ Hai input `retryLabel` và `emptyLabel` đang có trong `table.component.ts` mà §API dự kiến **chưa khai** — spec thiếu, không phải code thừa.
 
 **Nền:** tự dựng, không bọc PrimeNG. Lý do ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 — bảng này **không** sắp xếp, **không** phân trang, **không** ảo hoá dòng, nên nó không thuộc nhóm hành vi khó. Nó là một `<table>` được tạo hình. Mọi thứ khó nằm ở [`DataTable.md`](./DataTable.md), và đó chính là lý do hai component này tách nhau.
 
@@ -83,7 +124,7 @@ Bốn luật đi kèm, vì mỗi luật giải một chỗ va với thứ `Table
 | `active` | **Không áp dụng cho hàng.** Hàng không bấm được ở component này. Bấm vào hàng để mở chi tiết là hành vi của [`DataTable.md`](./DataTable.md); ở đây, lối vào chi tiết là một liên kết trong ô hoặc một [`IconButton.md`](./IconButton.md) ở cột hành động | — |
 | `disabled` | **Không áp dụng cho bảng.** Bảng không phải control. Một hàng ứng với bản ghi không thao tác được thì các nút trong cột hành động của nó mang `disabled`, còn dữ liệu vẫn đọc được bình thường | — |
 | `loading` | Giữ nguyên `<thead>`; `<tbody>` thay bằng vài hàng [`SkeletonLoader.md`](./SkeletonLoader.md) đúng số cột; `<table>` mang `aria-busy="true"`. Khi `groupBy` khác `null`, khung chờ **không** vẽ hàng tiêu đề nhóm nào — chưa có dữ liệu thì chưa biết có nhóm nào, và vẽ sẵn một hàng nhóm trống là bịa cấu trúc. Ca tải lại trên dữ liệu cũ thì phủ `--color-scrim` lên `<tbody>` và giữ chữ cũ đọc được | Có |
-| `error` | Một hàng chiếm hết cột (`colspan`) chứa [`NoticeBanner.md`](./NoticeBanner.md) vai `danger`, kèm nút thử lại icon `pi-refresh`. `<thead>` giữ nguyên để người dùng còn biết bảng này lẽ ra chứa gì | Có |
+| `error` | Một hàng chiếm hết cột (`colspan`) chứa [`NoticeBanner.md`](./NoticeBanner.md) vai `danger` (tiêu đề `errorHeading`, thân `errorMessage` — vẽ khi một trong hai có giá trị), kèm nút thử lại icon `pi-refresh`. `<thead>` giữ nguyên để người dùng còn biết bảng này lẽ ra chứa gì | Có |
 | `empty` | Một hàng chiếm hết cột chứa [`EmptyState.md`](./EmptyState.md) thu nhỏ: icon `pi-inbox`, một câu, tối đa một hành động; đệm dọc `--sp-10`. `<thead>` giữ nguyên, và không hàng tiêu đề nhóm nào được vẽ | Có |
 
 **Vì sao `empty` là một hàng bên trong bảng chứ không phải thay cả bảng:** thay cả bảng bằng một khối trống làm mất `<thead>`, và cùng với nó mất luôn câu trả lời cho "bảng này lẽ ra hiện cái gì". Người dùng lọc ra không kết quả cần thấy các cột để hiểu mình vừa lọc theo cái gì. Cái giá: `EmptyState` bị nhốt trong bề rộng bảng và phải là bản thu nhỏ — một cột icon lớn với hai đoạn văn không vừa ở đó.
@@ -155,7 +196,8 @@ Mặt trái phải chấp nhận: vùng cuộn trở thành một điểm dừng
 | `stickyHeader` | input | `boolean` | `false` | Ghim `<thead>` ở đỉnh vùng cuộn dọc. Trang phải cho bảng một vùng cuộn có chiều cao — không có thì `th` không có gì để dính vào |
 | `cardLayout` | input | `boolean` | `true` | `true`: dưới `$bp-xs` chuyển sang dạng thẻ. `false`: dưới `$bp-xs` giữ dạng lưới và cuộn ngang — §Responsive. Chỉ tắt khi dạng thẻ phá mất nội dung, không tắt vì tiện |
 | `loading` | input | `boolean` | `false` | |
-| `errorMessage` | input | `string \| null` | `null` | Có giá trị thì vẽ hàng lỗi thay cho `<tbody>` |
+| `errorHeading` | input | `string \| null` | `null` | Tiêu đề hàng lỗi — `heading` của `NoticeBanner` |
+| `errorMessage` | input | `string \| null` | `null` | Thân hàng lỗi. Một trong `errorHeading` / `errorMessage` có giá trị thì vẽ hàng lỗi thay cho `<tbody>` |
 | `retry` | output | `void` | — | Phát khi bấm nút thử lại ở hàng lỗi |
 
 Nội dung ô do slot theo cột quyết định, không do một input chuỗi — ô hay chứa [`Badge.md`](./Badge.md), [`Avatar.md`](./Avatar.md) hoặc một liên kết. Nội dung của `empty` cũng vào qua slot, để mỗi màn tự viết câu phù hợp thay vì dùng chung một câu vô nghĩa.

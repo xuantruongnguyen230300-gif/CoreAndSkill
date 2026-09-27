@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0014 — Chạy một instance; bộ khoá bảo vệ dữ liệu để trong PostgreSQL; chưa dùng Redis
 
-> **Trạng thái:** Đã chấp nhận (2026-09-08)
+> **Trạng thái:** Đã chấp nhận (2026-09-08) · Bổ sung bởi [ADR-0099](0099-luat-van-hanh-db-dev-chung.md) (2026-09-25)
 
 ## Bối cảnh
 

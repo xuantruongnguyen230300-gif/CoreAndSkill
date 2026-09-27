@@ -6,7 +6,22 @@ verified: chua-doi-chieu
 
 # DESIGN.md — hệ thống thiết kế nền của Core
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo chưa có `src/`. Mọi giá trị dưới đây là **giá trị đã quyết**, chưa có stylesheet nào hiện thực hoá. Chiều cập nhật (`Design/` quyết, code áp) ở [`CLAUDE.md`](./CLAUDE.md) §5.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Giá trị token của file này đã được áp vào các stylesheet dưới `src/FE/src/styles/`; bảng dưới khai những mục đã mở source ra so ngày 2026-09-22, chỉ bằng đọc mã — dòng nào mang ngày khác, hoặc dựa vào một phép đo trên trình duyệt, thì tự ghi rõ trong ô của nó. Luật **dùng** token theo từng component chưa ai đối chiếu, nên `verified:` giữ `chua-doi-chieu`. Chiều cập nhật (`Design/` quyết, code áp) ở [`CLAUDE.md`](./CLAUDE.md) §5.
+
+| Mục | Có thật hôm nay (neo bằng chuỗi trong `src/FE/src`) | Sẽ thành |
+| --- | --- | --- |
+| §2.1–§2.6 và §2.8 — mọi dòng token màu, cả cột sáng lẫn cột tối, gồm hai bảng bốn vai trạng thái | So từng giá trị, không lệch: `styles/_tokens.scss` § `:root` (giá trị sáng) và § `@mixin dark-tokens` (giá trị tối). Token vắng khỏi khối tối thì giữ giá trị sáng — đúng với `--chart-6`, token duy nhất bảng §2.8 khai trùng giá trị hai theme | Giữ nguyên |
+| §3 Chữ — họ font, thang cỡ, cân nặng, chiều cao dòng, giãn chữ | Khớp: `styles/_typography.scss` § `--font-sans`, § `--fs-3xl`, § `--fw-bold`, § `--lh-loose`, § `--ls-wide`. Font tự phục vụ, đúng bốn nét: § `@font-face` trỏ `/fonts/be-vietnam-pro-700-vietnamese.woff2` và các tệp cùng họ dưới `src/FE/public/fonts/` | Giữ nguyên |
+| §4 Khoảng cách; §6.1 khung; §6.2 chiều cao control và cỡ icon; §6.5 token tầng 3 | Khớp, bí danh giữ đúng dạng `var(...)` như bảng khai: `styles/_spacing.scss` § `--sp-12`, § `--layout-popover-h-max`, § `--size-control-lg`, § `--icon-circle-lg`, § `--timeline-line-w` | Giữ nguyên |
+| §6.3 Điểm ngắt là biến SCSS | Khớp: `styles/_spacing.scss` § `$bp-xl`, dùng qua § `@mixin tu-man-hinh` | Giữ nguyên |
+| §5 Bo góc, bóng, độ dày viền; §6.4 lớp xếp chồng; §7 thời lượng và đường cong | Khớp: `styles/_tokens.scss` § `--radius-full`, § `--shadow-4`, § `--border-w-accent`, § `--z-toast`, § `--ease-accelerate` | Giữ nguyên |
+| §7 giảm chuyển động — nửa CSS (loại 1) | Có, đúng bốn thuộc tính và `0.01ms`: `styles/styles.scss` § `@media (prefers-reduced-motion: reduce)`. Phạm vi chỉ là loại 1: đo trên trình duyệt ngày 2026-09-24, khối này không chạm hoạt ảnh Angular — cách đo ở §7 | Giữ nguyên. Nửa này đủ cho phần của nó; loại 2 ở dòng dưới, loại 3 ở §7 |
+| §7 giảm chuyển động — nửa provider (loại 2) | Có (2026-09-25), đúng [ADR-0080](../adr/0080-nua-provider-giam-chuyen-dong-nap-luoi-va-song-o-core.md) điều 2: `app/core/theme/core-animations.ts` § `chonProviderHoatAnh(globalThis.matchMedia)` trong `provideCoreAnimations`, cờ bật thì § `? provideAnimationsAsync('noop')`; `app/app.config.ts` chỉ gọi § `provideCoreAnimations(),` | Giữ nguyên |
+| §8 khuôn theme — `:root` trần đủ token, khối tối tách khỏi media query, `color-scheme` | Có: `styles/_tokens.scss` § `:root[data-theme='dark']`, § `:root:not([data-theme='light'])`, § `color-scheme: light dark`. Khối tối viết một lần trong mixin rồi `@include` hai lần | Giữ nguyên |
+| §8 mặc định `light`, áp trước khi trang vẽ | Có: script nội tuyến trong `index.html` § `localStorage.getItem('theme')` — vắng hoặc giá trị lạ thì đặt `light`, `system` thì bỏ thuộc tính | Giữ nguyên |
+| §1 Preset thư viện không giữ bảng màu thứ hai | `app/core/theme/prime-preset.ts` không chứa mã hex hay `rgb(` literal nào; màu trỏ `var(--color-*)` | Giữ nguyên |
+| Cột "Dùng ở đâu" của mọi bảng; luật §1 *component chỉ đọc token tầng 2 và tầng 3 của chính nó*; §2.7; §9 | **Chưa đối chiếu.** Đây là luật áp lên từng component — đối chiếu theo từng spec ở [`Components/`](./Components/) | Đối chiếu hết thì lật `verified:` và nhãn của file này |
+| Các cột tỉ lệ tương phản | Không đối chiếu với code: số tính từ giá trị màu, không phải thứ code hiện thực | — |
 
 > Đây là **nơi duy nhất** trong repo chứa mã màu, số px và số rem thật. Mọi file khác — spec component, screen spec, quy ước FE — chỉ được nhắc **tên token**.
 >
@@ -554,23 +569,43 @@ Giá trị px riêng của một component (tầng 3, §1) sống **ở đây**;
 | Token | Giá trị | Dùng ở đâu |
 | --- | --- | --- |
 | `--dur-instant` | `0ms` | Thay đổi phải tức thì |
-| `--dur-fast` | `120ms` | Đổi màu khi hover/focus, hiện/ẩn tooltip |
-| `--dur-base` | `200ms` | Mở/đóng `Dialog`, trượt drawer, chuyển tab |
+| `--dur-fast` | `120ms` | Đổi màu khi hover/focus |
+| `--dur-base` | `200ms` | Mở/đóng `Dialog`, trượt drawer, chuyển tab; bung và thu một lớp nổi neo vào phần tử đã gọi nó — `Menu`, `DatePicker`, `Autocomplete` |
 | `--dur-slow` | `320ms` | `Toast` bay vào, `Sidebar` thu/mở |
 | `--dur-loop` | `1600ms` | Một vòng của chỉ báo loading lặp — dải sáng `SkeletonLoader`, dải chạy `indeterminate` của `ProgressBar`. Bằng 5 × `--dur-slow`: bội của thang, và đủ chậm để một vòng lặp không nhấp nháy |
 | `--ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` | Mặc định cho mọi chuyển tiếp |
 | `--ease-decelerate` | `cubic-bezier(0, 0, 0, 1)` | Phần tử **đi vào** màn hình |
 | `--ease-accelerate` | `cubic-bezier(0.3, 0, 1, 1)` | Phần tử **rời khỏi** màn hình |
 
+**Bậc chia theo THỨ ĐANG ĐỔI, không theo con số nào đang trông giống.** `--dur-fast` giữ đúng một vai và vai đó thuần sơn màu: `background`, `color`, `border-color`, `outline-color`, `box-shadow`. Chuyển động hình học — `transform` và `opacity` của một hộp, một tấm, một lớp nổi — bắt đầu ở `--dur-base`, và chỉ lên `--dur-slow` khi phần tử đi vào từ rìa tầm nhìn nên mắt cần thêm thời gian để bắt được nó. Một khoản mới tra bậc bằng câu hỏi *nó đổi thuộc tính nào*, không bằng câu hỏi *bậc nào đang trùng số với thứ thư viện đặt sẵn*.
+
+Hệ quả: khi không bậc nào vừa ý, câu trả lời **không** phải thêm một bậc. Lấy bậc gần nhất **theo vai** và chấp nhận nhịp đổi; một giá trị nằm ngoài thang là câu hỏi cho chính mục này, tức một quyết định của hệ thiết kế, chứ không phải một lựa chọn của component đang cần nó. Căn cứ và cái giá đã trả: [`../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md`](../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md).
+
 ### Khi nào KHÔNG animate
 
 | Tình huống | Vì sao không |
 | --- | --- |
-| Người dùng khai `prefers-reduced-motion: reduce` | Bắt buộc — WCAG 2.2 SC 2.3.3. Xem khối dưới |
+| Người dùng khai `prefers-reduced-motion: reduce` | Bắt buộc — WCAG 2.2 SC 2.3.3. Thi hành ra sao, và loại chuyển động nào nằm ngoài cách thi hành chung: mục *Giảm chuyển động* ngay dưới |
 | Nội dung bảng đổi sau khi lọc/sắp xếp | Hàng nhấp nháy làm mắt mất chỗ đang đọc. Đổi ngay, không transition |
 | Thông báo lỗi xuất hiện | Lỗi phải thấy ngay. Fade 300ms là 300ms người dùng không biết mình vừa sai |
 | Con số đang cập nhật liên tục | Đếm dần trông đẹp nhưng khiến giá trị không đọc được lúc đang chạy |
 | Bất cứ thứ gì lặp vô hạn ngoài chỉ báo loading | Chuyển động lặp là tác nhân gây khó chịu và mất tập trung. Chỉ báo loading là ngoại lệ duy nhất, và chỉ nó được dùng `--dur-loop` |
+
+Chỉ animate `transform` và `opacity`. Animate `width`, `height`, `top`, `left` bắt trình duyệt tính lại bố cục mỗi khung hình.
+
+### Giảm chuyển động — hai nửa thi hành, ba loại chuyển động
+
+Cờ `prefers-reduced-motion: reduce` được thi hành bằng **hai nửa độc lập**, và mỗi nửa chỉ với tới đúng loại chuyển động đi qua nó. Phân loại theo **thứ đang chạy chuyển động**:
+
+| Loại | Thứ đang chạy chuyển động — nhận ra bằng gì | Nửa nào phủ | Spec component có phải tự khai nhánh giảm chuyển động? |
+| --- | --- | --- | --- |
+| 1 | **Trình duyệt, từ khai báo CSS** — `transition`, hoặc `animation` kèm `@keyframes`. CSS của app hay CSS do thư viện nạp đều tính | Nửa CSS | Không. Một câu trỏ về mục này là đủ |
+| 2 | **Bộ chạy hoạt ảnh của Angular.** Dấu hiệu ở PrimeNG: component nhận chuỗi tham số hoạt ảnh qua input `transitionOptions`, `showTransitionOptions` hoặc `hideTransitionOptions` | Nửa provider — 🚧 đã chốt, đang thi công; hiện trạng ở bảng đầu tệp | Không — nhưng đọc cái giá ở dưới trước khi viết mục kiểm |
+| 3 | **Mã tự chạy chuyển động** — JS ghi `style` nội tuyến theo từng khung hình, gọi thẳng `element.animate()`, vẽ lên `<canvas>` | **Không nửa nào** | **Có, bắt buộc** — kèm cách kiểm |
+
+Một component mang được hai loại cùng lúc — `Dialog` là ca điển hình: backdrop thuộc loại 1, hộp thuộc loại 2. Nên phân loại **từng chuyển động**, không phân loại cả component.
+
+**Nửa CSS — khối toàn cục ở stylesheet gốc:**
 
 ```text
 @media (prefers-reduced-motion: reduce) {
@@ -585,7 +620,17 @@ Giá trị px riêng của một component (tầng 3, §1) sống **ở đây**;
 
 Dùng `0.01ms` chứ không `0s` là có lý do: nhiều component dựa vào sự kiện `transitionend`/`animationend` để dọn dẹp trạng thái. `0s` khiến sự kiện không bao giờ bắn và component kẹt; `0.01ms` vẫn bắn, vẫn là tức thì với mắt người.
 
-Chỉ animate `transform` và `opacity`. Animate `width`, `height`, `top`, `left` bắt trình duyệt tính lại bố cục mỗi khung hình.
+Khối này chỉ ép thuộc tính CSS, nên phạm vi của nó dừng ở loại 1. Bộ chạy hoạt ảnh của Angular đi qua Web Animations API: thời lượng là tham số truyền bằng mã, không đọc từ `animation-duration` hay `transition-duration` — phép đo xác nhận điều này (Chrome Headless, `playState` vẫn `running` giữa chừng một hoạt ảnh) nằm ở [ADR-0080](../adr/0080-nua-provider-giam-chuyen-dong-nap-luoi-va-song-o-core.md) mục Bối cảnh. Ca nhìn thấy bằng mắt khi chỉ có nửa này: cờ bật thì backdrop `Dialog` hiện tức thì, còn hộp vẫn phóng to hết `--dur-base`.
+
+**Nửa provider** — 🚧 *đã chốt, đang thi công; hiện trạng ở bảng đầu tệp.* Nửa này tắt loại 2 **không phải vì loại 2 đi qua CSS**, mà vì chính bộ chạy hoạt ảnh của Angular bị thay bằng bản không chạy gì. Cơ chế chọn (một lần lúc khởi động, bộ chạy rỗng), API nào, hàm chọn nằm ở đâu, cổng nào canh: [ADR-0080](../adr/0080-nua-provider-giam-chuyen-dong-nap-luoi-va-song-o-core.md).
+
+⚠️ **Cái giá: đổi cờ giữa phiên thì hai nửa lệch nhau cho tới lần tải trang kế tiếp.** Nửa CSS là một media query, trình duyệt đánh giá lại ngay khi cờ đổi; nửa provider chỉ đọc cờ lúc khởi động. Bật cờ giữa phiên: loại 1 dừng ngay, loại 2 vẫn chạy đủ thời lượng — đúng bất đối xứng backdrop/hộp của `Dialog` ở trên, sống lại trong phiên đó. Tắt cờ giữa phiên thì ngược lại: loại 1 chạy lại, loại 2 vẫn tức thì. Người dùng đã chấp nhận cái giá này khi chốt cách sửa. Hệ quả cho mọi mục kiểm: bật cờ — hoặc giả lập cờ trong công cụ của trình duyệt — **rồi tải lại trang**. Không tải lại thì chỉ nửa CSS được kiểm.
+
+**Loại 3 — không nửa nào với tới.** Một chuyển động do JavaScript ghi thẳng vào thuộc tính `style` của phần tử — chẳng hạn một vòng `requestAnimationFrame` nhích dần `opacity` — không đi qua thuộc tính CSS nào mà khối toàn cục ép, cũng không đi qua bộ chạy mà provider thay. Khai báo nội tuyến thì không độ ưu tiên chọn lọc nào đè được; chỉ `!important` đè được. Cả hai nửa đi qua nó mà không đổi gì, và không có dấu hiệu nào báo rằng chúng vừa không làm gì cả. Mã gọi thẳng `element.animate()` cũng rơi vào loại này: nó là Web Animations giống bộ chạy của Angular, nhưng không đi qua bộ chạy đó, nên provider không thay được nó.
+
+Ca đã chứng minh trong repo, kèm cách xử duy nhất còn lại (đối chiếu 2026-09-24): `src/FE/src/styles/_thu-vien.scss` mở một khối `@media (prefers-reduced-motion: reduce)` riêng cho `.app-tooltip` và đè bằng `opacity: 1 !important`; chú thích ngay trên khối đó (§ `NỘI TUYẾN`) khai thẳng vì sao phải làm vậy. Phần thuộc về component nằm ở [`Components/Tooltip.md`](./Components/Tooltip.md) §Accessibility.
+
+**Hệ quả khi viết spec và khi dựng.** Câu hỏi đặt trước là *chuyển động này do cái gì chạy*, rồi tra bảng đầu mục. Loại 1 và loại 2: spec chỉ cần một câu *tắt khi `prefers-reduced-motion: reduce`* trỏ về mục này, người dựng không thêm gì. Loại 3: spec phải tự khai nhánh giảm chuyển động của riêng nó — tắt hẳn, hay thay bằng trạng thái tĩnh — kèm cách kiểm, và người dựng phải hiện thực nhánh đó. Không xác định được loại thì coi như loại 3 cho tới khi đã kiểm bằng trình duyệt với cờ bật và trang đã tải lại.
 
 ---
 
@@ -680,6 +725,8 @@ Bảng ở §2 phải khai đủ cả hai cột và cột tỉ lệ. Một dòng
 | 1 | Có làm chế độ tương phản cao (`forced-colors`) không? Hôm nay chỉ đặt mục tiêu AA. Chế độ cưỡng bức màu của Windows sẽ ghi đè toàn bộ bảng màu và cần một lượt kiểm riêng | Sau khi có màn hình thật để kiểm |
 | 2 | `--layout-container-max` = 1440px hay rộng hơn? Bảng nhiều cột muốn rộng hơn; văn bản đọc thì không nên. Có thể phải cho một biến thể trang "full width" | Sau khi có `DataTable` thật |
 | 3 | Có khai token riêng cho mật độ (compact/comfortable) không? Hôm nay chỉ có một mật độ, đặc | Khi có yêu cầu thật |
+| 4 | `--dur-fast` có làm chuyển tiếp sơn màu thành **cộc** ở chỗ nào không? Lượt rà 2026-09-23 đã bác được rủi ro *giật* bằng cấu trúc — mọi chỗ ăn khoá thời lượng chung của thư viện đều là chuyển tiếp sơn màu, và một chuyển tiếp sơn màu ngắn đi thì có ít khung hình phải vẽ hơn chứ không nhiều hơn. Phần chưa trả lời được là thẩm mỹ, và nó là một câu hỏi khác hẳn: gọn quá tay thì nhịp đổi màu mất cảm giác liên tục. 🛑 Đừng đọc chữ "đã rà" thành "đã xong cả hai" | Một lượt rà giao diện khi FE chạy được — cần mắt người trên ứng dụng thật, không lượt đọc tĩnh nào thay được |
+| 5 | Nhịp `--dur-base` áp cho lớp nổi neo có **nặng tay** không? Ba component ở ô *Dùng ở đâu* của bậc này trước đây chạy nhịp mặc định của thư viện, ngắn hơn hẳn; bậc mới đến từ vai chứ không từ một lần ai đó nhìn thấy chúng bung ra. Nếu nặng thì đường sửa là xem lại vai của các bậc ở §7, **không** phải khai một khoá riêng cho ba component — [`../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md`](../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md) §Hệ quả | Cùng lượt rà giao diện với câu 4 |
 
 ## 11. Lịch sử quyết định
 
@@ -707,5 +754,8 @@ Bảng ở §2 phải khai đủ cả hai cột và cột tỉ lệ. Một dòng
 | Theme mặc định là `light`, không theo hệ điều hành | Ứng dụng quản trị dùng cả ngày trong phòng sáng; cờ `prefers-color-scheme` của máy là tín hiệu yếu. Cái giá và điều kiện chấp nhận ở §8, quyết định đầy đủ ở [`../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md`](../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md) |
 | Kích thước lớp nổi và vòng tròn `EmptyState` là bí danh | `Drawer`, `Toast`, `Tooltip`, lớp nổi thả xuống mượn thang `--layout-*` (§6.1); vòng tròn nền icon mượn `--sp-*` (§6.2). Không bậc mới nào được đẻ — năm chỗ từng giữ số thô nay trỏ về thang có sẵn |
 | Thêm bậc `--dur-loop` | Thang §7 dừng ở `--dur-slow`, dành cho chuyển tiếp một lần; chỉ báo loading lặp cần thời lượng dài hơn hẳn. Việc thêm bậc do người dùng duyệt 2026-09-15; giá trị 5 × `--dur-slow` = `1600ms` chọn để giữ là bội của thang |
+| Bỏ "hiện/ẩn tooltip" khỏi ô *Dùng ở đâu* của `--dur-fast` | **Giá trị `120ms` không đổi**; chỉ ví dụ dùng bị gỡ. [`Components/Tooltip.md`](./Components/Tooltip.md) chốt 2026-09-23 rằng thời lượng hiện/ẩn của tooltip do thư viện quyết, không đọc CSS — nên token này không tới được chỗ đó và ví dụ cũ là một tuyên bố sai. 🛑 Các ví dụ dùng còn lại ở §7 **chưa được đối chiếu với thư viện đang cài**, đừng đọc chúng như đã kiểm |
 | `--layout-tooltip-w-max`, `--layout-popover-h-max` về giá trị riêng | `var(--layout-sidebar-w)` → `240px`, `var(--layout-dialog-w-sm)` → `420px`. Số không đổi; bỏ bí danh vì hai trần này không có lý do đổi cùng sidebar hay hộp thoại — bí danh theo số trùng là phụ thuộc ngầm (§6.1) |
 | Token tầng 3 theo component khai ở §6.5 | Số px riêng của `Chart`, `FileUpload`, `ProgressBar`, `Stepper`, `Timeline` sống một chỗ, spec chỉ trỏ tên. `Timeline` không đọc token của `Stepper` (§1 luật cứng) — nó có bí danh riêng trỏ sang, khai tại §6.5 |
+| Ô *Dùng ở đâu* của `--dur-base` nhận thêm lớp nổi neo | **Không giá trị nào đổi**; `200ms` và `120ms` giữ nguyên. Ba lớp nổi ở [`Components/Menu.md`](./Components/Menu.md), [`Components/DatePicker.md`](./Components/DatePicker.md), [`Components/Autocomplete.md`](./Components/Autocomplete.md) nối về bậc này thay vì bậc `--dur-fast` mà con số mặc định của thư viện đang trùng. Chọn theo vai giữ cho `--dur-fast` thuần sơn màu; treo ba lớp nổi lên nó là cho nó một vai `transform`/`opacity` thứ hai. Cái giá — ba component bung và thu chậm hơn hôm nay — người dùng duyệt 2026-09-23; câu hỏi thẩm mỹ còn mở ở §10 câu 5. Quyết định đầy đủ: [`../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md`](../adr/0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md) |
+| `prefers-reduced-motion` thi hành bằng hai nửa | Khối CSS toàn cục giữ nguyên, thêm nửa provider: bộ chạy rỗng, chọn một lần lúc khởi động khi cờ bật. Vì sao: phép đo 2026-09-24 cho thấy khối CSS không đổi gì ở hoạt ảnh Angular. Cái giá — hai nửa lệch nhau khi cờ đổi giữa phiên — người dùng chấp nhận khi chốt. Chi tiết, và loại chuyển động nằm ngoài cả hai nửa: §7. API và chỗ đặt hàm chọn: [ADR-0080](../adr/0080-nua-provider-giam-chuyen-dong-nap-luoi-va-song-o-core.md) |

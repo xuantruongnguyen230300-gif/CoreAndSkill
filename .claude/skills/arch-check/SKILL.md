@@ -1,6 +1,6 @@
 ---
 name: "arch-check"
-description: "Kiểm tuân thủ kiến trúc. Ở giai đoạn chưa có src/ thì chạy ở chế độ tài liệu: đối chiếu RULES.md với các file quy ước để tìm luật không ai mô tả cách thi công và quy ước không luật nào ép. Khi có src/ sẽ mở rộng sang chạy ArchTests và cổng FE."
+description: "Kiểm tuân thủ kiến trúc. Chế độ tài liệu: đối chiếu RULES.md với các file quy ước để tìm luật không ai mô tả cách thi công và quy ước không luật nào ép. Khi có src/ thì mở rộng sang chạy ArchTests và cổng FE."
 argument-hint: "[phạm vi] - 'BE' hoặc 'FE' hoặc để trống để soát cả hai chiều tài liệu"
 metadata:
   author: "core-team"
@@ -23,7 +23,7 @@ Một luật kiến trúc chỉ có tác dụng khi **cả hai** đầu đều c
 
 | Đầu | Ở đâu | Trả lời |
 | --- | --- | --- |
-| **Luật + cổng** | [`../../../docs/RULES.md`](../../../docs/RULES.md) | Vi phạm thì cái gì bắt được |
+| **Luật + cổng** | Các tệp `docs/RULES-*.md` theo phạm vi — mục lục [`../../../docs/RULES.md`](../../../docs/RULES.md) | Vi phạm thì cái gì bắt được |
 | **Cách thi công** | Các file trong khu quy ước | Người viết code phải làm thế nào |
 
 Thiếu đầu thứ hai: luật tồn tại nhưng không ai biết làm thế nào cho đúng, nên nó bị vi phạm một cách thiện chí. Thiếu đầu thứ nhất: quy ước tồn tại nhưng không cổng nào canh, nên nó trôi trong vài tháng và không ai biết lúc nào nó bắt đầu trôi.
@@ -41,13 +41,13 @@ test -d src && echo "CO src" || echo "CHUA CO src"
 | **CHƯA CÓ `src/`** | Chế độ tài liệu | Bước 1–5 |
 | **CÓ `src/`** | Chế độ đầy đủ | Bước 1–5, cộng bước 6 |
 
-Repo đang ở giai đoạn 1 — trạng thái đọc ở [`../../../docs/README.md`](../../../docs/README.md), mục trạng thái đầu file. **Nói rõ chế độ đang chạy ngay đầu báo cáo**, để không ai đọc một báo cáo chế độ tài liệu như thể nó đã kiểm code.
+Trạng thái repo hiện tại đọc ở [`../../../docs/README.md`](../../../docs/README.md), mục trạng thái đầu file — đừng giả định. **Nói rõ chế độ đang chạy ngay đầu báo cáo**, để không ai đọc một báo cáo chế độ tài liệu như thể nó đã kiểm code.
 
 ## Các bước thực hiện
 
 ### 1. Đọc bảng luật
 
-Mở [`../../../docs/RULES.md`](../../../docs/RULES.md). Ba cột cần cho lượt này: luật, cột "Ép bằng gì", cột trạng thái.
+Mở tệp `docs/RULES-*.md` của phạm vi đang kiểm — mục lục [`../../../docs/RULES.md`](../../../docs/RULES.md) nói tệp nào giữ phạm vi nào. Ba cột cần cho lượt này: luật, cột "Ép bằng gì", cột trạng thái.
 
 Cột trạng thái phân biệt cổng đang chạy được với cổng phải chờ tới khi có `src/`. Ở chế độ tài liệu, **luật phải chờ `src/` không phải finding** — nó đang đúng trạng thái của nó. Báo finding cho những luật đó là lặp lại đúng lỗi đã có tên: chấm một thứ đang cố ý dở dang.
 
@@ -114,9 +114,9 @@ Mở [`../../../docs/kien-truc-core-module.md`](../../../docs/kien-truc-core-mod
 
 🛑 Không kiểm được ở chế độ tài liệu: bản thân code có tuân ranh giới không. Ghi việc đó vào mục **Lỗ mù**, đừng để trống rồi để người đọc tự hiểu là đã kiểm.
 
-### 6. Chế độ đầy đủ — 📐 CHƯA DÙNG ĐƯỢC ở giai đoạn hiện tại
+### 6. Chế độ đầy đủ — chỉ chạy khi `src/` tồn tại
 
-> **Mục này mô tả sẵn phần sẽ chạy khi `src/` tồn tại. Ở giai đoạn 1 nó KHÔNG chạy được — bỏ qua và ghi vào mục Lỗ mù.**
+> **Kiểm bằng lệnh ở bước 0, đừng tin trí nhớ.** Không có `src/` thì bỏ qua mục này và ghi vào mục **Lỗ mù** — đừng để trống rồi để người đọc tự hiểu là đã kiểm.
 
 Khi có `src/`, bước 6 bổ sung ba việc, chạy **sau** bước 1–5 chứ không thay thế:
 
@@ -138,7 +138,7 @@ Quy trình chi tiết của hai cổng đó thuộc `backend-expert` và `fronte
 
 ```markdown
 ## Chế độ lượt này
-Tài liệu (chưa có src/) / Đầy đủ
+Tài liệu (không có src/) / Đầy đủ
 Phạm vi: BE / FE / cả hai chiều tài liệu
 
 ## Kết quả

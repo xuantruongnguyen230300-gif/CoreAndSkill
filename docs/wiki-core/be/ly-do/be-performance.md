@@ -24,6 +24,14 @@ thêm một tầng nữa để debug khi số liệu hiển thị sai.
 
 ### 2.1 Interface ở Application, implementation ở Infrastructure
 
+| Luật | Vì sao |
+| --- | --- |
+| Interface khai ở **Application**, cạnh feature dùng nó | Vertical slice; và Application không được biết Infrastructure |
+| **Không** `IRepository<T>` tổng quát | Nó buộc mọi entity mang cùng một bề mặt — vi phạm ISP |
+| Repository **không** tự `SaveChangesAsync` | `TransactionBehavior` sở hữu điểm commit — [`be-cqrs-handler.md`](be-cqrs-handler.md) §5.3 |
+| Method trả về **entity** hoặc **DTO đã projection**, không trả `IQueryable` | Xem §2.2 |
+| `Remove` là `void` | Nó chỉ đánh dấu trên `ChangeTracker`; đặt `async` cho nó là nói dối về việc có I/O |
+
 `IRepository<T>` tổng quát buộc mọi entity mang cùng một bề mặt, và phần lớn implementation sẽ có
 method không dùng.
 
@@ -41,7 +49,7 @@ Bốn hậu quả nếu để rò, xếp theo mức độ khó phát hiện:
 4. **Không kiểm soát được vòng đời `DbContext`.** Query chạy sau khi scope đã đóng thì ném
    `ObjectDisposedException` — ở một chỗ cách xa nguyên nhân.
 
-`SortBy` là enum: giá trị ngoài danh sách không deserialize được, nên nó không bao giờ tới được câu SQL.
+`SortBy` là chuỗi, và validator của request từ chối mọi giá trị ngoài allowlist trước khi handler chạy, nên giá trị lạ không bao giờ tới được câu SQL. Cổng B3 canh việc mọi request mang `SortBy` đều có validator đó. Chuỗi cộng allowlist đi cùng một đường kiểm với mọi tham số danh sách khác — người dùng chốt giữ cách này, khớp với code (2026-09-25).
 
 ---
 
@@ -151,6 +159,15 @@ tuyến tính. `ExecuteUpdateAsync` / `ExecuteDeleteAsync` sinh một câu UPDAT
 entity.
 
 ### 7.2 Cấu hình `UseNpgsql`
+
+| Thiết lập | Vì sao khai tường minh |
+| --- | --- |
+| `DbConnection` dùng chung thay vì chuỗi kết nối | Mọi `DbContext` của một request đi chung một kết nối để đứng chung một transaction — [`be-cqrs-handler.md`](../../../quy-uoc/be-cqrs-handler.md) §4 |
+| `ExecutionStrategy(CoreExecutionStrategy)` | Một nhịp chớp mạng giữa app và Postgres không được biến thành 500 cho người dùng. Strategy riêng của Core thay cho `EnableRetryOnFailure` trần — mục *Lỗi KHÔNG được thử lại* dưới đây |
+| `CommandTimeout(30)` | Bằng đúng mặc định — khai ra để nó là con số **đã cân nhắc**. Hạ xuống khi có số đo p99 thật |
+| `MigrationsHistoryTable` trong schema `core` | Core sở hữu lịch sử migration của mình; module có bảng riêng — [`../database/migration-policy.md`](../../../database/migration-policy.md) |
+| `UseSnakeCaseNamingConvention()` | Tên vật lý của cột là `snake_case` ([`../database/schema-core.md`](../../../database/schema-core.md)). Thiếu nó thì EF sinh tên PascalCase, và mọi SQL thô viết theo tên vật lý — `HasFilter("is_deleted = false")`, chỉ mục một phần — trỏ vào cột không tồn tại |
+| Bốn interceptor, đúng thứ tự | Thiếu `TenantAssignmentInterceptor` thì entity mang đơn vị ghi `Guid.Empty`: API trả 201 mà danh sách vẫn rỗng, vì bộ lọc đơn vị giấu dòng đó. Thiếu `AuditLogInterceptor` hay `OutboxInterceptor` thì mất nhật ký hoặc mất sự kiện, không lỗi nào hiện ra. Thứ tự ghi ở chú thích `THỨ TỰ LÀ LUẬT` trong mã đăng ký |
 
 `EnableRetryOnFailure` không bọc được transaction do code tự mở: nó ném `InvalidOperationException` lúc
 **chạy**, không lúc biên dịch, và chỉ trên đúng đường ghi đó. Đây là một trong ba lý do transaction gom

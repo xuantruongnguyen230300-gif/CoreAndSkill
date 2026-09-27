@@ -52,7 +52,7 @@ dotnet dev-certs https --export-path "src/FE/.cert/localhost.pem" --format Pem -
 
 Khai `ssl`, `sslCert`, `sslKey` cho cấu hình dev của máy chủ dev trong `angular.json`: `sslCert` là `.cert/localhost.pem`, `sslKey` là `.cert/localhost.key` — đường dẫn tính từ `src/FE/`, nơi đặt `angular.json`.
 
-🛑 **Không commit cert hay khoá riêng.** Một khoá riêng đã vào commit thì nằm trong lịch sử git — commit xoá sau đó không gỡ được nó. `src/FE/.cert/` phải bị `.gitignore` loại **trước** lần xuất đầu tiên; dòng ignore thuộc [`../../../quy-uoc/repo-artifact.md`](../../../quy-uoc/repo-artifact.md).
+🛑 **Không commit cert hay khoá riêng.** Một khoá riêng đã vào commit thì nằm trong lịch sử git — commit xoá sau đó không gỡ được nó. Thư mục `.cert/` trong `src/FE/` phải bị `.gitignore` loại **trước** lần xuất đầu tiên; dòng ignore thuộc [`../../../quy-uoc/repo-artifact.md`](../../../quy-uoc/repo-artifact.md).
 
 ---
 

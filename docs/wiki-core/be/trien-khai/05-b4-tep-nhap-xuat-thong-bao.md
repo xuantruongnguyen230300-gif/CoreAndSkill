@@ -6,7 +6,15 @@ verified: chua-doi-chieu
 
 # B4 — Tệp, nhập/xuất, thông báo
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ các dòng dưới đây**; `verified:` giữ `chua-doi-chieu`). Mọi đường dẫn tính từ `src/BE/`.
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | Tệp: `Core/CoreAndSkill.Core.Web/Controllers/FilesController.cs` (`Download`), dọn tệp ở `Core/CoreAndSkill.Core.Infrastructure/Files/FileMaintenanceHostedService.cs` (`RunOnceAsync`) | Chiều DB (`FilesDatabaseTests`, `RequiresDocker`) chạy xanh ở CI |
+> | Nhập: `Core/CoreAndSkill.Core.Application/Import/ImportJobExecutor.cs` (`SaveFailureFileAsync`); xuất và thông báo đi qua `Tests/CoreAndSkill.Core.IntegrationTests/Web/B4ExportEndpointTests.cs`, `B4JobsAndNotificationsEndpointTests.cs` | Như trên, cho `ImportJobDatabaseTests`, `ExportUsersDatabaseTests`, `NotificationsDatabaseTests` |
+> | Outbox: `Tests/CoreAndSkill.Core.IntegrationTests/Outbox/OutboxDatabaseTests.cs` (`Commit_WritesTheBusinessRowAndExactlyOneOutboxRow_Together`) — **chưa chạy** | Chạy xanh ở CI có Docker |
+>
+> Mục §4 **không** tick ở đây: mỗi mục ghi test chạy được hôm nay và test còn chờ Docker.
 >
 > **Định nghĩa hoàn thành:** đính kèm một tệp vào một bản ghi rồi tải lại được, và người không có quyền thì không tải được; xuất một danh sách theo đúng bộ lọc đang xem; một sự kiện nghiệp vụ sinh ra một thông báo tới đúng người nhận, qua Outbox.
 
@@ -46,14 +54,24 @@ verified: chua-doi-chieu
 
 ## 4. Nghiệm thu B4
 
+Ghi chú dưới mỗi mục: **chạy được** = test chạy không cần Docker; **chờ Docker** = test `RequiresDocker`, chưa chạy lần nào.
+
 - [ ] Tải một tệp lên, tải lại được; tài khoản không có quyền → **không** tải được, kể cả khi có đường dẫn.
+  Chạy được: `Download_WhenAttached_FollowsThePermissionOfTheOwnerRecord`, `Download_IsNeverServedByAStaticPath_TheStorageKeyUnderTheHostRootIsNotReachable`. Chờ Docker: `AnUnattachedFile_IsReadableByItsUploaderOnly`.
 - [ ] Tệp vượt giới hạn dung lượng hoặc sai kiểu → bị từ chối kèm mã lỗi trong card.
+  Chạy được: `Upload_FarOverTheLimit_IsRefusedByContentLength_BeforeTheBodyIsRead_WithTooLarge`, `Upload_AnExecutableRenamedToPdf_IsRejected`.
 - [ ] Xuất một danh sách đang lọc → tệp chứa **đúng** tập dòng của bộ lọc đó, và có dòng nhật ký kiểm toán.
+  Chạy được (kho giả): `Export_WritesOneAuditRow_WithFilterAndRowCount_AndNoPersonalData`. Chờ Docker: `TheExportedSet_IsExactlyWhatTheListShows_InTheSameOrder`.
 - [ ] Nhập một tệp có một dòng sai ở giữa → request trả `jobId`; `GET /api/v1/core/jobs/{id}` báo đúng số dòng, các dòng hợp lệ khác không bị dở dang.
+  Chờ Docker: `MiddleErrorRow_IsNotInTheDatabase_AndTheRowsAroundItAre`.
 - [ ] Tệp vượt `Core:Import:MaxRows` → 422 ngay, không có bản ghi `core.job` nào được tạo.
+  Chạy được: `Handle_MoreRowsThanTheCap_Is422_WithActualAndLimit_AndCreatesNothing`. Chờ Docker: `MoreRowsThanTheCap_IsRefusedWith422Semantics_AndNoJobNoOutboxRowNoTempFile`.
 - [ ] Một dòng outbox `dead` → `/health/ready` trả `Degraded`; `core outbox-replay --id` đưa nó về `pending` và có dòng nhật ký kiểm toán.
+  Chạy được: `OneDeadRow_IsDegraded_NoMatterHowFresh`, `ValidId_ReplaysExactlyThatRow_AndSucceeds`. Chờ Docker: `Replay_ResetsADeadRowToPending_AndWritesOneAuditRow`.
 - [ ] Một sự kiện nghiệp vụ → có bản ghi Outbox trong **cùng** giao dịch; tắt tiến trình phát thì bản ghi vẫn nằm đó chờ.
+  Chạy được: `Stage_TurnsARecordedEventIntoOneOutboxRow_InTheSameChangeSet`. Chờ Docker: `Commit_WritesTheBusinessRowAndExactlyOneOutboxRow_Together`, `Rollback_WritesNeitherTheBusinessRowNorTheOutboxRow`.
 - [ ] Thông báo hiện đúng ngôn ngữ của người nhận, không phải ngôn ngữ của người gây ra sự kiện.
+  Chạy được: `Email_UsesTheRecipientsPreferredLanguage_NotTheInitiatorsAndNotTheRequests`. Chờ Docker: `Email_UsesTheRecipientsPreferredLanguage_NotThePublishersOrTheDefault`.
 
 ---
 

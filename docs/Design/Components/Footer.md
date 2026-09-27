@@ -6,9 +6,30 @@ verified: chua-doi-chieu
 
 # Footer
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** tự dựng, không bọc PrimeNG — theo [`../COMPONENTS.md`](../COMPONENTS.md) §4, đây là component thuần trình bày: vài dòng chữ và vài liên kết, không có hành vi nào để đi mượn.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/components/footer/footer.component.ts` — selector `app-footer`, class gốc `.footer`, chữ ký liên kết `FooterLink`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | `variant`, `size`, `version`, `copyright`, `links`, `showDivider`; không có output nào | — |
+| Component dumb | Đúng — không inject service cấu hình, `version` và `copyright` do nơi gọi truyền vào | — |
+| Trạng thái `empty` | Có, đúng luật spec: `@if (copyright() \|\| version() \|\| links().length > 0)` bọc cả `<footer>`, nên không truyền gì thì **không render phần tử nào** — không còn một dải trống mang vạch phân cách | — |
+| Biến thể `compact` | Có trên thực tế, qua điều kiện `variant() === 'full'` ở khối liên kết — `compact` giữ bản quyền và phiên bản, bỏ nhóm liên kết | Không có class riêng `.footer--compact`; `compact` là "không phải `full`", đúng kết quả nhưng khác cách spec mô tả |
+| Biến thể `auth` | `.footer--auth` căn giữa nội dung | **Chưa bỏ vạch phân cách.** §Biến thể khai `auth` là "căn giữa, **không có vạch phân cách**", nhưng `.footer--auth` không đụng `border-top`, và `showDivider` mặc định `true` — nên `auth` vẫn có vạch trừ khi nơi gọi tự truyền `showDivider = false` |
+| Hai cỡ | `md` ở trạng thái nghỉ (`--sp-6` / `--layout-page-pad`), `.footer--sm` (`--sp-4` / `--sp-5`); cỡ chữ `--fs-2xs` chung cho cả hai — khớp §Kích thước | — |
+| `default` | Chữ `--color-text-muted`, `--fw-regular`; vạch trên `--border-w` màu `--color-border-subtle` | Chưa đặt `--lh-normal` mà §Trạng thái khai |
+| `hover` của liên kết | Có, đúng spec: chữ chuyển `--color-brand`, gạch chân hiện, bọc trong `@media (hover: hover)`; bản thân dải không có hover | — |
+| `focus-visible` của liên kết | Có, `--border-w-strong` + `--color-focus` + `outline-offset: 2px` | — |
+| `active` của liên kết | — | **Chưa có.** §Trạng thái đòi chữ chuyển `--color-brand-active` khi đang nhấn; không có quy tắc `:active` nào trong SCSS |
+| Ba trạng thái "không áp dụng" | Đúng — không có control nào để `disabled`, không có đường dữ liệu nào để `loading`/`error` | — |
+| Liên kết ngoài | Có, `target="_blank"` kèm `rel="noopener"` và icon `pi-external-link` mang `aria-hidden` | — |
+
+Chưa đối chiếu — **lỗ mù chính của file này**: toàn bộ §Responsive. SCSS của component chỉ có `flex-wrap: wrap`; không có `@media` nào cho ba ngưỡng spec khai, nên hành vi "xếp dọc căn trái dưới `$bp-md`" và việc đổi đệm ngang sang `--layout-page-pad-sm` **không** thấy ở đây. Chưa kiểm được là chúng nằm ở tầng bố cục khác hay chưa dựng. Cũng chưa soát §Accessibility ngoài hai khoản liên kết ngoài, và chưa soát tầng i18n của `copyright`/`label`.
 
 ---
 

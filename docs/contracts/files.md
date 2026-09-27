@@ -6,7 +6,15 @@ verified: chua-doi-chieu
 
 # Contract card — Tệp đính kèm
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi card trong file này mang `Status: DRAFT`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **ở mức định tuyến, thân, mã lỗi và header — trên host thật với repository trong bộ nhớ**). Mọi card giữ
+> `Status: DRAFT`: chưa endpoint nào được gọi thử trên PostgreSQL thật ([`README.md`](README.md) §3).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/FilesController.cs` có action `Upload`, `Download`, `Remove` — khớp route §1–§3; thân, mã lỗi, `Content-Disposition`, 404 thay 403 và giới hạn dung lượng đã được kiểm qua HTTP ở `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Web/B4FilesEndpointTests.cs` | Gọi thử thật trên DB, thay ví dụ bằng response thật, rồi mới lật `Status:` |
+> | Bộ lọc đơn vị, xoá mềm, cột `created_by` do interceptor đóng dấu: viết thành test ở `FilesDatabaseTests.cs` (`RequiresDocker`) — **chưa chạy** | Chạy được ở CI có Docker, rồi mới coi chiều DB là đã chứng minh |
+> | Tệp **chưa gắn** bản ghi chủ: hiện thực cho **chỉ người tải lên** đọc/gỡ được. [`../luong/N2-dinh-kem-tep.md`](../luong/N2-dinh-kem-tep.md) §6 câu 2 còn để mở — đây là lựa chọn của người thi công, **chưa được `architect` chốt** | `architect` chốt; card này ghi lại quy tắc đã chốt ở §4 |
+> | Thân tải xuống ngoài `Content-Disposition: attachment` còn mang `X-Content-Type-Options: nosniff` và `Cache-Control: no-store` | Giữ nguyên |
 >
 > Cơ chế lưu trữ và vòng đời tệp: [`../wiki-core/be/14-file-storage.md`](../wiki-core/be/14-file-storage.md). Bảo mật khi nhận tệp: [`../wiki-core/be/09-security-beyond-auth.md`](../wiki-core/be/09-security-beyond-auth.md) §9. Envelope, mã lỗi, bảo mật chung: [`README.md`](README.md).
 
@@ -52,7 +60,7 @@ Bốn field ứng với cột `id` · `original_name` · `content_type` · `size
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.FILE.TOO_LARGE` | `Validation` | 400 | Vượt giới hạn dung lượng của `purpose` đó |
+| `CORE.FILE.TOO_LARGE` | `Validation` | 400 | Vượt giới hạn dung lượng — trần chung `Core:File:MaxUploadMb` hoặc trần hẹp hơn của `purpose` đó. Cũng là mã trả khi thân request vượt trần từ trước lúc đọc hết nội dung (`Content-Length` khai quá trần, hoặc luồng bị ngắt giữa chừng) |
 | `CORE.FILE.TYPE_NOT_ALLOWED` | `Validation` | 400 | Kiểu tệp ngoài danh sách cho phép của `purpose` đó |
 
 **Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
@@ -74,13 +82,14 @@ Hai mã dung lượng và kiểu tệp cố ý dùng `Validation` → **400**, k
 **Status:** DRAFT
 **Quyền:** `[AuthenticatedOnly("Quyền theo bản ghi chủ của tệp — handler kiểm, không có khoá quyền riêng cho tệp")]` + quyền đọc **bản ghi chủ** của tệp, kiểm trong handler
 
-Trả nội dung tệp. **Không** phải endpoint envelope: thân phản hồi là chính tệp, kèm `Content-Disposition: attachment` và tên gốc.
+Trả nội dung tệp. **Không** phải endpoint envelope: thân phản hồi là chính tệp, kèm `Content-Disposition: attachment`. Tên tải xuống **không** phải nguyên tên gốc: giữ phần tên của `original_name`, bỏ đuôi người tải lên đặt, ghép đuôi theo kiểu nội dung hệ thống đã xác định (`content_type`); vượt độ dài cột thì cắt phần tên, không cắt đuôi — [ADR-0050](../adr/0050-v1-chua-quet-ma-doc-siet-zip-va-duoi-tai-xuong.md) biện pháp 2. Hiện thực: `FileNameSanitizer.ForDownload`.
 
 ### Lỗi
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
 | `CORE.FILE.NOT_FOUND` | `NotFound` | 404 | Không có tệp đó, **hoặc** người gọi không có quyền đọc bản ghi chủ |
+| `CORE.FILE.CONTENT_MISSING` | `NotFound` | 404 | Có bản ghi và người gọi được đọc, nhưng nội dung không còn trong kho lưu. **Không** trả tệp rỗng. Log Error phía máy chủ; người vận hành xử lý theo [`../wiki-core/be/14-file-storage.md`](../wiki-core/be/14-file-storage.md) §5 |
 
 **Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
 
@@ -88,7 +97,7 @@ Trả nội dung tệp. **Không** phải endpoint envelope: thân phản hồi 
 | --- | --- |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 
-Nhánh lỗi trả envelope như mọi endpoint khác; chỉ nhánh thành công là tệp thô.
+Nhánh lỗi trả envelope như mọi endpoint khác; chỉ nhánh thành công là tệp thô — ngoại lệ có tên ở [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §2.2 luật 1.
 
 **Không quyền thì trả 404, không trả 403** — cùng khuôn luật M7: trả 403 là xác nhận tệp đó có tồn tại.
 
@@ -125,4 +134,6 @@ Gỡ liên kết tệp khỏi bản ghi. Tệp vật lý dọn theo chính sách
 
 **Không đoán kiểu tệp từ phần mở rộng.** Kiểm bằng nội dung; đuôi tệp do người tải lên đặt.
 
-**Quét mã độc chưa có ở v1** — [`../wiki-core/be/09-security-beyond-auth.md`](../wiki-core/be/09-security-beyond-auth.md) khai rõ điều đó và điều kiện để làm. Đừng viết tài liệu như thể đã có.
+**Mã tệp chưa gắn có hạn dùng.** Tải lên mà không gắn vào bản ghi chủ nào trong hạn `Core:File:UnattachedRetentionHours` thì tệp bị gỡ; lần gắn hoặc tải về sau đó nhận `CORE.FILE.NOT_FOUND` — FE đừng giữ mã tệp qua phiên làm việc dài hơn hạn đó.
+
+**Quét mã độc chưa có ở v1, dù tệp được chia sẻ giữa người dùng** — lời hoãn, hai biện pháp bù (không purpose nào nhận `application/zip`; tên tải xuống mang đuôi theo kiểu đã xác định) và điều kiện mở lại ở [`../adr/0050-v1-chua-quet-ma-doc-siet-zip-va-duoi-tai-xuong.md`](../adr/0050-v1-chua-quet-ma-doc-siet-zip-va-duoi-tai-xuong.md). Đừng viết tài liệu như thể đã có.

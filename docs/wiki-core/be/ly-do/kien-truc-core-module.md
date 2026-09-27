@@ -37,7 +37,7 @@ Sơ đồ lắp ghép:
 
 Với hệ tầm trung, mô hình này cho **ranh giới** của microservices (dễ tách sau) mà không phải trả **chi phí vận hành** của microservices: distributed transaction, tracing phân tán, N pipeline deploy, N môi trường phải đồng bộ.
 
-Khi một module thật sự cần scale riêng, việc tách nó thành service độc lập là **cơ học** — vì ranh giới đã sẵn: schema riêng, không FK xuyên schema, giao tiếp qua `Core.Contracts`.
+Khi một module thật sự cần scale riêng, việc tách nó thành service độc lập là **cơ học** — vì ranh giới đã sẵn: schema riêng, không FK xuyên schema, giao tiếp qua `Modules.<X>.Contracts` của module phát và sự kiện outbox.
 
 ## 2. Backend — Năm project Core
 
@@ -138,7 +138,8 @@ Vì sao khối máy đọc có bốn luật định dạng:
 | Dòng trống và dòng bắt đầu bằng `#` bị bỏ qua | Chú thích nhóm nằm ngay trong khối mà không thành một đường dẫn giả |
 | Không liệt kê tệp bị `.gitignore` loại | Hook tự loại chúng bằng `git check-ignore`; liệt kê ra là để một thư mục output build kích hoạt review |
 
-**Vì sao host và ArchTests nằm trong khối:** host là nơi Core được lắp vào một sản phẩm, và ArchTests
-là hàng rào của mọi luật ở [`kien-truc-core-module.md`](../../../kien-truc-core-module.md) §3 — sửa một test là nới một luật mà không đụng dòng luật nào. **Vì sao
-tài liệu quy ước nằm trong khối:** sửa một quy ước là đổi thứ code Core phải tuân, nên nó cần cùng một
-lượt review như sửa chính code đó.
+**Vì sao ArchTests nằm trong khối:** chúng là hàng rào của mọi luật ở [`kien-truc-core-module.md`](../../../kien-truc-core-module.md) §3 — sửa một test là nới một luật mà không đụng dòng luật nào.
+
+**Vì sao host nằm ngoài khối:** dự án hạ nguồn **phải** sửa host — thêm dòng đăng ký module, đổi tên cookie, thêm dòng `COPY` cho module mới. Để host trong khối thì mỗi lần đăng ký module thành một lần "sửa Core", và hook chặn lượt đòi một lượt review Core cho một dòng đăng ký. Thứ canh host mỏng chuyển từ review sang test: luật A7 và ngưỡng `Program.cs`, cả hai là ArchTest nên vẫn nằm trong khối. Quyết định và cửa sổ chưa canh: [`adr/0100-host-thuoc-vung-du-an-ba-vung-so-huu-tep.md`](../../../adr/0100-host-thuoc-vung-du-an-ba-vung-so-huu-tep.md). 
+
+**Vì sao tài liệu luật nằm ngoài khối, trừ chính tệp giữ khối:** đưa `docs/quy-uoc/`, `RULES.md`, `OWNERSHIP.md` vào khối làm mỗi lần sửa một câu luật kéo theo một lượt review code, và hook đã chặn hàng trăm lần vì thế. Luật đổi mà code chưa khớp thì ghi nợ; lượt sửa code Core kế tiếp được soát theo luật mới. Riêng `kien-truc-core-module.md` ở lại, vì thu hẹp khối là tắt hàng rào — quyết định ở [`adr/0108-hook-stop-hoan-khi-cho-agent-nen-docs-khong-keo-review.md`](../../../adr/0108-hook-stop-hoan-khi-cho-agent-nen-docs-khong-keo-review.md) mục 2.

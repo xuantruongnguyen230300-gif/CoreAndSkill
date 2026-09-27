@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 13. Migration và dữ liệu Core
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`, chưa có migration nào.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Code của chủ đề này đã có một phần dưới `src/BE`, nhưng **chưa mục nào trong tệp được đối chiếu** với nó — tệp vẫn trong tầm chấm review (2026-09-24).
 >
 > Chính sách sở hữu migration ở dạng luật: [`../../database/migration-policy.md`](../../database/migration-policy.md). Thứ tự chạy script và cách phát hiện DB lệch model: [`../../database/script-runbook.md`](../../database/script-runbook.md). Lược đồ bảng `core`: [`../../database/schema-core.md`](../../database/schema-core.md).
 >
@@ -106,7 +106,7 @@ Quyết định của repo: **không tự động áp migration lúc khởi đ�
 Ba thứ bắt buộc:
 
 1. **Đường dẫn cố định và thứ tự xác định** cho các script — ai chạy cũng ra cùng kết quả. Xem [`../../database/script-runbook.md`](../../database/script-runbook.md).
-2. **Cơ chế phát hiện DB lệch model.** App phải **từ chối khởi động** khi còn migration chưa áp. Luật E8 ở [`../../RULES.md`](../../RULES.md), kèm test `Startup_Fails_When_PendingMigrationsExist`.
+2. **Cơ chế phát hiện DB lệch model.** App phải **từ chối khởi động** khi còn migration chưa áp. Luật E8 ở [`../../RULES.md`](../../RULES.md) — tên test làm bằng chứng ghi ở hàng luật đó.
 3. **Readiness thất bại** trong cùng tình huống, để bộ điều phối không gửi request tới. Xem [`07-observability.md`](07-observability.md) §8.
 
 Điểm 2 là thứ biến "chạy tay" từ một rủi ro thành một quy trình: quên chạy thì app không lên, thay vì app lên rồi hỏng ở truy vấn đầu tiên chạm cột chưa tồn tại — lỗi xảy ra muộn hơn nhiều, ở một chỗ không liên quan, với một thông điệp không gợi ý gì về nguyên nhân.

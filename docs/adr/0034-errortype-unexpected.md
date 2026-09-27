@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0034 — `ErrorType.Unexpected`: 500 cũng đi qua bảng ánh xạ và mang mã
 
-> **Trạng thái:** Đã chấp nhận (2026-09-16) · Bổ sung [`0027-errortype-unauthorized.md`](0027-errortype-unauthorized.md)
+> **Trạng thái:** Đã chấp nhận (2026-09-16) · Bổ sung [`0027-errortype-unauthorized.md`](0027-errortype-unauthorized.md) · Bổ sung bởi [ADR-0077](0077-loi-ngoai-le-cua-viec-nen-mang-ma-core-job-unexpected.md) (2026-09-23)
 >
 > **Bổ sung 0027.** Sáu giá trị và luật "`Unauthorized` chỉ hạ tầng phát" giữ nguyên; ADR này thêm giá trị thứ bảy cùng khuôn.
 

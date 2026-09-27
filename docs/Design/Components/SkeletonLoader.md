@@ -6,9 +6,24 @@ verified: chua-doi-chieu
 
 # SkeletonLoader
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Bản tối thiểu đã có ở `src/FE` (F2, ADR-0037) — biến thể `text`/`block` đã có màn dùng; bảng "đã có → còn thiếu" ngay dưới đây.
 
 **Nền:** tự dựng, không bọc PrimeNG — theo [`../COMPONENTS.md`](../COMPONENTS.md) §4, đây là một hình chữ nhật có màu nền. Không có hành vi nào để mượn, và một lớp bọc thư viện chỉ thêm CSS mặc định phải đè.
+
+## Đã có → còn thiếu (F2, ADR-0037)
+
+Component: `src/FE/src/app/shared/components/skeleton-loader/skeleton-loader.component.ts`. Dùng ở `ho-so.page.html` — `ho-so.page` tự ghép nhiều `SkeletonLoader` đơn (một `text` + một `block` mỗi hàng) thay vì gọi một khuôn `group`, đúng năm hàng `FormRow` thật ([03-ho-so-ca-nhan.md](../Screens/03-ho-so-ca-nhan.md) §Trạng thái).
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | Đủ chữ ký spec: `variant`, `size`, `width`, `lines`, `repeat`, `preset`, `rounded` | — |
+| Biến thể `text`, `block`, `circle` | Có; `text` hỗ trợ `lines` (dòng cuối rút ngắn) | — |
+| Biến thể `group` + `preset` | Input khai đủ chữ ký | **Không render gì** — danh sách khuôn `preset` còn để ngỏ ở `Cần chốt` #2 của chính spec này, F2 không cần nó |
+| Bốn mức `width` | Có (`full`/`wide`/`half`/`short` — phần trăm tự chọn, không phải giá trị đã "chốt" trong spec) | — |
+| Dải sáng chạy | Có, qua `@keyframes` + token `--dur-loop`/`--ease-standard` | — |
+| Tắt khi `prefers-reduced-motion: reduce` | Có — **không lặp lại** ở component, ăn theo quy tắc toàn cục ở `styles.scss` (`animation-duration: 0.01ms`) | — |
+| `aria-hidden` trên mọi khối | Có | — |
+| Vùng `aria-live` nói thay cho cả nhóm | Không phải trách nhiệm của `SkeletonLoader` theo đúng API dự kiến (component "không biết mình đang chờ cái gì") — `ho-so.page.html` tự thêm một `<span class="sr-only" aria-live="polite">` cạnh cụm skeleton | Câu trong vùng đó hiện dùng `chung.dangTai` (chung, không mô tả cụ thể "đang tải hồ sơ") — chưa đúng mức chi tiết mà spec khuyến nghị |
 
 ---
 

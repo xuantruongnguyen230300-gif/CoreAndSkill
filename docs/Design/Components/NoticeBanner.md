@@ -6,7 +6,28 @@ verified: chua-doi-chieu
 
 # NoticeBanner
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có thật ở `src/FE/src/app/shared/components/notice-banner/` — selector `app-notice-banner`, class `NoticeBannerComponent`. Bảng dưới khai **đúng những mục đã mở ba tệp `.ts` / `.html` / `.scss` ra so, ngày 2026-09-20**; mục không có tên trong bảng thì chưa ai đối chiếu.
+
+| Mục trong spec | Có thật hôm nay (neo bằng chuỗi trong `src/FE`) | Sẽ thành |
+| --- | --- | --- |
+| Bốn vai ở §Biến thể | Đủ bốn khối `.notice-banner--info` … `.notice-banner--danger` trong `notice-banner.component.scss`, mỗi khối gán đúng cặp `--color-<vai>-bg` / `--color-<vai>-border` | Giữ nguyên |
+| Icon theo vai | `icon` là `computed` trong `notice-banner.component.ts`, trả `info-circle` / `check-circle` / `exclamation-triangle` / `times-circle` (so 2026-09-24) | Bốn tên đó đúng bảng [`../Icons.md`](../Icons.md) §5; giữ nguyên bốn nghĩa |
+| Tên icon ở API — tên trần | Khớp [`../Icons.md`](../Icons.md) §5: `.ts` trả tên trần, `notice-banner.component.html` chuỗi `pi pi-{{ icon() }}` ghép tiền tố (so 2026-09-24) | Giữ nguyên |
+| Thân `--color-text`, chỉ tiêu đề màu vai | `.notice-banner` khai `color: var(--color-text)`; `.notice-banner__tieu-de` chỉ nhận màu vai bên trong khối từng vai | Giữ nguyên. Thân giữ ngắt dòng: `.notice-banner__than` khai `white-space: pre-line` (so 2026-09-24) |
+| Hình dạng: `--radius-md`, dải trái `--border-w-strong` | `.notice-banner` khai `border-radius: var(--radius-md)` và `border-left-width: var(--border-w-strong)` | Giữ nguyên |
+| Icon căn theo dòng đầu | `.notice-banner` khai `align-items: flex-start` | Giữ nguyên |
+| Khe `--sp-4` icon↔chữ, `--sp-2` tiêu đề↔thân | `.notice-banner` khai `gap: var(--sp-4)`; `.notice-banner__noi-dung` khai `gap: var(--sp-2)` | Giữ nguyên |
+| Đệm và cỡ chữ theo `size` | Input `size` có thật; `.notice-banner` `--sp-6`/`--fs-md`, `.notice-banner--sm` hạ về `--sp-4`/`--fs-sm` | Giữ nguyên |
+| Cỡ icon theo `size` | `.notice-banner__icon` cố định `font-size: var(--icon-lg)`, không có luật riêng cho `--sm` | `sm` phải hạ icon về `--icon-md` theo bảng §Kích thước |
+| `role` ARIA | `role` là `computed` trong `.ts`, trả `alert` khi `severity() === 'danger'` và `status` cho ba vai còn lại; template gắn qua `[attr.role]`; không có `aria-live` chồng lên | Giữ nguyên |
+| Icon là kênh nhìn | Thẻ `<i class="pi pi-{{ icon() }} notice-banner__icon" aria-hidden="true">` trong `notice-banner.component.html` | Giữ nguyên |
+| `headingLevel` | Input `headingLevel` **có khai** trong `.ts` nhưng template **luôn** vẽ `<strong class="notice-banner__tieu-de">`, không đọc tới nó | Vẽ heading thật khi `headingLevel` là 2/3/4 |
+| `dismissible`, `dismissed`, nút đóng, focus sau khi đóng | **Chưa có gì.** `.ts` không khai `dismissible` cũng không khai `output` nào; `.html` không có nút đóng | Dựng theo §API dự kiến và §Accessibility |
+| Input `icon` ghi đè | **Chưa có.** `icon` trong `.ts` là `computed` `protected`, nơi gọi không truyền vào được | Đổi thành `input()` có mặc định theo vai, hoặc gỡ khỏi spec |
+| Hàng hành động (slot) và khe `--sp-5` | **Chưa có.** `.html` chỉ có một `<ng-content>` duy nhất, đặt trong `.notice-banner__than` | Thêm slot hành động |
+| §Responsive | **Chưa có.** `notice-banner.component.scss` không chứa `@media` nào | Dựng cả ba ngưỡng ở §Responsive |
+
+📐 **Những mục dưới đây CHƯA đối chiếu, và vẫn là đích đến:** trạng thái `focus-visible` (component chưa có phần tử tương tác nào để so), hành vi `empty` (thuộc nơi gọi, không đọc ra được từ ba tệp này), tiền tố chữ theo vai, khoản i18n, khoản thứ tự đọc trong DOM, §Khi nào dùng / khi nào KHÔNG dùng và §Do / Don't.
 
 **Nền:** tự dựng, không bọc PrimeNG. Lý do ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 — nó nằm **trong luồng bố cục**, không nổi lên trên, nên không có phần khó nào của một lớp nổi: không định vị theo viewport, không hàng đợi, không tự hẹn giờ. Đó cũng chính là điều tách nó khỏi [`Toast.md`](./Toast.md), thứ **có** bọc thư viện vì đúng những lý do đó.
 
@@ -63,7 +84,7 @@ Bố cục ngang: icon vai — cụm chữ (tiêu đề, thân, hành động) �
 
 | Trạng thái | Xử lý | Áp dụng |
 | --- | --- | --- |
-| `default` | Nền, viền và dải theo vai; icon vai tự đặt màu (một trong bốn ca được phá luật kế thừa màu — [`../Icons.md`](../Icons.md) §4); tiêu đề `--fw-semibold`; thân `--color-text`, `--lh-normal` | Có |
+| `default` | Nền, viền và dải theo vai; icon vai tự đặt màu (một trong bốn ca được phá luật kế thừa màu — [`../Icons.md`](../Icons.md) §4); tiêu đề `--fw-semibold`; thân `--color-text`, `--lh-normal`, **giữ ngắt dòng** của chuỗi (`white-space: pre-line`) — khu lỗi form đặt mỗi mã một dòng ([`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.2) | Có |
 | `hover` | **Không áp dụng cho banner.** Nó không tương tác. Hiệu ứng hover thuộc về nút đóng và về các nút bên trong; banner đổi màu khi rê chuột là một lời hứa bấm được mà nó không giữ | — |
 | `focus-visible` | Áp cho **các phần tử bên trong**: nút đóng và các nút hành động. `outline: var(--border-w-strong) solid var(--color-focus)`, `outline-offset: 2px`. Vòng focus nằm trên nền `*-bg` chứ không trên `--color-surface` — số đo ở [`../DESIGN.md`](../DESIGN.md) §2.6: thấp nhất 5.44:1 sáng / 6.68:1 tối, đều qua 3:1 | Có |
 | `active` | **Không áp dụng cho banner.** Cùng lý do với `hover` | — |
@@ -127,7 +148,7 @@ Banner luôn chiếm hết bề rộng vùng chứa, ở mọi ngưỡng. Một 
 | `headingLevel` | input | `2 \| 3 \| 4 \| null` | `null` | `null` = tiêu đề là `<strong>`, không phải heading. Chỉ dùng heading khi banner mở đầu một vùng |
 | `size` | input | `'sm' \| 'md'` | `'md'` | |
 | `dismissible` | input | `boolean` | `false` | Mặc định **không** đóng được — xem ghi chú dưới |
-| `icon` | input | `string \| null` | `null` | Ghi đè icon mặc định của vai. Ca hiếm; dùng sai là phá luật một-nghĩa-một-icon ở [`../Icons.md`](../Icons.md) §2 |
+| `icon` | input | `string \| null` | `null` | Ghi đè icon mặc định của vai, bằng **tên trần**: `info-circle`, không phải `pi-info-circle` — [`../Icons.md`](../Icons.md) §5. Ca hiếm; dùng sai là phá luật một-nghĩa-một-icon ở [`../Icons.md`](../Icons.md) §2 |
 | `dismissed` | output | `void` | — | Component **không tự gỡ mình** khỏi DOM; nó báo ra và nơi gọi quyết định |
 
 Nội dung thân và hàng hành động vào qua slot, không qua input chuỗi — thân hay chứa liên kết và chữ đậm, còn hàng hành động chứa [`Button.md`](./Button.md).

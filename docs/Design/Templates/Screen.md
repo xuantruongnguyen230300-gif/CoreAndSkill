@@ -91,6 +91,8 @@ Bảng hành động → icon → chỗ đặt. Màn chỉ dùng icon đã có t
 
 🛑 **Giai đoạn 1 viết đúng một dòng:** *chưa có — repo chưa có `src/`, không có gì để chụp.*
 
+**Giai đoạn 2, màn đã dựng nhưng chưa có ảnh, viết đúng một dòng:** *chưa có — <màn> đã dựng ở `src/FE` (bảng "Có thật hôm nay → sẽ thành" ở đầu file) nhưng chưa ai chạy ứng dụng chụp màn hình; lượt đối chiếu <YYYY-MM-DD> chỉ đọc mã.*
+
 Cấm viết trước tên file ảnh. Cấm tạo trước thư mục ảnh. Lý do ở [`../CLAUDE.md`](../CLAUDE.md) §3.
 
 Khi đã có app: một ảnh desktop cho mỗi màn là **mặc định**. Ảnh cho từng trạng thái và từng khổ màn chỉ chụp khi có người thật sự cần ca đó.

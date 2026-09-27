@@ -6,7 +6,13 @@ verified: chua-doi-chieu
 
 # Contract card — Permissions (phân quyền)
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi card trong file này mang `Status: DRAFT`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20, **chỉ ở mức định tuyến**). Mọi card giữ
+> `Status: DRAFT`: chưa endpoint nào được gọi thử ([`README.md`](README.md) §3).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/PermissionsController.cs` có action `GetCatalog`, `GetMatrix`, `UpdateMatrix`, `GetMatrixByResource` — khớp route §4–§7 | Gọi thử thật, thay ví dụ bằng response thật, rồi mới lật `Status:` |
+> | §1–§3 (mô hình, deny-by-default, phiên bản ma trận) và §8–§9 là **luật đối chiếu được**, không phải card: **chưa ai đối chiếu với handler** | Một lượt soi các luật đó vào handler, rồi mới lật `verified:` |
 >
 > Envelope, `ErrorType` → HTTP, khuôn mã lỗi: [`README.md`](README.md). Bảng dữ liệu:
 > [`../database/schema-core.md`](../database/schema-core.md) §5.
@@ -258,6 +264,12 @@ dùng đọc; `resourceKey` vẫn giữ vai khoá gom nhóm.
 
 **Ghi đè toàn bộ** ma trận theo đúng nội dung gửi lên. Không phải patch từng phần.
 
+> 🛑 **`core.permission.write` tương đương toàn quyền trong đơn vị.** Endpoint này **không** đối
+> chiếu tập quyền của người gọi: người giữ khoá tự gắn được mọi khoá vào vai trò của mình. Vì thế
+> **cấp khoá này là cấp toàn quyền**, và luật 1, luật 5 ở [`users.md`](users.md) §2 chỉ canh
+> người **không** giữ nó. Lý do, phương án đã loại, dấu hiệu quyết định bắt đầu sai:
+> [`../adr/0051-permission-write-la-khoa-goc-cua-don-vi.md`](../adr/0051-permission-write-la-khoa-goc-cua-don-vi.md).
+
 ### Request
 
 ```json
@@ -302,7 +314,7 @@ mỗi lần lưu.
 | `code` | `type` | HTTP | Khi nào | Khoá `fieldErrors` |
 | --- | --- | ---: | --- | --- |
 | `CORE.PERMISSION.ENTRIES_INCOMPLETE` | `Validation` | 400 | `entries` thiếu bất kỳ quyền nào của danh mục (kể cả `[]`) | `Entries` |
-| `CORE.PERMISSION.DUPLICATE_ENTRY` | `Validation` | 400 | Cùng một `permissionId` xuất hiện từ hai lần trở lên | `Entries` |
+| `CORE.PERMISSION.DUPLICATE_ENTRY` | `Validation` | 400 | Cùng một `permissionId` xuất hiện từ hai lần trở lên. `messageParams.PermissionId` là id lặp đầu tiên theo thứ tự payload | `Entries` |
 | `CORE.PERMISSION.NOT_FOUND` | `BusinessRule` | 422 | `permissionId` không tồn tại. `messageParams` nêu đích danh id lạ | — |
 | `CORE.PERMISSION.ROLE_NOT_FOUND` | `BusinessRule` | 422 | `roleId` không tồn tại. `messageParams` nêu đích danh id lạ | — |
 | `CORE.PERMISSION.SYSTEM_ROLE_CANNOT_LOSE_WRITE` | `BusinessRule` | 422 | Payload gỡ `core.permission.write` khỏi một vai trò `is_system` | — |
@@ -312,7 +324,7 @@ mỗi lần lưu.
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | `entries` là `null`. Kèm `fieldErrors["Entries"]` |
+| `CORE.VALIDATION.FAILED` | `entries` là `null` — kèm `fieldErrors["Entries"]`; một phần tử của `entries` là `null` — `fieldErrors["Entries[i]"]`; `roleIds` của một phần tử là `null` — `fieldErrors["Entries[i].RoleIds"]`. Mã trong cả ba là `CORE.VALIDATION.REQUIRED` |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
@@ -363,6 +375,54 @@ Hai điều này đi cặp: làm đúng một, sai một, thì lỗi vẫn xảy
 
 **Hiệu lực với phiên đang chạy:** ma trận mới áp từ request kế tiếp của mọi người mang vai trò bị
 đổi — [`users.md`](users.md) §7.
+
+### Nhật ký kiểm toán của lần ghi ma trận — định nghĩa gốc
+
+Đây là lớp truy vết đi kèm cái giá của khung 🛑 đầu mục này. Lý do và các phương án đã loại:
+[`../adr/0052-ghi-ma-tran-phan-quyen-luon-vao-nhat-ky-kiem-toan.md`](../adr/0052-ghi-ma-tran-phan-quyen-luon-vao-nhat-ky-kiem-toan.md).
+Luật áp cho **mọi** đường ghi `core.role_permission` qua ứng dụng, không riêng endpoint này. Seed
+khi tạo đơn vị cũng thuộc diện.
+
+1. Mỗi vai trò có **ít nhất một ô đổi** trong lượt `SaveChanges` sinh **đúng một** dòng, trong
+   cùng transaction với thay đổi. Một lần lưu không đổi ô nào thì không sinh dòng nào.
+2. "Ô đổi" xác định **theo giá trị**: dòng mới thêm, hoặc `is_deleted` đổi từ `false` sang
+   `true`. Không xác định theo cờ "đã sửa" của EF.
+3. Không ghi `core.role_permission` bằng đường bỏ qua `ChangeTracker` (`ExecuteUpdateAsync`,
+   `ExecuteDeleteAsync`, SQL thô). Interceptor không thấy các đường đó.
+4. Ô chỉ đổi bằng hai đường ở luật 2. Mã ứng dụng **không** khôi phục dòng đã xoá mềm (`is_deleted` từ `true`
+   về `false`) và **không** xoá cứng dòng `RolePermission` qua `ChangeTracker`: interceptor ném ngoại lệ, lượt
+   `SaveChanges` hỏng. Ngoại lệ có tên: entry `Deleted` mà vai trò chủ cũng `Deleted` trong cùng lượt, và cascade
+   ở database khi xoá cứng vai trò — dòng `core.role.delete` đóng chuỗi nhật ký của vai trò đó
+   ([ADR-0054](../adr/0054-o-ma-tran-chi-doi-bang-them-dong-va-xoa-mem.md)). 📐 Chưa thi công — luật S18 ở
+   [`../RULES.md`](../RULES.md) §6.
+
+| Cột ([`../database/schema-core.md`](../database/schema-core.md) §9.4) | Giá trị |
+| --- | --- |
+| `action_code` | `core.permission.matrix_update` |
+| `tenant_id` | Đơn vị của vai trò |
+| `actor_user_id` · `actor_display` | Người gọi. `null` · `system` khi không có người, ví dụ lệnh runner tạo đơn vị |
+| `target_type` · `target_id` | `core.role` · id vai trò |
+| `target_display` | Tên vai trò **tại thời điểm ghi** |
+| `before_value` | `null` — diff ở `after_value` đã đủ trả lời câu hỏi |
+| `after_value` | Hai danh sách **mã khoá quyền** (không phải id), sắp theo thứ tự chữ. Danh sách rỗng vẫn khai |
+| `ip_address` · `trace_id` | Như mọi dòng |
+
+```json
+{ "granted": ["core.user.delete", "core.user.lock"], "revoked": [] }
+```
+
+Người đọc bảng gặp dòng có `after_value` rỗng thì hiểu là **không biết ô nào**, không phải
+**không ô nào**. Đó là dòng ghi trước khi hình dạng này được thi công.
+
+> ✅ **CÓ THẬT** (đối chiếu 2026-09-22). Đường ghi:
+> `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/Interceptors/AuditLogInterceptor.cs` — chuỗi
+> `StageMatrixUpdatesAsync` (một dòng mỗi vai trò, `target_display` là tên vai trò, `after_value` mang
+> `granted` / `revoked`) và chuỗi `ClassifyCell` (ô đổi theo giá trị, luật 2). Mã khoá và tên vai trò lấy
+> từ bộ theo dõi trước, thiếu mới hỏi database trong cùng lượt `SaveChanges`.
+>
+> Hình dạng dòng được test không database canh (`PermissionMatrixAuditShapeTests`); luật 3 do ArchTest
+> `RolePermission_IsNeverWritten_BypassingChangeTracker` canh. Test trên PostgreSQL thật — nhánh hỏi database,
+> `actor_user_id` qua HTTP, `PUT` không đổi ô nào — **có, chưa chạy**: luật S17 ở [`../RULES.md`](../RULES.md) §6.
 
 ---
 

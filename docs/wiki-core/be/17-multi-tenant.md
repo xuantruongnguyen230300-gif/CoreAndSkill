@@ -6,7 +6,12 @@ verified: chua-doi-chieu
 
 # 17. Multi-tenant — cách ly dữ liệu giữa các đơn vị
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`. Mọi code mẫu dưới đây là khuôn cho thứ sẽ được xây, không phải mô tả code đang chạy.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Code của chủ đề này đã có một phần dưới `src/BE`. Tệp vẫn trong tầm chấm review (2026-09-24). Code mẫu dưới đây là khuôn, chưa ai so với code đang chạy.
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | §11.4 — đơn vị hệ thống nhận seed như mọi đơn vị mới (đối chiếu 2026-09-24, **chỉ điểm này**): `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/TenantProvisioningService.cs` gọi `await ApplySeedAsync(ct);` dưới `if (tenantWasCreated)`, không rẽ theo đơn vị hệ thống; `src/BE/Core/CoreAndSkill.Core.Web/Commands/CoreCommandRunner.cs` gọi service đó với `IsSystem: true,` | Giữ nguyên tới khi một điều kiện kích hoạt của [ADR-0088](../../adr/0088-seed-don-vi-he-thong-hoan-co-dieu-kien.md) xảy ra |
+> | Mọi mục còn lại: **chưa đối chiếu** | Đối chiếu từng mục rồi mới lật `verified:` |
 >
 > **File chủ về thi công multi-tenant.** Quyết định gốc: [`../../adr/0013-multi-tenant.md`](../../adr/0013-multi-tenant.md) · các luật `M*` ép nó: [`../../RULES.md`](../../RULES.md) §9 · schema: [`../../database/schema-core.md`](../../database/schema-core.md).
 >
@@ -184,13 +189,29 @@ Luật M3 canh bằng ArchTest `EveryUniqueIndex_OnTenantScoped_Includes_TenantI
 
 ## 7. Bỏ bộ lọc có kiểm soát — luật M5
 
-| Ca chính đáng | Ví dụ | Vì sao |
-| --- | --- | --- |
-| **Job nền toàn hệ** | Bộ phát outbox, bộ dọn dữ liệu hết hạn | Không chạy trong ngữ cảnh request nên không có tenant nào để lọc theo. Bộ phát outbox **đọc đơn vị và người kích hoạt ghi trên chính dòng** rồi mở phạm vi ngữ cảnh thực thi theo từng dòng trước khi giao event cho handler — [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1 |
-| **Quản trị vận hành** | Health check đếm bản ghi theo tenant | Đây là công việc **về** các tenant, không phải công việc **của** một tenant. Màn danh sách đơn vị **không** thuộc ca này: `core.tenant` không mang bộ lọc đơn vị nên không có gì để bỏ |
-| **Migration dữ liệu** | Backfill một cột mới cho toàn bảng | Chạy một lần, ngoài luồng người dùng |
+### Ca được bỏ bộ lọc — định nghĩa gốc
 
-Không có ca thứ tư. Cụ thể **không** chính đáng: "báo cáo tổng hợp" (§1.1), "để tra cứu cho nhanh", "chỉ dùng ở màn hình quản trị của đơn vị".
+Hai bộ lọc có tên (§3), hai danh sách ca. Mỗi lời gọi `IgnoreQueryFilters` nêu tên đúng filter nó bỏ (luật B6) và thuộc đúng một ca dưới đây. Allowlist của M5 (§7.1) ghi ca đó cạnh từng mục.
+
+**Bỏ lọc đơn vị (`TenantKey`)** — mã chạy **ngoài ngữ cảnh một đơn vị**, nên không có đơn vị nào để lọc theo:
+
+| Ca | Ví dụ — tên có thật trong `src/BE/Core` đối chiếu ngày 2026-09-25 | Vì sao |
+| --- | --- | --- |
+| **Job nền toàn hệ** | `OutboxDispatcher`, `OutboxDispatcherHostedService`, `FileMaintenanceHostedService`, `JobRecoveryHostedService` | Không chạy trong request. Bộ phát outbox **đọc đơn vị và người kích hoạt ghi trên chính dòng** rồi mở phạm vi ngữ cảnh thực thi theo từng dòng trước khi giao event cho handler — [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1 |
+| **Quản trị vận hành** | `OutboxReplayService`, sau lệnh `core outbox-replay` | Công việc **về** các đơn vị, không phải công việc **của** một đơn vị. Màn danh sách đơn vị **không** thuộc ca này: `core.tenant` không mang bộ lọc đơn vị nên không có gì để bỏ |
+| **Migration dữ liệu** | Chưa có. Ví dụ: backfill một cột mới cho toàn bảng | Chạy một lần, ngoài luồng người dùng |
+
+**Bỏ riêng lọc xoá mềm (`SoftDeleteKey`), giữ lọc đơn vị** — mã cần thấy bản ghi đã gỡ:
+
+| Ca | Ví dụ — cùng ngày đối chiếu | Vì sao |
+| --- | --- | --- |
+| **Khôi phục dữ liệu đã xoá** | Chưa có. Mẫu ở §7.2 | Chỉ cần gỡ một nửa |
+| **Nhật ký và báo cáo kiểm toán** | `AuditLogInterceptor` đọc mã của quyền đã xoá mềm để ghi dòng nhật ký | Dòng nhật ký phải nói được bản ghi nào bị chạm, kể cả khi bản ghi đó đã gỡ |
+| **Migration dữ liệu** | Chưa có | Như bảng trên |
+
+Mã thuộc một ca của bảng đầu mà cần thấy cả bản ghi đã gỡ thì nêu **cả hai** tên — ví dụ bảo trì kho tệp đối soát tệp của bản ghi đã gỡ.
+
+Không có ca nào khác. Cụ thể **không** chính đáng: "báo cáo tổng hợp" (§1.1), "để tra cứu cho nhanh", "chỉ dùng ở màn hình quản trị của đơn vị".
 
 ### 7.1 Allowlist khai ở đâu, và vì sao mỗi mục phải có lý do tại chỗ
 
@@ -230,16 +251,33 @@ var deleted = await db.MenuItems
 
 ---
 
-## 8. SQL thô KHÔNG đi qua bộ lọc — luật M6
+## 8. SQL thô phải TỰ LỌC LẤY — luật M6
 
-Bộ lọc toàn cục là cơ chế của EF Core, gắn vào cây biểu thức LINQ. Một chuỗi SQL bạn tự viết **không đi qua đó**: `FromSqlRaw`, `FromSqlInterpolated`, `ExecuteSqlRaw`, `ExecuteSqlInterpolated`, `migrationBuilder.Sql(...)`, và mọi script chạy bằng `psql` đều chạm thẳng vào bảng chứa dữ liệu của **mọi** tenant. Đây là chỗ trừu tượng hoá rò ra, và nó rò đúng ở chỗ nguy hiểm nhất: người viết SQL thô thường đang làm một việc gấp, một tối ưu, hoặc một báo cáo — tức đúng lúc ít nghĩ tới cách ly nhất.
+Bộ lọc toàn cục là cơ chế của EF Core, gắn vào cây biểu thức LINQ. Câu hỏi *"một chuỗi SQL tôi tự viết có đi qua nó không"* có **hai** câu trả lời tuỳ hình dạng, và trộn hai câu đó lại là cách hiểu sai cả mục này:
 
-| Loại truy vấn | Bắt buộc |
-| --- | --- |
-| `FromSqlRaw` / `FromSqlInterpolated` trên bảng có `tenant_id` | Mệnh đề `WHERE tenant_id = {tenantId}` viết tường minh, tham số hoá |
-| `ExecuteSqlRaw` / `ExecuteSqlInterpolated` | Như trên. Một `UPDATE` thiếu điều kiện tenant sửa dữ liệu của mọi cơ quan trong một lệnh |
-| `migrationBuilder.Sql(...)` | Hoặc lọc theo tenant, hoặc là backfill toàn hệ có chủ đích — ghi rõ là ca nào ngay trong comment |
-| Script vận hành chạy tay | [`../../database/script-runbook.md`](../../database/script-runbook.md) — mọi câu chạm bảng có `tenant_id` phải nêu tenant đang thao tác |
+- **Lối đi qua model** — `FromSql`, `FromSqlRaw`, `FromSqlInterpolated` gọi trên một `DbSet<T>`. EF **bọc câu thô của bạn thành subquery** rồi phủ vị từ lọc ra ngoài. Bộ lọc **có** tác dụng.
+- **Lối không qua model** — `Database.SqlQueryRaw<T>`, `Database.SqlQuery<T>` (trả về một **kiểu phẳng**, không phải entity), `ExecuteSqlRaw`, `ExecuteSqlInterpolated`, `migrationBuilder.Sql(...)`, và mọi script chạy bằng `psql`. Câu của bạn đi thẳng xuống database, nguyên văn. Không có vị từ nào được thêm.
+
+Và đây là chỗ mà luật này sống hay chết: **ở lối thứ nhất, bộ lọc phủ *tập dòng đi ra*, chứ không phủ *thân câu*.** Mọi việc câu SQL làm bên trong xảy ra **trước** và **ngoài** vị từ EF thêm vào. Ba hậu quả cụ thể, cả ba đã được dựng thử và đọc SQL sinh ra ([ADR-0074](../../adr/0074-dbset-fromsql-o-lai-trong-tam-m6.md) §Bối cảnh):
+
+1. **Nối sang bảng khác không được lọc.** Vị từ ngoài chỉ ràng cột `tenant_id` *do câu trong sinh ra*. Một `JOIN` sang bảng có tenant khác có thể đổ giá trị của đơn vị khác vào các thuộc tính còn lại của entity — dữ liệu xuyên đơn vị về tới nơi gọi, **đeo nhãn đơn vị hiện tại**.
+2. **Ghi xuyên đơn vị qua CTE sửa dữ liệu.** PostgreSQL cho `WITH x AS (UPDATE … RETURNING …) SELECT * FROM x`. Lệnh `UPDATE` đó chạy trên mọi đơn vị; bộ lọc ngoài chỉ tỉa thứ *trả về* và không hoàn tác thứ đã *ghi*.
+3. **Khoá lấy trước khi lọc.** `FOR UPDATE` trong câu trong khoá dòng rồi mới tới lượt vị từ đơn vị loại nó khỏi kết quả.
+
+Thêm nữa, lối thứ nhất chỉ được lọc khi entity của `DbSet` **thật sự mang bộ lọc**. `FromSql` trên một `DbSet` của entity không phải `ITenantScoped`, với câu bên trong nối sang bảng có `tenant_id`, thuộc lối thứ hai — không có gì lọc ở bất kỳ đâu.
+
+Vì vậy M6 **không** hỏi *"bộ lọc có phủ không"*. Nó hỏi *"câu SQL này có tự lọc lấy không"*, và nó hỏi câu đó cho **cả hai lối**. Chỗ này nguy hiểm gấp đôi vì bối cảnh: người viết SQL thô thường đang làm một việc gấp, một tối ưu, hoặc một báo cáo — tức đúng lúc ít nghĩ tới cách ly nhất.
+
+**Bảng hình dạng SQL thô — định nghĩa gốc.** Danh sách này chỉ sống ở đây; [`../../RULES.md`](../../RULES.md) §9 trỏ về chứ không liệt kê lại.
+
+| Loại truy vấn | Bộ lọc toàn cục | Bắt buộc |
+| --- | --- | --- |
+| `FromSql` / `FromSqlRaw` / `FromSqlInterpolated` trên `DbSet` của entity có tenant | Phủ **tập dòng ra**, không phủ thân câu | Mệnh đề `WHERE tenant_id = {tenantId}` viết tường minh, tham số hoá. Vị từ này **không thừa**: nó ràng phạm vi của những gì câu làm bên trong — nối, khoá, và ghi |
+| `FromSql*` trên `DbSet` của entity **không** có tenant | Không phủ gì | Như trên, cho mọi bảng có `tenant_id` mà câu chạm tới |
+| `Database.SqlQueryRaw<T>` / `SqlQuery<T>` | Không phủ gì | Như trên. Dạng dễ quên nhất: nó trả kiểu phẳng nên **không "trông như"** một truy vấn trên bảng |
+| `ExecuteSqlRaw` / `ExecuteSqlInterpolated` | Không phủ gì | Như trên. Một `UPDATE` thiếu điều kiện tenant sửa dữ liệu của mọi cơ quan trong một lệnh |
+| `migrationBuilder.Sql(...)` | Không phủ gì | Hoặc lọc theo tenant, hoặc là backfill toàn hệ có chủ đích — ghi rõ là ca nào ngay trong comment |
+| Script vận hành chạy tay | Không phủ gì | [`../../database/script-runbook.md`](../../database/script-runbook.md) — mọi câu chạm bảng có `tenant_id` phải nêu tenant đang thao tác |
 
 ```csharp
 // ĐÚNG — tham số hoá, điều kiện tenant tường minh, tên cột vật lý
@@ -254,7 +292,7 @@ var rows = await db.MenuItems
 
 Hai điểm dễ sai đi kèm: **nối chuỗi thay vì tham số hoá** — `$"… tenant_id = '{tenantId}'"` truyền vào `FromSqlRaw` là SQL injection, và ở đây nó injection vào đúng điều kiện đang giữ cách ly; và **dùng tên property thay vì tên cột vật lý** (`tenant_id`, không phải `TenantId`). Luật M6 canh bằng ArchTest `EveryRawSqlOnTenantTable_FiltersByTenant`.
 
-> **Giới hạn của cổng này, nói thẳng:** một detector đọc chuỗi SQL trong source **không** kiểm được ngữ nghĩa. Nó bắt được ca thiếu hẳn chữ `tenant_id`; nó không bắt được `WHERE tenant_id = <sai tenant>`. M6 là hàng rào **cuối**, không phải hàng rào duy nhất — quy tắc thật vẫn là *đừng viết SQL thô trên bảng có tenant khi LINQ làm được*.
+> **Giới hạn của cổng này, nói thẳng:** một detector đọc chuỗi SQL trong source **không** kiểm được ngữ nghĩa. Nó bắt được ca thiếu hẳn chữ `tenant_id` ở vị trí vị từ; nó không bắt được `WHERE tenant_id = <sai tenant>`. Ba hậu quả đánh số ở đầu mục cũng **nằm ngoài tầm nó**: một câu có mệnh đề đơn vị đúng trên bảng gốc nhưng nối sang bảng không lọc, hay một CTE sửa dữ liệu nấp trong một lời gọi trông như chỉ đọc, đều qua cổng. Chúng được **nói ra** ở đây, không được **ép**. M6 là hàng rào **cuối**, không phải hàng rào duy nhất — quy tắc thật vẫn là *đừng viết SQL thô trên bảng có tenant khi LINQ làm được*.
 
 ---
 
@@ -346,13 +384,14 @@ Một dòng trong bảng tenant chưa dùng được. Dựng một đơn vị d�
 
 | # | Thứ | Nguồn | Ghi chú |
 | --- | --- | --- | --- |
-| 1 | **Bộ vai trò mặc định** | Seam `ITenantSeedSource` — mọi đăng ký được gộp; Core không có hằng số vai trò ([`02-identity-auth.md`](02-identity-auth.md) §3.5) | Vai trò mang `TenantId` — mỗi tenant có bộ vai trò riêng, đặt tên riêng, sửa riêng. Không nguồn nào khai vai trò thì đơn vị chạy bằng tài khoản mang cờ bypass ở bước 3 |
+| 1 | **Bộ vai trò mặc định** | Seam `ITenantSeedSource` — mọi đăng ký được gộp; Core không có hằng số vai trò ([`02-identity-auth.md`](02-identity-auth.md) §3.5) | Vai trò mang `TenantId` — mỗi tenant có bộ vai trò riêng, đặt tên riêng, sửa riêng. Không nguồn nào khai vai trò thì đơn vị nghiệp vụ chạy bằng tài khoản mang cờ bypass ở bước 3 |
 | 2 | **Ánh xạ vai trò → quyền** | Cùng seam | Danh mục quyền là **dùng chung toàn hệ**; chỉ ánh xạ mới thuộc tenant. Khoá quyền trong seed không có trong danh mục ⇒ tiến trình **không khởi động** |
-| 3 | **Tài khoản quản trị đầu tiên** | Service tạo đơn vị | Bắt buộc qua `UserManager.CreateAsync` — không tạo được mật khẩu hợp lệ bằng SQL ([`../../database/schema-core.md`](../../database/schema-core.md) §4.1). Mang `has_permission_bypass` và `must_change_password` ([`../../database/schema-core.md`](../../database/schema-core.md) §4.1) |
+| 3 | **Tài khoản quản trị đầu tiên** | Service tạo đơn vị | Bắt buộc qua `UserManager.CreateAsync` — không tạo được mật khẩu hợp lệ bằng SQL ([`../../database/schema-core.md`](../../database/schema-core.md) §4.1). Mang `must_change_password`, cộng **một** trong hai cờ loại trừ nhau ([`../../adr/0021-hai-co-dac-quyen-la-hai-cot-loai-tru.md`](../../adr/0021-hai-co-dac-quyen-la-hai-cot-loai-tru.md)): đơn vị nghiệp vụ — `has_permission_bypass`; đơn vị hệ thống — `is_system_operator`, tức tài khoản vận hành |
 | 4 | **Menu và danh mục nghiệp vụ** | Menu qua cùng seam — Core tự đăng ký menu của Core; danh mục nghiệp vụ do module seed | Bản ghi menu mang `TenantId` — mỗi đơn vị chỉnh menu của mình mà không đụng đơn vị khác |
 
 - **Seed chạy trong ngữ cảnh tenant vừa tạo** — service tạo đơn vị mở phạm vi ngữ cảnh thực thi của tenant đó rồi mới ghi; nó là một trong số ít nơi luật A12 cho mở phạm vi ([`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1). Ghi khi chưa có đơn vị thì interceptor §2 **từ chối lưu** (luật M8).
 - **Seed chạy lại được** mà không nhân đôi dữ liệu, cùng nguyên tắc idempotent ở [`13-core-data-migration.md`](13-core-data-migration.md). Chỗ nào dùng `ON CONFLICT` thì mệnh đề phải lặp lại **nguyên văn** vị từ của index một phần, nay đã gồm cả `tenant_id`.
+- **Đơn vị hệ thống cũng nhận seed** — hành vi hôm nay, hoãn có điều kiện ([`../../adr/0088-seed-don-vi-he-thong-hoan-co-dieu-kien.md`](../../adr/0088-seed-don-vi-he-thong-hoan-co-dieu-kien.md)). Service không rẽ nhánh theo `is_system`, nên vai trò, ánh xạ quyền và menu của **mọi** nguồn cũng vào đơn vị hệ thống. Hôm nay vô hại: nguồn duy nhất là của Core và không khai vai trò nào; tài khoản vận hành không có quyền nào nên chỉ thấy mục menu không đòi quyền. **Xét lại khi** có nguồn `ITenantSeedSource` đầu tiên ngoài Core, hoặc khi lệnh chạy lại seed được thi công — lệnh đó khai phạm vi *mọi đơn vị nghiệp vụ* ([`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §3), tức lệch với đường tạo.
 - **Tạo đơn vị chạy trong một transaction** — đơn vị, vai trò, ánh xạ quyền, tài khoản quản trị, menu và các dòng nhật ký của lần tạo đó cùng commit, hoặc không dòng nào được ghi ([`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md)). Hỏng ở bước nào cũng không để lại đơn vị *"đã tạo nhưng thiếu seed"* — thứ không ai chẩn đoán được từ giao diện.
 
 ---

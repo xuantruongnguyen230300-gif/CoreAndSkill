@@ -120,20 +120,23 @@ Hệ quả cho người dựng: khung ứng dụng cao trọn màn hình, `main`
 
 Đây là mục làm khuôn này có ích cho **dự án thứ hai**, không chỉ dự án đầu.
 
-**Màn danh sách của một DỰ ÁN** tự ghép component, tự quyết tất cả. **Màn danh sách của CORE** — người dùng, vai trò, đơn vị — thì dự án hạ nguồn chỉ đổi được qua seam `CORE_SCREEN_EXT` ([`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.7). Bảng dưới nói về ca thứ hai, ca khó:
+**Màn danh sách của một DỰ ÁN** tự ghép component, tự quyết tất cả. **Màn danh sách của CORE** — người dùng, vai trò, đơn vị — thì dự án hạ nguồn chỉ đổi được qua seam `CORE_SCREEN_EXT`, và seam đó hôm nay mở đúng một việc: **thêm cột dạng chữ**. Hợp đồng từng trường sống ở [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.7; bảng dưới chỉ nói hệ quả nhìn thấy trên màn, không chép lại hợp đồng. Bảng nói về ca thứ hai, ca khó:
 
 | Dự án đổi gì | Đổi ở đâu | Có phải sửa file Core không |
 | --- | --- | --- |
-| **Thêm** cột | `CORE_SCREEN_EXT.columns` — nối vào **sau** cột của Core | Không |
-| Cách vẽ một ô | `cell` của `ColumnDef`, kiểu `TemplateRef` | Không |
-| **Thêm** trường lọc | `CORE_SCREEN_EXT.filterFields` → [`../Components/FilterPanel.md`](../Components/FilterPanel.md) | Không |
-| **Thêm** hành động trên một dòng | `CORE_SCREEN_EXT.rowActions` | Không |
-| Chèn nút riêng vào `Toolbar` | `CORE_SCREEN_EXT.toolbarSlot` | Không |
-| Thêm hành động hàng loạt | Biến thể `selection` của `Toolbar` | Không |
+| **Thêm** cột | Trường `columns` của seam, khai theo mã màn; cột nối vào **sau** cột của Core | Không |
+| Tiêu đề cột thêm | Dự án cấp **khoá i18n**; màn Core dịch khi dựng cột. Không cấp chuỗi đã dịch | Không |
+| Nội dung ô của cột thêm | Chỉ **chữ** — một hàm nhận dòng, trả chuỗi đã định dạng. Ô không chứa được liên kết, `Badge` hay nút: seam không nhận `TemplateRef` | Không |
+| Bề rộng, căn lề, ẩn ở màn hẹp của cột thêm | Các trường tuỳ chọn của cột, cùng nghĩa với `width`, `align`, `hideBelow`, `priority` ở [`../Components/DataTable.md`](../Components/DataTable.md) | Không |
+| Sắp xếp theo cột thêm | 🛑 Không có đường. Endpoint danh sách của Core chỉ sắp xếp theo cột nó biết | — |
+| **Thêm** trường lọc | **Chưa có** điểm mở rộng — hoãn theo [`../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md`](../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md) | Có — hôm nay chỉ qua một PR Core kèm ADR mới |
+| **Thêm** hành động trên một dòng | **Chưa có** điểm mở rộng — hoãn theo cùng ADR | Có — như dòng trên |
+| Chèn nút riêng vào `Toolbar` | **Chưa có** điểm mở rộng — hoãn theo cùng ADR | Có — như dòng trên |
+| Thêm hành động hàng loạt | **Chưa có** điểm mở rộng — hợp đồng ở §2.7 không có trường nào cho việc này | Có — như dòng trên |
 | **Bớt** cột, **bớt** hành động | 🛑 Không có đường. Cần bớt là dấu hiệu màn Core sai — sửa ở Core cho mọi dự án | — |
 | Đổi **thứ tự sáu vùng** ở §2 | 🛑 Không được. Đây là phần khuôn ép | — |
 
-🛑 **Một màn danh sách của Core mà dự án hạ nguồn cần cột riêng thì mở rộng qua `columns`, không phải bằng cách dựng một màn thứ hai.** Nhân đôi màn Core là hình thức fork tinh vi nhất: nó không sửa file nào của Core nên cổng không thấy, nhưng bản vá Core lần sau sẽ không tới được màn đã nhân đôi.
+🛑 **Một màn danh sách của Core mà dự án hạ nguồn cần cột riêng thì mở rộng qua `columns`, không phải bằng cách dựng một màn thứ hai.** Nhân đôi màn Core là hình thức fork tinh vi nhất: nó không sửa file nào của Core nên cổng không thấy, nhưng bản vá Core lần sau sẽ không tới được màn đã nhân đôi. Cột dạng chữ không đủ — cần ô bấm được, cần `Badge` — thì đó là tín hiệu nới hợp đồng ở Core bằng một ADR mới, cũng không phải lý do dựng màn thứ hai.
 
 ---
 
@@ -156,7 +159,7 @@ Hệ quả cho người dựng: khung ứng dụng cao trọn màn hình, `main`
 
 Nói ra để không ai tưởng đã xong:
 
-- **Tầng trạng thái danh sách có hợp đồng, chưa có hiện thực.** [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.8 nay khai `GridQuery` và `ListStateStore` kèm các luật của mục đó — giữ truy vấn, đồng bộ URL, chống gọi dồn dập, huỷ đáp ứng cũ. Nhưng đó là **hợp đồng**, không phải code: người dựng màn đầu tiên vẫn là người viết hiện thực, và khuôn này không ép được chất lượng của nó.
-- **Mọi màn Core phải tự đọc `CORE_SCREEN_EXT`.** Quên ở một màn thì màn đó **im lặng không mở rộng được**: dự án hạ nguồn khai cột mà cột không hiện ra, không lỗi biên dịch, không cổng nào bắt. Xem [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.7.
+- **Tầng trạng thái danh sách đã có hiện thực, nhưng khuôn này không ép được chất lượng của nó.** [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.8 khai `GridQuery` và `ListStateStore` kèm các luật của mục đó — giữ truy vấn, đồng bộ URL, chống gọi dồn dập, huỷ đáp ứng cũ. Code đã về (đối chiếu 2026-09-22, chỉ bằng đọc mã, không chạy test): `src/FE/src/app/core/list/list-state.store.ts` — class `ListStateStore`, đọc truy vấn từ URL ở § `docQuery`, ghi lại URL ở § `ghiUrl`, chống gọi dồn dập bằng § `debounceTime(NGUNG_GO_MS)` và § `distinctUntilChanged(cungTruyVan)`, huỷ đáp ứng cũ bằng § `switchMap`; `GridQuery` ở `src/FE/src/app/core/list/grid-query.ts`. Khuôn này chỉ khai bố cục màn — nó không kiểm được hiện thực đó đúng với từng luật của §2.8.
+- **Mọi màn Core phải tự đọc `CORE_SCREEN_EXT` và tự nối phần mở rộng.** Việc **đọc** token nay có cổng — F25 ở [`../../RULES.md`](../../RULES.md) §7: section `F25` của `scripts/fe-gate.sh` đòi mọi `*.page.ts` dưới `platform/` có dùng `ListStateStore` phải chứa `inject(CORE_SCREEN_EXT`. Cổng **chỉ** kiểm việc đọc. Màn đã đọc token mà quên nối một điểm mở rộng thì vẫn **im lặng không mở rộng được** ở điểm đó — dự án hạ nguồn khai cột mà cột không hiện ra, không lỗi biên dịch; và một màn danh sách không dùng `ListStateStore` thì cổng không nhận ra là màn danh sách. [`../../RULES.md`](../../RULES.md) giao phần "có hiện ra trên màn hay không" cho test của từng màn. Xem [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.7.
 
-Hai khoản này là nợ nhìn thấy được, cùng khuôn với [`../../RULES.md`](../../RULES.md) §10.
+Hai khoản này là nợ nhìn thấy được, cùng khuôn với [`../../DEBT.md`](../../DEBT.md).

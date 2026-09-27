@@ -89,6 +89,15 @@ Băm bắt được đúng một ca, và là ca
 khó thấy nhất: **ai đó sửa một script đã áp**. Người sửa tin cả hệ đã có thay đổi; mọi database
 đã chạy bản cũ thì không, và không có gì báo. Câu kiểm ở §3.5 phát hiện ca này.
 
+**Vì sao tài liệu trỏ vào khối `INSERT`, không trỏ vào số dòng.** Khối ghi lịch sử nằm ở **cuối**
+script, nên mọi lần thêm hay bớt một dòng phía trước nó đều làm số dòng lệch. Một chỉ dẫn dạng
+"giá trị ở dòng N" khi đó tự hỏng, và hỏng **im lặng**: cổng `check-docs.sh` §7 chỉ kiểm dòng N có
+nằm trong file hay không, nên một số lệch một dòng vẫn PASS. Cái giá của lệch một dòng ở đúng mục
+này là cao — §3.2 là thủ tục người ta làm theo *sau khi lỡ ghi đè một script đã áp*, và đọc nhầm
+một dòng là đủ để kết luận sai về việc database có còn khớp repo hay không. Mỗi script có đúng
+**một** khối `INSERT INTO core.schema_script_history` (§3.1), nên tên khối là neo duy nhất mà
+không đếm dòng.
+
 ### 3.3 Quy trình từ database TRỐNG — một đường cho mọi môi trường
 
 Vì sao không có bước nạp danh mục quyền riêng: migration của Core mang khoá của Core, migration của từng
@@ -207,7 +216,7 @@ Lý do của ba tính chất thông điệp lỗi:
 | Nêu **đường dẫn thư mục script** cần chạy | Người gặp lỗi này có thể là người vận hành, không phải người viết migration |
 | Nêu **file tài liệu** cần đọc tiếp | Để họ không phải hỏi ai lúc 2 giờ sáng |
 
-Vì sao test `Startup_Fails_When_PendingMigrationsExist` là bắt buộc: nếu bản thân phép kiểm
+Vì sao test của luật E8 (tên ghi ở hàng E8 của RULES) là bắt buộc: nếu bản thân phép kiểm
 hỏng thì mọi thứ trở về đúng trạng thái mà mục này sinh ra để chấm dứt, và không có gì báo.
 
 ### 5.3 Vì sao im lặng chạy tiếp với DB lệch là cách hỏng TỆ NHẤT

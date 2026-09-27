@@ -6,12 +6,35 @@ verified: chua-doi-chieu
 
 # Quản trị người dùng — màn hình
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo chưa có `src/`; hai màn thuộc pha F3 ([04-f3-man-quan-tri.md](../../wiki-core/fe/trien-khai/04-f3-man-quan-tri.md)).
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Hai màn đã dựng ở `src/FE` (trang danh sách, trang chi tiết, bảy component hộp/thẻ) và thuộc pha F3 ([04-f3-man-quan-tri.md](../../wiki-core/fe/trien-khai/04-f3-man-quan-tri.md)). Mới đối chiếu **từng mục**, chỉ bằng đọc mã — bảng "Có thật hôm nay → sẽ thành" ngay dưới ghi mục nào đã so, mục nào lệch, mục nào **chưa so**. Chưa đối chiếu trọn file nên `verified: chua-doi-chieu` giữ nguyên. Phần chưa dựng hoặc chưa so vẫn là đích đến.
 
 Quản trị đơn vị tìm, lọc, mở người dùng của đơn vị hiện hành; tạo tài khoản ([N1](../../luong/N1-tao-nguoi-dung-moi.md)). Từ màn chi tiết: sửa hồ sơ, gán vai trò ([P2](../../luong/P2-gan-vai-tro-cho-nguoi-dung.md)), khoá/mở khoá ([D5](../../luong/D5-khoa-va-mo-khoa-tai-khoan.md)), đặt lại mật khẩu tạm ([D4](../../luong/D4-quan-tri-dat-lai-mat-khau.md)). Danh sách → liên kết ở ô tên đăng nhập → chi tiết → nút quay lại về đúng danh sách cũ (trạng thái giữ trên URL). Nghiệp vụ: [users.md](../../contracts/users.md) (trường, mã lỗi, năm luật bảo vệ tài khoản quản trị ở §2) — không chép lại. Bố cục danh sách theo [ListScreen.md](../Templates/ListScreen.md) §2.
 
 > **Khung:** khung ứng dụng ([00-khung-ung-dung.md](./00-khung-ung-dung.md))
 > **Quyền:** `core.user.read` để vào cả hai màn ([fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §1, §2.2). Từng thao tác cần khoá riêng, phần chọn vai trò cần thêm `core.role.read` — bảng "Phân quyền theo nút" cuối file.
+
+## Có thật hôm nay → sẽ thành
+
+Đối chiếu 2026-09-21, chỉ bằng đọc mã (không chạy ứng dụng), với các tệp dưới `src/FE/src/app/platform/quan-tri/nguoi-dung/`: `nguoi-dung.routes.ts`, `components/hop-tao-nguoi-dung/hop-tao-nguoi-dung.component.html`, `components/hop-sua-nguoi-dung/hop-sua-nguoi-dung.component.html`, `components/hop-gan-vai-tro/hop-gan-vai-tro.component.html`, `components/hop-dat-lai-mat-khau/hop-dat-lai-mat-khau.component.html`, `components/banner-loi-hop/banner-loi-hop.component.html`, `components/the-thong-tin-nguoi-dung/the-thong-tin-nguoi-dung.component.html`, `components/the-vai-tro-nguoi-dung/the-vai-tro-nguoi-dung.component.html`, và `src/FE/public/i18n/vi.json`. Neo bằng chuỗi tìm được trong tệp, không bằng số dòng.
+
+`pages/` và `state/` neo được: đợt sửa song song theo [fe-ui-conventions.md](../../quy-uoc/fe-ui-conventions.md) §6.2 đã xong (2026-09-25). Hai trang `danh-sach-nguoi-dung.page` và `chi-tiet-nguoi-dung.page` vẫn chưa được so trọn — chỉ các dòng bảng dưới có neo vào đó.
+
+| Khoản | Có thật hôm nay | Sẽ thành |
+| --- | --- | --- |
+| Tuyến và guard | Có — `nguoi-dung.routes.ts`: hai tuyến (`path: ''`, `path: ':id'`), cả hai chuỗi `permissionGuard('core.user.read')`; `title` là `nguoiDung.tieuDe` và `nguoiDung.chiTiet`. Tiền tố `/quan-tri/nguoi-dung` do tuyến cha gắn, **chưa so** | — |
+| Hộp "Thêm người dùng" | Có — `hop-tao-nguoi-dung.component.html`: `app-dialog` `size="md"`, `[dirty]`, `[loadingBlocksClose]="dangLuu()"`; banner `severity="danger" size="sm"` đứng đầu thân; năm ô đúng thứ tự spec (`nd-tao-ten`, `nd-tao-email`, `nd-tao-ho-ten`, `nd-tao-mk`, `nd-tao-vai-tro`); email `inputmode="email"`; mật khẩu `autocomplete="new-password"`, gợi ý `xacThuc.matKhauTam.goiY` khi ô không lỗi, không truyền `revealable` (mặc định của `Input` **chưa so**), không có ô nhập lại; ô vai trò `variant="multiple"` bọc trong `@if (coQuyenGanVaiTro())`. Việc `coQuyenGanVaiTro` đòi cả `core.user.role.assign` lẫn `core.role.read` nằm ở trang — **chưa so** | — |
+| Hộp "Sửa người dùng" | Có — `hop-sua-nguoi-dung.component.html`: `size="sm"`, ô `ndsua-ten` `[readonly]="true"`, email `inputmode="email"`, họ tên, nút `chung.luu`; lỗi hộp đi qua `app-banner-loi-hop` | Nút "Lưu" chưa có dòng khoá trong bảng Câu chữ — xem "Cần chốt" của màn chi tiết |
+| Hộp "Gán vai trò" | Có — `hop-gan-vai-tro.component.html`: `size="md"`, `app-autocomplete` `variant="multiple"`, dòng `layout="inline"` khoá `nguoiDung.ganVaiTro.vaiTroHeThongCuaBan` với `app-badge` `variant="neutral" size="sm"` mỗi vai trò, bọc trong `@if (heThongCuaMinh().length > 0)`; nút `nguoiDung.ganVaiTro.xacNhan`. "Chỉ khi xem chính mình" quyết ở `state/` — **chưa so** | Dòng nhãn "Vai trò hệ thống của bạn" chưa có dòng khoá trong bảng Câu chữ — xem "Cần chốt" |
+| Hộp "Đặt lại mật khẩu" | Có — `hop-dat-lai-mat-khau.component.html`: `size="sm"`, banner `severity="warning" size="sm"` khoá `nguoiDung.datLai.canhBao` đứng **trước** `app-banner-loi-hop`, ô `nddat-mk` mật khẩu `autocomplete="new-password"` cùng gợi ý, nút `nguoiDung.datLai.xacNhan` | — |
+| Banner lỗi hộp và xung đột | Có — `banner-loi-hop.component.html`: nhánh `xungDot()` là `severity="warning"` kèm nút `variant="secondary" size="sm"` mang khoá `chung.thuLai` ("Thử lại" — `vi.json`); nhánh `loiChung()` là `severity="danger" size="sm"`. Dùng ở hộp sửa, gán, đặt lại; hộp tạo không dùng (không gửi `version`). Hộp gán nhận `xungDot` (`hop-gan-vai-tro.component.html` chuỗi `[xungDot]="xungDot()"`, so 2026-09-24) — khớp dòng `CONFLICT` của bảng mã lỗi ([users.md](../../contracts/users.md) §7) | **Lệch:** spec ghi nút **Tải lại**, code dùng "Thử lại" — [03-ho-so-ca-nhan.md](./03-ho-so-ca-nhan.md) đã tách khoá riêng `hoSo.hanhDong.taiLai` cho đúng ca này. Sửa **code** sang khoá `<miền>.hanhDong.taiLai`; khoá `nguoiDung.hanhDong.taiLai` chưa có trong `vi.json` và chưa có dòng trong bảng Câu chữ (xem "Cần chốt") |
+| Thẻ "Thông tin tài khoản" | Có — `the-thong-tin-nguoi-dung.component.html`: `app-card` khoá `nguoiDung.chiTietTrang.theThongTin`, các dòng `layout="inline"` chỉ đọc: tên đăng nhập, email, họ tên, khoá (`@if (nd.isLocked)`, hai nhánh `nguoiDung.khoa.boiQuanTri` / `nguoiDung.khoa.tuDong` với `lockoutEnd`), buộc đổi mật khẩu, ngày tạo | **Lệch:** sơ đồ có dòng "Trạng thái — Badge như ở tiêu đề" (khoá nhãn `nguoiDung.cot.trangThai`), tệp thẻ không có dòng nào mang khoá đó. Sửa **code** — trừ khi bỏ là cố ý, khi đó hỏi người dùng rồi mới sửa spec |
+| Thẻ "Vai trò" | Có — `the-vai-tro-nguoi-dung.component.html`: `app-badge` `variant="neutral"` mỗi vai trò kèm `app-badge` `variant="outline"` khoá `vaiTro.loai.heThong` khi `vt.isSystem`; nút "Gán vai trò" ở `slot="footer"` bọc `@if (coQuyenGan())`; rỗng → `app-empty-state` `size="compact"` khoá `nguoiDung.vaiTro.chuaCo`. Cỡ `md` của `Badge` (spec) là mặc định của component — **chưa so** | Biến thể `EmptyState` ở ca rỗng: code dùng `not-configured`, spec không nêu — xem "Cần chốt" |
+| Khoá i18n nêu trong spec | Có — mọi khoá dạng `nguoiDung.*`, `vaiTro.*`, `xacThuc.*`, `chung.*` và mọi mã `CORE.*` nêu trong file này đều tìm được ở `vi.json` (kiểm bằng script; `vaiTro.tim.loi` có từ 2026-09-26). Chỉ kiểm **sự tồn tại của khoá**, chưa so từng câu | — |
+| Khoá có trong code mà spec chưa nêu | `vi.json`: `nguoiDung.trangThai.tatCa`; hộp sửa dùng `chung.luu`; hộp gán dùng `nguoiDung.ganVaiTro.vaiTroHeThongCuaBan` | Spec thiếu — xem "Cần chốt" của từng màn |
+| Lỗi tải chi tiết | Có (so 2026-09-26) — `pages/chi-tiet/chi-tiet-nguoi-dung.page.html` chuỗi `<ng-template #khoiLoiTai let-loi>` dùng cho cả hai `app-card`: tiêu đề `nguoiDung.chiTietTrang.loiTai`, thân khi có, nút `chung.thuLai`; thân từ `.page.ts` chuỗi `function cauLoiTai(` qua `dichLoiChoMan` | — |
+| Câu lỗi trong lớp nổi ô chọn vai trò | Có (so 2026-09-26) — `src/FE/src/app/platform/quan-tri/vai-tro/state/tra-cuu-vai-tro.store.ts` chuỗi `private cauLoi(err: unknown): string`: không phải lỗi API → mất kết nối, còn lại `dichLoiChoMan`, lớp xuyên suốt → `vaiTro.tim.loi`; ba `errorTemplate` hiện câu store giữ | — |
+
+**Chưa đối chiếu (lỗ mù):** toàn bộ hai trang `danh-sach-nguoi-dung.page.*` và `chi-tiet-nguoi-dung.page.*` (bố cục, `Toolbar`, cột, chip, mẫu rỗng/lỗi/đang tải, `PageHeader`, nhóm nút, `ConfirmDialog` khoá và gỡ vai trò); mọi thứ ở `state/` (điều kiện "xem chính mình", chuẩn hoá payload, thứ tự lỗi và focus, hành vi sau 409/422); tuyến cha `/quan-tri`; §Responsive; bảng Icon; ảnh màn hình; định dạng ngày (`chung` có quy ước riêng hay không); token trong SCSS; giá trị từng câu ở `vi.json`; mọi thứ chỉ thấy khi chạy ứng dụng.
 
 ---
 
@@ -54,7 +77,7 @@ URL và dây mang đúng tên: `page`, `pageSize`, `sortBy` (`userName` · `full
 | Quyết định | Căn cứ |
 | --- | --- |
 | Ô "Vai trò" trong bảng chỉ là chữ: không đánh dấu `isSystem`, không phân biệt "chưa có quyền"; vai trò hệ thống đánh dấu ở màn chi tiết | [Badge.md](../Components/Badge.md) cấm nhiều `Badge` một ô · [users.md](../../contracts/users.md) §3 |
-| Thiếu `core.role.read` → ẩn ô lọc "Vai trò", ô chọn "Vai trò" trong hộp tạo, nút "Gán vai trò"; URL mang `roleId` thì màn **bỏ tham số** khỏi URL khi vào và không gửi lên. Cột "Vai trò" trong bảng và `Card` "Vai trò" vẫn hiện (tên có sẵn trong response) | [roles.md](../../contracts/roles.md) §1 (cả `GET /api/v1/core/roles/{id}`) |
+| Thiếu `core.role.read` → ẩn ô lọc "Vai trò", ô chọn "Vai trò" trong hộp tạo, nút "Gán vai trò"; URL mang `roleId` thì màn **bỏ tham số** khỏi URL khi vào và không gửi lên. **Hành vi đã chấp nhận (2026-09-24):** gỡ bằng `setFilters` thêm một bước lịch sử, nên phải Back hai lần mới rời màn; ở URL còn `roleId` sau Back, không có chip nhưng danh sách rỗng có thể hiện `EmptyState` `no-results`; `roleId` vẫn không gửi lên. Xét lại khi màn thứ hai cần gỡ tham số lọc không hợp lệ: thêm setter `replaceUrl` có tên cho `ListStateStore` (cần ADR). Cột "Vai trò" trong bảng và `Card` "Vai trò" vẫn hiện (tên có sẵn trong response) | [roles.md](../../contracts/roles.md) §1 (cả `GET /api/v1/core/roles/{id}`) |
 | Ô chọn vai trò là [Autocomplete](../Components/Autocomplete.md) gọi máy chủ, không tải hết danh sách: ô lọc `single`; hộp tạo và hộp gán `multiple` | Bảng dưới |
 | Ô "Mật khẩu tạm" có nút hiện/ẩn (`revealable` bật sẵn, màn không tắt), **không** có ô nhập lại — ở cả hộp tạo và hộp đặt lại | [Input.md](../Components/Input.md) §API |
 
@@ -65,7 +88,7 @@ URL và dây mang đúng tên: `page`, `pageSize`, `sortBy` (`userName` · `full
 | Khi `search` phát | `GET /api/v1/core/roles` với `searchText` là chuỗi đang gõ, trang đầu theo phân trang mặc định; `options` = `items` | [roles.md](../../contracts/roles.md) §1 |
 | Dòng phụ kết quả | "Vai trò hệ thống" khi `isSystem` | [Autocomplete.md](../Components/Autocomplete.md) §Kích thước |
 | Ngưỡng ký tự, chờ ngừng gõ, bỏ kết quả request cũ | Theo component — màn không đặt lại | [Autocomplete.md](../Components/Autocomplete.md) §API |
-| Request tìm hỏng | Tắt toast (`BO_QUA_TOAST_LOI`); lỗi hiện trong lớp nổi qua `errorTemplate`, ô giữ chuỗi đang gõ | [fe-api-client.md](../../quy-uoc/fe-api-client.md) §2.2 · [Autocomplete.md](../Components/Autocomplete.md) §Trạng thái |
+| Request tìm hỏng | Tắt toast (`BO_QUA_TOAST_LOI`), trừ 5xx và 403 `CORE.AUTH.*` luôn toast kèm `traceId` ([ADR-0094](../../adr/0094-lop-loi-xuyen-suot-luon-toast-ke-ca-khi-man-tat-toast.md)); lỗi hiện trong lớp nổi qua `errorTemplate`, ô giữ chuỗi đang gõ | [fe-api-client.md](../../quy-uoc/fe-api-client.md) §2.2 · [Autocomplete.md](../Components/Autocomplete.md) §Trạng thái |
 | Nhãn chip lọc "Vai trò" | Tên mục vừa chọn. URL mở sẵn `roleId` mà chưa chọn gì (tải lại, liên kết chia sẻ): `GET /api/v1/core/roles/{id}` lấy `name` cho chip và ô lọc — song song request danh sách, cùng quyền `core.role.read`. Chip chỉ vẽ khi đã có tên; tra hỏng → không vẽ chip, request tra tắt toast | [roles.md](../../contracts/roles.md), endpoint `GET /api/v1/core/roles/{id}` |
 
 **Hộp thoại "Thêm người dùng"** — `Dialog` cỡ `md`:
@@ -98,6 +121,7 @@ Câu không ghi nguồn: người dùng duyệt 2026-09-15 ([Screen.md](../Templ
 | Nhãn hai ô lọc | Vai trò · Trạng thái | `nguoiDung.loc.vaiTro` · `nguoiDung.loc.trangThai` |
 | Placeholder ô chọn vai trò (ô lọc, hộp tạo, hộp gán) | Gõ tên vai trò để tìm | `nguoiDung.vaiTro.goiYTim` |
 | Dòng phụ kết quả tìm — vai trò hệ thống | Vai trò hệ thống | `vaiTro.loai.heThong` |
+| Lớp nổi ô chọn vai trò — lỗi tìm thuộc lớp xuyên suốt (chi tiết và `traceId` ở toast) | *Chờ duyệt:* Không tìm được vai trò. | `vaiTro.tim.loi` |
 | Chip đơn vị hiện hành (dùng chung với [11-vai-tro.md](./11-vai-tro.md)) | Đơn vị: {{tenDonVi}} — tham số từ `tenantName` của phiên | `chung.loc.donViHienHanh` |
 | `Tooltip` lý do khoá chip đơn vị | Danh sách chỉ gồm dữ liệu của đơn vị bạn đang đăng nhập. | `chung.loc.lyDoDonVi` |
 | Giá trị lọc trạng thái | Hoạt động · Đã khoá | `nguoiDung.trangThai.hoatDong` · `nguoiDung.trangThai.daKhoa` |
@@ -114,10 +138,10 @@ Câu không ghi nguồn: người dùng duyệt 2026-09-15 ([Screen.md](../Templ
 | Rỗng — chưa có người dùng | Chưa có người dùng nào · Thêm người dùng đầu tiên của đơn vị. | `nguoiDung.trong.tieuDe` · `nguoiDung.trong.moTa` |
 | Rỗng — lọc không ra (điều kiện đang lọc vẫn hiện ở hàng chip) | Không có người dùng nào khớp bộ lọc hiện tại · Đổi từ khoá hoặc xoá bộ lọc để xem lại toàn bộ danh sách. | `nguoiDung.khongKetQua.tieuDe` · `nguoiDung.khongKetQua.moTa` |
 | Tiêu đề khối lỗi tải danh sách | Không tải được danh sách người dùng | `nguoiDung.loi.taiThatBai` |
-| Thân khối lỗi | Câu dịch theo mã; không có mã thì câu mất kết nối | `loi.<mã>` · `loi.CORE.CLIENT.NO_CONNECTION` |
+| Thân khối lỗi | Không có — request danh sách không tắt toast, câu và `traceId` ở toast | — |
 | Nút thử lại · nút xoá bộ lọc | Thử lại · Xoá bộ lọc | `chung.thuLai` · `chung.xoaBoLoc` |
 
-Mã lỗi → chỗ hiện (câu sống ở `loi.<mã>`):
+Mã lỗi → chỗ hiện (câu sống ở `loi.<mã>`; lỗi của hộp không vào được ô nào → `NoticeBanner` `danger` đầu thân hộp, câu nào do [fe-ui-conventions.md](../../quy-uoc/fe-ui-conventions.md) §6.2 quyết):
 
 | Mã | Endpoint | Hiện ở |
 | --- | --- | --- |
@@ -125,11 +149,12 @@ Mã lỗi → chỗ hiện (câu sống ở `loi.<mã>`):
 | `CORE.USER.ROLE_NOT_FOUND` | danh sách (`roleId` trên URL) | `errorTemplate`, nút "Xoá bộ lọc" thay cho "Thử lại" |
 | `CORE.ROLE.NOT_FOUND` · mọi mã khác, kể cả mất kết nối | tra tên vai trò theo `roleId` | Không vẽ chip; không toast — cùng sự cố, request danh sách nhận `CORE.USER.ROLE_NOT_FOUND` và đi dòng trên |
 | `CORE.VALIDATION.FAILED` — `UserName` / `Email` / `FullName` / `TempPassword` / `RoleIds` | tạo | Dòng lỗi dưới ô tương ứng |
+| `CORE.USER.USERNAME_RESERVED` — trong `fieldErrors["UserName"]` của `CORE.VALIDATION.FAILED` | tạo | Dòng lỗi dưới ô "Tên đăng nhập" |
 | `CORE.USER.USERNAME_DUPLICATED` · `CORE.USER.EMAIL_DUPLICATED` | tạo | Dòng lỗi dưới ô "Tên đăng nhập" / "Email" — card khai `messageParams`, không khai `fieldErrors`; FE tự gắn mã vào ô |
 | `CORE.USER.CREATE_FAILED` | tạo | Theo `fieldErrors`; khoá không khớp → `NoticeBanner` trong hộp ([04-f3-man-quan-tri.md](../../wiki-core/fe/trien-khai/04-f3-man-quan-tri.md) §3.4) |
 | `CORE.USER.ROLE_NOT_FOUND` | tạo | `NoticeBanner` `danger` trong hộp (không kèm `fieldErrors`) |
 | `CORE.USER.ROLE_ESCALATION_FORBIDDEN` | tạo | `NoticeBanner` `danger` trong hộp, hộp giữ nguyên. Mã 403 nghiệp vụ: interceptor không toast, màn tự hiện ([fe-api-client.md](../../quy-uoc/fe-api-client.md) §2.2) |
-| Mọi mã, kể cả mất kết nối | tìm vai trò (ô chọn) | `errorTemplate` của `Autocomplete` |
+| Mọi mã, kể cả mất kết nối | tìm vai trò (ô chọn) | `errorTemplate` của `Autocomplete`: câu `dichLoiChoMan` (mất kết nối → `loi.CORE.CLIENT.NO_CONNECTION`); lớp xuyên suốt → `vaiTro.tim.loi` |
 | `CORE.AUTH.FORBIDDEN` | mọi endpoint | Đường chung: toast, làm mới tập quyền và menu ([fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §8) |
 
 ### Trạng thái
@@ -156,15 +181,11 @@ Theo [Icons.md](../Icons.md) §5: `pi-plus` (thêm), `pi-search` (ô tìm), `pi-
 
 ### Ảnh màn hình
 
-Chưa có — repo chưa có `src/`, không có gì để chụp.
+Chưa có — hai màn đã dựng ở `src/FE` (bảng "Có thật hôm nay → sẽ thành" ở đầu file) nhưng chưa ai chạy ứng dụng chụp màn hình; lượt đối chiếu 2026-09-21 chỉ đọc mã.
 
 ### Cần chốt
 
-Không còn.
-
----
-
-## Chi tiết người dùng (`/quan-tri/nguoi-dung/:id`)
+- **Ô lọc "Trạng thái" không có lựa chọn bỏ lọc.** Sơ đồ chỉ nêu `active | locked`; `vi.json` đã có khoá `nguoiDung.trangThai.tatCa` ("Tất cả") mà bảng Câu chữ không nêu. Cần chốt: có lựa chọn "Tất cả" (giá trị trống) hay bỏ lọc bằng cách khác, rồi duyệt câu. (`/quan-tri/nguoi-dung/:id`)
 
 ### Sơ đồ bố cục
 
@@ -262,6 +283,9 @@ Mọi thao tác xong: đóng hộp, `Toast` `success`, tải lại chi tiết.
 | Tiêu đề hộp sửa | Sửa người dùng {{tenDangNhap}} | `nguoiDung.form.tieuDeSua` |
 | Tiêu đề hộp gán | Gán vai trò cho {{tenDangNhap}} | `nguoiDung.ganVaiTro.tieuDe` |
 | Nút hộp gán | Lưu vai trò | `nguoiDung.ganVaiTro.xacNhan` |
+| Nút hộp sửa | *Chờ duyệt:* Huỷ · Lưu — khoá đã có ở `vi.json` | `chung.huy` · `chung.luu` |
+| Nhãn dòng vai trò hệ thống đứng ngoài ô chọn (hộp gán) | *Chờ duyệt:* Vai trò hệ thống của bạn — khoá đã có ở `vi.json` | `nguoiDung.ganVaiTro.vaiTroHeThongCuaBan` |
+| Nút ở banner xung đột đồng thời (hộp sửa, gán, đặt lại) | *Chờ duyệt:* Tải lại — tách khỏi nút thử lại chung, cùng mẫu [03-ho-so-ca-nhan.md](./03-ho-so-ca-nhan.md); khoá **chưa có** ở `vi.json` | `nguoiDung.hanhDong.taiLai` |
 | Xác nhận gỡ vai trò — tiêu đề | Gỡ {{soLuong}} vai trò của {{tenDangNhap}}? | `nguoiDung.goVaiTro.tieuDe` |
 | Xác nhận gỡ vai trò — mô tả · nút | Người dùng mất quyền của các vai trò bị gỡ từ thao tác kế tiếp của họ. · Lưu và gỡ vai trò | `nguoiDung.goVaiTro.moTa` · `nguoiDung.goVaiTro.xacNhan` |
 | Xác nhận khoá — tiêu đề | Khoá tài khoản {{tenDangNhap}}? | `nguoiDung.khoa.tieuDe` |
@@ -272,13 +296,13 @@ Mọi thao tác xong: đóng hộp, `Toast` `success`, tải lại chi tiết.
 | Toast sửa · gán · khoá · mở khoá · đặt lại | Đã lưu thông tin người dùng. · Đã cập nhật vai trò của {{tenDangNhap}}. · Đã khoá tài khoản {{tenDangNhap}}. · Đã mở khoá tài khoản {{tenDangNhap}}. · Đã đặt mật khẩu tạm cho {{tenDangNhap}}. | `nguoiDung.thongBao.suaThanhCong` · `nguoiDung.thongBao.ganVaiTroThanhCong` · `nguoiDung.thongBao.khoaThanhCong` · `nguoiDung.thongBao.moKhoaThanhCong` · `nguoiDung.thongBao.datLaiThanhCong` |
 | Không tìm thấy người dùng — tiêu đề thân · mô tả · đường đi tiếp | Không tìm thấy người dùng này. · Đường dẫn có thể đã cũ. Quay lại danh sách để tìm người dùng. · Về danh sách người dùng | `nguoiDung.chiTietTrang.khongTimThay` · `nguoiDung.chiTietTrang.khongTimThayMoTa` · `nguoiDung.chiTietTrang.veDanhSach` |
 
-Mã lỗi → chỗ hiện (câu sống ở `loi.<mã>`):
+Mã lỗi → chỗ hiện (câu sống ở `loi.<mã>`; lỗi của hộp không vào được ô → như màn danh sách):
 
 | Mã | Endpoint | Hiện ở |
 | --- | --- | --- |
 | `CORE.USER.NOT_FOUND` | xem | Thay thân trang — mục Trạng thái, dòng lỗi |
 | `CORE.USER.NOT_FOUND` | sửa, gán, khoá, mở khoá, đặt lại | `NoticeBanner` `danger` trong hộp đang mở; ca mở khoá (không có hộp) → `Toast` `danger` |
-| `CORE.CONCURRENCY.CONFLICT` (409) | sửa, khoá, mở khoá, đặt lại — request gửi `version` của `GET` chi tiết gần nhất ([users.md](../../contracts/users.md) §6, §8, §9) | `NoticeBanner` `warning` trong hộp đang mở + nút **Tải lại**: `GET` chi tiết lấy `version` mới, hộp nạp giá trị mới, người dùng xác nhận lại; ca mở khoá (không có hộp) → `Toast` `warning` rồi tải lại trang chi tiết. Không tự gộp, không gửi lại `version` cũ — cùng ca với [03-ho-so-ca-nhan.md](./03-ho-so-ca-nhan.md) §Trạng thái |
+| `CORE.CONCURRENCY.CONFLICT` (409) | sửa, gán, khoá, mở khoá, đặt lại — request gửi `version` của `GET` chi tiết gần nhất ([users.md](../../contracts/users.md) §6, §7, §8, §9) | `NoticeBanner` `warning` trong hộp đang mở + nút **Tải lại**: `GET` chi tiết lấy `version` mới, hộp nạp giá trị mới, người dùng xác nhận lại; ca mở khoá (không có hộp) → `Toast` `warning` rồi tải lại trang chi tiết. Không tự gộp, không gửi lại `version` cũ — cùng ca với [03-ho-so-ca-nhan.md](./03-ho-so-ca-nhan.md) §Trạng thái |
 | `CORE.VALIDATION.FAILED` — `Email` / `FullName` | sửa | Dòng lỗi dưới ô |
 | `CORE.USER.EMAIL_DUPLICATED` | sửa | Dòng lỗi dưới ô "Email" (FE tự gắn mã vào ô) |
 | `CORE.USER.UPDATE_FAILED` | sửa | Theo `fieldErrors`; khoá không khớp → `NoticeBanner` trong hộp |
@@ -296,7 +320,7 @@ Mã lỗi → chỗ hiện (câu sống ở `loi.<mã>`):
 - **mặc định:** tiêu đề, badge, hai `Card` có dữ liệu; nút theo quyền.
 - **đang tải:** `PageHeader` `loading` — `SkeletonLoader` thay tiêu đề, giữ đúng chiều cao dòng tiêu đề; nút quay lại hiện ngay; nhóm nút ẩn cho tới khi biết `isLocked`. Hai `Card` `loading`. Tải lại sau thao tác: phủ `--color-scrim` lên thân `Card`, không thay bằng skeleton.
 - **rỗng:** không áp dụng cho cả màn — một bản ghi luôn có trường bắt buộc. `Card` "Vai trò" rỗng hiện "Chưa có vai trò" như sơ đồ. Không có ca "lọc không ra".
-- **lỗi:** `NOT_FOUND` → thân trang là `EmptyState` biến thể **`record-not-found`** ([EmptyState.md](../Components/EmptyState.md) §Biến thể — **không** phải `not-found`, biến thể đó nói về đường dẫn), cỡ `page`, `headingLevel` 2, câu riêng ở bảng Câu chữ; `actionRoute` trỏ về danh sách nên đường đi tiếp là liên kết. `PageHeader` giữ nút quay lại, tiêu đề là tiêu đề tab, không có nhóm nút. Cùng quyết định phần thân với [02-trang-loi.md](./02-trang-loi.md), khác biến thể. Tải hỏng lý do khác → `Card` `error` (`NoticeBanner` `danger` + thử lại) cho cả hai thẻ; `PageHeader` vẫn hiện để quay lại được.
+- **lỗi:** `NOT_FOUND` → thân trang là `EmptyState` biến thể **`record-not-found`** ([EmptyState.md](../Components/EmptyState.md) §Biến thể — **không** phải `not-found`, biến thể đó nói về đường dẫn), cỡ `page`, `headingLevel` 2, câu riêng ở bảng Câu chữ; `actionRoute` trỏ về danh sách nên đường đi tiếp là liên kết. `PageHeader` giữ nút quay lại, tiêu đề là tiêu đề tab, không có nhóm nút. Cùng quyết định phần thân với [02-trang-loi.md](./02-trang-loi.md), khác biến thể. Tải hỏng lý do khác → `Card` `error` (`NoticeBanner` `danger` + thử lại) cho cả hai thẻ: tiêu đề `nguoiDung.chiTietTrang.loiTai` luôn có; thân là câu `dichLoiChoMan`, lớp xuyên suốt thì không có thân (chi tiết và `traceId` ở toast); `PageHeader` vẫn hiện để quay lại được.
 - **kiểm tra dữ liệu:** trong ba hộp thoại — lỗi từng ô dưới ô, lỗi còn lại ở `NoticeBanner` đầu thân hộp; gửi hai lần chỉ gửi một lần.
 
 ### Responsive
@@ -322,11 +346,15 @@ Theo [Icons.md](../Icons.md) §5.
 
 ### Ảnh màn hình
 
-Chưa có — repo chưa có `src/`, không có gì để chụp.
+Chưa có — hai màn đã dựng ở `src/FE` (bảng "Có thật hôm nay → sẽ thành" ở đầu file) nhưng chưa ai chạy ứng dụng chụp màn hình; lượt đối chiếu 2026-09-21 chỉ đọc mã.
 
 ### Cần chốt
 
-Không còn.
+- **`CORE.CONCURRENCY.CONFLICT` ở `ConfirmDialog` "Khoá tài khoản".** Bảng mã lỗi xếp "khoá" vào dòng conflict "`NoticeBanner` `warning` trong hộp đang mở + nút **Tải lại**", nhưng [ConfirmDialog.md](../Components/ConfirmDialog.md) chỉ có đầu vào `error` (một chuỗi, vai `danger`) — không có vai `warning` và không có nút thứ ba. Hai đường: (a) mở rộng `ConfirmDialog` (việc của spec component); (b) ca khoá đi như ca mở khoá — `Toast` `warning` rồi tải lại chi tiết, hộp đóng. Chưa chốt; ai chọn cũng phải sửa hai chỗ ở đây.
+- **Nút ở banner xung đột.** Spec ghi nút **Tải lại** nhưng bảng Câu chữ không có dòng khoá; code hôm nay dùng `chung.thuLai` ("Thử lại") — sai nghĩa theo cùng lý do ở [03-ho-so-ca-nhan.md](./03-ho-so-ca-nhan.md). Dòng dưới là **đề xuất**, chưa duyệt.
+- **Ca rỗng của thẻ "Vai trò".** Sơ đồ chỉ nói `EmptyState` cỡ `compact`; code chọn `not-configured` — biến thể mà [EmptyState.md](../Components/EmptyState.md) §Biến thể khai cho "tính năng cần cấu hình" (icon `pi-cog`, nút `primary` tới trang cấu hình). Cần chốt biến thể (có thể là `first-use`, không có nút vì hành động nằm ở chân thẻ).
+- **Câu chữ còn thiếu dòng.** "Lưu" ở hộp sửa (code dùng `chung.luu`), nhãn "Vai trò hệ thống của bạn" ở hộp gán (code dùng `nguoiDung.ganVaiTro.vaiTroHeThongCuaBan`), và giá trị trống của trường chỉ đọc ở thẻ thông tin (code hôm nay chèn dấu gạch dài cho ngày tạo khi trống, email trống thì để ô rỗng — hai cách khác nhau). Hai khoản đầu đã có dòng đề xuất *Chờ duyệt:* ở bảng Câu chữ; khoản giá trị trống chưa có câu nào, cần chốt cách hiển thị.
+- **Duyệt các câu mang `*Chờ duyệt:*`** ở bảng Câu chữ của màn này.
 
 ---
 
@@ -347,4 +375,4 @@ Khoá lấy từ dòng `Quyền:` của card. Thiếu khoá thì **không vẽ**
 
 ## Điểm mở rộng cho dự án hạ nguồn
 
-Theo [ListScreen.md](../Templates/ListScreen.md) §5 và seam `CORE_SCREEN_EXT` khoá `'users'` ([fe-architecture.md](../../quy-uoc/fe-architecture.md) §2.7): màn danh sách nhận thêm cột (nối **sau** "Ngày tạo"), trường lọc, hành động hàng (màn Core không có cột hành động; dự án thêm thì cột đó đứng cuối), nút vào `Toolbar`. Không bớt cột nào. Màn chi tiết chưa có điểm mở rộng — seam hôm nay chỉ nói về màn danh sách.
+Theo [ListScreen.md](../Templates/ListScreen.md) §5 và seam `CORE_SCREEN_EXT` khoá `users` ([fe-architecture.md](../../quy-uoc/fe-architecture.md) §2.7): màn danh sách nhận thêm **cột dạng chữ** — tiêu đề là khoá i18n, ô là chuỗi đã định dạng, không sắp xếp được — nối **sau** "Ngày tạo"; cột thêm không chứa liên kết hay `Badge`. Trường lọc, hành động hàng, nút vào `Toolbar`: **chưa có** điểm mở rộng, hoãn theo [ADR-0057](../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md). Màn Core không có cột hành động, và dự án cũng không thêm được cột đó qua seam. Không bớt cột nào. Màn chi tiết chưa có điểm mở rộng — seam hôm nay chỉ nói về màn danh sách.

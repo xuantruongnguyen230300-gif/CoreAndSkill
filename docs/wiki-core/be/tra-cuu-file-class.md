@@ -6,47 +6,41 @@ verified: khong-ap-dung
 
 # Tra cứu file / class — Backend
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**
->
-> **Bảng dưới đây RỖNG có chủ đích.** Repo đang ở giai đoạn 1: chưa có `src/`, nên chưa có file nào và chưa có class nào để tra. Điền vào đây bất cứ tên nào lúc này là bịa hiện trạng — đúng khuôn sai mà [`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §4 cấm.
+> **File này không giữ bảng file ↔ class, có chủ đích.** Tên class và đường dẫn file đổi mỗi lần có người thêm, đổi tên hay dời một file; một bảng chép tay từ `src/` là đúng loại danh sách mà [`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §6 cấm, vì nó mục ruỗng mà không cổng nào báo. Tra bằng lệnh ở dưới — kết quả lệnh là nguồn, không phải file này.
 
 ## Vì sao ba khoá phân loại của file này khác các file khác trong khu
 
 | Khoá | Giá trị | Lý do |
 | --- | --- | --- |
-| `kind` | `tham-chieu` | Đây là **bảng tra**, không phải luật. Code không tuân theo nó; nó chỉ chỉ đường |
-| `scope` | `core` | Nó đi theo Core sang dự án khác — nhưng nội dung được dựng lại ở mỗi repo |
-| `verified` | `khong-ap-dung` | Không có `src/` để đối chiếu. Đây **không** phải một cách né việc: cổng chỉ chấp nhận giá trị này khi file mang `kind: tham-chieu` hoặc `kind: lich-su`, và file này thoả điều kiện đó một cách thật sự |
+| `kind` | `tham-chieu` | Đây là **cách tra**, không phải luật. Code không tuân theo nó; nó chỉ chỉ đường |
+| `scope` | `core` | Nó đi theo Core sang dự án khác — lệnh dùng lại nguyên ở repo nào có `src/BE` |
+| `verified` | `khong-ap-dung` | File không khẳng định điều gì về nội dung `src/`, nên không có gì để đối chiếu. Đây **không** phải một cách né việc: cổng chỉ chấp nhận giá trị này khi file mang `kind: tham-chieu` hoặc `kind: lich-su`, và file này thoả điều kiện đó một cách thật sự. Ngày file này chép vào một tên lấy từ `src/`, giá trị này thành tự miễn trừ sai |
 
-## Bảng tra — điền ở giai đoạn 2
-
-| Thành phần | Project | Đường dẫn | Vai |
-| --- | --- | --- | --- |
-| *(chưa có `src/`)* | | | |
-
-## Điền bảng này thế nào khi `src/` tồn tại
-
-Không chép tay. Dựng bằng lệnh, rồi mới biên tập cột *Vai*:
+## Tra bằng lệnh — chạy từ gốc repo
 
 ```bash
-find src/BE -name '*.csproj' -not -path '*/obj/*' -not -path '*/bin/*' | sort
-grep -rn 'public interface I' src/BE --include='*.cs' | sort
-grep -rn 'public .*class ' src/BE --include='*.cs' -l | sort
+# Kiểu <Ten> (class, record, interface, struct, enum) khai ở file nào
+grep -rlE --include='*.cs' --exclude-dir=obj --exclude-dir=bin '(class|record|interface|struct|enum) +<Ten>\b' src/BE
+
+# Core lộ ra những interface công khai nào, ở file nào
+grep -rnE --include='*.cs' --exclude-dir=obj --exclude-dir=bin 'public +([a-z]+ +)*interface +I' src/BE/Core | sort
 ```
 
-Ba lệnh trên trả lời ba câu hỏi khác nhau: có những project nào, Core lộ ra những interface nào, và class nằm ở file nào.
+Có những project nào: danh sách gốc ở [`../../kien-truc-core-module.md`](../../kien-truc-core-module.md) §2, lệnh đếm ở §8 cùng file.
 
-## Ba luật khi điền
+## Tiêu chí đọc kết quả tra một kiểu
 
-| Luật | Vì sao |
-| --- | --- |
-| **Mỗi tên phải được xác minh bằng cách mở chính file nguồn**, không suy từ tên file | Ở dự án tiền nhiệm, một bản của bảng này từng liệt kê hàng loạt tên **của một dự án khác**, và không tên nào tồn tại trong repo đó |
-| **Không chép số đếm được** — không viết "có N interface" | [`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §6. Dùng lệnh ở trên |
-| **Đổi `verified` sang ngày đối chiếu** ngay khi bảng có nội dung | Giữ `khong-ap-dung` cho một bảng đã có nội dung là tự miễn trừ sai |
+| Lệnh trả về | Nghĩa | Làm gì |
+| --- | --- | --- |
+| **Đúng một file** | PASS — đó là chỗ khai | Mở file ra đọc trước khi trích; tên file không bảo đảm nội dung |
+| **Không file nào** | Kiểu chưa có trong `src/BE`, hoặc gõ sai tên | Đừng kết luận "thiếu" ngay: mở file luật của chủ đề xem kiểu đó là thứ đã thi công hay mới là đích |
+| **Nhiều file** | `partial`, hoặc hai project cùng khai một tên | Mở từng file; đừng chọn đại |
 
-## Trong lúc chờ
+## Trích kết quả sang tài liệu khác
 
-Cần biết một thành phần **nên** tồn tại và **nên** nằm ở đâu, đọc:
+Neo theo [`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §9: đường dẫn + một chuỗi tìm được trong tệp, không số dòng. Không chép số đếm ("có N interface") — cần con số thì chạy lại lệnh. Ở dự án tiền nhiệm, một bảng tra cùng loại từng liệt kê hàng loạt tên **của một dự án khác**, và không tên nào tồn tại trong repo đó.
+
+## Lệnh trả lời cái đang có — cái nên có thì đọc
 
 | Câu hỏi | File |
 | --- | --- |

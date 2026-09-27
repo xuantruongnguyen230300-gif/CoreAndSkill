@@ -62,7 +62,7 @@ Hỏi người dùng cho tới khi trả lời được:
 - Phát hiện ra bằng cách nào — tình cờ, hay có thứ gì báo?
 - Kéo dài bao lâu trước khi bị phát hiện? Con số này quan trọng: nó đo **thời gian mù**, và thời gian mù dài là dấu hiệu thiếu cổng chứ không phải thiếu cẩn thận.
 
-Nếu bằng chứng neo được vào file trong repo thì neo bằng đường dẫn. 🛑 Repo chưa có `src/` — không bịa trích dẫn dạng đường-dẫn-kèm-số-dòng vào `src/`.
+Nếu bằng chứng neo được vào file trong repo thì neo bằng đường dẫn. 🛑 Chỉ neo vào `src/` bằng đường-dẫn-kèm-số-dòng khi đã **mở đúng file đó ra đọc** — trích dẫn dựng từ trí nhớ là bịa bằng chứng, và cổng chỉ kiểm được số dòng có nằm trong file, không kiểm được dòng đó nói gì.
 
 ### 4. Đào nguyên nhân gốc — dừng ở cơ chế, không dừng ở hành vi
 
@@ -73,7 +73,7 @@ Hỏi "vì sao" cho tới khi câu trả lời là một **thuộc tính của h
 | "Có người quên cập nhật bảng định tuyến" | ❌ Chưa — đây là hành vi |
 | "Bảng định tuyến và file đích là hai nguồn, không có gì buộc chúng khớp nhau" | ✅ Đây là cơ chế |
 
-Bốn khuôn nguyên nhân đã trả giá thật, nêu ở [`../../CLAUDE.md`](../../CLAUDE.md) §3 — đối chiếu xem sự cố này có rơi vào khuôn nào không: hai nguồn thì chúng lệch nhau · bản sao không bao giờ được sửa cùng lúc · agent không thấy conflict mà im lặng dùng bản sao · chép nội dung làm agent cạn context.
+Bốn khuôn nguyên nhân đã trả giá thật, nêu ở [`../../README.md`](../../README.md) mục *Vì sao*, phần §3 — đối chiếu xem sự cố này có rơi vào khuôn nào không: hai nguồn thì chúng lệch nhau · bản sao không bao giờ được sửa cùng lúc · agent không thấy conflict mà im lặng dùng bản sao · chép nội dung làm agent cạn context.
 
 ### 5. Ghi cách vá
 
@@ -90,7 +90,7 @@ Bốn khuôn nguyên nhân đã trả giá thật, nêu ở [`../../CLAUDE.md`](
 **(c) Không cổng nào bắt được.** Đây là ca hay gặp nhất, và **không được dừng ở đó**. Phải làm một trong hai:
 
 - Đề xuất một **cổng mới** — mô tả nó kiểm gì, chạy bằng lệnh nào, tiêu chí PASS là gì. Nếu cổng đó khả thi bằng máy, nói rõ nó thuộc `check-docs.sh` hay thuộc một skill.
-- Nếu chưa nghĩ ra cổng khả thi, ghi một dòng vào **mục Danh sách nợ** của [`../../../docs/RULES.md`](../../../docs/RULES.md), kèm cột "vì sao chưa có cổng" và "ý tưởng cổng tương lai".
+- Nếu chưa nghĩ ra cổng khả thi, ghi một dòng vào [`../../../docs/DEBT.md`](../../../docs/DEBT.md), kèm cột "vì sao chưa có cổng" và "ý tưởng cổng tương lai".
 
 🛑 Không được để phần 4 trống, và không được viết "cần cẩn thận hơn". Cẩn thận không phải là cổng.
 
@@ -117,7 +117,7 @@ Ba khoá frontmatter theo [`../../CLAUDE.md`](../../CLAUDE.md) §9. Thêm một 
 
 - Một file mới `docs/audit/YYYY-MM-DD-<slug>.md` đủ bốn phần, đủ ba khoá frontmatter.
 - Một dòng thêm vào bảng mục lục của khu audit.
-- Nếu phần 4 rơi vào ca (c) không cổng nào bắt được: hoặc một đề xuất cổng cụ thể, hoặc một dòng đề xuất cho mục Danh sách nợ của file luật.
+- Nếu phần 4 rơi vào ca (c) không cổng nào bắt được: hoặc một đề xuất cổng cụ thể, hoặc một dòng đề xuất cho sổ nợ.
 
 Báo cáo trong hội thoại: file đã tạo, kết luận của phần 4, và cổng nào được đề xuất thêm.
 

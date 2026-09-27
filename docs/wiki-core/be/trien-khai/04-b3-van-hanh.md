@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # B3 — Vận hành
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). Code của pha này đã có một phần trên đĩa trong `src/BE`. **Chưa ai đối chiếu Định nghĩa hoàn thành dưới đây với code**, nên đừng đọc file này như bảng tiến độ, và cũng đừng đọc nó như "chưa ai bắt đầu".
 >
 > **Định nghĩa hoàn thành:** nhật ký kiểm toán ghi được và tra được; chỉ số cùng health check phản ánh đúng trạng thái thật; một lần triển khai và một lần quay lui đi đúng thứ tự đã khai; card `tenants.md` và `client-errors.md` chạy đúng như đã khai; tạo một đơn vị mới chạy lại được nhiều lần mà không nhân đôi dữ liệu.
 
@@ -17,7 +17,7 @@ verified: chua-doi-chieu
 | Việc | Kết quả | Nơi ghi |
 | --- | --- | --- |
 | Cách chạy và nguồn bí mật ở bản thật | Docker Compose trên Linux; bí mật qua biến môi trường từ tệp `.env` ngoài repo | [`../18-trien-khai-va-van-hanh.md`](../18-trien-khai-va-van-hanh.md) §7 |
-| Cơ chế job nền | `BackgroundService` của .NET, không thư viện; dọn dữ liệu quá hạn ở pha này là job đầu tiên sau seam `IBackgroundJobScheduler` | [`../18-trien-khai-va-van-hanh.md`](../18-trien-khai-va-van-hanh.md) §7 · [`../../../quy-uoc/be-architecture.md`](../../../quy-uoc/be-architecture.md) §1.1 |
+| Cơ chế job nền | `BackgroundService` của .NET, không thư viện; dọn dữ liệu quá hạn ở pha này là job nền **chạy thật** đầu tiên, và nó **lặp theo chu kỳ** nên đứng riêng chứ không qua seam `IBackgroundJobScheduler` — ranh giới hai hình dạng ở [`../../../adr/0047-job-dinh-ky-khong-di-qua-seam-lap-lich.md`](../../../adr/0047-job-dinh-ky-khong-di-qua-seam-lap-lich.md) | [`../18-trien-khai-va-van-hanh.md`](../18-trien-khai-va-van-hanh.md) §7 · [`../../../quy-uoc/be-architecture.md`](../../../quy-uoc/be-architecture.md) §1.1 |
 
 ## 2. Dựng gì ở pha này
 
@@ -59,9 +59,9 @@ Bước 5 là bước hay bị bỏ nhất, và là bước duy nhất chứng m
 
 ## 5. Nghiệm thu B3
 
-- [ ] Bản thử chạy bằng Docker Compose, bí mật đọc từ biến môi trường do Compose cấp; job nền đầu tiên là một `BackgroundService` sau seam.
+- [ ] Bản thử chạy bằng Docker Compose, bí mật đọc từ biến môi trường do Compose cấp; job nền chạy thật đầu tiên là một `BackgroundService` **định kỳ đứng riêng**, không qua seam ([`../../../adr/0047-job-dinh-ky-khong-di-qua-seam-lap-lich.md`](../../../adr/0047-job-dinh-ky-khong-di-qua-seam-lap-lich.md)).
 - [ ] Sửa một bản ghi → có đúng một dòng nhật ký, mang nhãn hiển thị tại thời điểm ghi.
-- [ ] Xoá dữ liệu quá hạn theo chính sách → thứ nhật ký đang tham chiếu **không** bị xoá theo.
+- [ ] Job dọn dữ liệu quá hạn chứng minh bằng một `IStaleDataCleaner` **giả** đăng ký trong test tích hợp: job chạy theo chu kỳ và gọi bộ dọn đã đăng ký, bộ dọn xoá đúng thứ nó nhắm, và **dòng nhật ký kiểm toán đang tham chiếu tới dữ liệu vừa xoá vẫn còn**. Mục này chứng minh **cơ chế**, không chứng minh với một chính sách thật: Core không đăng ký bộ dọn thật nào, vì chính sách lưu giữ cần nghiệp vụ quyết trước và vì vậy thuộc dự án hạ nguồn ([`../10-data-retention.md`](../10-data-retention.md) §8).
 - [ ] Ngắt database → `/health/ready` đỏ, `/health/live` vẫn xanh.
 - [ ] Diễn tập một lần triển khai và một lần quay lui trên môi trường thử, đi đúng thứ tự tài liệu.
 - [ ] Chạy lại service tạo đơn vị cho cùng một đơn vị → không nhân đôi vai trò, menu hay tài khoản.

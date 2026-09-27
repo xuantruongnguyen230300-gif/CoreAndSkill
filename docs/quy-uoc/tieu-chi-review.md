@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # Tiêu chí chấm review — cái gì là finding, cái gì không
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/` để review. File này khai sẵn luật chấm để lượt review đầu tiên ở giai đoạn 2 không phải tự nghĩ ra tiêu chí giữa chừng.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). **Luật chấm dưới đây đang có hiệu lực:** `src/BE` và `src/FE` đã có trên đĩa, nên đã có code thật để review.
+>
+> 🛑 File này **không** tự mang nhãn `📐`: §3.2 loại mọi mục mang `📐` khỏi tầm chấm, nên một nhãn `📐` ở đây sẽ vô hiệu hoá chính nó. Nội dung luật chấm chưa được đối chiếu toàn file với code, nên `verified:` giữ `chua-doi-chieu`.
 >
 > File này **không nhắc lại quy ước** — quy ước nằm ở các file `be-*.md` và `fe-*.md` cạnh đây. Nó chỉ trả lời: *lệch khỏi quy ước thì chấm mức nào, và trường hợp nào lệch mà **không** phải lỗi.*
 
@@ -74,7 +76,7 @@ Ba nhóm dưới đây bị báo nhầm thường xuyên nhất. Báo nhầm kh�
 
 [`../wiki-core/`](../wiki-core/) mô tả *một core tốt gồm những gì* — nó có thể **vượt nhu cầu** của dự án hiện tại. Khoảng cách giữa nó và [`../quy-uoc/`](../quy-uoc/) là cố ý, không phải nợ.
 
-**Không phải finding:** code không có một thành phần mà `wiki-core/` mô tả, trong khi quyết định bỏ nó đã được ghi nhận — trong ADR, trong một mục "vì sao chưa làm" của chính file quy ước, hoặc trong bảng nợ ở [`../RULES.md`](../RULES.md) §10.
+**Không phải finding:** code không có một thành phần mà `wiki-core/` mô tả, trong khi quyết định bỏ nó đã được ghi nhận — trong ADR, trong một mục "vì sao chưa làm" của chính file quy ước, hoặc trong bảng nợ ở [`../DEBT.md`](../DEBT.md).
 
 Ví dụ cụ thể theo các quyết định đã chốt: chỉ có hai pipeline behavior ([`../adr/0006-pipeline-behavior.md`](../adr/0006-pipeline-behavior.md)); chưa có tầng cache phân tán; chưa có message broker. Báo "thiếu behavior ghi log" là báo một thứ đã được quyết định là không làm.
 
@@ -87,6 +89,8 @@ Nhãn `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG` nghĩa là *chưa ai viết code 
 Ở giai đoạn 1 điều này áp cho gần như toàn bộ `docs/` — chưa có `src/`. Ở giai đoạn 2, đọc nhãn ở **đầu mục** trước khi chấm mục đó.
 
 **Là finding:** một mục mang nhãn `📐` nhưng ở chỗ khác lại có câu khẳng định nó đã tồn tại. Hai câu nói ngược nhau về cùng một thứ luôn là finding, bất kể câu nào đúng.
+
+**Giới hạn của miễn trừ này — đọc trước khi dùng nó.** Nhãn `📐` là nhãn **cấp tệp**, nên nó loại cả tệp khỏi tầm chấm. Một tệp giữ nhãn đó sau khi code tương ứng đã về sẽ tự loại mình khỏi mọi lượt review trong khi phần nó mô tả đang chạy thật. Với [`../contracts/`](../contracts/) và [`../Design/Components/`](../Design/Components/) thì đó là vi phạm có mã: luật **D42** ở [`../DEBT.md`](../DEBT.md) — [`../adr/0048-cam-nhan-dich-den-cap-file-khi-neo-tro-toi-code-that.md`](../adr/0048-cam-nhan-dich-den-cap-file-khi-neo-tro-toi-code-that.md). Với khu khác thì chưa có mã nào, và cũng chưa có neo nào để dò: gặp một tệp `📐` mà code của nó đã có, **báo finding** thay vì im lặng áp miễn trừ.
 
 ### 3.3 Sở thích cá nhân về đặt tên
 

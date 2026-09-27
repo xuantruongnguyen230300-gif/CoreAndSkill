@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 10. Quan sát được — lỗi runtime và số đo phía FE
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
 >
 > Phía BE: [`../be/07-observability.md`](../be/07-observability.md). Hai phía nối với nhau bằng `traceId` — §5 là mục quan trọng nhất của file này.
 
@@ -172,7 +172,7 @@ Dòng thứ hai đáng dừng lại: **403 lặp lại nhiều lần ở cùng m
 
 ## 8. Ba việc còn nợ, ghi ra để nhìn thấy được
 
-> Theo [`../../RULES.md`](../../RULES.md) §10, nợ phải nhìn thấy được chứ không được hợp thức hoá bằng im lặng.
+> Theo [`../../DEBT.md`](../../DEBT.md), nợ phải nhìn thấy được chứ không được hợp thức hoá bằng im lặng.
 
 | Nợ | Vì sao chưa làm | Điều kiện làm |
 | --- | --- | --- |

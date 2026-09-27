@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 04. Hệ design token
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`; đây là hệ thống phải dựng ở pha F1.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Đây là hệ thống phải dựng ở pha F1.
 >
 > **Giá trị token — tên khoá, mã màu, thang chữ — nằm ở [`../../Design/DESIGN.md`](../../Design/DESIGN.md), không nằm ở file này.** File này mô tả *cơ chế* và *luật*. Mọi tên token viết dưới đây là **minh hoạ cách đặt tên**, không phải danh sách chốt.
 >
@@ -141,7 +141,7 @@ Một mã hex trong file style của component là **một bản sao của một
 
 Nơi **duy nhất** được phép giữ literal là chỗ khai token toàn cục — vì ở đó literal là **định nghĩa**, không phải bản sao.
 
-> ⚠️ Ở dự án tiền nhiệm, luật này được dọn tay hai lần và tự tái sinh cả hai lần: hex mới xuất hiện ngay ở đợt màn hình kế tiếp. Nó chỉ dừng lại khi có script kiểm. **Luật không có cổng thì không phải luật** — xem [`../../RULES.md`](../../RULES.md) §10.
+> ⚠️ Ở dự án tiền nhiệm, luật này được dọn tay hai lần và tự tái sinh cả hai lần: hex mới xuất hiện ngay ở đợt màn hình kế tiếp. Nó chỉ dừng lại khi có script kiểm. **Luật không có cổng thì không phải luật** — xem [`../../DEBT.md`](../../DEBT.md).
 
 ---
 
@@ -182,14 +182,49 @@ Cách đúng: một **preset styled** ở `core/theme/`, dựng từ preset Aura
 | Việc | Cơ chế |
 | --- | --- |
 | Tầng được ghi đè | Tầng **semantic** `colorScheme`: primary, highlight, formField, content, overlay, text, focusRing — mỗi giá trị trỏ một `var(--color-*)` |
+| Thời lượng chuyển động của thư viện | Cũng ở tầng semantic, nhưng **ngoài** `colorScheme` vì nó không đổi theo chế độ sáng/tối: `transitionDuration` (mọi chuyển tiếp nhỏ) và `mask.transitionDuration` (backdrop của lớp nổi modal), mỗi giá trị trỏ một `var(--dur-*)`. Hai khoá, không phải một khoá cho mỗi component — mọi sub-preset đều đổ về đây; xem §7.2 |
 | Thang màu 50–950 của preset | **Không** dựng. Tầng semantic đã trỏ token của mình thì không còn chỗ nào cần thang đó |
 | Component token còn trỏ thẳng palette | Đè riêng từng chỗ, cũng bằng `var(--color-*)` |
 | Chế độ tối của thư viện | Tắt: `providePrimeNG` đặt `darkModeSelector: false`. Biến `--color-*` đã đổi theo `data-theme` (§4.1), nên component thư viện đổi theo mà không cần cơ chế tối thứ hai |
 | Thứ tự lớp CSS | Bật `cssLayer`; lớp của thư viện xếp **trước** style của app, để style của mình thắng mà không cần `!important` |
 
-> ⚠️ **Cú pháp API PrimeNG của phiên bản đã chốt chưa được xác minh trong repo.** Bảng trên mô tả cơ chế, không phải chữ ký hàm. Cú pháp chốt khi thi công F1, theo tài liệu PrimeNG chính thức — không chép chữ ký từ trí nhớ hay từ dự án khác.
+### 7.1 Cú pháp import preset — ghép từng sub-preset, không import object `Aura` gộp
+
+`@primeuix/themes/aura` export default một object gộp tĩnh khoảng 90 sub-preset — mỗi loại control PrimeNG một sub-preset (`button`, `toast`, `message`, `datatable`...). Import object đó kéo theo theme của toàn bộ ~90 component vào bundle initial, kể cả những component chưa màn nào dùng — đã đo thấy làm bundle initial vượt ngân sách cảnh báo của luật F14 (`docs/RULES.md`). Quyết định và số liệu đo: [`../../adr/0038-preset-primeng-tung-sub-theo-phan-dung.md`](../../adr/0038-preset-primeng-tung-sub-theo-phan-dung.md).
+
+Cú pháp đã chốt: package tách sẵn export theo sub-path cho từng sub-preset — `@primeuix/themes/aura/<x>`, với `<x>` là tên component viết thường (`base`, `button`, `toast`, `message`...). `core/theme/prime-preset.ts` ghép TỪNG sub-preset đó thành preset gốc bằng cách spread, rồi mới truyền vào `definePreset` cùng phần override token:
+
+```typescript
+import { definePreset } from '@primeuix/themes';
+import AuraBase from '@primeuix/themes/aura/base';
+import AuraToast from '@primeuix/themes/aura/toast';
+// Thêm một dòng import tương tự cho mỗi sub-preset mới cần — xem luật F29 dưới đây.
+
+const AURA_SUBSET = {
+  ...AuraBase, // token gốc (primitive + semantic) — luôn cần, mọi sub-preset khác tham chiếu tới
+  components: {
+    toast: AuraToast, // tập sub-preset phải liệt kê: luật F29
+  },
+};
+
+export const CORE_PRIME_PRESET = definePreset(AURA_SUBSET, {
+  /* phần override semantic — xem bảng trên */
+});
+```
+
+Tập sub-preset phải có — gồm cả component con mà component PrimeNG được import dựng bên trong — là **luật F29** ở [`../../RULES.md`](../../RULES.md) §7, lý do ở [`../../adr/0056-f29-tinh-component-con-duoc-dung-ben-trong.md`](../../adr/0056-f29-tinh-component-con-duoc-dung-ben-trong.md). Danh sách sub-preset thật cần hôm nay đọc trực tiếp ở `src/FE/src/app/core/theme/prime-preset.ts` — không chép lại danh sách đó vào tài liệu này (luật `.claude/CLAUDE.md` §6: nội dung đếm được bằng lệnh thì không chép tay).
+
+⚠️ **Cái giá phải trả:** thiếu một sub-preset khi thêm component mới không gây lỗi biên dịch — component vẫn chạy nhưng **sai theme** (dùng token mặc định của PrimeNG thay vì `var(--color-*)`). Cho tới khi có cổng F29 thật (xem `docs/DEBT.md`), lớp bắt duy nhất là review bằng mắt.
 
 **Hệ quả:** literal màu chỉ còn ở tệp khai token (`_tokens.scss`, [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §3.3). Đổi bảng màu là sửa một nơi; CSS của mình và component thư viện không thể vẽ hai màu khác nhau cho cùng một token, vì cả hai đọc cùng một biến.
+
+### 7.2 Thời lượng chuyển động — nối ở gốc, và cái giá của nhóm không nối được
+
+Thời lượng **không** đi theo khuôn "mỗi component một chỗ đè" của màu, vì hình dạng của nó ở tầng dưới khác hẳn: mọi sub-preset đều khai `root.transitionDuration` trỏ tới **một trong hai** tên — `{transition.duration}` hoặc `{form.field.transition.duration}` — và Aura lại khai nhánh thứ hai bằng chính nhánh thứ nhất. Hai nhánh hội tụ, nên nối ở gốc là **một** dòng và mọi component bọc thêm về sau tự thừa hưởng. Khai thêm nhánh `formField` cho "dễ đọc" là dựng nguồn thứ hai cho cùng một giá trị — đúng thứ mục này cấm.
+
+Phía kia của ranh giới là nhóm chạy hoạt ảnh **Angular** chứ không CSS: tham số của chúng là một chuỗi bị phân tích thành số và **không giải `var()`**, nên token đặt được *giá trị* nhưng không *đi tới* được. Giá trị của nhóm đó buộc phải sống ở nơi thứ hai — một hằng số TypeScript — và luật **F37** ([`../../RULES.md`](../../RULES.md) §7) đòi hằng số ấy nêu **đích danh** token nó phản chiếu, để hai nơi truy được về nhau.
+
+🛑 Đây là ngoại lệ **có giá**, không phải một khuôn để nhân bản: nó chỉ áp cho chỗ token thật sự không tới được, và F37 làm hai nơi *truy được về nhau* chứ không làm chúng thành một. Ranh giới, danh sách component nhóm này, và lý do từng phương án khác bị loại: [`../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md`](../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md).
 
 Nếu chỉ nhớ một câu từ mục này: **hai nơi giữ cùng một giá trị thì chúng sẽ lệch nhau; việc phải làm là chọn một nơi làm nguồn, không phải cẩn thận hơn.**
 

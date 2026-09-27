@@ -1,17 +1,39 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-09-17
 ---
 
 # Hồ sơ cá nhân — màn hình
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo chưa có `src/`. Màn **sẽ được dựng** ở pha F2.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Bản tối thiểu đã có ở `src/FE` (F2, [ADR-0037](../../adr/0037-f2-dung-du-component-core-khong-hoan-ngam.md)) — bốn `Card`, `PageHeader`, `ConfirmDialog`, `SkeletonLoader` dựng thật, bố cục khớp phần lớn sơ đồ; một vài chỗ lệch và một số biến thể chưa qua thực tế. Bảng "Có thật hôm nay → sẽ thành" ngay dưới đây.
 
 Mọi người dùng đã đăng nhập vào được từ menu tài khoản trên `Topbar` ([00-khung-ung-dung.md](./00-khung-ung-dung.md)): xem hồ sơ của mình; sửa họ tên, số điện thoại, ngôn ngữ ưa thích; **tự đổi mật khẩu**. Tài khoản mang cờ đặc quyền thấy thêm lời nhắc và khối **tự từ bỏ** cờ. Nghiệp vụ: [N9](../../luong/N9-sua-ho-so-ca-nhan.md), [V1](../../luong/V1-cai-dat-lan-dau.md) bước 9, [profile.md](../../contracts/profile.md), [auth.md](../../contracts/auth.md) §6.
 
 > **Khung:** khung ứng dụng ([00-khung-ung-dung.md](./00-khung-ung-dung.md)).
 > **Quyền:** không cần permission — ba endpoint hồ sơ và endpoint đổi mật khẩu mang `[AuthenticatedOnly]` ([profile.md](../../contracts/profile.md) §1–§3 · [auth.md](../../contracts/auth.md) §6 · [ADR-0024](../../adr/0024-ba-muc-khai-bao-phan-quyen-endpoint.md)). Tuyến qua `authGuard` và `mustChangePasswordGuard`, **không** qua `permissionGuard` ([fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §4).
+
+## Có thật hôm nay → sẽ thành (F2, ADR-0037)
+
+Đối chiếu 2026-09-17 với `src/FE/src/app/platform/ho-so/pages/ho-so/ho-so.page.html`, `ho-so.page.ts`, `src/FE/src/app/platform/ho-so/ho-so.routes.ts`, `src/FE/src/app/core/guards/unsaved-changes.guard.ts`. Neo chuyển sang chuỗi tìm được (ADR-0046) và kiểm lại chuỗi ngày 2026-09-22, kèm `src/FE/public/i18n/vi.json` và `input.component.ts` — ngày ấy tệp đó nằm dưới `src/FE/src/app/shared/ui/input/`.
+
+> 📍 **Tệp `input.component.ts` nay ở thư mục khác; lời khai có ngày ở trên giữ nguyên chữ của nó.** Hôm nay (2026-09-24) tệp là `src/FE/src/app/shared/components/input/input.component.ts` — chuỗi `readonly revealable = input(true)` vẫn ở đó. `Button` và `Input` rời `shared/ui/` theo [ADR-0078](../../adr/0078-cot-nen-giu-quyen-quyet-thu-muc-button-va-input-doi-sang-shared-components.md). Vẫn đúng một tệp, chỉ đổi chỗ đặt: hai lượt đối chiếu 2026-09-17 và 2026-09-22 không mất giá trị, và dòng `Input` `password` `revealable` của bảng dưới neo bằng tên tệp + chuỗi nên tra lại được không cần sửa. Ai mở ra so lần sau thì so ở đường dẫn hôm nay.
+
+| Khoản | Có thật hôm nay | Sẽ thành |
+| --- | --- | --- |
+| `PageHeader` `minimal` | Có — chỉ `[title]` (`ho-so.page.html`, chuỗi `<app-page-header [title]="'hoSo.tieuDe'`) | — (đủ, đúng biến thể `minimal` — [PageHeader.md](../Components/PageHeader.md)) |
+| `NoticeBanner` `warning` nhắc từ bỏ cờ | Có, chỉ render khi `hoSo()?.coDacQuyen` (`ho-so.page.html`, chuỗi `'hoSo.coDacQuyen.nhac.tieuDe'`, nằm trong khối `@if (hoSo()?.coDacQuyen)`) | — (đủ) |
+| `Card` "Thông tin cá nhân" — 5 `FormRow`, `SkeletonLoader` 5 hàng khi tải | Có, đúng số hàng (`ho-so.page.html`, chuỗi `'hoSo.thongTin.tieuDe'`; `ho-so.page.ts`, chuỗi `nhieuHangSkeleton = [0, 1, 2, 3, 4]`) | — (đủ) |
+| Nút "Lưu" / "Đổi mật khẩu" ở **chân** `Card` | **Lệch** — cả hai nút nằm trong thân `<form>`, không dùng `slot="footer"` như sơ đồ bố cục mô tả (`ho-so.page.html`, chuỗi `'chung.luu'` và `'xacThuc.matKhau.nutDoi'` — cả hai nằm trước `</form>`) | Chuyển vào chân `Card` khi `Button.md` hỗ trợ thuộc tính `form` xuyên qua — nợ đã ghi ở [Card.md](../Components/Card.md) §"Đã có → còn thiếu" |
+| Banner lỗi tải hồ sơ (`GET` hỏng) | Có — `NoticeBanner` `danger` kèm tiêu đề `hoSo.loi.taiThatBai` ("Không tải được hồ sơ", khớp `public/i18n/vi.json`, chuỗi `"taiThatBai": "Không tải được hồ sơ"`) + nút Thử lại (`ho-so.page.html`, chuỗi `[heading]="'hoSo.loi.taiThatBai'`). Thân qua `dichLoiChoMan` (so 2026-09-26): `ho-so.page.ts` chuỗi `? dichLoiChoMan(this.translate, err)` | — (đủ) |
+| Banner xung đột đồng thời (409) — nhãn nút | Có, đúng — khoá riêng `hoSo.hanhDong.taiLai` ("Tải lại") cho nhánh xung đột (`ho-so.page.html`, chuỗi `'hoSo.hanhDong.taiLai'`), tách khỏi nhãn chung `chung.thuLai` ("Thử lại") của nhánh lỗi tải (`ho-so.page.html`, chuỗi `'chung.thuLai'`) | — (đủ) |
+| `Card` "Đổi mật khẩu" — 3 `FormRow` | Có (`ho-so.page.html`, chuỗi `'hoSo.doiMatKhau.tieuDe'`) | — (đủ, cùng lệch vị trí nút như trên) |
+| `Card` "Cờ đặc quyền" + nút "Từ bỏ cờ đặc quyền" ở chân | Có, đúng `slot="footer"` (`ho-so.page.html`, chuỗi `'hoSo.coDacQuyen.tieuDe'` rồi `<div slot="footer">`) | — (đủ — card duy nhất khớp đúng vị trí chân theo sơ đồ) |
+| `ConfirmDialog` `danger` xác nhận từ bỏ | Có (`ho-so.page.html`, chuỗi `<app-confirm-dialog`) | Chưa dựng trên `Dialog.md` như spec ghi ở dòng "Nền" — `Dialog` chưa có ở F2, bẫy focus/backdrop viết trực tiếp trong `ConfirmDialogComponent` — [ConfirmDialog.md](../Components/ConfirmDialog.md) |
+| `Input` `password` `revealable` | Có, mặc định `true` (`input.component.ts`, chuỗi `readonly revealable = input(true)`) | — (đủ) |
+| "Rời trang khi còn thay đổi chưa lưu" (`unsavedChangesGuard`) | Có — `canDeactivate: [unsavedChangesGuard]` trên tuyến `/ho-so` (`src/FE/src/app/platform/ho-so/ho-so.routes.ts`, chuỗi `canDeactivate: [unsavedChangesGuard]`), guard gọi `UnsavedChangesService.xinRoiTrang()` (`src/FE/src/app/core/guards/unsaved-changes.guard.ts`, chuỗi `export const unsavedChangesGuard` rồi `thayDoi.xinRoiTrang()`, so 2026-09-26, ADR-0040) | — (đủ) |
+| Làm mới phiên sau từ bỏ cờ | Có (so 2026-09-25) — `ho-so.page.ts` chuỗi `void this.auth.lamMoiPhien({ napLaiMenu: true });` hai lần: nhánh thành công, và ngay khi nhận mã ở nhánh lỗi (chuỗi `err.body?.error.code === 'CORE.PROFILE.PERMISSION_BYPASS_NOT_HELD';`); `GET` hồ sơ của ca đó chờ đóng hộp (`protected dongHopXacNhanTuBo(): void`); cờ bật nạp lại menu (`src/FE/src/app/core/auth/auth.service.ts`, chuỗi `lamMoiPhien(tuyChon: { readonly napLaiMenu?: boolean } = {})`) | — |
+| Gỡ banner nhắc và `Card` cờ ngay khi từ bỏ thành công; `GET` hồ sơ sau đó giữ form đang dở | Có (so 2026-09-26) — `ho-so.page.ts` chuỗi `this.hoSo.update((hs) => (hs ? { ...hs, coDacQuyen: false } : hs));` rồi `this.taiHoSo();` trong nhánh thành công; quy tắc form đang dở và `version` ở `private apHoSo(hs: HoSo): void`, chuỗi `const versionCu = this.hoSo()?.version ?? hs.version;`; ca nạp đè sau 409 chuỗi `this.napDeFormLanToi = true;` | — |
 
 ---
 
@@ -75,6 +97,7 @@ Câu không ghi nguồn: người dùng duyệt 2026-09-15 ([Screen.md](../Templ
 | Lựa chọn rỗng của ô ngôn ngữ | Theo mặc định của hệ thống | `hoSo.ngonNgu.macDinhHeThong` | duyệt · [profile.md](../../contracts/profile.md) §1 |
 | Tên từng ngôn ngữ | Dữ liệu seam `CORE_I18N`, không qua khoá; viết bằng **chính ngôn ngữ đó**, mỗi lựa chọn mang `lang` (cùng luật [LanguageSwitcher.md](../Components/LanguageSwitcher.md) §Accessibility) | — | [08-i18n.md](../../wiki-core/fe/08-i18n.md) §2.3 |
 | Nút lưu · nút thử lại | Lưu · Thử lại | `chung.luu` · `chung.thuLai` | [fe-ui-conventions.md](../../quy-uoc/fe-ui-conventions.md) §5.3 · [Card.md](../Components/Card.md) §Trạng thái |
+| Nút tải lại ở banner xung đột đồng thời (409) | Tải lại | `hoSo.hanhDong.taiLai` | [10-nguoi-dung.md](./10-nguoi-dung.md) §Trạng thái · [12-ma-tran-phan-quyen.md](./12-ma-tran-phan-quyen.md) §Câu chữ — cùng mẫu `<miền>.hanhDong.taiLai`, tách khỏi nút thử lại chung ở trên vì đây là tải lại dữ liệu sau xung đột, không phải thử lại cùng yêu cầu đã hỏng |
 | Toast lưu thành công · tiêu đề banner lỗi tải | Đã lưu hồ sơ. · Không tải được hồ sơ | `hoSo.thongBao.luuThanhCong` · `hoSo.loi.taiThatBai` | duyệt |
 | Thân banner lỗi tải, lỗi lưu, lỗi đổi mật khẩu | Câu dịch theo mã; không có mã thì câu mất kết nối | `loi.<mã>` · `loi.CORE.CLIENT.NO_CONNECTION` | [fe-api-client.md](../../quy-uoc/fe-api-client.md) §2.2 |
 | Thân banner — gọi quá nhanh | Như màn Đăng nhập; câu mang số giây chờ | `loi.CORE.RATE_LIMIT.EXCEEDED` | [01-dang-nhap.md](./01-dang-nhap.md) · [auth.md](../../contracts/auth.md) §10 |
@@ -102,14 +125,14 @@ Căn cứ: [profile.md](../../contracts/profile.md) §1–§3 · [auth.md](../..
 - **mặc định** — form thông tin điền sẵn từ `GET`; form đổi mật khẩu ba ô trống. Banner nhắc và `Card` cờ đặc quyền có hay không tuỳ `hasPermissionBypass`.
 - **đang tải** — `PageHeader` và `Card` đổi mật khẩu hiện ngay. Thân `Card` thông tin là `SkeletonLoader` giữ đúng năm hàng `FormRow`; tiêu đề và chân `Card` giữ nguyên, `Card` mang `aria-busy`. Banner nhắc và `Card` cờ đặc quyền **không** vẽ skeleton (chưa biết chúng có tồn tại không). Đang gửi một form: chỉ nút gửi của form đó `loading`, các ô không bị khoá.
 - **rỗng** — không áp dụng: hồ sơ luôn tồn tại cho người đang gọi. Số điện thoại trống là bình thường; ngôn ngữ rỗng → ô chọn đứng ở "mặc định hệ thống".
-- **lỗi** — `GET`/`PUT` hồ sơ, `POST` đổi mật khẩu, `POST /api/v1/core/profile/renounce-permission-bypass` đều **tắt toast** (màn tự hiện; lỗi từ bỏ cờ hiện trong hộp xác nhận):
-  - `GET` hỏng → thân `Card` thông tin là `NoticeBanner` `danger` + Thử lại; banner nhắc và `Card` cờ không render; `Card` đổi mật khẩu vẫn dùng được.
+- **lỗi** — `GET`/`PUT` hồ sơ, `POST` đổi mật khẩu, `POST /api/v1/core/profile/renounce-permission-bypass` đều **tắt toast** (màn tự hiện; lỗi từ bỏ cờ hiện trong hộp xác nhận) — trừ lớp lỗi xuyên suốt (5xx, 403 `CORE.AUTH.*`): luôn toast kèm `traceId`, banner của form và của hộp không hiện ([ADR-0094](../../adr/0094-lop-loi-xuyen-suot-luon-toast-ke-ca-khi-man-tat-toast.md)):
+  - `GET` hỏng → thân `Card` thông tin là `NoticeBanner` `danger` + Thử lại: tiêu đề `hoSo.loi.taiThatBai` luôn có; thân là câu `dichLoiChoMan`, lớp xuyên suốt thì không có thân (chi tiết và `traceId` ở toast; không viết "xem thông báo"); banner nhắc và `Card` cờ không render; `Card` đổi mật khẩu vẫn dùng được.
   - `PUT` 409 `CORE.CONCURRENCY.CONFLICT` → `NoticeBanner` `warning` đầu thân `Card` thông tin + nút **Tải lại**: `GET` lấy `version` mới, form nạp giá trị mới, người dùng nhập lại rồi Lưu. Không tự gộp, không gửi lại `version` cũ.
-  - `PUT` hỏng không có `fieldErrors` (CSRF vẫn hỏng sau gửi lại, mất mạng) → `NoticeBanner` `danger` đầu thân `Card` thông tin; form **giữ nguyên** giá trị.
+  - `PUT` hỏng không có `fieldErrors`, ngoài lớp xuyên suốt (mất mạng) → `NoticeBanner` `danger` đầu thân `Card` thông tin; form **giữ nguyên** giá trị.
   - Đổi mật khẩu `CORE.AUTH.CHANGE_PASSWORD_FAILED` → lỗi vào **ô** theo `fieldErrors`; `CORE.AUTH.PASSWORD_MISMATCH` vào ô mật khẩu hiện tại — ánh xạ theo mã. Trùng mật khẩu hiện tại → `CORE.VALIDATION.FAILED` mang `CORE.AUTH.NEW_PASSWORD_SAME_AS_CURRENT` trong `fieldErrors.NewPassword`, dưới ô mật khẩu mới. Nhiều mã cùng lúc → như [01-dang-nhap.md](./01-dang-nhap.md). Hỏng không có `fieldErrors` → `NoticeBanner` `danger` đầu thân `Card` đổi mật khẩu; ba ô giữ nguyên.
   - `CORE.RATE_LIMIT.EXCEEDED` (429) ở bất kỳ request nào → `NoticeBanner` `danger` đầu thân `Card` của form vừa gửi; thao tác từ bỏ cờ → banner trong hộp, hộp giữ mở. Câu mang số giây chờ; không toast chồng.
   - Hết phiên (401) → `SessionExpiryHandler` về đăng nhập; dữ liệu chưa lưu **mất** — v1 không có cảnh báo sớm ([07-auth-identity.md](../../wiki-core/fe/07-auth-identity.md) §10).
-  - Từ bỏ cờ hỏng → `ConfirmDialog` trạng thái `error`: `NoticeBanner` `danger` trong hộp, hộp **giữ mở**. Riêng `PERMISSION_BYPASS_NOT_HELD`: đóng hộp xong gọi lại `GET` hồ sơ để banner nhắc và khối cờ phản ánh đúng dữ liệu.
+  - Từ bỏ cờ hỏng → `ConfirmDialog` trạng thái `error`: `NoticeBanner` `danger` trong hộp, hộp **giữ mở**. Riêng `PERMISSION_BYPASS_NOT_HELD`: đóng hộp xong gọi lại `GET` hồ sơ để banner nhắc và khối cờ phản ánh đúng dữ liệu — lượt `GET` đó không đè form đang gõ dở (đoạn "`GET` hồ sơ về khi form thông tin đang dở" dưới bảng "Thao tác xong"); **ngay khi nhận mã** làm mới phiên như dòng "Từ bỏ cờ" ở bảng dưới — cờ chỉ chính chủ bỏ được và bỏ một chiều ([profile.md](../../contracts/profile.md) §3), nên mã này nghĩa là một phiên khác đã bỏ cờ và tập quyền, menu của tab này đã cũ.
 - **kiểm tra dữ liệu** — lỗi dưới đúng ô theo luật ba nhánh; bấm gửi khi còn lỗi → focus về ô lỗi đầu tiên của form đó; lỗi máy chủ gắn qua `applyFieldErrors`. Form thông tin kiểm client theo giá trị ở [profile.md](../../contracts/profile.md) §2 (không chép số): họ tên bắt buộc, có trần độ dài; số điện thoại theo khuôn của card; ngôn ngữ chọn từ danh sách một nguồn ở FE. Máy chủ vẫn kiểm cả ba, lỗi gắn vào ô theo khoá `FullName` / `PhoneNumber` / `PreferredLanguage`. Form đổi mật khẩu: như [01-dang-nhap.md](./01-dang-nhap.md).
 
 | Thao tác xong | Màn làm gì | Căn cứ |
@@ -117,7 +140,9 @@ Căn cứ: [profile.md](../../contracts/profile.md) §1–§3 · [auth.md](../..
 | Lưu | Form nhận `data` trả về; xoá cờ "có thay đổi chưa lưu"; toast `success`; **gọi lại `GET /api/v1/core/auth/me`** để `Topbar` và phiên mang họ tên mới (`Topbar` đọc tên từ phiên). Ngôn ngữ ưa thích đổi → áp ngay và ghi đè bản sao ở `localStorage` | [profile.md](../../contracts/profile.md) §2 · [auth.md](../../contracts/auth.md) §5 · [08-i18n.md](../../wiki-core/fe/08-i18n.md) §7 · [Topbar.md](../Components/Topbar.md) §API |
 | Đổi mật khẩu | Xoá ba ô và cờ thay đổi của form này; toast `success`. Phiên đang dùng **giữ nguyên** (BE cấp lại cookie); mọi phiên khác bị chấm dứt. Không đăng xuất, không bắt đăng nhập lại | [auth.md](../../contracts/auth.md) §6, Ghi chú |
 | Rời trang khi còn thay đổi chưa lưu | Hỏi qua `unsavedChangesGuard` dùng chung — màn không tự dựng hộp | [fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §4.1 |
-| Từ bỏ cờ | Đóng hộp; gỡ banner nhắc và `Card` cờ khỏi DOM; toast `success`; gọi lại `GET /api/v1/core/auth/me` để dựng lại giao diện theo tập quyền mới | [profile.md](../../contracts/profile.md) §3 |
+| Từ bỏ cờ | Đóng hộp; gỡ banner nhắc và `Card` cờ khỏi DOM **ngay khi `POST` thành công**, không phụ thuộc lượt `GET` hồ sơ bên dưới; toast `success`; gọi lại `GET /api/v1/core/auth/me` **và nạp lại menu** (menu do server lọc theo quyền — [07-auth-identity.md](../../wiki-core/fe/07-auth-identity.md) §5.4) để dựng lại giao diện theo tập quyền mới. Sau đó gọi lại `GET /api/v1/core/profile` để lấy `version` mới, vì `POST` trả `data: null`. Lượt `GET` này **không** nạp lại form thông tin khi form đang có thay đổi chưa lưu — đoạn "`GET` hồ sơ về khi form thông tin đang dở" ngay dưới bảng. Trong lúc nó chạy, thân `Card` thông tin ở trạng thái đang tải như mục Trạng thái | [profile.md](../../contracts/profile.md) §3 · [06-concurrency-control.md](../../wiki-core/be/06-concurrency-control.md) §6.3 |
+
+**`GET` hồ sơ về khi form thông tin đang dở.** "Đang dở" nghĩa là giá trị form khác mốc — giá trị ở lần nạp hoặc lần Lưu thành công gần nhất. Khi đó lượt `GET` **không** nạp lại form: chữ đang gõ và mốc giữ nguyên; tên đăng nhập, email, cờ đặc quyền vẫn theo máy chủ. `version` theo quyết định của người dùng ngày 2026-09-26: nếu máy chủ đã có giá trị khác mốc ở một trường sửa được, thì giữ nguyên chữ đang gõ nhưng giữ `version` cũ — lần Lưu kế tiếp nhận 409 và đi nhánh "Tải lại" sẵn có, không ghi đè im lặng thay đổi của người khác. Máy chủ vẫn đúng như mốc thì nhận `version` mới. Form bị nạp đè bất kể đang dở ở hai ca: lần nạp đầu, và lượt `GET` thành công kế tiếp sau một `PUT` 409 (nhánh "Tải lại" ở mục lỗi).
 
 ### Responsive
 
@@ -142,7 +167,7 @@ Theo [Icons.md](../Icons.md) §5.
 
 ### Ảnh màn hình
 
-Chưa có — repo chưa có `src/`, không có gì để chụp.
+Chưa có — màn hồ sơ đã dựng ở `src/FE` (bảng "Có thật hôm nay → sẽ thành" ở đầu file) nhưng chưa ai chạy ứng dụng chụp màn hình.
 
 ### Cần chốt
 

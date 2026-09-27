@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 13. Hiệu năng Frontend
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`, nên **chưa có số đo nào**. Mọi ngưỡng trong file này được mô tả bằng *cách chọn ngưỡng*, không bằng con số — xem §4.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. File này giữ *cách chọn ngưỡng*, không giữ con số — xem §4. Số đo build và ngưỡng đang khai nằm cạnh cổng F14: [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §8.11.
 >
 > Đo và tối ưu phía BE: [`../../quy-uoc/be-performance.md`](../../quy-uoc/be-performance.md). Số đo trải nghiệm: [`10-observability.md`](10-observability.md) §6.
 

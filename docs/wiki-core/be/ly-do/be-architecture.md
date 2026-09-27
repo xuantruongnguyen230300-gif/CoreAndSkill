@@ -117,6 +117,12 @@ nghiệm — một request gọi thẳng bằng `curl` đi qua được.
 
 ### 2.2 Vì sao chúng không được ở host
 
+Phép thử một dòng:
+
+> Một dự án mới, chưa viết gì, chỉ tham chiếu `Core.Web` và gọi `AddCore()` + `UseCoreAsync()`
+> — phải có ngay: đăng nhập, đổi mật khẩu, quản trị người dùng, phân quyền, menu động,
+> envelope thống nhất, rate limit, CSRF. Không chép file nào.
+
 `Core.Web` tồn tại để **Core tự đứng được**; thiếu bất kỳ mục nào trong phép thử nghĩa là mục đó đang
 nằm sai chỗ. Ở dự án tiền nhiệm, toàn bộ danh sách thành phần ở §2.1 nằm trong project host. Hệ quả đo được:
 **dự án thứ hai muốn dùng lại Core phải copy-paste hơn 600 dòng `Program.cs` cộng 14 file.**

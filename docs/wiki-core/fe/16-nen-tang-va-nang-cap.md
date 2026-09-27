@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 16. Nền tảng chạy và chính sách nâng cấp
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`, nên chưa có `package.json` để đối chiếu.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/`, kể cả `package.json` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
 >
 > Hai câu hỏi mà không ai đặt ra cho tới lúc đã quá muộn để trả lời rẻ: **"app này chạy được trên trình duyệt nào"** và **"bao lâu nâng framework một lần"**. File này trả lời trước cả hai.
 >

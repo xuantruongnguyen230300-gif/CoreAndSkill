@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # Lộ trình thi công Core FE — tổng thể
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo đang ở giai đoạn 1, chưa có `src/`. Toàn bộ lộ trình dưới đây là **kế hoạch cho giai đoạn 2**, không phải mô tả tiến độ.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../../README.md`](../../../README.md) mục *Trạng thái repo*. Toàn bộ lộ trình dưới đây là **kế hoạch cho giai đoạn 2**, không phải mô tả tiến độ.
 >
 > Các file `fe/01-…17-…` trả lời *"một Core FE tốt gồm gì và vì sao"*. Thư mục này trả lời *"làm theo thứ tự nào, và mỗi bước xong thì có gì chạy được"*.
 
@@ -39,7 +39,7 @@ Mỗi pha có một file riêng với định nghĩa hoàn thành và danh sách
 | Nguyên tắc | Nghĩa cụ thể |
 | --- | --- |
 | **Mỗi pha kết thúc bằng thứ chạy được** | Không phải "một thư mục đầy file". Định nghĩa hoàn thành của mỗi pha là một hành vi kiểm được bằng tay |
-| **Luật kiến trúc phải có máy kiểm** | Cổng sinh ra cùng lúc với luật, không sinh ra sau — luật chưa có cổng nằm ở [`../../../RULES.md`](../../../RULES.md) §10 |
+| **Luật kiến trúc phải có máy kiểm** | Cổng sinh ra cùng lúc với luật, không sinh ra sau — luật chưa có cổng nằm ở [`../../../DEBT.md`](../../../DEBT.md) |
 | **Một luật, một nguồn** | Envelope định nghĩa đúng một chỗ; mọi nơi khác import lại — [`../../../../.claude/CLAUDE.md`](../../../../.claude/CLAUDE.md) §5 |
 | **Viết đúng ngay từ đầu, không dọn nợ sau** | Bốn pha này là xây mới. Không có giai đoạn "đồng bộ" hay "dọn nợ" nào, vì không có gì để đồng bộ ngược |
 
@@ -163,7 +163,7 @@ Danh sách này là **quyết định**, không phải việc tồn đọng. M�
 | Cổng của pha đó bật và đã được chứng minh bằng canary | Cổng chạy xanh (xanh có thể vì mù — [`05-gate.md`](05-gate.md) §4.3) |
 | Test của phần mới đã từng đỏ trước khi xanh | Có file test |
 
-**Không "đóng" một pha bằng cách dời mục chưa xong sang pha sau.** Nếu buộc phải dời, mục đó phải được ghi ra tường minh như một khoản nợ, kèm điều kiện xử lý — theo đúng tinh thần [`../../../RULES.md`](../../../RULES.md) §10.
+**Không "đóng" một pha bằng cách dời mục chưa xong sang pha sau.** Nếu buộc phải dời, mục đó phải được ghi ra tường minh như một khoản nợ, kèm điều kiện xử lý — theo đúng tinh thần [`../../../DEBT.md`](../../../DEBT.md).
 
 Lý do luật này tồn tại: một mục nghiệm thu bị dời im lặng sẽ không bao giờ được làm. Nó không nằm trong pha nào cả, và không ai chịu trách nhiệm cho nó.
 

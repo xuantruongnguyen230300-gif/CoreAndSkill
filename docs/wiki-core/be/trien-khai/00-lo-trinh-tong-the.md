@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # Lộ trình thi công Core BE — tổng thể
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo đang ở giai đoạn 1, chưa có `src/`. Toàn bộ lộ trình dưới đây là **kế hoạch cho giai đoạn 2**, không phải mô tả tiến độ.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/BE` đã có trên đĩa, nên một phần lộ trình dưới đây **đã chạy rồi**.
+>
+> 🛑 Bảng lộ trình dưới đây **vẫn là kế hoạch, không phải bảng tiến độ**: chưa ai đối chiếu từng pha với code, nên đừng đọc một ô nào ở đây như bằng chứng pha đó đã xong. Pha nào thật sự xong thì kiểm bằng cách mở `src/BE` ra so. `verified:` giữ `chua-doi-chieu`.
 >
 > Các file `be/01-…18-…` trả lời *"một Core BE tốt gồm gì và vì sao"*. Thư mục này trả lời *"làm theo thứ tự nào, và mỗi bước xong thì có gì chạy được"*. Bản đối xứng phía FE: [`../../fe/trien-khai/00-lo-trinh-tong-the.md`](../../fe/trien-khai/00-lo-trinh-tong-the.md).
 
@@ -50,7 +52,7 @@ B0 ──► B1 ──► B2 ──► B3 ──► B4
 | Nguyên tắc | Nghĩa cụ thể |
 | --- | --- |
 | **Mỗi pha kết thúc bằng thứ chạy được** | Không phải "một solution đầy project". Định nghĩa hoàn thành của mỗi pha là một hành vi kiểm được qua HTTP hoặc qua một lệnh |
-| **Luật có cổng cùng lúc với luật** | Luật chưa có cổng nằm ở [`../../../RULES.md`](../../../RULES.md) §10, không nằm trong đầu người viết |
+| **Luật có cổng cùng lúc với luật** | Luật chưa có cổng nằm ở [`../../../DEBT.md`](../../../DEBT.md), không nằm trong đầu người viết |
 | **Chỉ dựng thứ thuộc Nhóm A** | Thành phần Nhóm B ([`../01-core-components.md`](../01-core-components.md) §2) chỉ dựng khi ngưỡng chạm. Năm pha này **không** bao gồm chúng |
 | **Hợp đồng trước code** | Endpoint nào có người dùng thật thì card ở [`../../../contracts/`](../../../contracts/) phải xong trước — FE làm song song theo card đó |
 

@@ -23,7 +23,7 @@ Một feature đi qua nhiều agent theo một thứ tự nhất định, và **
 
 Skill này giữ thứ tự đó và tự nối các agent lại. Người dùng gọi một lệnh, không phải gọi từng agent.
 
-## ⚠️ Giai đoạn 1 — kiểm TRƯỚC KHI làm gì khác
+## ⚠️ Kiểm giai đoạn repo TRƯỚC KHI làm gì khác
 
 Repo có thể đang ở giai đoạn chỉ có `docs/` và `.claude/`, **chưa có `src/`**. Xác nhận bằng lệnh, đừng tin trí nhớ:
 

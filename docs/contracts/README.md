@@ -6,8 +6,10 @@ verified: chua-doi-chieu
 
 # `contracts/` — hợp đồng API giữa BE và FE
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/` — không endpoint nào đã được viết. BE đã cam
-> kết endpoint nào chưa: **đọc dòng `Status:` của từng card** (§3).
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). Controller đã có trong `src/BE` — đếm
+> bằng `grep -l 'Route(' src/BE/Core/CoreAndSkill.Core.Web/Controllers/*.cs`. Vì vậy trạng thái
+> của một endpoint **không** đọc ở dòng này: **đọc dòng `Status:` của từng card** (§3). Khu này
+> chưa được đối chiếu toàn bộ với code, nên `verified:` giữ `chua-doi-chieu`.
 
 ## 1. Khu này là gì
 
@@ -22,6 +24,7 @@ phải chờ nhau.
 | [`permissions.md`](permissions.md) | Ma trận quyền, ma trận theo tài nguyên, danh mục permission |
 | [`meta-menu.md`](meta-menu.md) | Menu động theo quyền, metadata lưới/form |
 | [`client-errors.md`](client-errors.md) | Báo lỗi runtime của trình duyệt về server |
+| [`diagnostics.md`](diagnostics.md) | Endpoint thử của B0 — tự-kiểm cầu nối `Result` → HTTP, không phải hợp đồng nghiệp vụ |
 | [`tenants.md`](tenants.md) | Khu quản trị hệ thống: danh sách đơn vị, tạo đơn vị, ngưng và bật lại, khôi phục tài khoản quản trị đơn vị, tạo tài khoản quản trị mới |
 | [`roles.md`](roles.md) | Quản trị vai trò: danh sách, chi tiết, tạo, đổi tên, xoá |
 | [`profile.md`](profile.md) | Hồ sơ cá nhân: xem và tự sửa thông tin cơ bản, tự bỏ cờ bỏ qua kiểm quyền |
@@ -91,9 +94,18 @@ thể xảy ra; thiếu nó, FE sẽ viết đúng một nhánh `catch` chung v�
 thử endpoint thật và **thay ví dụ trong card bằng response thật** — không phải khi code biên dịch
 xong.
 
-> 🛑 Giai đoạn 1 chưa có `src/`, nên **không card nào được mang `IMPLEMENTED`**. Dán nhãn đó cho
-> một endpoint chưa ai viết là đúng khuôn sai mà [`../RULES.md`](../RULES.md) §1 **D16** cấm —
-> luật *"không tuyên bố `CÓ THẬT` khi repo chưa có `src/` để đối chiếu"*.
+> 🛑 **Điều kiện mang `IMPLEMENTED` là điều kiện của từng card, không phải của cả repo.** Một
+> card chỉ được mang nhãn đó khi **cả ba** đúng, và cả ba đều kiểm được:
+>
+> 1. Route trong card có một action tương ứng dưới `src/BE/Core/CoreAndSkill.Core.Web/Controllers/`.
+> 2. Endpoint đã được **gọi thử thật**, không phải chỉ biên dịch xong.
+> 3. Ví dụ trong card **là response thật** của lần gọi đó, không phải phác thảo.
+>
+> Điều kiện 2 và 3 là phần nặng: một route tồn tại **không** chứng minh nó chạy được, và
+> [`../RULES.md`](../RULES.md) §1 **D16** cấm đúng cái bẫy này — tuyên bố `CÓ THẬT` cho thứ chưa
+> ai mở ra đối chiếu. Cổng §11 của [`../../.claude/check-docs.sh`](../../.claude/check-docs.sh)
+> ép D16 **chỉ khi chưa có `src/`**; nay đã có `src/` nên mục đó tự tắt, và ba điều kiện trên
+> hiện **không có cổng nào canh** — chúng do người chuyển nhãn tự kiểm.
 
 ## 4. Envelope
 
@@ -142,9 +154,17 @@ lý exception toàn cục phát, **không** lộ chi tiết, chỉ `traceId`.
 
 Phần thuộc riêng khu này ở dưới. Khuôn **không** được chép lại ở đây — hai bản khuôn đã đồng bộ sẽ lệch lại, và người sửa chỉ sửa một bên ([`../OWNERSHIP.md`](../OWNERSHIP.md) §1).
 
-Luật R3 ([`../RULES.md`](../RULES.md) §5) ép hai điều: **khớp khuôn** và **duy nhất trong toàn
-hệ** — ArchTest `EveryBusinessCode_Matches_Format` và `_IsUnique`. Trùng mã giữa hai module làm
-FE hiển thị sai câu ở đúng một trong hai chỗ, và không có gì báo.
+Luật R3 ([`../RULES.md`](../RULES.md) §5) đòi hai điều: **khớp khuôn** và **duy nhất trong toàn
+hệ**. ✅ CÓ THẬT (đối chiếu 2026-09-27): `src/BE/Tests/CoreAndSkill.Core.UnitTests/Common/B4SupportTests.cs`
+mang hai test `B4ErrorCodes_MatchTheDocumentedFormat` và
+`B4ErrorCodes_AreUnique_AlsoAgainstTheCommonCatalog` (chuỗi `B4ErrorCodes_AreUnique_AlsoAgainstTheCommonCatalog`).
+Hai test này quét 9 catalog của pha B4 (`FileErrors`, `FileDomainErrors`, `JobErrors`,
+`JobStateErrors`, `OutboxErrors`, `OutboxHandlingErrors`, `NotificationErrors`, `ImportErrors`,
+`ExportErrors`) cộng `CommonErrors.Unexpected` — **chưa gồm**
+`UserErrors`/`RoleErrors`/`TenantErrors`/`PermissionErrors`, nên "duy nhất trong toàn hệ" theo
+đúng nghĩa luật R3 chưa có ArchTest phủ hết; trạng thái của mã R3 nằm ở
+[`../RULES.md`](../RULES.md) §5. Trùng mã giữa hai module làm FE hiển thị sai câu ở đúng một
+trong hai chỗ, và không có gì báo.
 
 Mã trong `fieldErrors` dùng **cùng khuôn** với mã ở gốc — không phải một hệ đặt tên thứ hai.
 

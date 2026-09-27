@@ -9,22 +9,22 @@ Ba tài sản gắn chặt với nhau:
 | **`docs/`** | **Nguồn tri thức duy nhất.** Kiến trúc, quy ước code, hợp đồng API, schema, thiết kế giao diện. Code và agent đều phải phục tùng. | [`docs/README.md`](docs/README.md) |
 | **`.claude/`** | Bộ agent và skill: phân tích nghiệp vụ như BA, code như senior, review độc lập, sinh test, viết tài liệu. | [`.claude/README.md`](.claude/README.md) |
 | **`spec/`** | Nghiệp vụ theo từng feature — không đi theo Core sang dự án khác. | [`spec/README.md`](spec/README.md) |
-| **`src/`** | Source Core và các module. **Chưa tồn tại** — xem Trạng thái. | — |
+| **`src/`** | Source Core và các module. Đã có trên đĩa, **chưa vào git** — xem Trạng thái. | — |
 
 ---
 
-## ⚠️ Trạng thái: giai đoạn 1
+## ⚠️ Trạng thái: 🚧 ĐÃ CHỐT — ĐANG THI CÔNG
 
-**Repo chưa có `src/`.**
-
-Đây là trạng thái theo thiết kế, không phải dở dang: `src/` sẽ được xây ở giai đoạn 2 và **bám theo `docs/`**. Viết tài liệu trước cho phép quyết định kiến trúc được đưa ra lúc còn rẻ nhất để đảo.
+**`src/` đã có trên đĩa nhưng chưa vào git.** Tám điều kiện chuyển sang giai đoạn 2 ở [`docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md`](docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md) đã đạt — điều kiện 3 hoãn hợp lệ theo cơ chế thay thế ở [`docs/adr/0035-hoan-dieu-kien-3-den-pr-cham-core-dau-tien.md`](docs/adr/0035-hoan-dieu-kien-3-den-pr-cham-core-dau-tien.md) (chứng minh ở PR đầu tiên chạm một đường dẫn `core-paths`, chưa xảy ra). `architect` đối chiếu tám điều kiện ngày 2026-09-16; nhãn này lật cùng đợt.
 
 Điều kiện chuyển sang giai đoạn 2, và ai lật nhãn trạng thái: [`docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md`](docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md).
 
+**Nguồn duy nhất của mục này** — cái gì có trên đĩa, cái gì trong git, cổng nào vì thế chưa chạy: [`docs/README.md`](docs/README.md) mục *Trạng thái repo*. Dưới đây chỉ là hệ quả cho người mới mở repo.
+
 Hệ quả cần biết khi đọc:
 
-- Mọi mô tả kiến trúc trong `docs/` mang nhãn `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG`.
-- Gần như mọi file mang `verified: chua-doi-chieu` — chưa có source để đối chiếu. Đó là giá trị **trung thực**, không phải nợ.
+- Mọi mô tả kiến trúc trong `docs/` vẫn mang nhãn `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG` hoặc `verified: chua-doi-chieu` cho tới khi có người đối chiếu trực tiếp đúng file đó với `src/` — **riêng lẻ, không hàng loạt**. Nhãn ở mục này chỉ nói *quyết định chuyển giai đoạn đã chốt*, không xác nhận nội dung từng file đã đối chiếu.
+- Lớp 3 chặn Core (hook `Stop` khi có `src/`) **chưa được thử bằng payload thật** — chỉ chứng minh sống ở PR đầu tiên chạm Core, xem ADR-0035.
 - Nhóm skill sinh code (`/core-new-module`…) cố ý chưa viết: một skill scaffold cần một module mẫu đã chạy được để sao chép.
 
 ---
@@ -58,7 +58,7 @@ Lý do của từng lựa chọn, kèm phương án đã loại và cái giá ph
 
 ## Cổng
 
-Giai đoạn 1 có **một** cổng, chạy từ gốc repo:
+Cổng chạy được trên máy bất kỳ lúc nào, từ gốc repo:
 
 ```bash
 bash .claude/check-docs.sh
@@ -70,7 +70,7 @@ CI chạy cổng này trên mỗi pull request — xem [`.github/workflows/docs-
 
 > ⚠️ **PASS không có nghĩa là tài liệu ĐÚNG.** Cổng không đọc hiểu nội dung. Ba loại lỗi nó không bao giờ bắt được — văn xuôi tả thứ không tồn tại, sơ đồ chép sai, ngày đúng nhưng nội dung sai — liệt kê ở [`.claude/CLAUDE.md`](.claude/CLAUDE.md) §8.
 
-Cổng backend và frontend sẽ được thêm ở giai đoạn 2. Chúng **chưa tồn tại**; đừng nhắc tới chúng như thể đã có.
+Cổng backend và frontend **đã có** trong [`.github/workflows/docs-gate.yml`](.github/workflows/docs-gate.yml), bật theo điều kiện `src/BE` / `src/FE` có mặt trong cây checkout. Vì `src/` chưa vào git nên chúng **chưa chạy lần nào** — đừng trích kết quả của chúng như thể đã có.
 
 ---
 

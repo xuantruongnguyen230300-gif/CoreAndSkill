@@ -6,9 +6,33 @@ verified: chua-doi-chieu
 
 # EmptyState
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** tự dựng. Theo tiêu chí ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 đây là component trình bày thuần — không hành vi nào, chỉ có **câu chữ đúng**, và câu chữ đúng là thứ không thư viện nào cho được.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/components/empty-state/empty-state.component.ts` — selector `app-empty-state`, class gốc `.empty-state`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | `variant` và `title` đều `input.required`; thêm `size`, `description`, `icon`, `actionLabel`, `actionRoute`, `headingLevel`, output `actionClicked` | — |
+| Bảy biến thể | Đủ cả bảy trong kiểu `EmptyStateVariant`: `first-use`, `no-results`, `error`, `no-permission`, `not-configured`, `not-found`, `record-not-found` | — |
+| Icon mặc định theo biến thể | Có, hằng `ICON_MAC_DINH` ánh xạ đúng từng dòng §Biến thể (`inbox`, `search`, `times-circle`, `lock`, `cog`, `compass`, `compass`); `icon()` truyền vào thì đè | — |
+| Vai nút theo biến thể | Có, `bienTheNut` cho `primary` ở `first-use` và `not-configured`, `secondary` ở phần còn lại — khớp cột "Hành động" của §Biến thể | — |
+| Ba cỡ | Đủ và khớp **từng con số** §Kích thước: đệm dọc `--sp-8`/`--sp-10`/`--sp-12`, vòng tròn `--icon-circle-sm`/`-md`/`-lg`, cỡ chữ tiêu đề `--fs-md`/`--fs-lg`/`--fs-xl` | — |
+| Icon không phóng to theo cỡ | Đúng chủ đích spec: `default` và `page` cùng `--icon-xl`, chỉ `compact` hạ xuống `--icon-lg`; vòng tròn mới là thứ đổi | — |
+| Biến thể `error` | Vòng tròn `--color-danger-bg`, icon `--color-danger` | — |
+| Khe dọc | Cả ba khớp spec: icon → tiêu đề `--sp-6`, tiêu đề → mô tả `--sp-3`, mô tả → nút `--sp-6` | — |
+| Bề rộng tối đa, căn giữa | Có, `--layout-dialog-w-sm` + `margin: 0 auto` + `text-align: center` | — |
+| Màu chữ | Tiêu đề `--color-text` `--fw-semibold`; mô tả `--color-text-muted` `--fs-sm` `--lh-normal` — khớp spec | — |
+| `headingLevel` ra thẻ tiêu đề thật | Có, `@switch` dựng `<h2>`/`<h3>`/`<h4>`, mặc định `3` | — |
+| Hai dạng hành động | Có: `actionRoute` khác `null` thì vẽ `<a routerLink>`, ngược lại vẽ `app-button`; `actionClicked` **chỉ** phát ở nhánh không có route | — |
+| Vòng tròn icon mang `aria-hidden` | Có | — |
+| Không có `hover`/`focus` ở mức component | Đúng — không có quy tắc nào trên `.empty-state` | — |
+| Hình thức của liên kết `actionRoute` | Chỉ có `margin-top: var(--sp-6)` | Không có màu, không có gạch chân, không có trạng thái `hover`/`focus-visible` riêng — liên kết ăn kiểu mặc định của trình duyệt. Spec cũng **chưa** mô tả hình thức cho dạng liên kết này; đây là khoảng trống của cả hai bên |
+
+Chưa đối chiếu: §Responsive, §Accessibility (mới xác nhận `aria-hidden` trên vòng tròn icon và thẻ tiêu đề thật; chưa soát phần còn lại), và tầng i18n của `title`/`description`/`actionLabel` — ba chuỗi này do nơi gọi truyền vào đã dịch.
 
 ---
 
@@ -127,7 +151,7 @@ Ba đường kính vòng tròn là bí danh `--icon-circle-*` khai ở [`../DESI
 | `size` | input | `'compact' \| 'default' \| 'page'` | `'default'` | |
 | `title` | input | `string` | — | Bắt buộc. Component không có câu mặc định cho biến thể nào — màn cấp khoá i18n, để câu luôn nói đúng tình huống (§Viết câu chữ) |
 | `description` | input | `string \| null` | `null` | |
-| `icon` | input | `string \| null` | `null` | `null` = dùng icon mặc định của biến thể |
+| `icon` | input | `string \| null` | `null` | `null` = dùng icon mặc định của biến thể. Khác `null` thì là **tên trần**: `inbox`, không phải `pi-inbox` — [`../Icons.md`](../Icons.md) §5 |
 | `actionLabel` | input | `string \| null` | `null` | `null` = không vẽ hành động |
 | `actionRoute` | input | `string \| null` | `null` | Khác `null` thì hành động là **liên kết** tới tuyến này, và `actionClicked` không phát. Cùng khuôn nhận tuyến qua `input()` như `breadcrumbs` của [`PageHeader.md`](./PageHeader.md) — component không tự đọc router |
 | `headingLevel` | input | `2 \| 3 \| 4` | `3` | Cấp heading, do nơi gọi quyết định theo vị trí |

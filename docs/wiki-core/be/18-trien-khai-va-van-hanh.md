@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 18. Triển khai và vận hành backend
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Code của chủ đề này đã có một phần dưới `src/BE`, nhưng **chưa mục nào trong tệp được đối chiếu** với nó — tệp vẫn trong tầm chấm review (2026-09-24).
 >
 > **Máy chủ chạy Linux (chốt 2026-09-10); cách chạy, nguồn bí mật và cơ chế job nền chốt ở §7 (2026-09-15).** File này khai **nguyên tắc trung lập nền tảng** ở §1–§6 — đúng dù chạy trên máy chủ riêng, container hay dịch vụ lưu trữ; phần cụ thể chỉ nằm ở §7.
 >
@@ -24,8 +24,9 @@ Build riêng cho từng môi trường nghĩa là thứ đã thử ở môi trư
 
 | Luật | Vì sao |
 | --- | --- |
-| Bí mật **không** nằm trong repo, kể cả tệp cấu hình theo môi trường | [`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md) §6 |
+| Bí mật **dạng rõ** **không** nằm trong repo, kể cả tệp cấu hình theo môi trường — ngoại lệ có tên duy nhất chỉ dành cho DB dev chung, không cho môi trường máy chủ nào | [`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md) §6, §6.4 |
 | Ở môi trường thật, bí mật đến từ **nguồn ngoài cây làm việc** do nền tảng cấp — biến môi trường hoặc kho bí mật | Đổi bí mật không cần build lại, và artifact rò ra ngoài không mang bí mật theo |
+| `appsettings.Development.json` **không** đi vào artifact publish | Tệp đó mang khoá `dev` và bản mã mật khẩu DB dev ([`../../adr/0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md`](../../adr/0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md)). Không môi trường máy chủ nào dùng khoá `dev` (luật S25) |
 | Thứ tự ưu tiên của framework: tệp mặc định → tệp theo môi trường → **biến môi trường thắng** | Người vận hành ghi đè được mọi giá trị mà không sửa tệp đã đóng gói |
 | Thiếu một giá trị bắt buộc thì app **không khởi động** — ở **mọi** môi trường, kể cả máy dev | [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §4 — hỏng lúc triển khai, không hỏng lúc người dùng chạm tới |
 
@@ -38,6 +39,20 @@ grep -rn 'ValidateOnStart' src/BE --include='*.cs'
 ## 3. Proxy đứng trước API
 
 Có proxy thì khai danh sách proxy tin cậy; không có thì để trống. Vị trí bước này và hai cách hỏng: [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §3.1, ràng buộc 4.
+
+### Khoá cấu hình proxy tin cậy — định nghĩa gốc
+
+| Khoá | Giá trị | Ví dụ |
+| --- | --- | --- |
+| `Core:Network:KnownProxies` | Mảng địa chỉ IP, mỗi proxy một mục | `["10.0.0.5"]` |
+| `Core:Network:KnownNetworks` | Mảng dải mạng dạng CIDR | `["10.0.0.0/24"]` |
+
+- **Hai khoá cùng rỗng hoặc vắng = không tin nguồn nào.** Header `X-Forwarded-For` / `X-Forwarded-Proto` bị bỏ qua hẳn. Đây là giá trị đúng khi app nhận kết nối trực tiếp.
+- **Có ít nhất một mục** thì header chuyển tiếp chỉ được áp khi kết nối TCP đến từ đúng proxy hoặc dải đã khai. Danh sách loopback mặc định của framework **không** cộng thêm vào.
+- **Mục sai dạng thì app không khởi động**, thông báo nêu tên khoá — cùng luật fail-fast ở [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §4.
+- Qua biến môi trường, chỉ số mảng đi sau hai dấu gạch dưới: `Core__Network__KnownProxies__0=10.0.0.5`.
+
+> ⚠️ **Rỗng phải có nghĩa là tắt, và điều đó không tự có.** Middleware chuyển tiếp của framework chỉ đối chiếu nguồn khi ít nhất một trong hai danh sách có mục. Xoá danh sách mặc định mà vẫn bật cờ chuyển tiếp thì nó **tin mọi nguồn** — ai cũng tự đặt được IP để chọn phân vùng rate limit ([`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §6.3). Vì thế cờ chuyển tiếp chỉ bật khi đã khai ít nhất một mục.
 
 ## 4. Thứ tự triển khai một bản mới
 
@@ -76,5 +91,6 @@ v1 chạy **một instance** nên mỗi lần triển khai có gián đoạn ng�
 | **Hệ điều hành máy chủ** | ✅ Linux — chốt 2026-09-10 | |
 | **Cách chạy bản thật** | ✅ Docker Compose — chốt 2026-09-15 | Một máy chủ Linux, không cloud ở v1 |
 | **Nguồn bí mật ở bản thật** | ✅ Biến môi trường do Compose cấp từ tệp `.env` **ngoài repo** — chốt 2026-09-15 | Cùng khoá cấu hình với `user-secrets` ở máy dev; không Vault ở v1. Tệp `.env` không commit ([`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md) §6) |
-| **Cơ chế job nền** | ✅ `BackgroundService` của .NET, không thư viện — chốt 2026-09-15 | Sau seam `IBackgroundJobScheduler` ([`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1). Xem lại (Quartz.NET) chỉ khi cần lịch cron do người dùng cấu hình |
+| **Cơ chế job nền** | ✅ `BackgroundService` của .NET, không thư viện — chốt 2026-09-15 | Hai hình dạng, ranh giới khai ở [`../../quy-uoc/be-architecture.md`](../../quy-uoc/be-architecture.md) §1.1: chạy một lần theo yêu cầu thì qua seam `IBackgroundJobScheduler`, lặp theo chu kỳ thì `BackgroundService` riêng — [`../../adr/0047-job-dinh-ky-khong-di-qua-seam-lap-lich.md`](../../adr/0047-job-dinh-ky-khong-di-qua-seam-lap-lich.md). Xem lại (Quartz.NET) chỉ khi cần lịch cron do người dùng cấu hình |
+| **Kho tệp (`Core:File:RootPath`)** | ✅ Volume có tên `coreandskill-files` gắn vào thư mục tạo sẵn trong image — chốt 2026-09-21 | Khoá bắt buộc, không mặc định, không nằm ở `appsettings.json`; khai ở `docker-compose.yml` (`Core__File__RootPath`) chứ không qua `.env` vì không phải bí mật. Máy dev đặt bằng `dotnet user-secrets set "Core:File:RootPath" "<đường dẫn tuyệt đối, ngoài thư mục ứng dụng>"` — thư mục phải có sẵn và ghi được, nếu không tiến trình không lên. Sao lưu cùng DB, phục hồi về cùng mốc: [`14-file-storage.md`](14-file-storage.md) §8 |
 | **Triển khai không gián đoạn** | ❌ chưa | Cần nhiều instance — điều kiện ở ADR-0014 |

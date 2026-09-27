@@ -6,9 +6,33 @@ verified: chua-doi-chieu
 
 # Badge
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** tự dựng, không bọc PrimeNG. Lý do ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 — nó là một `<span>` có đệm và có màu, không có hành vi nào cả. Đây là component rẻ nhất trong mục lục để tự dựng và đắt nhất để đi bọc, vì phần lớn công việc là đè lại hệ màu mặc định của thư viện.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/components/badge/badge.component.ts` — selector `app-badge`, class gốc `.badge`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | Đủ chữ ký §API dự kiến: `variant`, `size`, `shape`, `icon`, `uppercase`, `onSurface2`; **không có output nào**, đúng chủ đích spec | — |
+| Mặc định `variant` = `neutral` | Đúng chủ đích spec | — |
+| Họ trạng thái | Đủ bốn: `.badge--success`/`--warning`/`--danger`/`--info`, mỗi cái đủ bộ ba token `*-bg` / màu chữ / `*-border` đúng như bảng §Biến thể khai | — |
+| Họ định danh | `neutral` là trạng thái nghỉ của `.badge` (`--color-surface-2`, `--color-text`, `--color-border`); `.badge--outline` nền trong suốt, chữ `--color-text-muted` | — |
+| Hai cỡ | `md` ở trạng thái nghỉ (`--fs-xs`, đệm `--sp-2`/`--sp-4`), `.badge--sm` (`--fs-2xs`, đệm `--sp-1`/`--sp-3`) — khớp bảng §Kích thước | — |
+| Không dùng thang `--size-control-*` | Đúng — chiều cao sinh từ cỡ chữ, `--lh-snug` và đệm dọc | — |
+| `shape` | `.badge--square` đổi sang `--radius-sm`; `pill` là `--radius-pill` ở trạng thái nghỉ | — |
+| `uppercase` kèm `--ls-wide` | Có, `.badge--uppercase` đặt cả `text-transform` lẫn `letter-spacing` | — |
+| `onSurface2` | Có, `.badge--on-surface-2` đổi viền sang `--color-border-strong` | Mục kiểm mà spec đòi ("người dựng có thể quên") vẫn chưa có gì cưỡng chế — không có test, không có cổng |
+| Nhãn `--fw-bold`, không xuống dòng | Có (`--fw-bold`, `white-space: nowrap`) | — |
+| Icon dẫn, khe `--sp-1`, cỡ `--icon-sm`, `aria-hidden` | Có | — |
+| Sáu trạng thái "không áp dụng" | Đúng — không có `tabindex`, không có xử lý sự kiện, không có quy tắc `:hover`/`:focus`/`:active`/`:disabled` nào trong SCSS | — |
+| Trạng thái `empty` | — | **Chưa có.** Spec đòi nhãn rỗng hoặc `null` thì **không vẽ gì cả**; template luôn vẽ `<span class="badge">` bọc `<ng-content />`, nên một nhãn rỗng vẫn ra một viên trống — đúng thứ spec nói trông như dữ liệu bị mất |
+
+✅ **Quy ước tên icon đã chốt (2026-09-23) và `Badge` đang đúng.** `badge.component.html` § `'pi-' + icon()` ghép tiền tố trong template, tức nơi gọi truyền `check` — đúng chiều "tên trần" ở [`../Icons.md`](../Icons.md) §5. Ghi chú cũ ở đây khai [`Button.md`](./Button.md) đi chiều ngược lại; **đó là mô tả sai**: `button.component.html` § `'pi-' + icon()` ghép y như `Badge`, và `button.component.spec.ts` có ca kiểm khoá chiều đó lại. Hai nơi thật sự lệch là [`Topbar.md`](./Topbar.md) và [`NoticeBanner.md`](./NoticeBanner.md).
+
+Chưa đối chiếu: §Responsive, tương phản màu thật khi `Badge` nằm trên `--color-surface-2` (đo trên app đang chạy), và cách `[class]` của Angular hoà với `class` tĩnh trong template này (cần dựng thật mới biết chuỗi class cuối cùng).
 
 ---
 
@@ -129,7 +153,7 @@ Sáu dòng "không áp dụng" liên tiếp là **có chủ đích và là đi�
 | `variant` | input | `'neutral' \| 'outline' \| 'success' \| 'warning' \| 'danger' \| 'info'` | `'neutral'` | Mặc định là họ định danh **có chủ đích**: quên khai thì ra một nhãn trung tính, không ra một tuyên bố ngữ nghĩa sai |
 | `size` | input | `'sm' \| 'md'` | `'md'` | |
 | `shape` | input | `'pill' \| 'square'` | `'pill'` | |
-| `icon` | input | `string \| null` | `null` | Tên icon PrimeIcons, không kèm tiền tố `pi `. Luôn là trang trí |
+| `icon` | input | `string \| null` | `null` | **Tên trần** của icon PrimeIcons: `check`, không phải `pi-check`. Component tự ghép — [`../Icons.md`](../Icons.md) §5. Luôn là trang trí |
 | `uppercase` | input | `boolean` | `false` | Bật thì kèm `--ls-wide`. Không bật cho chữ tiếng Việt có dấu — chữ hoa có dấu ở 11px rất khó đọc |
 | `onSurface2` | input | `boolean` | `false` | Báo rằng `Badge` đang nằm trên nền `--color-surface-2`, để đổi viền sang `--color-border-strong`. Xem ghi chú dưới |
 

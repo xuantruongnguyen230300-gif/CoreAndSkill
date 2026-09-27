@@ -6,7 +6,14 @@ verified: chua-doi-chieu
 
 # Contract card — Hồ sơ cá nhân
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`. BE đã cam kết endpoint nào: đọc dòng `Status:` của từng card.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20, **chỉ ở mức định tuyến**). Mọi card giữ
+> nguyên `Status:` đang có: chưa endpoint nào được gọi thử ([`README.md`](README.md) §3).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/ProfileController.cs` có action `Get`, `Update`, `RenouncePermissionBypass` — khớp route §1–§3 | Gọi thử thật, thay ví dụ bằng response thật, rồi mới lật `Status:` |
+> | Cả ba action mang `AuthenticatedOnly` kèm chuỗi lý do — khớp dòng `Quyền:` của từng card | — |
+> | Thân request/response, bảng lỗi, cơ chế tự bỏ cờ bypass: **chưa ai đối chiếu với handler** | Đối chiếu từng card rồi mới lật `verified:` |
 >
 > Envelope, mã lỗi, bảo mật chung: [`README.md`](README.md). Danh tính và phiên: [`auth.md`](auth.md).
 

@@ -6,7 +6,14 @@ verified: chua-doi-chieu
 
 # Kiến trúc Frontend — bốn tầng và hàng rào giữ chúng
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo đang ở giai đoạn 1, chưa có `src/`: file này mô tả thứ `src/FE` **phải trở thành**, không phải hiện trạng.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §2.8 và §3**; phần còn lại chưa ai đối chiếu):
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/FE/src/app/core/list/list-state.store.ts` — `connect(`, `TEN_DUNG_CHUNG`; luật 9 §2.8 (đối chiếu 2026-09-24): `// Luật 9:`, và `list-state.store.spec.ts` cạnh nó có `describe('luật 9` | — |
+> | `src/FE/src/app/platform/he-thong/don-vi/services/don-vi.mapper.ts` — `mapDonVi` ở `services/`; `state/` có ở ba feature của `platform/`, ví dụ `src/FE/src/app/platform/he-thong/don-vi/state/tao-don-vi.store.ts` — `class TaoDonViStore` ([ADR-0049](../adr/0049-trang-thai-quy-trinh-hop-thoai-o-state-khong-o-services.md)) | — |
+> | §2.6 luật F39 **đã khớp về chỗ đặt** (đọc mã 2026-09-24): `src/FE/src/app/core/theme/core-animations.ts` có `export function provideCoreAnimations(`; `src/FE/src/app/app.config.ts` chỉ còn dòng nối `provideCoreAnimations(),`; ngoài `*.spec.ts`, không tệp nào khác dưới `src/FE/src/app` khớp `provideAnimationsAsync(` | — cổng: [`../RULES.md`](../RULES.md) F39 |
+> | 🚧 §2.3 `platform/loi/` (chốt 2026-09-25): hai page nằm thẳng dưới `src/FE/src/app/platform/loi/` — `khong-co-quyen.page.ts`, `khong-tim-thay.page.ts` — ngoài mọi `pages/`, nên F10 không quét | Dời vào `loi/pages/khong-co-quyen/`, `loi/pages/khong-tim-thay/`; hai `loadComponent` ở `app.routes.ts` đổi cùng lượt |
 >
 > Lý do đằng sau ranh giới Core ↔ Module (chung cho cả BE lẫn FE): [`../kien-truc-core-module.md`](../kien-truc-core-module.md).
 
@@ -83,13 +90,14 @@ core/
 ├── auth/            # trạng thái phiên, đăng nhập/đăng xuất, permission signal
 ├── config/          # InjectionToken seam: CORE_ROUTES, CORE_BRANDING, CORE_I18N
 ├── guards/          # authGuard, permissionGuard, mustChangePasswordGuard
-├── http/            # envelope model, hàm CRUD dùng chung, unwrap, mapper lỗi
+├── http/            # envelope model, hàm CRUD dùng chung, unwrap, mapper lỗi, dịch mã lỗi (dich-loi.ts)
 ├── interceptors/    # thứ tự khai ở fe-api-client.md, KHÔNG tuỳ tiện
 ├── i18n/            # cấu hình ngx-translate, loader, service đổi ngôn ngữ
 ├── list/            # trạng thái màn danh sách: GridQuery, ListStateStore — §2.8
 ├── menu/            # menu động theo quyền
 ├── theme/           # preset PrimeNG, chuyển sáng/tối — cơ chế ở wiki-core/fe/04 §7
-└── toast/           # service giữ hàng đợi toast (component Toast bọc PrimeNG nên nằm ở shared/ui/)
+├── toast/           # service giữ hàng đợi toast (component Toast bọc PrimeNG nên nằm ở shared/ui/)
+└── unsaved-changes/ # hỏi-và-chặn khi rời màn còn thay đổi chưa lưu (fe-routing-guard.md §4.1); hộp thoại ở platform/shell/
 ```
 
 | Được chứa | **Cấm** chứa |
@@ -109,7 +117,7 @@ core/
 shared/
 ├── ui/           # BỌC thư viện UI. Mỏng, không biết nghiệp vụ, không biết API.
 ├── components/   # dumb UI tái dùng > 1 feature, ghép TỪ shared/ui/
-├── forms/        # hạ tầng form dùng chung: gắn fieldErrors vào control, hiển thị lỗi
+├── forms/        # hạ tầng form dùng chung: gắn fieldErrors vào control, hiển thị lỗi, banner lỗi chung, focus ô sai (chủ: fe-ui-conventions.md §6.2)
 ├── directives/   # directive dùng chung: appHasPermission, appAutofocus
 ├── pipes/        # pipe thuần
 ├── models/       # kiểu dùng chung giữa nhiều feature — KHÔNG phải DTO
@@ -127,7 +135,7 @@ shared/
 | Component chỉ nhận `input()` và phát `output()` | Component tự inject service lấy dữ liệu (luật F11 — token được tha: [`../wiki-core/fe/trien-khai/05-gate.md`](../wiki-core/fe/trien-khai/05-gate.md) §8.8) |
 | Bọc component thư viện UI trong `ui/` — xem [`../wiki-core/fe/05-component-library.md`](../wiki-core/fe/05-component-library.md) §2 | Gọi `HttpClient` |
 | Kiểu dùng chung giữa nhiều feature | DTO — DTO thuộc feature, xem [`fe-api-client.md`](fe-api-client.md) |
-| | Import từ `platform/` hoặc `modules/` |
+| | Import từ `platform/` hoặc `modules/` — luật F35 (§4.7) |
 | | Import `components/` từ bên trong `ui/` — chiều ngược, đoạn ngay trên; luật F24 (§4.6) |
 
 > `shared/` là một phần của **CoreBase**, đi theo khi mang nền tảng sang dự án khác: nó không được biết tên sản phẩm, bảng màu cụ thể hay route nghiệp vụ nào.
@@ -140,18 +148,19 @@ Màn hình có nghĩa với **mọi** sản phẩm dựng trên nền tảng: đ
 
 **Trang chủ** cũng thuộc `platform/`, nhưng Core chỉ cấp **trang chào tối giản** — tên đơn vị, lời chào, lối tắt tới các màn người dùng có quyền; không gọi endpoint riêng, chỉ dùng lại thông tin phiên và menu.
 
-Trang chủ đi qua seam `CORE_HOME` (§2.5): dự án cấp component của mình, **không** sửa route và không sửa khung shell. Core cấp **component** biểu đồ ([`../Design/Components/Chart.md`](../Design/Components/Chart.md)); riêng **thư viện** biểu đồ thuộc nhóm thêm-khi-cần, nạp theo yêu cầu ([`../wiki-core/fe/01-core-components.md`](../wiki-core/fe/01-core-components.md) §3, [`../adr/0019-ba-component-nang-thuoc-core.md`](../adr/0019-ba-component-nang-thuoc-core.md) ràng buộc 1).
+Trang chủ đi qua seam `CORE_HOME` (§2.5): dự án cấp **hàm nạp lười** component của mình, **không** sửa route và không sửa khung shell. Route trang chủ của Core đọc token ngay trong `loadComponent` (khuôn ở §2.5); không khai thì trang chào của Core. Core cấp **component** biểu đồ ([`../Design/Components/Chart.md`](../Design/Components/Chart.md)); riêng **thư viện** biểu đồ thuộc nhóm thêm-khi-cần, nạp theo yêu cầu ([`../wiki-core/fe/01-core-components.md`](../wiki-core/fe/01-core-components.md) §3, [`../adr/0019-ba-component-nang-thuoc-core.md`](../adr/0019-ba-component-nang-thuoc-core.md) ràng buộc 1).
 
 Mỗi màn ở trên có một card trong [`../contracts/`](../contracts/). **Quản trị menu KHÔNG nằm trong danh sách**: ở v1 menu là dữ liệu seed ([`../contracts/meta-menu.md`](../contracts/meta-menu.md) §2).
 
 Cấu trúc con giống hệt `modules/` (§3); khác biệt duy nhất là **ý nghĩa**.
 
-`platform/` giữ thêm hai thư mục không phải feature:
+`platform/` giữ thêm ba thư mục không phải feature:
 
 | Thư mục | Chứa gì |
 | --- | --- |
+| `platform/loi/` | Hai trang lỗi trong khung, `khong-co-quyen` và `khong-tim-thay` — không `*.routes.ts`, không service. Page vẫn nằm ở `loi/pages/<ten-page>/` như §3, để F10 quét tới (🚧 bảng đầu file) |
 | `platform/shell/` | **Khung ứng dụng — smart.** Inject phiên và menu, rồi truyền dữ liệu xuống `Sidebar` và `Topbar` qua `input()`. Hai component đó **dumb**, tự dựng ở `shared/components/` — luật F11 áp cho chúng như mọi component khác, không ngoại lệ |
-| `platform/config/` | Seam `CORE_SCREEN_EXT` (§2.7). Đặt ở đây vì kiểu của nó đến từ `shared/ui/`, mà `core/` không được import `shared/` (luật F1) |
+| `platform/config/` | Seam `CORE_SCREEN_EXT` (§2.7). Đặt ở đây vì kiểu dòng của nó là model của màn `platform/`, mà `core/` không được import `platform/` (luật F1) |
 
 Phân vân `platform/` hay `modules/`, hỏi: *"màn này có ý nghĩa với sản phẩm tiếp theo dựng trên nền tảng này không?"* Có → `platform/`. Không → `modules/`.
 
@@ -177,11 +186,11 @@ Tương ứng phía BE là một `Modules.<X>.*`; ranh giới khi nào tách mod
 | --- | --- | --- |
 | `CORE_ROUTES` | Đường dẫn mà guard chuyển hướng tới | [`fe-routing-guard.md`](fe-routing-guard.md) |
 | `CORE_BRANDING` | Tên sản phẩm, chữ tắt | mục này |
-| `CORE_HOME` | Component của **trang chủ**. Core cấp một trang chào tối giản; dự án thay bằng bảng tổng hợp của ngành mình mà không sửa route, không sửa shell — §2.3 |
+| `CORE_HOME` | **Hàm nạp lười** component trang chủ; không khai ⇒ trang chào của Core | §2.3, khuôn ngay dưới |
 | `CORE_I18N` | Danh sách ngôn ngữ, ngôn ngữ mặc định, và các nguồn tệp dịch theo thứ tự nạp | [`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §2.3 |
 | `API_BASE_URL` | Base URL của API, cấp từ `environment.apiBaseUrl` | [`fe-api-client.md`](fe-api-client.md) §2.1 |
 | Bảng màu | **Không đi qua DI.** Giá trị nằm ở `src/styles/_tokens.scss` theo `Design/`; preset PrimeNG ở `core/theme/` chỉ đọc `var(--color-*)` | [`../wiki-core/fe/04-design-token-system.md`](../wiki-core/fe/04-design-token-system.md) §7 |
-| `CORE_SCREEN_EXT` | **Phần mở rộng của từng màn Core** — cột, hành động dòng, trường lọc mà dự án thêm vào. Token nằm ở `platform/config/`, **không** ở `core/` | §2.7 |
+| `CORE_SCREEN_EXT` | **Cột dự án thêm vào màn danh sách Core.** Token nằm ở `platform/config/`, **không** ở `core/` | §2.7 |
 
 Khuôn bắt buộc, không phát minh khuôn thứ hai:
 
@@ -200,7 +209,11 @@ export function provideCoreBranding(branding: CoreBranding): EnvironmentProvider
 
 // core/config/core-i18n.ts — cùng khuôn; nguồn tệp dịch theo thứ tự nạp: wiki-core/fe/08-i18n.md §2.3
 /** Khai ở core vì CORE_I18N cấp nó (F1); shared/ui/types re-export cho LanguageSwitcher — fe-ui-conventions.md §9. */
-export interface LanguageOption { code: string; nativeName: string }  // code: mã BCP 47; tên viết bằng CHÍNH ngôn ngữ đó
+export interface LanguageOption {
+  readonly code: string;        // mã BCP 47
+  readonly nativeName: string;  // tên viết bằng CHÍNH ngôn ngữ đó
+  readonly localeData: unknown; // import tĩnh '@angular/common/locales/<mã>' ở composition root — ADR-0063
+}
 
 export interface CoreI18n {
   readonly languages: ReadonlyArray<LanguageOption>; // một mục ⇒ LanguageSwitcher không render
@@ -209,9 +222,41 @@ export interface CoreI18n {
 }
 
 export const CORE_I18N = new InjectionToken<CoreI18n>('CORE_I18N');
+
+/** Luật F36: LOCALE_ID và registerLocaleData CHỈ ở đây — fe-ui-conventions.md §5.5. */
+export function provideCoreI18n(i18n: CoreI18n): EnvironmentProviders {
+  for (const ngonNgu of i18n.languages) {
+    registerLocaleData(ngonNgu.localeData, ngonNgu.code); // MỌI ngôn ngữ khai, không riêng mặc định
+  }
+  return makeEnvironmentProviders([
+    { provide: CORE_I18N, useValue: i18n },
+    { provide: LOCALE_ID, useValue: i18n.defaultLanguage },
+  ]);
+}
+
+// core/config/core-home.ts — cùng khuôn; hàm nạp lười, không phải Type (ADR-0057)
+export type CoreHomeLoader = () => Promise<Type<unknown>>;
+
+export const CORE_HOME = new InjectionToken<CoreHomeLoader>('CORE_HOME');
+
+export function provideCoreHome(load: CoreHomeLoader): EnvironmentProviders {
+  return makeEnvironmentProviders([{ provide: CORE_HOME, useValue: load }]);
+}
+
+// platform/trang-chu/trang-chu.routes.ts — `loadComponent` chạy trong ngữ cảnh tiêm
+const TRANG_CHAO_CORE: CoreHomeLoader = () =>
+  import('./pages/trang-chu/trang-chu.page').then((m) => m.TrangChuPage);
+
+export const TRANG_CHU_ROUTES: Routes = [
+  {
+    path: '',
+    title: 'trangChu.tieuDe',
+    loadComponent: () => (inject(CORE_HOME, { optional: true }) ?? TRANG_CHAO_CORE)(),
+  },
+];
 ```
 
-**Token cố ý không có `factory` mặc định.**
+**Token cố ý không có `factory` mặc định.** `CORE_HOME` cũng vậy nhưng đọc bằng `{ optional: true }` (ly-do §2.5). Route trang chủ phải có test chạy `loadComponent` thật.
 
 Phép thử cho seam mới: *"giá trị này có đổi khi dựng sản phẩm khác trên cùng nền tảng không?"* Có → seam. Không → để trong `core/`.
 
@@ -225,6 +270,8 @@ Composition root phía FE (tương ứng "host mỏng" ở `be-architecture.md` 
 
 **Luật:** mỗi bước khởi tạo chạy trước khi app dựng phải khai rõ **nó phụ thuộc bước nào**. Hai bước độc lập chạy song song được.
 
+**Luật F39:** composition root **không** khai provider hoạt ảnh của Angular. Nó gọi `provideCoreAnimations()` của `core/`, và hàm đó tự chọn bộ chạy theo cài đặt giảm chuyển động của hệ điều hành. Nửa provider của giảm chuyển động là nghĩa vụ trợ năng của các component Core, nên thân của nó phải nằm trong `core-paths` — cùng lý do `LOCALE_ID` đi qua `provideCoreI18n` ([`../adr/0063-locale-id-den-tu-seam-core-i18n.md`](../adr/0063-locale-id-den-tu-seam-core-i18n.md)). Chọn API nào và vì sao: [`../adr/0080-nua-provider-giam-chuyen-dong-nap-luoi-va-song-o-core.md`](../adr/0080-nua-provider-giam-chuyen-dong-nap-luoi-va-song-o-core.md).
+
 > 📖 Danh sách interceptor và thứ tự: [`fe-api-client.md`](fe-api-client.md) — file này không chép lại.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-architecture.md`](../wiki-core/fe/ly-do/fe-architecture.md) §2.6
@@ -237,26 +284,49 @@ Hợp đồng `CORE_SCREEN_EXT`:
 
 ```typescript
 // platform/config/core-screen-ext.ts — hợp đồng, KHÔNG có giá trị mặc định; khối import ở ly-do §2.7
+/** Một cột dự án THÊM vào màn danh sách Core. Khai ở composition root — không có view, nên không TemplateRef. */
+export interface ScreenExtColumn<T> {
+  readonly key: string;                   // duy nhất trong màn, không trùng khoá cột của Core
+  readonly headerKey: string;             // KHOÁ i18n — màn Core dịch khi dựng cột; không phải chuỗi đã dịch
+  readonly value: (row: T) => string;     // chuỗi ĐÃ định dạng; đọc signal thì ô tự cập nhật
+  readonly width?: string;
+  readonly align?: 'start' | 'end';
+  readonly hideBelow?: 'xs' | 'sm' | 'md' | 'lg';
+  readonly priority?: 'high' | 'low';
+}                                         // không `sortable`: sortBy chỉ nhận allowlist của endpoint Core
+
 /** Phần một dự án được phép THÊM vào một màn Core. Không có gì cho phép BỚT. */
-export interface ScreenExtension<T = unknown> {
-  readonly columns?: ReadonlyArray<DataColumnDef<T>>;   // nối vào SAU cột của Core
-  readonly rowActions?: ReadonlyArray<UiMenuItem>;      // nối vào cột hành động
-  readonly filterFields?: ReadonlyArray<FilterField>;   // nối vào FilterPanel
-  readonly toolbarSlot?: TemplateRef<unknown>;          // chèn vào nhóm hành động của Toolbar
+export interface ScreenExtension<T> {
+  readonly columns?: ReadonlyArray<ScreenExtColumn<T>>; // nối vào SAU cột của Core
 }
 
-/** Khoá là mã MÀN DANH SÁCH Core: 'users' · 'roles' · 'permissions' · 'tenants' */
-export const CORE_SCREEN_EXT =
-  new InjectionToken<Readonly<Record<string, ScreenExtension>>>('CORE_SCREEN_EXT');
+/** Khoá là mã MÀN DANH SÁCH Core, kiểu dòng theo từng màn — khoá gõ sai là lỗi biên dịch. */
+export interface CoreScreenExtensions {
+  readonly users?: ScreenExtension<NguoiDung>;
+  readonly roles?: ScreenExtension<VaiTro>;
+  readonly tenants?: ScreenExtension<DonVi>;
+}
+
+export const CORE_SCREEN_EXT = new InjectionToken<CoreScreenExtensions>('CORE_SCREEN_EXT');
+
+/** `factory` chạy trong ngữ cảnh tiêm — `value(row)` đọc được service của dự án. */
+export function provideCoreScreenExt(factory: () => CoreScreenExtensions): EnvironmentProviders {
+  return makeEnvironmentProviders([{ provide: CORE_SCREEN_EXT, useFactory: factory }]);
+}
 ```
 
-Năm luật của seam này:
+Màn Core đổi mỗi `ScreenExtColumn` thành một `DataColumnDef` có `header` đã dịch và `value` ([`fe-ui-conventions.md`](fe-ui-conventions.md) §9).
+
+> 📐 Phần chưa thi công: [fe-architecture-chua-thi-cong.md](fe-architecture-chua-thi-cong.md)
+
+Luật của seam này:
 
 1. **Chỉ THÊM, không BỚT.** Không có `hiddenColumns`, không có `removeActions`.
-2. **Cột thêm nối vào SAU, không chen giữa.**
+2. **Cột thêm nối vào SAU cột dữ liệu của Core, không chen giữa.** Ngoại lệ có tên: *cột hành động* vẫn đứng cuối ([`../Design/Components/DataTable.md`](../Design/Components/DataTable.md)), cột dự án ngay trước nó.
 3. **Khoá là mã màn, không phải đường dẫn route.**
-4. **Token không có `factory` mặc định** (cùng lý do với `CORE_BRANDING` ở §2.5), nhưng dự án **không** bắt buộc khai seam này. Màn Core đọc bằng `inject(CORE_SCREEN_EXT, { optional: true })`; kết quả `null` hoặc không có khoá của mình ⇒ chạy đúng bản gốc, không lỗi.
-5. **Mọi màn danh sách Core trong `platform/` tự đọc token và tự nối phần mở rộng** theo mã màn của mình. Phạm vi seam là màn danh sách; màn hồ sơ và các màn form không có khoá. Chưa có cổng: nợ ở [`../RULES.md`](../RULES.md) §10.
+4. **Token không có `factory` mặc định** (cùng lý do với `CORE_BRANDING` ở §2.5), nhưng dự án **không** bắt buộc khai seam này. Màn Core đọc bằng `inject(CORE_SCREEN_EXT, { optional: true })?.<mã màn>`, không ép kiểu; kết quả `null` hoặc không có khoá của mình ⇒ chạy đúng bản gốc, không lỗi.
+5. **Mọi màn danh sách Core trong `platform/` tự đọc token và tự nối phần mở rộng** theo mã màn của mình. Phạm vi seam là màn danh sách; màn hồ sơ và các màn form không có khoá. Cổng: F25 ở [`../RULES.md`](../RULES.md) §7.
+6. **Khoá cột trùng là lỗi cấu hình — màn ném `Error` khi khởi tạo**, ở dev lẫn production: cột dự án trùng khoá cột Core, hoặc hai cột dự án trùng nhau. Thông báo nêu mã màn và khoá. Không bỏ qua cột, không đè cột Core. Phép kiểm ở **một** chỗ cho mọi màn: `platform/config/cot-mo-rong.ts` — [ADR-0084](../adr/0084-khoa-cot-mo-rong-trung-thi-man-core-nem-loi-khi-khoi-tao.md).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-architecture.md`](../wiki-core/fe/ly-do/fe-architecture.md) §2.7
 
@@ -264,155 +334,7 @@ Năm luật của seam này:
 
 [`../wiki-core/fe/11-grid-and-metadata.md`](../wiki-core/fe/11-grid-and-metadata.md) §3–§4 mô tả **cái gì** phải làm; mục này chốt **ai** làm và **làm thế nào**: đúng **một** mẫu, `ListStateStore` ở `core/list/`. Mọi màn danh sách — `platform/` lẫn `modules/` — dùng mẫu này; không màn nào tự viết lại vòng *đọc URL → gọi API → đổi trạng thái*.
 
-```typescript
-// core/list/grid-query.ts — khối import ở ly-do §2.8
-/** Truy vấn của một màn danh sách. Mọi tên trường là TÊN TRÊN DÂY — không có bước đổi tên ở giữa (luật 2). */
-export interface GridQuery extends PageQuery {
-  /** Bộ lọc riêng của endpoint — mỗi khoá một tham số rời, tên theo card ở contracts/. */
-  readonly filters: Readonly<Record<string, string>>;
-}
-```
-
-```typescript
-// core/list/list-state.store.ts — khối import ở ly-do §2.8
-type ListViewState = 'idle' | 'loading' | 'error' | 'empty' | 'empty-filtered';
-
-/** Chờ ngừng gõ. Dưới 200ms một từ gõ có dấu vẫn sinh vài lần gọi; trên 500ms ô tìm có cảm giác chậm. */
-const NGUNG_GO_MS = 300;
-
-/** Áp khi URL không mang `pageSize` — mặc định của hợp đồng (contracts/README.md §8). */
-const PAGE_SIZE_MAC_DINH = 20;
-
-/** Tên dây dùng chung cho mọi danh sách; query param nào khác là bộ lọc. `tab` là tên dùng chung: store bỏ qua (luật 8). */
-const TEN_DUNG_CHUNG: readonly string[] = ['page', 'pageSize', 'sortBy', 'sortDescending', 'searchText', 'tab'];
-
-@Injectable() // KHÔNG providedIn: 'root' — luật 7
-export class ListStateStore<T> {
-  private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
-  private readonly injector = inject(Injector);
-  private readonly destroyRef = inject(DestroyRef);
-
-  private readonly _state = signal<ListViewState>('idle');
-  private readonly _result = signal<PagedList<T> | null>(null);
-  private readonly reloadTick = signal(0);
-  private readonly searchInput = new Subject<string>();
-  private connected = false;
-
-  /** Bản ĐỌC của URL, không phải bản thứ hai (luật 1). */
-  readonly query = toSignal(this.route.queryParamMap.pipe(map(docQuery)), { requireSync: true });
-  readonly state = this._state.asReadonly();
-  /** Rỗng KHÔNG mang nghĩa "không có dữ liệu" — `state` mới mang nghĩa đó. */
-  readonly rows = computed<readonly T[]>(() => this._result()?.items ?? []);
-  readonly totalCount = computed(() => this._result()?.totalCount ?? 0);
-
-  constructor() {
-    // Cơ chế 1 và 2: chờ ngừng gõ, bỏ giá trị trùng; thay URL, không nhồi lịch sử (luật 5).
-    this.searchInput
-      .pipe(debounceTime(NGUNG_GO_MS), map((s) => s.trim()), distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe((s) => this.ghiUrl({ searchText: s === '' ? null : s, page: null }, true));
-  }
-
-  /** Màn gọi ĐÚNG MỘT lần, truyền hàm tải của service mình. Store không biết endpoint. */
-  connect(load: (query: GridQuery) => Observable<PagedList<T>>): this {
-    if (this.connected) {
-      throw new Error('ListStateStore.connect() chỉ được gọi một lần cho mỗi màn');
-    }
-    this.connected = true;
-    combineLatest([
-      toObservable(this.query, { injector: this.injector }).pipe(distinctUntilChanged(cungTruyVan)),
-      toObservable(this.reloadTick, { injector: this.injector }),
-    ])
-      .pipe(
-        tap(() => this._state.set('loading')),
-        // Cơ chế 3: request mới huỷ request cũ.
-        switchMap(([q]) =>
-          load(q).pipe(
-            tap((trang) => {
-              this._result.set(trang);
-              this._state.set(trang.totalCount > 0 ? 'idle' : coDieuKien(q) ? 'empty-filtered' : 'empty');
-            }),
-            // errorInterceptor đã hiển thị lỗi; ở đây chỉ đổi trạng thái.
-            catchError(() => {
-              this._state.set('error');
-              return EMPTY;
-            }),
-          ),
-        ),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe();
-    return this;
-  }
-
-  setPage(page: number, pageSize?: number): void {
-    const patch: Params = { page: page === 1 ? null : page };
-    if (pageSize !== undefined) {
-      patch['pageSize'] = pageSize === PAGE_SIZE_MAC_DINH ? null : pageSize;
-    }
-    this.ghiUrl(patch, false);
-  }
-
-  setSort(sortBy: string | null, sortDescending: boolean): void {
-    this.ghiUrl({ sortBy, sortDescending: sortBy !== null && sortDescending ? true : null }, false);
-  }
-
-  setSearchText(searchText: string): void {
-    this.searchInput.next(searchText);
-  }
-
-  /** `null` gỡ điều kiện khỏi URL. Đổi lọc thì về trang 1 (luật 3). */
-  setFilters(filters: Readonly<Record<string, string | null>>): void {
-    this.ghiUrl({ ...filters, page: null }, false);
-  }
-
-  reload(): void {
-    this.reloadTick.update((n) => n + 1);
-  }
-
-  /** `null` gỡ tham số — giá trị mặc định không nằm trên URL. */
-  private ghiUrl(patch: Params, replaceUrl: boolean): void {
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: patch,
-      queryParamsHandling: 'merge',
-      replaceUrl,
-    });
-  }
-}
-
-function docQuery(p: ParamMap): GridQuery {
-  const filters: Record<string, string> = {};
-  for (const k of p.keys) {
-    const v = p.get(k);
-    if (v !== null && !TEN_DUNG_CHUNG.includes(k)) {
-      filters[k] = v;
-    }
-  }
-  return {
-    page: soNguyenDuong(p.get('page')) ?? 1,
-    pageSize: soNguyenDuong(p.get('pageSize')) ?? PAGE_SIZE_MAC_DINH,
-    sortBy: p.get('sortBy') ?? undefined,
-    sortDescending: p.get('sortDescending') === 'true' ? true : undefined,
-    searchText: p.get('searchText') ?? undefined,
-    filters,
-  };
-}
-
-/** Sai dạng thì bỏ (luật 2). */
-function soNguyenDuong(raw: string | null): number | undefined {
-  const n = raw === null ? Number.NaN : Number(raw);
-  return Number.isInteger(n) && n >= 1 ? n : undefined;
-}
-
-function cungTruyVan(a: GridQuery, b: GridQuery): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
-function coDieuKien(q: GridQuery): boolean {
-  return q.searchText !== undefined || Object.keys(q.filters).length > 0;
-}
-```
+Hiện thực nằm ở tệp nguồn, tài liệu không giữ bản sao: `src/FE/src/app/core/list/grid-query.ts` — `export interface GridQuery extends PageQuery` (bộ lọc riêng của endpoint ở `filters`, mỗi khoá một tham số rời); `src/FE/src/app/core/list/list-state.store.ts` — `export class ListStateStore<T>`, hằng số `NGUNG_GO_MS` và `PAGE_SIZE_MAC_DINH` kèm lý do ngay cạnh. Store phát `query` (bản đọc của URL), `state` (`idle` · `loading` · `error` · `empty` · `empty-filtered` — cái cuối khi đang có từ khoá hoặc bộ lọc), `rows`, `totalCount`; màn đổi truy vấn qua `setPage`, `setSort`, `setSearchText`, `setFilters`, `reload`. `connect()` gọi đúng một lần mỗi màn — gọi lại thì ném lỗi. Giá trị mặc định không nằm trên URL. Lỗi tải chỉ đổi `state` sang `error`; hiện lỗi là việc của `errorInterceptor`. `rows` rỗng không có nghĩa *không có dữ liệu* — `state` mới mang nghĩa đó.
 
 Màn danh sách dùng mẫu này — phần `.ts` dưới đây; phần template (bind `Toolbar`, `DataTable` và ba slot) ở [`ly-do/fe-architecture.md`](../wiki-core/fe/ly-do/fe-architecture.md) §2.8:
 
@@ -434,13 +356,13 @@ export class DanhSachNguoiDungPage {
 }
 ```
 
-Page **không** có `catchError`, không `subscribe`, không `try/catch` — luật xử lý lỗi của màn ở [`fe-api-client.md`](fe-api-client.md) §3.
+Luồng tải qua `connect()`: page **không** `catchError`, `subscribe`, `try/catch` — [`fe-api-client.md`](fe-api-client.md) §3; tra cứu phụ: §6.1.
 
 **Phân trang bind lên `DataTable`; màn không dựng thêm dải phân trang thứ hai.** Chủ hợp đồng phân trang là `DataTable` ([`../Design/Components/DataTable.md`](../Design/Components/DataTable.md)); [`../Design/Components/Pagination.md`](../Design/Components/Pagination.md) giữ hình thức và accessibility của dải đó.
 
 Luật của tầng này:
 
-1. **Truy vấn sống trên URL, và URL là nguồn sự thật.** Mọi thay đổi đi qua setter rồi lên URL; không set thẳng vào signal, và không ghi lại URL sau khi tải xong (bẫy vòng lặp ở [`../wiki-core/fe/11-grid-and-metadata.md`](../wiki-core/fe/11-grid-and-metadata.md) §3.3).
+1. **Truy vấn sống trên URL, và URL là nguồn sự thật.** Mọi thay đổi đi qua setter rồi lên URL; không set thẳng vào signal, và không ghi lại URL sau khi tải xong (bẫy vòng lặp ở [`../wiki-core/fe/11-grid-and-metadata.md`](../wiki-core/fe/11-grid-and-metadata.md) §3.3) — ngoại lệ duy nhất là luật 9.
 2. **Tên trên URL = tên trên dây = tên trong `GridQuery`.** Query param đọc từ URL được kiểm: sai dạng thì bỏ; đúng dạng mà vượt khoảng của hợp đồng thì BE trả 400 và màn vào `error` — không vá âm thầm ([`../contracts/README.md`](../contracts/README.md) §8).
 3. **Đổi bộ lọc hoặc từ khoá thì `page` về 1.**
 4. **Ba cơ chế chống gọi dồn dập, cả ba ở store.** Chờ ngừng gõ (`setSearchText`), bỏ qua truy vấn trùng, và **huỷ kết quả của request cũ khi request mới đã đi**. `Toolbar` phát `searchChanged` ở mọi lần gõ, không chờ bên trong. **Ngưỡng chờ là hằng số `NGUNG_GO_MS` của store**, lý do ghi ngay cạnh hằng số — không phải input của `Toolbar`, không phải tham số của `connect()`.
@@ -448,6 +370,7 @@ Luật của tầng này:
 6. **`state` là một biến, không phải bốn cờ** (lý do ở `DataTable.md`).
 7. **Một thực thể cho một màn, cấp ở cấp route — trong `providers` của chính page mà route trỏ tới.**
 8. **`tab` là tên dùng chung, không phải bộ lọc.** Store bỏ qua nó (`TEN_DUNG_CHUNG`), không gửi lên API; `queryParamsHandling: 'merge'` giữ nó khi store ghi URL. Trang cha tự ghi và đọc `tab` qua `Router` / `queryParamMap` của route; màn không có store cũng đọc thẳng `queryParamMap` — không cấp `ListStateStore` chỉ để có `tab` ([`../Design/Components/Tabs.md`](../Design/Components/Tabs.md)).
+9. **Trang vượt trang cuối thì về trang cuối.** `items` rỗng, `totalCount > 0`, `page > 1` ⇒ store ghi `page = min(page − 1, ⌈totalCount / pageSize⌉)` bằng `replaceUrl`, không đổi `state` khỏi `loading`, không giữ kết quả rỗng. `page` giảm ngặt nên dừng chắc chắn. Test đơn vị của store khoá ca này. Chốt 2026-09-24.
 
 🛑 **Tầng này KHÔNG inject `HttpClient` và không biết endpoint.** Màn truyền hàm tải của service mình qua `connect()`; mapper DTO → model vẫn nằm ở service ([`fe-api-client.md`](fe-api-client.md) §4).
 
@@ -480,10 +403,10 @@ Luật của tầng này:
 | Thư mục | Được phép | Cấm |
 | --- | --- | --- |
 | `pages/*` | inject service/store, giữ signal của màn hình, điều hướng, đọc query param | gọi `HttpClient` trực tiếp; import DTO (luật F10) |
-| `components/*` | nhận `input()`, phát `output()`, render | inject service lấy dữ liệu (luật F11); biết HTTP; import DTO |
-| `services/*` | gọi API, map DTO ↔ model, hủy/retry | giữ trạng thái UI (mở/đóng dialog, tab đang chọn) |
-| `state/*.store.ts` | `signal`/`computed`, điều phối service | render, đụng DOM |
-| `models/*` | type, interface, hằng số của miền | logic, gọi hàm |
+| `components/*` | nhận `input()`, phát `output()`, render | inject service lấy dữ liệu (luật F11); biết HTTP; import DTO; import/nhận store (F33) |
+| `services/*` | chỉ `*.service.ts`, `*.mapper.ts`: gọi API, map DTO ↔ model, hủy/retry | giữ trạng thái UI (mở/đóng dialog, tab đang chọn); tệp khác đuôi (F31) |
+| `state/*.store.ts` | `signal`/`computed`, điều phối service, quy trình hộp thoại ([ADR-0049](../adr/0049-trang-thai-quy-trinh-hop-thoai-o-state-khong-o-services.md)); có `*.store.spec.ts` (F32) | render, đụng DOM |
+| `models/*` | type, interface, hằng số của miền | logic, gọi hàm, mapper |
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-architecture.md`](../wiki-core/fe/ly-do/fe-architecture.md) §3.1
 
@@ -507,16 +430,7 @@ Feature một page, state cục bộ → khai `signal()` thẳng trong page.
 
 ### 4.1 Vì sao mục này dài hơn mọi mục khác
 
-Bốn luật đi thành một bộ, thiếu một thì những cái kia mất hiệu lực:
-
-| Luật | Nội dung | Nếu thiếu |
-| --- | --- | --- |
-| **F1** | `core/` không import ngược lên | Tầng đáy không còn là tầng đáy |
-| **F2** | `modules/A` không import `modules/B` | Module dính nhau, không bỏ ra được |
-| **F3** | Cấm `eslint-disable` cho danh sách rule ranh giới | **F1 và F2 chỉ còn là gợi ý** |
-| **F4** | `BUSINESS_MODULES` khớp thư mục `modules/` thật | F2 thành no-op im lặng |
-
-> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-architecture.md`](../wiki-core/fe/ly-do/fe-architecture.md) §4.1
+> 📖 Lý do, bẫy, ví dụ mở rộng — gồm bảng "bốn luật đi thành một bộ, thiếu một thì mất hiệu lực": [`fe-architecture.md`](../wiki-core/fe/ly-do/fe-architecture.md) §4.1
 
 ### 4.2 Zone `coreLayerZones` — `core/` là tầng đáy
 
@@ -621,14 +535,18 @@ Zone chỉ áp cho `src/app/modules/**` — **không** áp cho `platform/`: màn
 Bước 2 hay bị quên; cổng phải bắt:
 
 ```bash
-# Luật F4 — BUSINESS_MODULES khớp thư mục modules/ thật.
-# PASS khi hai danh sách giống hệt nhau (diff không in dòng nào).
-# Thiếu thư mục hoặc thiếu tệp khai mảng thì ĐỎ — không nuốt lỗi bằng 2>/dev/null.
-[ -d src/FE/src/app/modules ] || { echo "F4: không có src/FE/src/app/modules để đối chiếu"; exit 1; }
+# Luật F4 — BUSINESS_MODULES khớp thư mục modules/ thật. PASS khi hai TẬP tên giống hệt nhau; rỗng khớp rỗng là PASS
+# (ADR-0036). Kiểm exit code của `node -p` TRƯỚC khi diff — cấu hình hỏng không được lẫn với tập rỗng.
 [ -f src/FE/eslint.boundaries.cjs ] || { echo "F4: không có src/FE/eslint.boundaries.cjs"; exit 1; }
-diff <(ls -1 src/FE/src/app/modules | sort) \
-     <(node -p "require('./src/FE/eslint.boundaries.cjs').BUSINESS_MODULES.join('\n')" | sort)
+if [ -d src/FE/src/app/modules ]; then FOLDERS=$(ls -1 src/FE/src/app/modules | sort); else FOLDERS=""; fi
+CONFIG_RAW=$(node -p "require(require('path').resolve(process.argv[1])).BUSINESS_MODULES.join('\n')" \
+  src/FE/eslint.boundaries.cjs 2>&1)
+[ $? -eq 0 ] || { echo "F4: eslint.boundaries.cjs lỗi khi đọc BUSINESS_MODULES:"; printf '%s\n' "$CONFIG_RAW"; exit 1; }
+CONFIG=$(printf '%s\n' "$CONFIG_RAW" | sort)
+diff <(printf '%s\n' "$FOLDERS") <(printf '%s\n' "$CONFIG")
 ```
+
+> 📖 Vì sao tập rỗng là PASS và là ngoại lệ có tên của riêng F4: [`../adr/0036-f4-rong-khop-rong-la-hop-le.md`](../adr/0036-f4-rong-khop-rong-la-hop-le.md).
 
 > **Không được** chép danh sách module vào script cổng ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §5).
 
@@ -642,8 +560,8 @@ Bảng này là **Danh sách rule cấm tắt — định nghĩa gốc**, nguồ
 
 | Rule | Canh luật |
 | --- | --- |
-| `import/no-restricted-paths` | F1, F2, F24 |
-| `@angular-eslint/template/prefer-control-flow` | F9 |
+| `import/no-restricted-paths` | F1, F2, F24, F35 |
+| `@angular-eslint/template/prefer-control-flow` | F9 (lớp hai) — bật mức `error` trong khối `files: ['**/*.html']` của `src/FE/eslint.config.js`; bắt cả `<ng-template [ngIf]>` mà mẫu grep của F9 không thấy. Canary `scripts/tests/fe-lint-f9.test.sh`, đối chiếu 2026-09-23 |
 | `@angular-eslint/template/alt-text` | F17 |
 | `@angular-eslint/template/click-events-have-key-events` | F17 |
 | `@angular-eslint/template/elements-content` | F17 |
@@ -665,20 +583,46 @@ Bảng này là **Danh sách rule cấm tắt — định nghĩa gốc**, nguồ
 
 > 📖 Lệnh quét dạng tắt **theo tên rule**: [`../wiki-core/fe/trien-khai/05-gate.md`](../wiki-core/fe/trien-khai/05-gate.md) §8.1 — mục này **không** giữ bản lệnh thứ hai
 
-Dạng tắt **toàn file không kèm tên rule** không có chuỗi để đọc từ bảng, nên cần mẫu riêng:
+Dạng tắt **không kèm tên rule** — cả ba từ khoá, ở cả ba kiểu comment `//`, `/* */`, `<!-- -->` — không có chuỗi để đọc từ bảng, nên cần mẫu riêng:
 
 ```bash
-# Luật F3 — dạng tắt TOÀN FILE không kèm tên rule; cũng cấm, vì nó tắt luôn rule ranh giới.
+# Luật F3 — dạng tắt KHÔNG kèm tên rule; cũng cấm, vì nó tắt mọi rule, kể cả rule ranh giới.
+# Sau từ khoá chỉ còn khoảng trắng rồi hết dòng, `*/`, `-->` hoặc phần mô tả `-- ...`.
 # PASS khi không in ra dòng nào.
 [ -d src/FE/src ] || { echo "F3: không có src/FE/src để quét"; exit 1; }
-grep -rnE 'eslint-disable\s*\*/' src/FE/src --include='*.ts'
+grep -rnE 'eslint-disable(-next-line|-line)?[[:space:]]*($|\*/|-->|--[[:space:]])' \
+  src/FE/src --include='*.ts' --include='*.html'
+```
+
+Hai mẫu theo dòng — mẫu trên và mẫu theo tên rule ở [`05-gate.md`](../wiki-core/fe/trien-khai/05-gate.md) §8.1 — đều mù trước hai dạng tắt khác mà ESLint vẫn nhận. Một là **cấu hình nội tuyến**: `/* eslint import/no-restricted-paths: "off" */` trong `.ts`, `<!-- eslint … -->` trong `.html` và trong template nội tuyến của `.ts`. Hai là `eslint-disable` dạng khối **trải nhiều dòng**, tên rule cấm nằm ở dòng sau. Thử bằng `npx eslint --stdin` thì cả hai đều thoát 0 dù có import vi phạm ranh giới. Mẫu riêng cho chúng đọc **cả comment**, không đọc theo dòng:
+
+```bash
+# Luật F3 — comment mang nhãn `eslint` hoặc `eslint-disable…` nhắc tên một rule cấm tắt ở BẤT KỲ
+# dòng nào của nó: `/* */`, `<!-- -->` (kể cả trong .ts) và `//`. $RULES là tập đọc từ bảng trên
+# bằng lệnh ở 05-gate.md §8.1. PASS khi không in ra dòng nào.
+[ -n "$RULES" ] || { echo "F3: RULES rỗng — chạy lệnh đọc bảng trước"; exit 1; }
+[ -d src/FE/src ] || { echo "F3: không có src/FE/src để quét"; exit 1; }
+find src/FE/src \( -name '*.ts' -o -name '*.html' \) -print0 \
+  | F3_RULES="$RULES" xargs -0 -r perl -0777 -ne '
+      my $cam = join "|", map { quotemeta } split /\|/, $ENV{F3_RULES};
+      for my $mau (qr{/\*\s*eslint(?:-disable(?:-next-line|-line)?)?(?=\s|\*/)(.*?)(?:\*/|\z)}s,
+                   qr{<!--\s*eslint(?:-disable(?:-next-line|-line)?)?(?=\s|-->)(.*?)(?:-->|\z)}s,
+                   qr{//[ \t]*eslint(?:-disable(?:-next-line|-line)?)?(?=\s)([^\n]*)}) {
+        while (/$mau/g) {
+          my ($than, $vt) = ($1, $-[0]);
+          next unless $than =~ /$cam/;
+          my $dong = 1 + (substr($_, 0, $vt) =~ tr/\n//);
+          my ($txt) = substr($_, $vt) =~ /\A([^\r\n]*)/;
+          print "$ARGV:$dong:$txt\n";
+        }
+      }'
 ```
 
 Ba điểm phải giữ khi thi công cổng:
 
-1. **Quét cả ba dạng** `eslint-disable`, `eslint-disable-next-line`, `eslint-disable-line`.
+1. **Quét cả ba dạng** `eslint-disable`, `eslint-disable-next-line`, `eslint-disable-line` — **và** dạng cấu hình nội tuyến `eslint <rule>: …`.
 2. **Quét cả dạng tắt toàn file.**
-3. **Cổng phải có test của chính nó.** Viết một file canary chứa đúng dòng bị cấm, chạy cổng, xác nhận đỏ, rồi xoá.
+3. **Cổng phải có test của chính nó.** Viết một file canary chứa đúng dòng bị cấm, chạy cổng, xác nhận đỏ, rồi xoá. Bộ canary giữ lại: `scripts/tests/fe-gate-f3.test.sh`.
 
 **Khi thật sự cần một ngoại lệ:** không tắt rule — sửa thiết kế (nâng thứ dùng chung lên `shared/` hoặc `core/`, hoặc cho hai module nói chuyện qua tầng dưới). Nếu ranh giới sai chứ không phải code sai thì **sửa ADR**, không sửa comment: mở [`../adr/0007-fe-giu-cau-truc-thu-muc.md`](../adr/0007-fe-giu-cau-truc-thu-muc.md), ghi lý do, chốt lại luật, rồi sửa cấu hình cho khớp.
 
@@ -702,13 +646,40 @@ const sharedUiZones = [
 ];
 ```
 
-Nối vào config cho file trong `shared/ui/` bằng một khối cùng khuôn §4.2 — `files: ['src/app/shared/ui/**/*.ts']`, `zones: sharedUiZones`; khối đầy đủ ở ly-do §4.6.
+Mảng này nối vào khối `shared/**` của §4.7 cùng `sharedLayerZones`, không đứng khối riêng; khối đầy đủ ở ly-do §4.6.
 
 > ⚠️ **Khối này không được chồng `files` lên khối của F1 hay F2.** Cần canh thêm một chiều cho cây đã có khối thì nối zone vào mảng của khối đó.
 
 **Canary bắt buộc khi thi công**, cùng cách §4.2: tạm import một component từ `shared/components/` vào một file trong `shared/ui/`, thấy lint đỏ đúng thông điệp, rồi hoàn nguyên.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-architecture.md`](../wiki-core/fe/ly-do/fe-architecture.md) §4.6
+
+### 4.7 Zone `sharedLayerZones` và `platformLayerZones` — hai tầng giữa chỉ nhìn xuống — luật F35
+
+`shared/` không import `platform/` hay `modules/`; `platform/` không import `modules/` (§1, §2.2). Cùng rule với §4.2:
+
+```typescript
+// eslint.config.js — luật F35
+const sharedLayerZones = ['platform', 'modules'].map((tang) => ({
+  target: './src/app/shared',
+  from: `./src/app/${tang}`,
+  message: `shared/ không được import ${tang}/ (fe-architecture.md §4.7).`,
+}));
+
+const platformLayerZones = [
+  {
+    target: './src/app/platform',
+    from: './src/app/modules',
+    message: 'platform/ không được import modules/ (fe-architecture.md §4.7).',
+  },
+];
+```
+
+Hai khối: `files: ['src/app/shared/**/*.ts']` với `zones: [...sharedLayerZones, ...sharedUiZones]` — **thay** khối riêng của `shared/ui/` (cảnh báo §4.6) — và `files: ['src/app/platform/**/*.ts']` với `platformLayerZones`.
+
+**Canary:** chiều `shared/` bằng `npx eslint --stdin`; chiều `platform/` → `modules/` bằng fixture tạm theo khuôn `scripts/tests/` — ly-do §4.7.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-architecture.md`](../wiki-core/fe/ly-do/fe-architecture.md) §4.7
 
 ---
 
@@ -725,11 +696,22 @@ Nối vào config cho file trong `shared/ui/` bằng một khối cùng khuôn �
 
 **Ngưỡng mềm** là lúc dừng lại tự hỏi; **ngưỡng cứng** là lúc cổng đỏ.
 
+**Cả hai cột ngưỡng đo bằng số DÒNG MÃ** ([`../adr/0081-nguong-kich-thuoc-fe-do-bang-dong-ma-dong-tho-chi-note.md`](../adr/0081-nguong-kich-thuoc-fe-do-bang-dong-ma-dong-tho-chi-note.md)). Cổng F22 đếm hai số cho mỗi tệp: **dòng mã** vượt ngưỡng cứng là **FAIL**; **dòng thô** — mọi dòng của tệp — vượt ngưỡng cứng mà dòng mã không vượt thì chỉ in `NOTE`.
+
+**Phân loại một dòng — định nghĩa gốc.** Bộ bóc của cổng dựng theo đúng đoạn này:
+
+- **Dòng trống:** chỉ chứa khoảng trắng, kể cả `\r`.
+- **Dòng chú thích:** không trống, và sau khi bỏ khoảng trắng hai đầu thì **hoặc** bắt đầu bằng dấu chú thích dòng, **hoặc** thuộc một chú thích khối mà **dòng mở của khối bắt đầu bằng dấu mở khối**. Khối kéo dài tới dòng đầu tiên chứa dấu đóng. Dòng mở và dòng đóng chỉ là dòng chú thích khi ngoài phần chú thích không còn ký tự nào khác khoảng trắng — `/* a */ f();` là dòng mã.
+- **Dòng mã:** mọi dòng không trống còn lại — kể cả `f(); // x`, và kể cả dòng nằm trong một khối mở **giữa dòng** sau mã: bộ bóc không theo dõi khối đó.
+- **Cú pháp theo đuôi tệp:** `*.ts` — dòng `//`, khối `/*` … `*/` (gồm `/**`). `*.scss` — dòng `//`, khối `/*` … `*/`. `*.html` — không có chú thích dòng, khối `<!--` … `-->`. Đuôi nào có ở cột *Loại file* mà chưa có ở đây thì cổng **đỏ**, không đoán.
+
+Mọi chỗ mơ hồ nghiêng về đếm là **mã**: dấu chú thích chỉ có hiệu lực khi đứng đầu dòng, nên dấu nằm trong chuỗi ký tự giữa dòng không mở được chú thích. Điểm mù đã biết theo chiều ngược lại: một dòng của chuỗi nhiều dòng bắt đầu bằng dấu mở chú thích bị đếm là chú thích.
+
+**Bảng này là đầu vào của cổng F22** ([`../RULES.md`](../RULES.md) §7). Cổng đọc cả danh sách loại tệp lẫn cột *Ngưỡng cứng* từ đây lúc chạy, nên sửa một ô là đổi cổng, và không nơi nào khác giữ con số. Hai cột *Loại file* và *Ngưỡng cứng* được tìm theo **tên**: đổi tên cột, bỏ dạng `**N**` của ô ngưỡng, hay thêm một dòng mà mẫu tên không dịch được thành `*.ext` hoặc `thư-mục/*.ext` đều làm cổng đỏ chứ không bị bỏ qua.
+
 ```bash
-# Luật F22 — *.page.ts không vượt ngưỡng cứng. PASS khi không in ra dòng nào.
-[ -d src/FE/src/app ] || { echo "F22: không có src/FE/src/app để quét"; exit 1; }
-find src/FE/src/app -name '*.page.ts' -not -name '*.spec.ts' \
-  -exec awk 'END { if (NR > 400) print FILENAME ": " NR }' {} \;
+# Luật F22 — PASS khi section F22 in OK.
+bash scripts/fe-gate.sh
 ```
 
 Ba điều ngưỡng này **không** làm:
@@ -765,16 +747,4 @@ Ba điều ngưỡng này **không** làm:
 
 ## 8. Đối chiếu — luật nào ở đâu
 
-| Luật | Nội dung | Ép bằng | Mục |
-| --- | --- | --- | --- |
-| F1 | `core/` không import ngược lên | ESLint `coreLayerZones` | §4.2 |
-| F2 | `modules/A` không import `modules/B` | ESLint `moduleBoundaryZones` | §4.3 |
-| F3 | Cấm `eslint-disable` cho rule ranh giới | Cổng FE | §4.5 |
-| F4 | `BUSINESS_MODULES` khớp thư mục thật | Cổng FE | §4.4 |
-| F10 | `components/`/`pages/` không import DTO | Cổng FE | [`fe-api-client.md`](fe-api-client.md) |
-| F11 | `components/` không inject data service | Cổng FE | §3.1 |
-| F12 | Mọi service có `.spec.ts` | Cổng FE | §3 |
-| F22 | `*.page.ts` không vượt ngưỡng cứng | Cổng FE | §5 |
-| F24 | `shared/ui/` không import `shared/components/` | ESLint `sharedUiZones` | §4.6 |
-
-Bảng đầy đủ mọi luật kèm cột "ép bằng gì": [`../RULES.md`](../RULES.md) §7.
+> 📖 Bảng đầy đủ mọi luật kèm cột "ép bằng gì": [`../RULES.md`](../RULES.md) §7.

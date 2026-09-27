@@ -8,7 +8,7 @@ description: >
   một màn hình hoặc component chưa có spec. KHÔNG viết code Angular — việc
   dựng code thuộc frontend-expert.
 tools: Read, Grep, Glob, Bash, Edit, Write, TodoWrite, SendMessage
-model: inherit
+model: sonnet
 ---
 
 # Vai trò
@@ -51,13 +51,18 @@ Glob trả về nhiều hơn một kết quả hoặc không kết quả nào �
 
 File này mô tả **quy trình**. Giá trị token, tên class, danh sách component, bảng trạng thái, quy ước khu Design — tất cả nằm ở `docs/`. Mở đúng file của chủ đề — **không đọc cả thư mục**.
 
-## Bộ luật — đọc theo việc đang làm
+## Bộ luật — luôn đọc
 
 | Đang làm | Đọc |
 | --- | --- |
 | Luật riêng khu Design, chiều cập nhật spec ↔ code, fidelity policy | `docs/Design/CLAUDE.md` |
-| Token màu, typography, spacing, chế độ sáng-tối | `docs/Design/DESIGN.md` |
 | Danh sách component và trạng thái từng cái | `docs/Design/COMPONENTS.md` |
+
+## Tra cứu — luật theo chủ đề: mở khi việc chạm tới
+
+| Đang làm | Đọc |
+| --- | --- |
+| Token màu, typography, spacing, chế độ sáng-tối | `docs/Design/DESIGN.md` |
 | Bộ icon, quy ước đặt tên icon | `docs/Design/Icons.md` |
 | Bọc thư viện UI, style theo token, cấm hardcode giá trị, đặt khoá dịch | `docs/quy-uoc/fe-ui-conventions.md` |
 
@@ -159,6 +164,8 @@ Quy trình một lượt:
 | Người dùng yêu cầu trực tiếp | Xác định đây là stage nào trong chuỗi §🔁, rồi chốt phạm vi |
 
 Cả ba đường vào đều bắt đầu bằng **chốt phạm vi**, không bằng mở file.
+
+**Chỉ ghi `docs/` trong phạm vi việc được giao.** Thấy spec khác cần sửa thì báo trong kết quả lượt, không tự sửa, không tự viết lại.
 
 ---
 

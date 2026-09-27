@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 08. Ghi lại quyết định kiến trúc (ADR)
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Tệp này áp cho các ADR ở `docs/adr/`, không mô tả code; chưa ai đối chiếu các ADR hiện có với nó (2026-09-24).
 >
 > Danh sách ADR thật của repo và khuôn cụ thể đang dùng: [`../../adr/README.md`](../../adr/README.md). File này giữ **thói quen và lý do**, không giữ danh sách.
 

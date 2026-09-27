@@ -6,7 +6,14 @@ verified: chua-doi-chieu
 
 # 15. Nhập và xuất dữ liệu
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ các dòng nêu dưới đây**; phần còn lại của file chưa ai đối chiếu nên `verified:` giữ `chua-doi-chieu`).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | Bộ đọc/ghi CSV và Excel bằng thư viện chuẩn của .NET, không gói NuGet: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tabular/` (`CsvTabularWriter.cs`, `XlsxTabularWriter.cs`, `XlsxTabularSource.cs`); vô hiệu hoá công thức, số dòng theo tệp gốc, chặn XXE và tệp nén bom đã có test (`XlsxTabularTests.cs`, `CsvTabularTests.cs`); ghi Excel qua thân phản hồi HTTP thật đã có test (`Export_Xlsx_ReturnsARealZipPackage_WithTheSpreadsheetContentType`) | Chọn thư viện bảng tính nếu cần tính năng mà bản viết tay không có — **quyết định kiến trúc, chưa chốt** |
+> | Xuất người dùng: `ExportUsersCommandHandler.cs` — đếm trước, cùng chỗ dựng truy vấn với danh sách (`UserQueryService.cs`, `FilterAndOrder`), ghi nhật ký kiểm toán. Việc xuất khớp bộ lọc đang xem chỉ được chứng minh ở `ExportUsersDatabaseTests.cs` (`RequiresDocker`) — **chưa chạy** | Chạy được ở CI có Docker |
+> | Nhập: `StartImportCommandHandler.cs` (đếm dòng, trần, không tạo việc khi vượt) và `ImportJobExecutor.cs` (lưu từng dòng, huỷ theo dõi sau **mọi** dòng — `EfImportRowWriter.cs`). Dòng lỗi giữa tệp không nằm trong DB: chỉ được chứng minh ở `ImportJobDatabaseTests.cs` (`RequiresDocker`) — **chưa chạy** | Chạy được ở CI có Docker |
+> | Lưu từng dòng là "lô cỡ 1" (đổi tốc độ lấy việc một dòng hỏng không kéo dòng khác); chưa có đường nhập lô lớn | `architect` xét nếu số dòng thật đòi tốc độ hơn |
 >
 > Lưu trữ file vật lý: [`14-file-storage.md`](14-file-storage.md). Bảo mật khi nhận file: [`09-security-beyond-auth.md`](09-security-beyond-auth.md) §9.
 
@@ -188,11 +195,12 @@ Xuất là đường dữ liệu rời khỏi hệ thống. Ba điều cần có
 
 Nhập **luôn** chạy nền sau khi qua trần số dòng: request trả `{ jobId }`, kết quả và tiến độ hỏi qua bản ghi việc. Hợp đồng và hình dạng kết quả: [`../../contracts/exports.md`](../../contracts/exports.md) §2; theo dõi: [`../../contracts/jobs.md`](../../contracts/jobs.md); bảng `core.job`: [`../../database/schema-core.md`](../../database/schema-core.md) §9.8; khuôn handler: [`../../quy-uoc/be-cqrs-handler.md`](../../quy-uoc/be-cqrs-handler.md) §10.3.
 
-Hai khoá cấu hình, chung cho mọi đơn vị:
+Ba khoá cấu hình, chung cho mọi đơn vị:
 
 | Khoá | Mặc định | Nghĩa |
 | --- | --- | --- |
 | `Core:Import:MaxRows` | 50.000 | Trần số dòng của một tệp nhập. Đếm **trước** khi tạo việc; vượt ⇒ `CORE.IMPORT.TOO_MANY_ROWS`, không tạo việc |
+| `Core:Import:MaxFailedRowsInResult` | 100 | Số dòng lỗi nhúng vào `result.failed` của việc. Danh sách **đầy đủ** nằm ở tệp `resultFileId`; `result.failedCount` luôn là tổng thật — cột `result` là jsonb đọc ở mỗi lần FE hỏi, nên không để nó phình theo số dòng lỗi |
 | `Core:Jobs:MaxConcurrent` | 2 | Số việc nền chạy đồng thời; việc thứ ba trở đi đứng ở `queued` |
 
 Tệp gốc ghi vào kho tạm (§6 của [`14-file-storage.md`](14-file-storage.md)) **trước** khi tạo việc và giữ tới khi việc kết thúc — không giữ trong bộ nhớ giữa request và job. Tệp kết quả (§4.3) là tệp tạm có hạn dùng, trỏ từ `result_file_id`. Việc kết thúc ⇒ thông báo tới người khởi tạo qua outbox ([`12-notifications.md`](12-notifications.md) §1.2).

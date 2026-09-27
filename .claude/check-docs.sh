@@ -13,6 +13,14 @@
 # Trên Git Bash/Windows mỗi lần spawn tiến trình tốn ~50ms, và một cổng chậm là
 # một cổng bị bỏ qua. Đừng đưa `grep`/`sed`/`wc` vào trong vòng lặp.
 #
+# Ba bẫy nữa, cùng đã đo trên máy thật (máy tải nặng: một spawn tới ~100ms):
+#   - `$(...)` và `x=$(f ...)` cũng là spawn — trong vòng lặp thì dùng `printf -v`,
+#     `$(< file)` (bash 5.2 không fork), mảng kết hợp;
+#   - `while read ... < <(cmd)` đọc pipe TỪNG BYTE: hơn chục nghìn dòng tốn vài
+#     giây chỉ để đọc. Dòng nhiều thì nạp bằng `_lines` (tách chuỗi, vài ms);
+#   - `case "$chuỗi_dài" in *"$x"*` trong vòng lặp lớn quét lại cả chuỗi mỗi vòng
+#     — tra bằng mảng kết hợp, hoặc đưa cả vòng vào một lượt awk.
+#
 # ⚠️ PASS KHÔNG CÓ NGHĨA LÀ TÀI LIỆU ĐÚNG. Cổng chỉ bắt được thứ máy kiểm được.
 #    Ba loại lỗi nó không bao giờ bắt: văn xuôi tả thứ không tồn tại; sơ đồ/cây
 #    thư mục chép sai; ngày đúng nhưng nội dung sai. Xem CLAUDE.md §8.
@@ -31,6 +39,55 @@ section() { printf '\n\033[1m== %s ==\033[0m\n' "$1"; }
 bad()     { printf '  \033[31mFAIL\033[0m  %s\n' "$1"; FAIL=1; }
 ok()      { printf '  \033[32mOK\033[0m    %s\n' "$1"; }
 warn()    { printf '  \033[33mNOTE\033[0m  %s\n' "$1"; }
+
+# `[ -e ]` có nhớ. Cùng một đường dẫn được trích hàng trăm lần (§3, §4, §5), và
+# mỗi lần stat trên Windows tốn đáng kể. Cây không đổi trong một lượt chạy, nên
+# kết quả lần đầu là kết quả của mọi lần sau.
+declare -A _EXISTS=()
+exists() {
+  [ -z "$1" ] && { [ -e "$1" ]; return; }
+  if [ -z "${_EXISTS["$1"]+x}" ]; then
+    if [ -e "$1" ]; then _EXISTS["$1"]=0; else _EXISTS["$1"]=1; fi
+  fi
+  return "${_EXISTS["$1"]}"
+}
+
+# Tách "$1" theo '|' đúng như `IFS='|' read -r v1 v2 ... <<< "$1"` gán cho các
+# biến KHÔNG phải biến cuối: _PF[i] = trường thứ i, rỗng nếu dòng thiếu trường.
+# Lấy "$2" trường đầu. Builtin thuần — here-string trong vòng lặp tốn một pipe
+# mỗi vòng.
+_pipe_fields() {
+  local r="$1" i=1
+  _PF=()
+  while [ "$i" -le "$2" ]; do
+    case "$r" in
+      *'|'*) _PF[i]="${r%%|*}"; r="${r#*|}" ;;
+      *)     _PF[i]="$r"; r="" ;;
+    esac
+    i=$((i+1))
+  done
+}
+
+# Nạp đầu ra nhiều dòng vào MẢNG tên "$1": mọi dòng KHÁC RỖNG của "$2", đúng thứ
+# tự — tức đúng những dòng mà vòng `while IFS= read -r x; do [ -z "$x" ] &&
+# continue` xử lý. Tách bằng word splitting (IFS = newline, TẮT glob, `local -`
+# trả lại cờ shell khi ra khỏi hàm). Trên Git Bash `read` đọc pipe TỪNG BYTE; với
+# hơn chục nghìn dòng, chỉ riêng việc đọc đã tốn nhiều giây, tách chuỗi thì vài ms.
+_lines() {
+  local -n _dst="$1"
+  local IFS=$'\n' -
+  set -f
+  # shellcheck disable=SC2206  # cố ý: tách theo newline, glob đã tắt
+  _dst=($2)
+}
+
+# Gỡ khoảng trắng hai đầu rồi MỘT backtick mỗi đầu, ghi vào biến tên "$1".
+# Cùng phép gỡ với `trim()` cũ, nhưng `printf -v` thay cho `$(...)`: không fork.
+_trim_to() {
+  local v="$2"
+  v="${v#"${v%%[![:space:]]*}"}"; v="${v%"${v##*[![:space:]]}"}"; v="${v#\`}"; v="${v%\`}"
+  printf -v "$1" '%s' "$v"
+}
 
 # ================================================================ §0
 # "Tôi có đang xét gì không?"
@@ -79,7 +136,28 @@ HIST_FILES=" $(find $SCAN_DIRS -name '*.md' -print0 2>/dev/null | xargs -0 awk '
 # Dòng nói rõ nó đang nhắc tới thứ đã biến mất cũng được miễn trừ — nếu không,
 # mọi ghi chép "vì sao ta bỏ X" đều bị báo lỗi, và người ta sẽ xoá bài học đi
 # cho cổng xanh. Đó chính là hành vi luật này tồn tại để ngăn.
-HIST_LINES=" $(grep -rn 'trước ở\|trước nằm ở\|đã xoá\|đã chuyển\|đã bỏ\|không còn tồn tại\|chưa từng tồn tại\|loại khỏi repo\|check-ignore\|dự án tiền nhiệm\|đã thay thế\|sẽ được điền\|giai đoạn 2' $SCAN_DIRS --include='*.md' 2>/dev/null | cut -d: -f1,2 | tr '\n' ' ')"
+#
+# Tra bằng MẢNG KẾT HỢP `HISTL`, không bằng `case "$chuỗi" in *" $f:$ln "*`:
+# chuỗi nối mọi dòng miễn trừ dài hàng chục KB, và so khớp glob trên nó ở mỗi
+# vòng lặp (§13 lặp hơn chục nghìn lần) từng ngốn nhiều giây nhất của cả cổng.
+#
+# Khoá sinh ra đúng TẬP needle mà phép so chuỗi cũ nhận: với mục "p:n", needle
+# " f:n " khớp khi f = p, HOẶC f là phần đuôi của p nằm sau một dấu cách trong p
+# (tên file có dấu cách). Vòng `while` dưới sinh đủ các đuôi đó. Mọi chỗ tra đều
+# lấy f là phần trước dấu ':' đầu tiên, n là số dòng — nên không khớp chéo mục.
+_hl=$(grep -rn 'trước ở\|trước nằm ở\|đã xoá\|đã chuyển\|đã bỏ\|không còn tồn tại\|chưa từng tồn tại\|loại khỏi repo\|check-ignore\|dự án tiền nhiệm\|đã thay thế\|sẽ được điền\|giai đoạn 2' $SCAN_DIRS --include='*.md' 2>/dev/null | cut -d: -f1,2)
+declare -A HISTL=()
+_hla=(); _lines _hla "$_hl"
+for _e in "${_hla[@]}"; do
+  _n="${_e#*:}"; _s="${_e%%:*}"
+  HISTL["$_s:$_n"]=1
+  while [ "${_s#* }" != "$_s" ]; do _s="${_s#* }"; HISTL["$_s:$_n"]=1; done
+done
+# Dạng CHUỖI, y hệt bản cũ (" a:1 b:2 … "), cho các mục làm việc trong awk: awk
+# tìm chuỗi con bằng `index()` nhanh, nên ở đó giữ nguyên phép so gốc.
+HIST_LINES=" "
+[ -n "$_hl" ] && HIST_LINES=" ${_hl//$'\n'/ } "
+unset _hl _hla _e _n _s
 
 # Dòng nằm TRONG khối code có rào (```). Một pattern `grep` viết trong khối lệnh
 # không phải là một tuyên bố về hiện trạng — nó là công cụ đi tìm tuyên bố đó.
@@ -189,22 +267,61 @@ fi
 # Mọi link markdown nội bộ phải resolve được.
 section "§3  Link markdown nội bộ phải resolve được"
 n=0; seen=0
-while IFS= read -r hit; do
-  [ -z "$hit" ] && continue
-  f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; raw="${rest#*:}"
-  tgt="${raw#\](}"; tgt="${tgt%)}"
-  case "$tgt" in http*|mailto:*|'#'*|'') continue ;; esac
-  tgt="${tgt%%#*}"
-  [ -z "$tgt" ] && continue
-  seen=$((seen+1))
-  # File o GOC repo khong co dau "/" trong ten, nen "${f%/*}" tra ve nguyen ten
-  # file chu khong phai thu muc chua no - va moi link tuong doi trong README.md
-  # goc bi bao chet oan. Bay nay chi lo ra khi README.md duoc dua vao tam quet.
-  case "$f" in */*) d="${f%/*}" ;; *) d="." ;; esac
-  [ -e "$d/$tgt" ] && continue
-  bad "$f:$ln — link chết: $tgt"
-  n=$((n+1))
-done < <(grep -rnoE '\]\([^)]+\)' $SCAN_DIRS --include='*.md' 2>/dev/null)
+# HIỆU NĂNG: hàng nghìn link nhưng chỉ vài phần số đó là ĐÍCH KHÁC NHAU. awk tách
+# link (cùng phép cắt như bản bash cũ, LC_ALL=C vì mọi mốc cắt đều là ký tự
+# ASCII) và in mỗi đích một lần; bash chỉ `[ -e ]` các đích đó. Chỉ khi có đích
+# chết mới chạy lượt awk thứ hai để in lỗi theo đúng thứ tự link.
+#   mode=U: in "P<tab>đích" cho mỗi đích mới + "S<tab>số-link-đã-xét" ở cuối.
+#   mode=B: stdin mở đầu bằng số đích chết + từng đích; in "file<tab>dòng<tab>link"
+#           cho mỗi link trỏ vào đích chết.
+_awk3='
+  function parse(   c, rest, raw) {
+    # f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; raw="${rest#*:}"
+    c = index($0, ":");  if (c) { f = substr($0, 1, c - 1); rest = substr($0, c + 1) } else { f = $0; rest = $0 }
+    c = index(rest, ":"); if (c) { ln = substr(rest, 1, c - 1); raw = substr(rest, c + 1) } else { ln = rest; raw = rest }
+    # tgt="${raw#\](}"; tgt="${tgt%)}"
+    tgt = raw
+    if (substr(tgt, 1, 2) == "](") tgt = substr(tgt, 3)
+    if (tgt != "" && substr(tgt, length(tgt)) == ")") tgt = substr(tgt, 1, length(tgt) - 1)
+    # case "$tgt" in http*|mailto:*|#*|"") continue
+    if (substr(tgt, 1, 4) == "http" || substr(tgt, 1, 7) == "mailto:" || substr(tgt, 1, 1) == "#" || tgt == "") return 0
+    c = index(tgt, "#"); if (c) tgt = substr(tgt, 1, c - 1)
+    if (tgt == "") return 0
+    # File o GOC repo khong co dau "/" trong ten, nen "${f%/*}" tra ve nguyen ten
+    # file chu khong phai thu muc chua no - va moi link tuong doi trong README.md
+    # goc bi bao chet oan. Bay nay chi lo ra khi README.md duoc dua vao tam quet.
+    if (index(f, "/")) { d = f; sub(/\/[^\/]*$/, "", d) } else d = "."
+    path = d "/" tgt
+    return 1
+  }
+  mode == "B" && NR == 1      { nm = $0 + 0; next }
+  mode == "B" && NR <= 1 + nm { M[$0] = 1; next }
+  $0 == ""  { next }
+  !parse()  { next }
+  mode == "U" { seen++; if (!(path in U)) { U[path] = 1; print "P\t" path }; next }
+  mode == "B" && (path in M) { print f "\t" ln "\t" tgt }
+  END { if (mode == "U") print "S\t" seen + 0 }
+'
+_g3=$(grep -rnoE '\]\([^)]+\)' $SCAN_DIRS --include='*.md' 2>/dev/null)
+_miss3=()
+_L=(); _lines _L "$(printf '%s\n' "$_g3" | LC_ALL=C awk -v mode=U "$_awk3")"
+for _l in "${_L[@]}"; do
+  case "$_l" in
+    S$'\t'*) seen="${_l#S$'\t'}" ;;
+    P$'\t'*) _p="${_l#P$'\t'}"; exists "$_p" || _miss3+=("$_p") ;;
+  esac
+done
+# awk không chạy / không in dòng S -> seen không phải số -> coi như 0 -> FAIL bên dưới.
+case "$seen" in ''|*[!0-9]*) seen=0 ;; esac
+if [ "${#_miss3[@]}" -gt 0 ]; then
+  _L=(); _lines _L "$( { printf '%s\n' "${#_miss3[@]}"; printf '%s\n' "${_miss3[@]}"; printf '%s\n' "$_g3"; } | LC_ALL=C awk -v mode=B "$_awk3")"
+  for _l in "${_L[@]}"; do
+    f="${_l%%$'\t'*}"; _r="${_l#*$'\t'}"; ln="${_r%%$'\t'*}"; tgt="${_r#*$'\t'}"
+    bad "$f:$ln — link chết: $tgt"
+    n=$((n+1))
+  done
+fi
+unset _g3
 if [ "$seen" -eq 0 ]; then
   bad "§3 không trích được link nào — mục này đang không kiểm gì"
 elif [ "$n" -eq 0 ]; then
@@ -217,14 +334,15 @@ fi
 #   §5 — không neo vào file bị gitignore loại khỏi repo
 #   §7 — trích dẫn dạng file:dòng phải nằm trong file
 PATHS=$(grep -rnoP "$BT\\K(docs|\\.claude|spec)/[^$BT]*(?=$BT)" $SCAN_DIRS --include='*.md' 2>/dev/null)
+_PATHS=(); _lines _PATHS "$PATHS"
 
 section "§4  Đường dẫn được trích dẫn phải tồn tại"
 n=0; seen=0
-while IFS= read -r hit; do
+for hit in "${_PATHS[@]}"; do
   [ -z "$hit" ] && continue
   f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; p="${rest#*:}"
   case "$HIST_FILES" in *" $f "*) continue ;; esac
-  case "$HIST_LINES" in *" $f:$ln "*) continue ;; esac
+  [ -n "${HISTL["$f:$ln"]+x}" ] && continue
   # MIỄN TRỪ có khai báo: docs/00-overview/ là tài liệu LẬP KẾ HOẠCH, không phải
   # quy tắc kỹ thuật (docs/README.md dán nhãn khu này là "🗄️ kế hoạch"). Mọi
   # đường dẫn nó nêu hoặc thuộc repo tiền nhiệm, hoặc thuộc cấu trúc giai đoạn 2
@@ -239,10 +357,10 @@ while IFS= read -r hit; do
   p="${p%:*[0-9]}"; p="${p%/}"
   case "$p" in *:[0-9]*) p="${p%:*}" ;; esac
   seen=$((seen+1))
-  [ -e "$p" ] && continue
+  exists "$p" && continue
   bad "$f:$ln — đường dẫn không tồn tại: $p"
   n=$((n+1))
-done <<< "$PATHS"
+done
 if [ "$seen" -eq 0 ]; then
   bad "§4 không trích được đường dẫn nào — mục này đang không kiểm gì"
 elif [ "$n" -eq 0 ]; then
@@ -255,27 +373,50 @@ section "§5  Trích dẫn không neo vào file bị gitignore"
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
   warn "không phải git repo — §5 không kiểm gì (khai báo tường minh)"
 else
-  CAND=""; seen=0
-  while IFS= read -r hit; do
-    [ -z "$hit" ] && continue
-    seen=$((seen+1))
-    rest="${hit#*:}"; p="${rest#*:}"
-    case "$p" in *'*'*|*'<'*|*'{'*|*' '*|*'…'*) continue ;; esac
-    case "$p" in *:[0-9]*) p="${p%:*}" ;; esac
-    [ -e "$p" ] || continue
-    CAND="$CAND$p"$'\n'
-    # §5 quét RỘNG HƠN §4, cố ý.
-    #
-    # §4 chỉ nhận tiền tố docs/ .claude/ spec/ — khu BẮT BUỘC tồn tại hôm nay.
-    # Khu giai đoạn 2 (src/, scripts/, database/) chưa dựng, nên bắt "không tồn
-    # tại" ở đó là báo sai.
-    #
-    # §5 thì khác: nó chỉ báo khi file THẬT SỰ TỒN TẠI và bị gitignore loại trừ
-    # — không tồn tại thì bỏ qua ngay ở dòng `[ -e ]` trên. Nên mở rộng phạm vi
-    # ở đây không sinh phát hiện sai nào, mà giữ được đúng lớp lỗi §5 tồn tại để
-    # bắt: bằng chứng mà người thứ hai clone về không bao giờ mở được.
-  done < <(grep -rnoP "$BT\\K[A-Za-z0-9_.][A-Za-z0-9_./-]*/[^$BT]*(?=$BT)" $SCAN_DIRS --include='*.md' 2>/dev/null)
-  IGN=$(printf '%s' "$CAND" | sort -u | git check-ignore --stdin 2>/dev/null)
+  # HIỆU NĂNG: awk đếm ứng viên, tách đường dẫn (cùng phép cắt như bản bash cũ;
+  # LC_ALL=C vì mọi mốc cắt là ký tự ASCII và "…" so theo byte UTF-8 nguyên văn)
+  # rồi in mỗi đường dẫn MỘT lần, theo thứ tự gặp đầu. Bash chỉ `[ -e ]` các
+  # đường dẫn đó. Bỏ bản trùng không đổi kết quả — ứng viên đi qua `sort -u`
+  # ngay sau. Ứng viên gom vào MẢNG: nối chuỗi `CAND="$CAND$p"` qua hàng nghìn
+  # vòng là chép lại cả chuỗi mỗi vòng.
+  CAND=(); seen=0
+  _L=(); _lines _L "$(grep -rnoP "$BT\\K[A-Za-z0-9_.][A-Za-z0-9_./-]*/[^$BT]*(?=$BT)" $SCAN_DIRS --include='*.md' 2>/dev/null | LC_ALL=C awk '
+    $0 == "" { next }
+    {
+      seen++
+      # rest="${hit#*:}"; p="${rest#*:}"
+      c = index($0, ":");  rest = c ? substr($0, c + 1) : $0
+      c = index(rest, ":"); p = c ? substr(rest, c + 1) : rest
+      # case "$p" in *"*"*|*"<"*|*"{"*|*" "*|*"…"*) continue
+      if (index(p, "*") || index(p, "<") || index(p, "{") || index(p, " ") || index(p, "…")) next
+      # case "$p" in *:[0-9]*) p="${p%:*}"
+      if (p ~ /:[0-9]/) { match(p, /:[^:]*$/); p = substr(p, 1, RSTART - 1) }
+      if (!(p in U)) { U[p] = 1; print "P\t" p }
+    }
+    END { print "S\t" seen + 0 }')"
+  for _l in "${_L[@]}"; do
+    case "$_l" in
+      S$'\t'*) seen="${_l#S$'\t'}" ;;
+      P$'\t'*) p="${_l#P$'\t'}"; exists "$p" && CAND+=("$p") ;;
+    esac
+  done
+  # awk không chạy / không in dòng S -> seen không phải số -> coi như 0 -> FAIL bên dưới.
+  case "$seen" in ''|*[!0-9]*) seen=0 ;; esac
+  # §5 quét RỘNG HƠN §4, cố ý.
+  #
+  # §4 chỉ nhận tiền tố docs/ .claude/ spec/ — khu BẮT BUỘC tồn tại hôm nay.
+  # Khu giai đoạn 2 (src/, scripts/, database/) chưa dựng, nên bắt "không tồn
+  # tại" ở đó là báo sai.
+  #
+  # §5 thì khác: nó chỉ báo khi file THẬT SỰ TỒN TẠI và bị gitignore loại trừ
+  # — không tồn tại thì bỏ qua ngay ở dòng `exists` (tức `[ -e ]`) trên. Nên mở
+  # rộng phạm vi ở đây không sinh phát hiện sai nào, mà giữ được đúng lớp lỗi §5
+  # tồn tại để bắt: bằng chứng mà người thứ hai clone về không bao giờ mở được.
+  if [ "${#CAND[@]}" -gt 0 ]; then
+    IGN=$(printf '%s\n' "${CAND[@]}" | sort -u | git check-ignore --stdin 2>/dev/null)
+  else
+    IGN=$(printf '%s' '' | sort -u | git check-ignore --stdin 2>/dev/null)
+  fi
   # CANARY cho NUA SAU cua muc nay. `seen` chi chung minh nua truoc (grep trich
   # ung vien) con song. Dieu kien PASS that lai la `[ -z "$IGN" ]`, ma IGN sinh
   # tu `git check-ignore` — neu lenh do that bai thi IGN rong va muc in PASS
@@ -303,17 +444,42 @@ fi
 # này nó lập tức tìm ra hai lời nói dối mà nhiều lượt review đã bỏ qua.
 section "§7  Trích dẫn file:dòng phải nằm trong file"
 declare -A LINECOUNT
+# Hai lượt. Lượt 1 lọc trích dẫn và gom file đích; MỘT lệnh `wc -l` đếm dòng mọi
+# file đích thường cùng lúc (mỗi `$(wc -l < f)` là hai tiến trình). Lượt 2 so và
+# báo theo đúng thứ tự trích dẫn. File đích không phải file thường (thư mục...)
+# hoặc không có dòng trong đầu ra gộp thì đếm từng cái như cũ.
 n=0; seen=0
-while IFS= read -r hit; do
+_r7=(); _wc7=(); declare -A _wcq7=()
+for hit in "${_PATHS[@]}"; do
   [ -z "$hit" ] && continue
   f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; ref="${rest#*:}"
   case "$ref" in *:[0-9]*) ;; *) continue ;; esac
   case "$HIST_FILES" in *" $f "*) continue ;; esac
-  case "$HIST_LINES" in *" $f:$ln "*) continue ;; esac
+  # ADR có số ghi quyết định TẠI THỜI ĐIỂM viết, và D45 cấm sửa nội dung nó: số dòng
+  # ADR trích là lịch sử, không bắt cập nhật khi tệp đích đổi (người dùng chốt 2026-09-27).
+  case "$f" in docs/adr/[0-9]*) continue ;; esac
+  [ -n "${HISTL["$f:$ln"]+x}" ] && continue
   tf="${ref%:*}"; tl="${ref##*:}"
   case "$tl" in *[!0-9]*|'') continue ;; esac
-  [ -e "$tf" ] || continue
+  exists "$tf" || continue
   seen=$((seen+1))
+  _r7+=("$hit")
+  if [ -f "$tf" ] && [ -z "${_wcq7["$tf"]+x}" ]; then _wcq7["$tf"]=1; _wc7+=("$tf"); fi
+done
+if [ "${#_wc7[@]}" -gt 0 ]; then
+  _wco=(); _lines _wco "$(wc -l -- "${_wc7[@]}" 2>/dev/null)"
+  # Nhiều file thì dòng cuối là "total" — bỏ, để một file tên "total" không bị ghi đè.
+  [ "${#_wc7[@]}" -gt 1 ] && [ "${#_wco[@]}" -gt 0 ] && unset '_wco[-1]'
+  for _l in "${_wco[@]}"; do
+    _l="${_l#"${_l%%[! ]*}"}"
+    case "$_l" in *' '?*) ;; *) continue ;; esac
+    case "${_l%% *}" in ''|*[!0-9]*) continue ;; esac
+    LINECOUNT["${_l#* }"]="${_l%% *}"
+  done
+fi
+for hit in "${_r7[@]}"; do
+  f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; ref="${rest#*:}"
+  tf="${ref%:*}"; tl="${ref##*:}"
   if [ -z "${LINECOUNT[$tf]+x}" ]; then
     LINECOUNT[$tf]=$(wc -l < "$tf")
   fi
@@ -321,7 +487,7 @@ while IFS= read -r hit; do
   [ "$tl" -le "$total" ] && [ "$tl" -ge 1 ] && continue
   bad "$f:$ln — trích dẫn $ref nhưng file chỉ có $total dòng"
   n=$((n+1))
-done <<< "$PATHS"
+done
 # 0 trích dẫn KHÔNG phải là PASS. Ở giai đoạn 1 chưa có src/ để neo nên con số
 # này hợp lệ bằng 0 — nhưng mục phải NÓI RA rằng nó không kiểm gì, thay vì im
 # lặng in OK. Một no-op im lặng là cách cổng chết mà không ai biết
@@ -358,7 +524,7 @@ while IFS= read -r hit; do
   raw=$((raw+1))
   f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; body="${rest#*:}"
   case "$HIST_FILES" in *" $f "*) continue ;; esac
-  case "$HIST_LINES" in *" $f:$ln "*) continue ;; esac
+  [ -n "${HISTL["$f:$ln"]+x}" ] && continue
   case "$CODEBLOCK" in *" $f:$ln "*) continue ;; esac
   case "$hit" in *20[0-9][0-9]-[01][0-9]-[0-3][0-9]*) continue ;; esac
   # Tiêu đề mục ĐẶT TÊN cho luật, không tuyên bố đã làm xong việc gì.
@@ -410,12 +576,27 @@ section "§8  Bảng định tuyến phải trỏ đúng chủ đề"
 # quen them vao day thi bang do khong duoc canh, va §8 se bao "xet 0 dinh danh".
 declare -A FBODY
 n=0; seen=0; rows=0
-while IFS= read -r hit; do
+_L=(); _lines _L "$(find $SCAN_DIRS -name '*.md' -print0 2>/dev/null | xargs -0 awk '
+  function trim(x){ gsub(/^[ 	]+|[ 	]+$/,"",x); return x }
+  FNR==1 { ok=0 }
+  /^\|/ {
+    line=$0; body=line; sub(/^\|/,"",body); sub(/\|[ 	]*$/,"",body)
+    nc=split(body, c, "|"); last=trim(c[nc])
+    if (last ~ /^[-: ]+$/) next
+    if (ok==0) {
+      if (last=="File" || last=="Đọc" || last=="Đọc file nào" || last=="Đọc theo thứ tự" || last=="Đường dẫn nguồn" || last=="Khuôn" || last=="Đích" || last=="Ở file") ok=1
+      next
+    }
+    print FILENAME ":" FNR ":" line; next
+  }
+  { ok=0 }
+')"
+for hit in "${_L[@]}"; do
   [ -z "$hit" ] && continue
   rows=$((rows+1))
   f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; body="${rest#*:}"
   case "$HIST_FILES" in *" $f "*) continue ;; esac
-  case "$HIST_LINES" in *" $f:$ln "*) continue ;; esac
+  [ -n "${HISTL["$f:$ln"]+x}" ] && continue
   case "$f" in */*) fd="${f%/*}" ;; *) fd="." ;; esac
   # Da biet chac day la hang dinh tuyen, nen duong dan o O NAO CUNG DUOC.
   targets=""; head_part=""; tmp2="$body"
@@ -426,8 +607,8 @@ while IFS= read -r hit; do
     tmp2="${tmp2#*\`}"
     case "$span" in
       *.md)
-        if [ -e "$span" ]; then targets="$targets $span"
-        elif [ -e "$fd/$span" ]; then targets="$targets $fd/$span"
+        if exists "$span"; then targets="$targets $span"
+        elif exists "$fd/$span"; then targets="$targets $fd/$span"
         fi ;;
       *) head_part="$head_part$pre\`$span\`" ;;
     esac
@@ -449,28 +630,16 @@ while IFS= read -r hit; do
     seen=$((seen+1))
     found=0
     for tgt in $targets; do
-      if [ -z "${FBODY[$tgt]+x}" ]; then FBODY[$tgt]=$(cat "$tgt"); fi
+      # `$(< f)`, không `$(cat f)`: cùng nội dung, nhưng bash 5.2 đọc thẳng file
+      # mà không fork — `$(cat)` là hai tiến trình mỗi file đích.
+      if [ -z "${FBODY[$tgt]+x}" ]; then FBODY[$tgt]=$(< "$tgt"); fi
       case "${FBODY[$tgt]}" in *"$base"*) found=1; break ;; esac
     done
     [ "$found" -eq 1 ] && continue
     bad "$f:$ln — trỏ '${targets# }' nhưng không file nào nhắc '$base'"
     n=$((n+1))
   done
-done < <(find $SCAN_DIRS -name '*.md' -print0 2>/dev/null | xargs -0 awk '
-  function trim(x){ gsub(/^[ 	]+|[ 	]+$/,"",x); return x }
-  FNR==1 { ok=0 }
-  /^\|/ {
-    line=$0; body=line; sub(/^\|/,"",body); sub(/\|[ 	]*$/,"",body)
-    nc=split(body, c, "|"); last=trim(c[nc])
-    if (last ~ /^[-: ]+$/) next
-    if (ok==0) {
-      if (last=="File" || last=="Đọc" || last=="Đọc file nào" || last=="Đọc theo thứ tự" || last=="Đường dẫn nguồn" || last=="Khuôn" || last=="Đích" || last=="Ở file") ok=1
-      next
-    }
-    print FILENAME ":" FNR ":" line; next
-  }
-  { ok=0 }
-')
+done
 if [ "$rows" -eq 0 ]; then
   bad "§8 KHÔNG trích được hàng nào từ bảng định tuyến — tập tiêu đề cột đã lệch khỏi tài liệu"
 elif [ "$seen" -eq 0 ]; then
@@ -489,7 +658,7 @@ n=0; seen=0
 while IFS= read -r hit; do
   [ -z "$hit" ] && continue
   f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; name="${rest#*:}"
-  case "$HIST_LINES" in *" $f:$ln "*) continue ;; esac
+  [ -n "${HISTL["$f:$ln"]+x}" ] && continue
   case "$name" in */*) continue ;; esac
   seen=$((seen+1))
   case "$ALLMD" in *" $name "*) continue ;; esac
@@ -514,19 +683,20 @@ elif ! git rev-parse --git-dir >/dev/null 2>&1; then
   warn "không phải git repo — §10 KHÔNG kiểm gì vì không lọc được file bị gitignore (khai báo tường minh)"
 else
   n=0; seen=0
-  while IFS= read -r hit; do
-    [ -z "$hit" ] && continue
-    f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; p="${rest#*:}"
-    p="${p%.}"; p="${p%,}"; p="${p%)}"
-    seen=$((seen+1))
-    [ -e "$p" ] && continue
-    bad "$f:$ln — chú thích trỏ docs/ không tồn tại: $p"
-    n=$((n+1))
   # Chỉ quét file KHÔNG bị gitignore. node_modules/, bin/, obj/, dist/, .angular/
   # chứa hàng nghìn file sinh ra: không ai viết chú thích trỏ docs/ trong đó, và
   # quét chúng làm cổng chậm tới mức người ta bỏ chạy. Danh sách loại trừ là
   # chính .gitignore — hỏi git, không chép tên thư mục vào đây.
-  done < <(git ls-files -z -co --exclude-standard -- src 2>/dev/null | grep -zE '\.(cs|ts|scss|html)$' | xargs -0 -r grep -HnoP '(?<![A-Za-z0-9_/.-])docs/[A-Za-z0-9._/-]+' 2>/dev/null)
+  _L=(); _lines _L "$(git ls-files -z -co --exclude-standard -- src 2>/dev/null | grep -zE '\.(cs|ts|scss|html)$' | xargs -0 -r grep -HnoP '(?<![A-Za-z0-9_/.-])docs/[A-Za-z0-9._/-]+' 2>/dev/null)"
+  for hit in "${_L[@]}"; do
+    [ -z "$hit" ] && continue
+    f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; p="${rest#*:}"
+    p="${p%.}"; p="${p%,}"; p="${p%)}"
+    seen=$((seen+1))
+    exists "$p" && continue
+    bad "$f:$ln — chú thích trỏ docs/ không tồn tại: $p"
+    n=$((n+1))
+  done
   if [ "$seen" -eq 0 ]; then
     warn "không có chú thích nào trong src/ trỏ docs/ — §10 KHÔNG kiểm gì (khai báo tường minh, không phải PASS)"
   elif [ "$n" -eq 0 ]; then
@@ -558,7 +728,7 @@ else
     seen=$((seen+1))
     f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"
     case "$HIST_FILES" in *" $f "*) continue ;; esac
-    case "$HIST_LINES" in *" $f:$ln "*) continue ;; esac
+    [ -n "${HISTL["$f:$ln"]+x}" ] && continue
     case "$f" in docs/00-overview/*) continue ;; esac
     bad "$f:$ln — tuyên bố 'CÓ THẬT' nhưng repo chưa có src/ để đối chiếu"
     n=$((n+1))
@@ -641,33 +811,70 @@ elif [ "$DEAD" = " " ] || [ -z "${DEAD// /}" ]; then
   warn "chưa có file nào mang kind: lich-su — §13 KHÔNG kiểm gì (khai báo tường minh, không phải PASS)"
 else
   n=0; seen=0
-  while IFS= read -r hit; do
-    [ -z "$hit" ] && continue
-    f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; p="${rest#*:}"
-    case "$HIST_FILES" in *" $f "*) continue ;; esac
-    case "$HIST_LINES" in *" $f:$ln "*) continue ;; esac
-    # Gỡ vỏ bọc TRƯỚC khi so tên. So chuỗi còn nguyên dấu backtick với tên file
-    # trần thì không bao giờ khớp, và mục này xanh suốt mà không kiểm gì.
-    p="${p#\`}"; p="${p%\`}"          # `file.md`
-    p="${p#\](}"; p="${p%)}"          # ](file.md)
-    # Bo tien to "../" roi so HAU TO duong dan: mot trich dan tuong doi
-    # `../../database/x.md` khop dung `docs/database/x.md`, va KHONG khop
-    # `docs/other/x.md`. Chat hon basename, khong can realpath.
-    base="${p%%#*}"
-    while [ "${base#../}" != "$base" ]; do base="${base#../}"; done
-    base="${base#./}"
-    # Ten TRAN (khong co dau "/") phai duoc giai theo thu muc cua file dang
-    # xet. Neu khong, mot trich dan `README.md` bat ky se khop hau to voi MOI
-    # file README.md trong repo — dung ca bao sai dien rong ma muc nay tranh.
-    case "$f" in */*) _fd="${f%/*}" ;; *) _fd="." ;; esac
-    case "$base" in */*) ;; *) base="$_fd/$base" ;; esac
-    seen=$((seen+1))
-    _hit=0
-    for _d in $DEAD; do case "$_d" in *"$base") _hit=1; break ;; esac; done
-    [ "$_hit" -eq 1 ] || continue
-    bad "$f:$ln — trích dẫn trỏ vào tài liệu đã chết (kind: lich-su): $base"
-    n=$((n+1))
-  done < <(grep -rnoE '\]\([^)]*\.md\)|`[A-Za-z0-9._/-]+\.md`' $SCAN_DIRS --include='*.md' 2>/dev/null)
+  # HIỆU NĂNG: mục này xét hơn chục nghìn trích dẫn và không cần hỏi hệ thống
+  # file, nên cả vòng xét chạy trong MỘT lượt awk (vòng bash từng tốn nhiều giây).
+  # awk đọc từ stdin, theo thứ tự: số mục DEAD, từng mục DEAD, HIST_FILES,
+  # HIST_LINES, rồi đầu ra grep. Nó in "B<tab>file<tab>dòng<tab>đích" cho mỗi vi
+  # phạm (đúng thứ tự trích dẫn) và "S<tab>số-đã-xét" ở cuối; câu báo lỗi ghép ở
+  # bash bên dưới. LC_ALL=C: mọi phép cắt đều cắt theo ký tự ASCII (: ` ]( ) # / ../)
+  # nên cắt theo byte cho cùng kết quả với cắt theo ký tự của bash.
+  # `$DEAD` được tách + mở rộng glob MỘT lần ở đây, đúng phép `for _d in $DEAD` cũ.
+  _dw=(); for _d in $DEAD; do _dw+=("$_d"); done
+  _L=(); _lines _L "$( {
+      printf '%s\n' "${#_dw[@]}"
+      [ "${#_dw[@]}" -gt 0 ] && printf '%s\n' "${_dw[@]}"
+      printf '%s\n' "$HIST_FILES" "$HIST_LINES"
+      grep -rnoE '\]\([^)]*\.md\)|`[A-Za-z0-9._/-]+\.md`' $SCAN_DIRS --include='*.md' 2>/dev/null
+    } | LC_ALL=C awk '
+    NR == 1       { nd = $0 + 0; next }
+    NR <= 1 + nd  { D[NR - 1] = $0; next }
+    NR == 2 + nd  { hf = $0; next }
+    NR == 3 + nd  { hl = $0; next }
+    $0 == ""      { next }
+    {
+      # f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; p="${rest#*:}"
+      hit = $0
+      c = index(hit, ":");  if (c) { f = substr(hit, 1, c - 1); rest = substr(hit, c + 1) } else { f = hit; rest = hit }
+      c = index(rest, ":"); if (c) { ln = substr(rest, 1, c - 1); p = substr(rest, c + 1) } else { ln = rest; p = rest }
+      # miễn trừ: file lịch sử, dòng lịch sử — cùng phép tìm chuỗi con như bản bash
+      if (index(hf, " " f " ")) next
+      if (index(hl, " " f ":" ln " ")) next
+      # Gỡ vỏ bọc TRƯỚC khi so tên. So chuỗi còn nguyên dấu backtick với tên file
+      # trần thì không bao giờ khớp, và mục này xanh suốt mà không kiểm gì.
+      if (substr(p, 1, 1) == "`") p = substr(p, 2)                               # `file.md`
+      if (p != "" && substr(p, length(p)) == "`") p = substr(p, 1, length(p) - 1)
+      if (substr(p, 1, 2) == "](") p = substr(p, 3)                              # ](file.md)
+      if (p != "" && substr(p, length(p)) == ")") p = substr(p, 1, length(p) - 1)
+      # Bo tien to "../" roi so HAU TO duong dan: mot trich dan tuong doi
+      # `../../database/x.md` khop dung `docs/database/x.md`, va KHONG khop
+      # `docs/other/x.md`. Chat hon basename, khong can realpath.
+      c = index(p, "#"); base = c ? substr(p, 1, c - 1) : p
+      while (substr(base, 1, 3) == "../") base = substr(base, 4)
+      if (substr(base, 1, 2) == "./") base = substr(base, 3)
+      # Ten TRAN (khong co dau "/") phai duoc giai theo thu muc cua file dang
+      # xet. Neu khong, mot trich dan `README.md` bat ky se khop hau to voi MOI
+      # file README.md trong repo — dung ca bao sai dien rong ma muc nay tranh.
+      if (index(f, "/")) { fd = f; sub(/\/[^\/]*$/, "", fd) } else fd = "."
+      if (!index(base, "/")) base = fd "/" base
+      seen++
+      lb = length(base)
+      for (m = 1; m <= nd; m++) {
+        d = D[m]; ld = length(d)
+        if (ld >= lb && substr(d, ld - lb + 1) == base) { print "B\t" f "\t" ln "\t" base; break }
+      }
+    }
+    END { print "S\t" seen + 0 }')"
+  for _l in "${_L[@]}"; do
+    case "$_l" in
+      S$'\t'*) seen="${_l#S$'\t'}" ;;
+      B$'\t'*)
+        _r="${_l#B$'\t'}"; f="${_r%%$'\t'*}"; _r="${_r#*$'\t'}"; ln="${_r%%$'\t'*}"; base="${_r#*$'\t'}"
+        bad "$f:$ln — trích dẫn trỏ vào tài liệu đã chết (kind: lich-su): $base"
+        n=$((n+1)) ;;
+    esac
+  done
+  # awk không chạy / không in dòng S -> seen không phải số -> coi như 0 -> FAIL bên dưới.
+  case "$seen" in ''|*[!0-9]*) seen=0 ;; esac
   if [ "$seen" -eq 0 ]; then
     bad "§13 KHÔNG trích được trích dẫn nào — mục này đang không kiểm gì"
   elif [ "$n" -eq 0 ]; then
@@ -676,23 +883,24 @@ else
 fi
 
 # ================================================================ §14
-# Mọi luật trong docs/RULES.md phải khai cột "ép bằng gì".
+# Mọi luật trong docs/RULES.md và docs/RULES-*.md phải khai cột "ép bằng gì".
 # Một luật trả lời "bằng niềm tin" thì không phải luật — nó là gợi ý, và phải
-# nằm ở §10 Danh sách nợ, nhìn thấy được, chứ không trộn vào bảng luật.
+# nằm ở docs/DEBT.md, nhìn thấy được, chứ không trộn vào bảng luật.
 section "§14 Mọi luật trong RULES.md khai cột ép bằng gì"
 n=0; seen=0
-while IFS= read -r line; do
+_L=(); _lines _L "$(grep -h '^|' docs/RULES.md docs/RULES-*.md 2>/dev/null)"
+for line in "${_L[@]}"; do
   [ -z "$line" ] && continue
   case "$line" in *'| MUST'*|*'| SHOULD'*) ;; *) continue ;; esac
   seen=$((seen+1))
-  IFS='|' read -r _ c_id _ _ c_enf _ <<< "$line"
+  _pipe_fields "$line" 5; c_id="${_PF[2]}"; c_enf="${_PF[5]}"
   enf="${c_enf#"${c_enf%%[![:space:]]*}"}"; enf="${enf%"${enf##*[![:space:]]}"}"
   id="${c_id//[[:space:]]/}"
   case "$enf" in ''|'—'|'-'|'?')
-    bad "RULES.md — luật $id không khai cột 'ép bằng gì' (phải chuyển sang §10 Danh sách nợ)"
+    bad "RULES.md — luật $id không khai cột 'ép bằng gì' (phải chuyển sang docs/DEBT.md)"
     n=$((n+1)) ;;
   esac
-done < <(grep -h '^|' docs/RULES.md 2>/dev/null)
+done
 if [ "$seen" -eq 0 ]; then
   bad "§14 không trích được luật nào từ RULES.md — mục này đang không kiểm gì"
 elif [ "$n" -eq 0 ]; then
@@ -715,27 +923,89 @@ OWN="docs/OWNERSHIP.md"
 if [ ! -e "$OWN" ]; then
   bad "không thấy $OWN — không kiểm được §15"
 else
+  # HIỆU NĂNG: bản trước chạy một `grep -rlF` quét trọn docs/ cho MỖI dòng sổ,
+  # cộng bốn năm tiến trình phụ mỗi dòng — mục chậm nhất cả cổng. Nay ba lượt:
+  #   1. đọc sổ, tách cột bằng builtin (không `$(trim)`, không here-string);
+  #   2. MỘT lượt `grep -F -f` + awk qua docs/, tìm mọi chuỗi cùng lúc;
+  #   3. báo theo đúng thứ tự dòng sổ, cùng câu chữ, cùng điều kiện.
+  # awk chạy LC_ALL=C: `index()` so byte, và chuỗi UTF-8 hợp lệ khớp theo byte
+  # đúng khi và chỉ khi nó khớp theo ký tự — cùng kết quả với `grep -F`.
+  # Chuỗi bắt đầu bằng '-' thì `grep` đọc nó thành CỜ; lượt 2 không mô phỏng được
+  # điều đó, nên dòng ấy đi đúng đường `grep` cũ, từng dòng một.
   n=0; seen=0
+  _t15=(); _o15=(); _s15=(); _k15=(); _sl15=(); _ix15=()
   while IFS= read -r line; do
     case "$line" in '|'*'|'*'|'*) ;; *) continue ;; esac
     case "$line" in *'---'*|*'Chủ đề'*) continue ;; esac
-    IFS='|' read -r _ c_topic c_owner c_sig _ <<< "$line"
+    _pipe_fields "$line" 4
     # gỡ khoảng trắng và backtick
-    trim() { local v="$1"; v="${v#"${v%%[![:space:]]*}"}"; v="${v%"${v##*[![:space:]]}"}"; v="${v#\`}"; v="${v%\`}"; printf '%s' "$v"; }
-    topic=$(trim "$c_topic"); owner=$(trim "$c_owner"); sig=$(trim "$c_sig")
+    _trim_to topic "${_PF[2]}"; _trim_to owner "${_PF[3]}"; _trim_to sig "${_PF[4]}"
     [ -z "$sig" ] || [ -z "$owner" ] && continue
     # Bo qua moi bang KHAC nam trong pham vi §3 (bang giai thich, bang doi
     # chieu). Dong so THAT luon co cot file chu bat dau bang `docs/` — do la
     # dau hieu may doc duoc; nhan bat ky dong `| a | b | c |` nao la bao sai.
     case "$owner" in docs/*) ;; *) continue ;; esac
     seen=$((seen+1))
-    if [ ! -e "$owner" ]; then
+    _j=${#_k15[@]}
+    _t15[_j]="$topic"; _o15[_j]="$owner"; _s15[_j]="$sig"
+    if [ ! -e "$owner" ]; then _k15[_j]=miss
+    else
+      case "$sig" in
+        -*) _k15[_j]=grep ;;
+        *)  _k15[_j]=scan; _ix15[${#_sl15[@]}]=$_j; _sl15+=("$sig") ;;
+      esac
+    fi
+  done < <(sed -n '/^## 3\./,/^## 4\./p' "$OWN")
+  declare -A _h15=() _c15=()
+  if [ "${#_sl15[@]}" -gt 0 ]; then
+    # Lượt 2 gồm hai tầng, cùng quét docs/ theo đúng cách bản cũ quét
+    # (`grep -r docs --include='*.md'`):
+    #   - `grep -F -f` lọc ra mọi dòng chứa ÍT NHẤT MỘT chuỗi (tập cha đúng: dòng
+    #     nào chứa một chuỗi thì chắc chắn qua lọc). `-a` để file "nhị phân" vẫn
+    #     in dòng thật, không in câu "Binary file … matches".
+    #   - awk xét từng dòng còn lại với TỪNG chuỗi bằng `index()` — phép khớp
+    #     chính xác; in "chỉ-số<tab>file" một lần cho mỗi cặp (chuỗi, file).
+    # Danh sách chuỗi đi vào awk qua stdin (dòng đầu = số chuỗi), không qua biến
+    # môi trường: Windows giới hạn cỡ một biến môi trường.
+    _L=(); _lines _L "$( {
+        printf '%s\n' "${#_sl15[@]}"; printf '%s\n' "${_sl15[@]}"
+        grep -rHaF -f <(printf '%s\n' "${_sl15[@]}") docs --include='*.md' 2>/dev/null
+      } | LC_ALL=C awk '
+      NR == 1      { ns = $0 + 0; next }
+      NR <= 1 + ns { S[NR - 1] = $0; next }
+      {
+        c = index($0, ":"); fn = substr($0, 1, c - 1); line = substr($0, c + 1)
+        for (i = 1; i <= ns; i++)
+          if (!((i, fn) in got) && index(line, S[i])) { got[i, fn] = 1; print (i - 1) "\t" fn }
+      }')"
+    for _l in "${_L[@]}"; do
+      _i="${_l%%$'\t'*}"; _fp="${_l#*$'\t'}"
+      # BỎ QUA chính sổ đăng ký (nó buộc phải chứa chuỗi đó).
+      [ "$_fp" = "$OWN" ] && continue
+      _j=${_ix15[_i]}
+      _h15[$_j]="${_h15[$_j]:-}$_fp"$'\n'; _c15[$_j]=$(( ${_c15[$_j]:-0} + 1 ))
+    done
+  fi
+  for ((_j = 0; _j < ${#_k15[@]}; _j++)); do
+    topic="${_t15[_j]}"; owner="${_o15[_j]}"; sig="${_s15[_j]}"
+    if [ "${_k15[_j]}" = miss ]; then
       bad "OWNERSHIP: file chủ không tồn tại — $owner (chủ đề: $topic)"
       n=$((n+1)); continue
     fi
     # Đếm file chứa chuỗi, BỎ QUA chính sổ đăng ký (nó buộc phải chứa chuỗi đó).
-    hits=$(grep -rlF "$sig" docs --include='*.md' 2>/dev/null | grep -v "^$OWN$" | sort -u)
-    cnt=$(printf '%s' "$hits" | grep -c . || true)
+    if [ "${_k15[_j]}" = grep ]; then
+      hits=$(grep -rlF "$sig" docs --include='*.md' 2>/dev/null | grep -v "^$OWN$" | sort -u)
+      cnt=$(printf '%s' "$hits" | grep -c . || true)
+    else
+      cnt="${_c15[$_j]:-0}"
+      case "$cnt" in
+        0) hits="" ;;
+        1) hits="${_h15[$_j]%$'\n'}" ;;
+        # Đếm lại SAU `sort -u`, như bản cũ đếm — không dùng số trước khi lọc trùng.
+        *) hits=$(printf '%s' "${_h15[$_j]}" | sort -u)
+           _hl15=(); _lines _hl15 "$hits"; cnt=${#_hl15[@]} ;;
+      esac
+    fi
     if [ "$cnt" -eq 0 ]; then
       bad "OWNERSHIP: chuỗi định danh KHÔNG xuất hiện ở đâu cả — '$sig' (chủ đề: $topic). Dòng này đang không canh gì"
       n=$((n+1))
@@ -788,13 +1058,16 @@ else
       gsub(/^[ 	]+|[ 	]+$/,"",g); gsub(/^`|`$/,"",g);
       if (o ~ /^docs\//) print g
     }' | awk 'length($0) >= 12')
+  # Tách SIGS thành mảng MỘT lần; here-string trong vòng lặp tốn một pipe mỗi mốc.
+  # (_lines bỏ dòng rỗng — vòng dưới vốn bỏ qua chuỗi rỗng.)
+  _sigs16=(); _lines _sigs16 "$SIGS"
   n=0; seen=0
   while IFS= read -r hit; do
     [ -z "$hit" ] && continue
     f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; body="${rest#*:}"
     case "$f" in "$OWN") continue ;; esac
     case "$HIST_FILES" in *" $f "*) continue ;; esac
-    case "$HIST_LINES" in *" $f:$ln "*) continue ;; esac
+    [ -n "${HISTL["$f:$ln"]+x}" ] && continue
     # Nhac toi moc ≠ gan moc. Mot dong luat viet "moc `— dinh nghia goc`" trong
     # code span la dang NOI VE quy uoc, khong phai dang khai mot dinh nghia.
     # Cung phep phan biet ma §6 dung cho nhan trang thai: go moi doan trong code
@@ -809,10 +1082,10 @@ else
     case "$stripped" in *'— định nghĩa gốc'*) ;; *) continue ;; esac
     seen=$((seen+1))
     hit_ok=0
-    while IFS= read -r sig; do
+    for sig in "${_sigs16[@]}"; do
       [ -z "$sig" ] && continue
       case "$body" in *"$sig"*) hit_ok=1; break ;; esac
-    done <<< "$SIGS"
+    done
     [ "$hit_ok" -eq 1 ] && continue
     bad "$f:$ln — mốc 'định nghĩa gốc' KHÔNG có dòng nào trong OWNERSHIP.md §3; không cổng nào canh nó"
     n=$((n+1))
@@ -831,16 +1104,29 @@ fi
 section "§17 File nội dung không kể lại bản trước của chính nó"
 HISTPAT='Bản trước|LẬT 20[0-9]{2}-|SỬA 20[0-9]{2}-|Gỡ 20[0-9]{2}-'
 scanned=0; n=0
+# Gom danh sách trước, rồi MỘT lệnh `grep -H` cho mọi file (qua xargs), thay vì
+# một `grep` mỗi file. `grep` đi file theo đúng thứ tự tham số, nên đầu ra vẫn
+# theo thứ tự `sort` rồi thứ tự dòng — y như vòng lặp cũ.
+_f17=()
 while IFS= read -r f; do
   case "$f" in docs/audit/*|docs/adr/*) continue ;; esac
   case "$HIST_FILES" in *" $f "*) continue ;; esac
   scanned=$((scanned+1))
+  _f17+=("$f")
+done < <(find docs .claude spec -name '*.md' 2>/dev/null | sort)
+if [ "${#_f17[@]}" -gt 0 ]; then
   while IFS= read -r hit; do
     [ -z "$hit" ] && continue
-    bad "$f:${hit%%:*} — kể lại bản trước. Bản cũ nằm trong lịch sử git; bài học vào docs/audit/"
+    # grep 3.0 báo file nhị phân bằng MỘT dòng không có "file:" đứng đầu. Bản cũ
+    # chạy grep trên từng file nên ghép "$f:" + nguyên dòng đó; giữ y như vậy.
+    case "$hit" in
+      "Binary file "*" matches") f="${hit#Binary file }"; f="${f% matches}"; ln17="$hit" ;;
+      *) f="${hit%%:*}"; ln17="${hit#*:}"; ln17="${ln17%%:*}" ;;
+    esac
+    bad "$f:$ln17 — kể lại bản trước. Bản cũ nằm trong lịch sử git; bài học vào docs/audit/"
     n=$((n+1))
-  done < <(grep -nE "$HISTPAT" "$f" 2>/dev/null)
-done < <(find docs .claude spec -name '*.md' 2>/dev/null | sort)
+  done < <(printf '%s\0' "${_f17[@]}" | xargs -0 grep -HnE "$HISTPAT" 2>/dev/null)
+fi
 if [ "$scanned" -eq 0 ]; then
   bad "§17 không quét được file nào — mục này đang không kiểm gì"
 elif [ "$n" -eq 0 ]; then
@@ -860,7 +1146,7 @@ fi
 # "loc chung tu theo khoang" la mot VI DU, va vi du la thu lam spec de hieu.
 # Xem docs/audit/2026-09-12-cong-neo-vao-muc-thay-vi-vai-tro-cua-chuoi.md.
 #
-# Phan con lai cua D27 van thuoc §10 RULES.md: `core-reviewer` va nguoi doc bat.
+# Phan con lai cua D27 van thuoc docs/DEBT.md: `core-reviewer` va nguoi doc bat.
 section "§18 Từ vựng nghiệp vụ không nằm ở vị trí định danh trong Components/"
 BIZPAT='chứng từ|dự toán|kỳ kế toán|hạch toán|kho[áó] sổ|bảng lương|định khoản'
 BIZPAT="$BIZPAT"'|chung[ _]?[Tt]u|du[ _]?[Tt]oan|ky[ _]?[Kk]e[ _]?[Tt]oan'
@@ -1067,10 +1353,16 @@ else
       bad "mục lục khu luồng lệch khỏi thư mục: $n_file file, $n_row dòng có liên kết. Thêm file thì thêm dòng (RULES.md D33)"
       n=$((n+1))
     fi
+    # Hai lệnh `grep -Hc` cho CẢ khu, thay vì hai lệnh mỗi file. `-c` đếm dòng
+    # khớp; "mục 5 có mặt" = đếm > 0, đúng điều `grep -q` cũ trả lời. File grep
+    # không đọc được thì không có dòng đếm — rơi về rỗng / 0, như bản cũ.
+    declare -A _s6=() _q5=()
+    while IFS= read -r _l; do _s6["${_l%:*}"]="${_l##*:}"; done < <(grep -HcE '^## [1-6]\. ' "$@")
+    while IFS= read -r _l; do _q5["${_l%:*}"]="${_l##*:}"; done < <(grep -Hc '^## 5\. Quan hệ với đơn vị' "$@")
     for f in "$@"; do
-      s6=$(grep -cE '^## [1-6]\. ' "$f")
+      s6="${_s6[$f]:-}"
       [ "$s6" -eq 6 ] || { bad "$f — có $s6/6 mục bắt buộc. Khuôn sáu mục ở docs/luong/README.md §3"; n=$((n+1)); }
-      grep -q '^## 5\. Quan hệ với đơn vị' "$f" || { bad "$f — thiếu mục 'Quan hệ với đơn vị'. Trả lời một trong ba: thuộc đơn vị / dùng chung toàn hệ / không áp dụng kèm lý do"; n=$((n+1)); }
+      [ "${_q5[$f]:-0}" -gt 0 ] || { bad "$f — thiếu mục 'Quan hệ với đơn vị'. Trả lời một trong ba: thuộc đơn vị / dùng chung toàn hệ / không áp dụng kèm lý do"; n=$((n+1)); }
     done
     [ "$n" -eq 0 ] && ok "mục lục khớp thư mục ($n_file luồng), mỗi luồng đủ sáu mục và khai quan hệ với đơn vị"
   fi
@@ -1080,18 +1372,18 @@ fi
 # Luat D36. Bo luat cua moi agent co nguong co.
 #
 # Bang dinh tuyen cua mot agent co hai phan, khai bang TIEU DE MUC:
-#   - Muc co chu "Bộ luật": file code phai tuan, agent mo theo viec dang lam.
+#   - Muc co chu "Bộ luật": phan agent LUON doc (checklist RULES-* + tong quan).
 #     Tong co cua ca phan nay la corpus mot luot phai ganh -> co nguong.
 #     Tieu de mang "phạm vi BE" / "phạm vi FE" thi tinh rieng tung pham vi
 #     (core-reviewer: mot luot = mot pham vi); phan khong mang pham vi la chung.
-#   - Muc co chu "Tra cứu": mo dung MOT file khi chu de cham toi -> khong cong.
-# Corpus = chung + max(BE, FE). Nguong do nguoi dung chot 2026-09-15:
-# 250 KB cho agent thi cong, 400 KB cho core-reviewer.
+#   - Muc co chu "Tra cứu": mo khi viec cham dung chu de -> khong cong.
+# Corpus = chung + max(BE, FE). Nguong do nguoi dung chot 2026-09-27 (ADR-0109):
+# 120 KB cho moi agent, ke ca core-reviewer.
 #
 # Mot agent khong co muc "Bộ luật" nao la mot agent khong khai corpus -> FAIL,
 # vi "khong do" khong duoc phep tron voi "dat nguong".
 section "§23 Bộ luật của mỗi agent không vượt ngưỡng cỡ"
-CORPUS_MAX=$((250*1024)); CORPUS_MAX_REVIEWER=$((400*1024))
+CORPUS_MAX=$((120*1024)); CORPUS_MAX_REVIEWER=$((120*1024))
 _rows=$(awk '
   FNR==1 { mode="none"; scope="chung"; a=FILENAME; sub(/.*\//,"",a); sub(/\.md$/,"",a) }
   /^#+ / { mode="none"; scope="chung"
@@ -1214,6 +1506,187 @@ if [ "$n_luat" -eq 0 ]; then
 else
   ok "đã đo $n_luat file luật, $w file trên $((LUAT_MAX/1024)) KB (NOTE, không chặn)"
 fi
+
+section "§26 Khối core-paths thật phải đọc được"
+# Khối này là NGUỒN DUY NHẤT của câu hỏi "thay đổi này có chạm Core không", và
+# hook on-edit.sh đọc thẳng nó. Bộ test hook chạy core-paths.sh trên một FIXTURE
+# riêng (cố ý — để test không đổi kết quả khi tài liệu thật đang sửa dở), nên
+# trước mục này KHÔNG cổng nào chạy nó trên docs/kien-truc-core-module.md: khối
+# bị rào sai, bị tách đôi, hay lọt một dòng văn xuôi thì mọi cổng vẫn PASS và
+# định nghĩa "cái gì thuộc Core" biến mất trong im lặng.
+#
+# Chỉ tiêu thụ MÃ THOÁT. Không chép danh sách, không đếm số dòng — hai thứ đó có
+# chủ ở chính khối, và một bản đếm ở đây sẽ mục ruỗng (§6).
+cp_out=$(bash .claude/hooks/core-paths.sh 2>&1)
+cp_rc=$?
+if [ "$cp_rc" -ne 0 ]; then
+  bad "core-paths.sh thoát mã $cp_rc — khối trong docs/kien-truc-core-module.md không đọc được"
+  printf '%s\n' "$cp_out" | sed 's/^/        /'
+elif [ -z "$cp_out" ]; then
+  bad "core-paths.sh thoát 0 nhưng in ra RỖNG — không đường dẫn nào được coi là chạm Core"
+else
+  ok "khối core-paths đọc được ($(printf '%s\n' "$cp_out" | grep -c .) đường dẫn)"
+fi
+
+section "§27 Nhãn 📐 cấp tệp không được đứng trên một neo trỏ tới code có thật (D42)"
+# Nhãn 📐 cấp tệp MIỄN TRỪ CẢ TỆP khỏi tầm chấm review (quy-uoc/tieu-chi-review.md
+# §3.2), và không cơ chế nào buộc nó được xét lại khi code về. Cơ chế đó đã giấu
+# một lỗ bảo mật thật ở docs/contracts/. Luật D42 + ADR-0048.
+#
+# Hai nửa ĐỘC LẬP. Nửa nào không thấy thư mục mã nguồn của mình thì khai NOTE rồi
+# PASS — im lặng PASS và báo đỏ hàng loạt trên cây không có mã nguồn sai như nhau
+# (cùng điều kiện (c) của D39).
+#
+# 🛑 LC_ALL=C, KHÔNG dùng LC_ALL=en_US.UTF-8 của đầu file. Trên Git Bash, awk dưới
+# locale đó KHÔNG khớp được 📐 và "ĐÍCH ĐẾN": nó thoát 0 và in RỖNG. Đã đo — cả
+# hai nửa cùng báo "0 tệp mang nhãn" trong khi thực tế có hàng chục. Cùng họ bẫy
+# với grep -P mà đầu file cảnh báo, chỉ khác công cụ. Các mẫu ở đây là chuỗi byte
+# UTF-8 nguyên văn nên so theo byte (LC_ALL=C) mới đúng.
+d42_fail=0
+d42_tmp="${TMPDIR:-/tmp}/d42.$$"
+mkdir -p "$d42_tmp" 2>/dev/null || { bad "§27 không tạo được thư mục tạm"; d42_fail=1; }
+
+# CANARY CHO CHÍNH PHÉP DÒ NHÃN — không phải cho phép so.
+# Hai chốt T6 bên dưới (số route thật, số cặp tên component) canh hai BỘ ĐỌC KHÁC.
+# Khi phép dò 📐 chết thì cả hai vẫn khác rỗng, tập tệp-mang-nhãn về 0, và mục này
+# in OK — đúng khuôn "xanh vì bộ đọc hỏng" mà nó sinh ra để chống. Đã xảy ra thật
+# một lần trong phiên viết mục này, do locale.
+# Dò trên một chuỗi dựng tại chỗ nên chốt này đúng kể cả khi repo hết sạch vi phạm.
+if [ "$(printf '> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**\n' | LC_ALL=C awk '/📐/ && /ĐÍCH ĐẾN/ { n++ } END { print n+0 }')" != "1" ]; then
+  bad "§27 phép dò nhãn 📐 KHÔNG khớp được một banner dựng sẵn — bộ dò chết, mọi số 0 bên dưới là giả"
+  d42_fail=1
+fi
+
+# Đổi PascalCase -> kebab. Viết tay vì gsub của awk KHÔNG có tham chiếu ngược:
+# gsub(/(.)([A-Z])/, "\\1-\\2") nuốt ký tự và cho "aut-ard" thay vì "auth-card".
+d42_kebab='function kebab(s,   i, c, out) {
+  out = ""
+  for (i = 1; i <= length(s); i++) {
+    c = substr(s, i, 1)
+    if (i > 1 && c >= "A" && c <= "Z") out = out "-"
+    out = out c
+  }
+  return tolower(out)
+}'
+
+# ---- nửa contracts: route ở tiêu đề card ↔ action dưới Controllers/
+if [ ! -d src/BE ]; then
+  warn "không có src/BE — nửa contracts/ KHÔNG xét gì (không phải PASS)"
+else
+  # TẬP A — nhớ tệp nào mang 📐 trong 15 dòng đầu, rồi thu route tĩnh ở tiêu đề
+  # card của chính tệp đó. Mẫu cố ý không nhận '{': route có tham số là card
+  # khuôn, không phải lời khai về một endpoint cụ thể (D42).
+  LC_ALL=C awk '
+    FNR == 1 { mark = 0 }
+    FNR <= 15 && /📐/ && /ĐÍCH ĐẾN/ { mark = 1 }
+    mark && /^## / {
+      s = $0
+      while (match(s, /(GET|POST|PUT|PATCH|DELETE) \/[A-Za-z0-9\/._-]+/)) {
+        r = substr(s, RSTART, RLENGTH)
+        sub(/\/+$/, "", r)
+        print tolower(r) "\t" FILENAME
+        s = substr(s, RSTART + RLENGTH)
+      }
+    }
+  ' docs/contracts/*.md 2>/dev/null | sort -u > "$d42_tmp/a"
+
+  # TẬP B — ghép [Route(...)] cấp controller với [HttpVerb("...")] cấp action.
+  LC_ALL=C awk '
+    FNR == 1 { base = "" }
+    /\[Route\("/ { if (match($0, /\[Route\("[^"]*"/)) base = substr($0, RSTART + 8, RLENGTH - 9) }
+    /\[Http(Get|Post|Put|Patch|Delete)/ {
+      if (!match($0, /\[Http(Get|Post|Put|Patch|Delete)/)) next
+      verb = tolower(substr($0, RSTART + 5, RLENGTH - 5))
+      suffix = ""
+      if (match($0, /\[Http(Get|Post|Put|Patch|Delete)\("[^"]*"/)) {
+        t = substr($0, RSTART, RLENGTH); sub(/^[^"]*"/, "", t); sub(/"$/, "", t); suffix = t
+      }
+      p = base; if (suffix != "") p = p "/" suffix
+      sub(/\/+$/, "", p)
+      print verb " /" tolower(p)
+    }
+  ' $(find src/BE -name '*Controller.cs' -not -path '*/bin/*' -not -path '*/obj/*' 2>/dev/null) 2>/dev/null \
+    | sort -u > "$d42_tmp/b"
+
+  d42_files=$(cut -f2 "$d42_tmp/a" | sort -u | grep -c .)
+  d42_routes=$(grep -c . "$d42_tmp/b")
+
+  # Chốt T6 — cổng xanh vì bộ đọc hỏng và cổng xanh vì hết vi phạm trông giống hệt nhau.
+  if [ "$d42_routes" -eq 0 ]; then
+    bad "§27 đọc được 0 route thật dưới src/BE — bộ đọc hỏng, cổng đang xanh rỗng"; d42_fail=1
+  fi
+
+  # Canary — một route chắc chắn có thật phải bị chính phép so này bắt được.
+  head -1 "$d42_tmp/b" > "$d42_tmp/canary"
+  if [ -s "$d42_tmp/canary" ] && [ -z "$(comm -12 "$d42_tmp/canary" "$d42_tmp/b")" ]; then
+    bad "§27 canary trượt — phép so không bắt được một route có thật"; d42_fail=1
+  fi
+
+  cut -f1 "$d42_tmp/a" | sort -u > "$d42_tmp/a-routes"
+  comm -12 "$d42_tmp/a-routes" "$d42_tmp/b" > "$d42_tmp/hit"
+  while IFS= read -r r; do
+    [ -z "$r" ] && continue
+    owner=$(LC_ALL=C awk -F'\t' -v k="$r" '$1 == k { print $2; exit }' "$d42_tmp/a")
+    bad "$owner mang 📐 cấp tệp nhưng route \"$r\" đã có action thật dưới src/BE (D42)"
+    d42_fail=1
+  done < "$d42_tmp/hit"
+
+  ok "nửa contracts/: $d42_files tệp mang nhãn đã xét, $d42_routes route thật đọc được"
+fi
+
+# ---- nửa Design: tên component ↔ tệp component dạng kebab dưới src/FE
+if [ ! -d src/FE ]; then
+  warn "không có src/FE — nửa Design/ KHÔNG xét gì (không phải PASS)"
+else
+  find src/FE/src -name '*.component.ts' -not -path '*/node_modules/*' 2>/dev/null \
+    | LC_ALL=C awk -F/ '{ n = $NF; sub(/\.component\.ts$/, "", n); if ($(NF-1) == n) print n "\t" $0 }' \
+    | sort -u > "$d42_tmp/comp"
+
+  LC_ALL=C awk "$d42_kebab"'
+    FNR == 1 { mark = 0 }
+    FNR <= 15 && /📐/ && /ĐÍCH ĐẾN/ && !mark {
+      mark = 1
+      n = FILENAME; sub(/.*\//, "", n); sub(/\.md$/, "", n)
+      print kebab(n) "\t" FILENAME
+    }
+  ' docs/Design/Components/*.md 2>/dev/null | sort -u > "$d42_tmp/spec"
+
+  # Chốt T6 cho phép đổi tên: đếm MỌI cặp tên khớp được, kể cả tệp không mang nhãn.
+  # Đổi quy ước đặt tên ở src/FE làm nửa này câm lặng, và số 0 ở đây là dấu hiệu
+  # duy nhất phân biệt "hết vi phạm" với "bộ đổi tên hỏng".
+  ls docs/Design/Components/*.md 2>/dev/null \
+    | LC_ALL=C awk -F/ "$d42_kebab"'{ n = $NF; sub(/\.md$/, "", n); print kebab(n) }' \
+    | sort -u > "$d42_tmp/allspec"
+  cut -f1 "$d42_tmp/comp" | sort -u > "$d42_tmp/compnames"
+  d42_pairs=$(comm -12 "$d42_tmp/allspec" "$d42_tmp/compnames" | grep -c .)
+  d42_dfiles=$(grep -c . "$d42_tmp/spec")
+
+  if [ "$d42_pairs" -eq 0 ]; then
+    bad "§27 khớp được 0 cặp tên component — phép đổi tên hỏng, nửa Design đang xanh rỗng"; d42_fail=1
+  fi
+
+  # Tra tên -> tệp component bằng mảng dựng MỘT lần từ "$d42_tmp/comp", thay vì
+  # một `awk` mỗi tệp spec. Giữ đúng nghĩa `awk '$1 == k { print $2; exit }'`:
+  # dòng ĐẦU TIÊN có cột 1 bằng k thắng, lấy cột 2.
+  declare -A _comp27=()
+  while IFS= read -r _l; do
+    _k="${_l%%$'\t'*}"
+    if [ "$_k" = "$_l" ]; then _v=""; else _v="${_l#*$'\t'}"; _v="${_v%%$'\t'*}"; fi
+    [ -n "$_k" ] && [ -z "${_comp27["$_k"]+x}" ] && _comp27["$_k"]="$_v"
+  done < "$d42_tmp/comp"
+  while IFS=$'\t' read -r k f; do
+    [ -z "$k" ] && continue
+    comp="${_comp27["$k"]:-}"
+    [ -z "$comp" ] && continue
+    bad "$f mang 📐 cấp tệp nhưng component đã có thật: $comp (D42)"
+    d42_fail=1
+  done < "$d42_tmp/spec"
+
+  ok "nửa Design/: $d42_dfiles tệp mang nhãn đã xét, $d42_pairs cặp tên khớp được"
+fi
+
+rm -rf "$d42_tmp" 2>/dev/null
+[ "$d42_fail" -eq 0 ] && ok "không tệp nào mang 📐 cấp tệp trên một neo trỏ tới code có thật"
 
 # ================================================================ kết luận
 printf '\n'

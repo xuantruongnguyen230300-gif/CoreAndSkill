@@ -6,7 +6,13 @@ verified: chua-doi-chieu
 
 # CLAUDE.md — luật riêng khu `docs/Design/`
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo chưa có `src/`. Mọi spec trong khu này mô tả thứ **sẽ được dựng**, không mô tả thứ đang chạy.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Repo đã có `src/FE`. Bộ luật trong file này có hiệu lực đầy đủ; thứ đang dở là **khu Design**: một phần spec đã neo vào code thật, phần còn lại chưa ai mở source ra so.
+
+| Có thật hôm nay | Sẽ thành |
+| --- | --- |
+| Nhãn cấp tệp của khu này chia hai: spec đã neo vào `src/FE` mang `🚧`, spec chưa có component thật mang `📐`. Đọc bằng lệnh ở §2, đừng chép danh sách | Tệp nào đã mở source ra so trọn vẹn thì mang `✅ ĐÃ ĐỐI CHIẾU` kèm ngày |
+| Phần nào của [`DESIGN.md`](./DESIGN.md) đã đối chiếu với stylesheet dưới `src/FE` thì đọc ở bảng đầu chính tệp đó — không chép sang đây (§4) | Lật nhãn của chính tệp đó khi đối chiếu trọn — từng tệp một, không theo đợt |
+| `verified:` của file này là `chua-doi-chieu`: chưa ai mở `src/FE` ra so với toàn bộ luật ở đây | Lật `verified:` khi có người đối chiếu trọn tệp ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §9) |
 
 > File này chỉ nói **luật của khu Design**. Luật toàn repo ở [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md); bảng "luật nào ép bằng gì" ở [`../RULES.md`](../RULES.md). Không chép lại hai file đó vào đây.
 
@@ -71,16 +77,20 @@ Mỗi file trong khu này mở đầu bằng **đúng một** nhãn, ngay dướ
 
 Ba nhãn này **chính là** ba nhãn của [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §4, không phải một hệ nhãn thứ hai. Đừng phát minh nhãn mới.
 
-### Giai đoạn 1 — luật cứng
+### Nhãn dán theo từng tệp, không dán theo giai đoạn của repo
 
-Repo chưa có `src/`. Vì vậy:
+Nhãn cấp tệp khai **thứ có thật của riêng tệp đó**. Bốn luật cứng:
 
-- 🛑 **Mọi file trong `docs/Design/` mang `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG`.** Không ngoại lệ.
-- 🛑 **Cấm mọi câu khẳng định hiện trạng.** Không viết "component này hiện trông thế này", "app đang dùng font X", "màn hình hiện tại có ba cột".
-- 🛑 **Cấm mục `Normalize on redesign`.** Mục đó là danh sách *"cái đang chạy xấu ở chỗ nào"*. Chưa có cái đang chạy thì mục đó chỉ có thể là bịa. Ở dự án tiền nhiệm nó là mục hữu ích bậc nhất — nhưng chỉ vì ở đó có app thật để chê.
-- ✅ **Thay bằng mục `Cần chốt`**: những chỗ spec cố ý để ngỏ, kèm câu hỏi cụ thể phải trả lời trước khi dựng.
+- 🛑 **`📐` bị cấm khi một neo khai trong chính tệp trỏ tới code có thật.** Với `Components/<Tên>.md` thì neo đó là **tên component**: có tệp component cùng tên ở dạng kebab dưới `src/FE/src/app/` thì spec không được mang `📐`. Luật D42 ở [`../DEBT.md`](../DEBT.md), ép bằng mục §27 của [`../../.claude/check-docs.sh`](../../.claude/check-docs.sh).
+- 🛑 **Nhãn không lật hàng loạt.** Một đợt code về, một lần build xanh, một quyết định chuyển giai đoạn — không cái nào thay được việc mở đúng tệp đó ra đối chiếu ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §4). Tệp chưa ai đối chiếu thì `📐` và `chua-doi-chieu` là giá trị **đúng**, không phải nợ.
+- 🛑 **Câu khẳng định hiện trạng phải neo được.** Viết *"component này hiện trông thế này"* thì phải trả lời được *"kiểm bằng gì"*, theo khuôn neo ở §3. Không neo được thì đừng viết câu đó.
+- ✅ **Mục `Normalize on redesign` chỉ mở cho tệp đã có code thật.** Mục đó là danh sách *"cái đang chạy xấu ở chỗ nào"*, nên nó vô nghĩa với một tệp còn mang `📐` — chỗ để ngỏ của những tệp ấy ghi vào mục `Cần chốt` kèm câu hỏi cụ thể phải trả lời trước khi dựng.
 
-Khi giai đoạn 2 bắt đầu và một component thật sự được dựng xong, spec của nó đổi nhãn — **và chỉ khi đó** mục `Normalize on redesign` mới được mở.
+Đọc nhãn cấp tệp của cả khu bằng lệnh, không chép danh sách vào tài liệu ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §6):
+
+```bash
+grep -m1 -oE '^(📐|🚧|✅) ' docs/Design/Components/*.md docs/Design/Screens/*.md
+```
 
 ---
 
@@ -88,7 +98,7 @@ Khi giai đoạn 2 bắt đầu và một component thật sự được dựng 
 
 Một spec khẳng định *"component này hiện trông thế này"* thì phải trả lời được câu *"kiểm bằng gì"*. Neo theo **định danh**, không theo số dòng.
 
-Khuôn neo hợp lệ (dùng khi đã có `src/`):
+Khuôn neo hợp lệ — đường dẫn tệp kèm **một chuỗi tìm được trong chính tệp đó**:
 
 ```text
 <file stylesheet> § --color-brand
@@ -105,10 +115,12 @@ grep -rn '^\.btn' src/FE/src
 
 **Vì sao không dùng số dòng:** trong một stylesheet vài trăm dòng thì *mọi* số nhỏ hơn độ dài file đều "nằm trong file", nên một cổng kiểu D7 ([`../RULES.md`](../RULES.md) §1) cho qua cả trích dẫn đã trôi. Đổi tên selector thì grep biết ngay; đổi số dòng thì không ai biết. Cùng một lý do với việc neo test bằng **tên ca kiểm** thay vì `file:dòng` đã áp ở [`../RULES.md`](../RULES.md) §3.
 
-### Giai đoạn 1 — cấm tuyệt đối hai thứ
+Đây là luật toàn repo, không phải quy ước riêng khu này: **D41** ở [`../DEBT.md`](../DEBT.md), chốt ở [`../adr/0046-neo-trich-dan-vao-src-bang-chuoi-tim-duoc.md`](../adr/0046-neo-trich-dan-vao-src-bang-chuoi-tim-duoc.md). Nó phủ chiều `docs/` → `src/`; trích dẫn `docs/` → `docs/` vẫn dùng số dòng được và vẫn do D7 ép.
 
-1. 🛑 **Cấm mọi trích dẫn trỏ vào `src/`.** `src/` không tồn tại. Một trích dẫn `src/FE/...` hôm nay là **bịa bằng chứng**, và cổng [`../RULES.md`](../RULES.md) §1 D4 sẽ bắt.
-2. 🛑 **Cấm trích dẫn đường dẫn ảnh không tồn tại.** Chưa có app thì chưa có ảnh chụp màn hình. Mục `Screenshots` của một screen spec viết đúng một dòng: *chưa có — repo chưa có `src/`, không có gì để chụp*. Không tạo trước cây thư mục ảnh, không viết trước tên file ảnh.
+### Hai điều cấm tuyệt đối
+
+1. 🛑 **Cấm neo bằng số dòng vào một tệp dưới `src/`.** Dạng bị cấm là đường dẫn tệp kèm dấu hai chấm và một con số; dạng đúng là đường dẫn tệp kèm một tên thành viên, một selector, hoặc một tên token — xem khuôn ở trên. Một neo số dòng đã trôi không trỏ vào chỗ trống mà trỏ sang **một đoạn code khác cũng có thật**, nên người đọc nhận câu sai kèm bằng chứng trông hợp lệ.
+2. 🛑 **Cấm trích dẫn đường dẫn ảnh không tồn tại.** Khu này chưa có thư mục `Assets/` — điều kiện tạo nó ở §9. Cho tới khi có, mục `Screenshots` của một screen spec viết đúng một dòng nói rõ chưa có ảnh nào. Không tạo trước cây thư mục ảnh, không viết trước tên file ảnh.
 
 Ở dự án tiền nhiệm, một danh sách **ảnh chờ chụp** dài hàng chục dòng đã tồn tại nhiều tuần mà không ai chụp dòng nào. Một danh sách chờ mà không ai làm thì giá trị bằng không, và tệ hơn: nó **che mất** những màn thật sự chưa có tham chiếu hình ảnh nào.
 
@@ -116,23 +128,24 @@ grep -rn '^\.btn' src/FE/src
 
 ---
 
-## 4. Bảng trạng thái component
+## 4. Trạng thái thi công của một component đọc ở đâu
 
-Mỗi dòng trong [`COMPONENTS.md`](./COMPONENTS.md) mang **đúng một** trạng thái sau. Đây là trạng thái **của việc thi công một component**, hẹp hơn nhãn fidelity ở §2 và không thay thế nó.
+🛑 **Ở nhãn cấp tệp đầu spec của chính component đó (§2) — không ở mục lục.** [`COMPONENTS.md`](./COMPONENTS.md) khai *danh sách* component Core và *nền* của từng cái; nó cố ý không có cột trạng thái. Lệnh đọc kèm tiêu chí PASS ở [`COMPONENTS.md`](./COMPONENTS.md) §3.
 
-| Trạng thái | Nghĩa chính xác | Điều kiện để dán | Screen spec dùng được? |
+Ba nhãn của §2 đọc như sau khi áp cho một spec component:
+
+| Nhãn | Nghĩa cho một component | Điều kiện để dán | Screen spec dùng được? |
 | --- | --- | --- | --- |
-| `📐 spec xong, chưa dựng` | Có file spec đầy đủ trong `Components/`. Không có class, không có component Angular nào hiện thực hoá | File spec có đủ các mục §6 bắt buộc | ✅ Có — đây chính là việc spec tồn tại |
-| `🚧 đang dựng` | Code đã bắt đầu về nhưng **chưa đủ** so với spec: thiếu biến thể, thiếu trạng thái, hoặc thiếu accessibility | Spec phải có bảng *"đã có → còn thiếu"* liệt kê từng khoản còn nợ | ⚠️ Có, nhưng task dựng màn phải đọc bảng còn nợ trước |
-| `✅ đã dựng, đã đối chiếu` | Có người mở source ra so **toàn bộ** spec với code và không còn lệch | Ngày đối chiếu + neo định danh theo §3 | ✅ Có |
-| `⛔ đã rút` | Từng có spec, nay không dùng nữa | Dòng phải nêu **vì sao rút** và **đi đâu** (gộp vào component nào, hoặc bỏ hẳn) | 🛑 Không |
+| `📐` | Chưa có tệp component cùng tên dạng kebab dưới `src/FE/src/app/` | File spec có đủ các mục §6 bắt buộc. Cổng §27 đỏ nếu component đã có thật | ✅ Có — đây chính là việc spec tồn tại |
+| `🚧` | Code đã về nhưng **chưa đủ** so với spec: thiếu biến thể, thiếu trạng thái, hoặc thiếu accessibility | Spec phải khai ngay trong nó phần đã mở source ra so và phần còn nợ | ⚠️ Có, nhưng task dựng màn phải đọc phần còn nợ trước |
+| `✅` | Có người mở source ra so **toàn bộ** spec với code và không còn lệch | Ngày đối chiếu + neo định danh theo §3 | ✅ Có |
 
-**Giai đoạn 1: mọi dòng là `📐 spec xong, chưa dựng`.** Không dòng nào được mang trạng thái khác cho tới khi có `src/`.
+**Component đã rút không có nhãn thứ tư.** Nó rời bảng ở [`COMPONENTS.md`](./COMPONENTS.md) §3 và tệp spec đổi `kind` thành `lich-su` — thủ tục bốn bước ở [`COMPONENTS.md`](./COMPONENTS.md) §8. Một screen spec **không** được ghép component đã rút.
 
 Hai luật đi kèm:
 
-- **Trạng thái sống ở [`COMPONENTS.md`](./COMPONENTS.md), không chép sang chỗ khác.** Không dán trạng thái vào [`../README.md`](../README.md), không dán vào spec của một component khác. Ở dự án tiền nhiệm, trạng thái từng được chép vào mục lục và **năm trên bảy dòng đã sai** khi có người đối chiếu lại — bản sao không bao giờ được sửa cùng lúc ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §5).
-- **`✅ đã dựng, đã đối chiếu` không tự dán được.** Nó đòi một hành động thật: mở source, đọc hết spec, so từng mục. Dán nhãn này mà không làm việc đó là đúng khuôn hỏng [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §4 cấm — đóng một việc bằng cách sửa mô tả.
+- **Không chép trạng thái sang chỗ khác.** Không dán vào [`../README.md`](../README.md), không dán vào một mục lục, không dán vào spec của component khác. [`../00-overview/ke-hoach-chi-tiet.md`](../00-overview/ke-hoach-chi-tiet.md) đã chốt câu chung cho cả repo sau khi đối chiếu ở dự án tiền nhiệm tìm ra **năm trên bảy** nhãn mục lục đã sai: trạng thái của một file đọc ở đầu chính file đó, mục lục chỉ giữ nhãn **cấp khu**.
+- **`✅` không tự dán được.** Nó đòi một hành động thật: mở source, đọc hết spec, so từng mục. Dán nhãn này mà không làm việc đó là đúng khuôn hỏng [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §4 cấm — đóng một việc bằng cách sửa mô tả.
 
 ---
 

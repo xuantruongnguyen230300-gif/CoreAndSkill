@@ -6,9 +6,25 @@ verified: chua-doi-chieu
 
 # Card
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Bản tối thiểu đã có ở `src/FE` (F2, ADR-0037) — biến thể `default` cỡ `md`; bảng "đã có → còn thiếu" ngay dưới đây.
 
 **Nền:** tự dựng, không bọc PrimeNG. Lý do ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 — nó thuần trình bày: một bề mặt có viền, có bóng, có ba chỗ đặt nội dung. Không có hành vi nào thuộc nhóm "khó", nên bọc thư viện chỉ nhận thêm một tập CSS mặc định phải đè.
+
+## Đã có → còn thiếu (F2, ADR-0037)
+
+Component: `src/FE/src/app/shared/components/card/card.component.ts`. Dùng ở `ho-so.page.html` — ba `Card` biến thể `default`, cỡ `md`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | Đủ chữ ký spec: `variant`, `size`, `heading`, `headingLevel`, `description`, `loading`, `disabled`, `activated` | — |
+| Biến thể `default` | Có, qua một màn thật | — |
+| Biến thể `flat` | Dựng trong CSS (`--shadow-0`, giữ viền) | Chưa có màn nào dùng — chưa được thử qua thực tế |
+| Biến thể `interactive` | Dựng tối giản: `<button>` bọc toàn thẻ, phát `activated` | Chưa hỗ trợ dạng **liên kết** (`<a>`) — API dự kiến hôm nay không có input `route`/`href`; đây là khoảng trống của chính spec, không phải thiếu sót khi dựng. Chưa có màn nào dùng biến thể này — chưa được thử qua thực tế |
+| Cỡ `sm`/`lg` | Dựng trong CSS (mật độ đệm theo đúng thang `--sp-*`) | Chưa có màn nào dùng — chưa được thử qua thực tế |
+| `heading` + `<h2>`/`<h3>`/`<h4>` thật | Có, `headingLevel` mặc định `2`, đúng cấp trong `ho-so.page.html` | — |
+| `loading` | Chỉ đặt `aria-busy="true"` trên thân | **Không** tự thay nội dung thân bằng `SkeletonLoader` — trang cha tự quyết định render gì lúc `loading` (`ho-so.page.html` tự ghép nhiều `SkeletonLoader` đơn ở slot mặc định khi `dangTaiHoSo()` là `true`). Đây là một cách đọc khác API dự kiến ("Nội dung thân thay bằng SkeletonLoader") — ghi ở đây để F3 không tưởng Card tự làm việc đó |
+| Trạng thái `error`/`empty` ở mức Card | — | Không áp dụng theo cùng nghĩa spec: trang cha tự quyết định render `NoticeBanner`/`EmptyState` vào slot mặc định, Card không có input riêng cho hai trạng thái này (đúng API dự kiến — bảng đó không có input `error`) |
+| Chân riêng (`--color-surface-2`, vạch phân cách) | Có slot `[slot=footer]`, dùng cho nút "Từ bỏ cờ đặc quyền" | Hai nút Lưu/Đổi mật khẩu vẫn nằm trong thân, cùng `<form>` — chưa dùng chân cho nút `submit` vì cần `Button.md` hỗ trợ thuộc tính `form` xuyên qua (chưa có), nên tạm giữ trong thân để không phải sửa `ButtonComponent` ngoài phạm vi ADR-0037 |
 
 ---
 

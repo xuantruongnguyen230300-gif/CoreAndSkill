@@ -29,6 +29,25 @@ CS8524 là cảnh báo cho số nguyên bất kỳ ép sang `ErrorType` — th�
 thì switch đã phủ đủ mọi giá trị có tên vẫn không biên dịch. Giá trị không tên lọt tới `ResultToHttpMapper`
 lúc chạy ném `SwitchExpressionException`.
 
+Khối đầy đủ — chuyển từ file luật §1.2 ngày 2026-09-23; bảng ánh xạ vẫn là định nghĩa gốc ở §1.1 của file luật, khối này chỉ là hiện thực của nó:
+
+```csharp
+// Core.Web/Http/ResultToHttpMapper.cs
+public static class ResultToHttpMapper
+{
+    public static int ToStatusCode(ErrorType type) => type switch
+    {
+        ErrorType.Validation   => StatusCodes.Status400BadRequest,
+        ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+        ErrorType.Forbidden    => StatusCodes.Status403Forbidden,
+        ErrorType.NotFound     => StatusCodes.Status404NotFound,
+        ErrorType.Conflict     => StatusCodes.Status409Conflict,
+        ErrorType.BusinessRule => StatusCodes.Status422UnprocessableEntity,
+        ErrorType.Unexpected   => StatusCodes.Status500InternalServerError,
+    };
+}
+```
+
 ### 1.3 ⚠️ Vì sao CẤM reflection ở cầu nối này
 
 Cầu nối dựng bằng `GetMethod` + `Invoke` hỏng đúng nhánh **lỗi**, không lỗi biên dịch: chữ ký method
@@ -60,8 +79,28 @@ Bốn tính chất khiến ca này đắt hơn một bug thường:
 ### 2.1 Hình dạng envelope
 
 `ApiEnvelope` là hình dạng dây của đường vào HTTP nên sống ở `Core.Web`; `Core.Contracts` giữ đúng vai
-DTO và integration event **giữa các module**, chỉ BCL. `traceId` gán vào `HttpContext.TraceIdentifier`
+sự kiện và DTO **Core phát ra** cho module, chỉ BCL. `traceId` gán vào `HttpContext.TraceIdentifier`
 nên cùng một giá trị nằm trong envelope, trong log scope, và trong mọi span tracing phía sau.
+
+Ví dụ mở rộng — lỗi nghiệp vụ và lỗi validation, chuyển từ file luật §2.1 ngày 2026-09-27 (ví dụ
+"thành công" vẫn ở đó):
+
+```json
+{ "success": false, "data": null,
+  "error": { "code": "CORE.USER.EMAIL_DUPLICATED", "type": "Conflict", "message": "Email 'an@vd.vn' đã được dùng.",
+             "messageParams": { "Email": "an@vd.vn" }, "fieldErrors": null },
+  "traceId": "0af7651916cd43dd8448eb211c80319c" }
+```
+
+```json
+{ "success": false, "data": null,
+  "error": { "code": "CORE.VALIDATION.FAILED", "type": "Validation", "message": "Dữ liệu gửi lên không hợp lệ.",
+             "messageParams": null,
+             "fieldErrors": {
+               "Email": [ { "code": "CORE.VALIDATION.FORMAT", "messageParams": null } ],
+               "UserName": [ { "code": "CORE.VALIDATION.MAX_LENGTH", "messageParams": { "MaxLength": "64" } } ] } },
+  "traceId": "5b8aa5a2d2c872e8321cf37308d69df2" }
+```
 
 Thân helper private của `Envelope` — chỗ duy nhất `Error` biến thành `ApiError`:
 
@@ -114,6 +153,14 @@ Hai ca định tuyến cùng HTTP 404 với ca nghiệp vụ thì `code` là th�
 người gọi, cặp verb + đường dẫn đó không trỏ tới tài nguyên nào — cùng nhóm với route không khớp, và
 cùng là bug của FE.
 
+**Vì sao nhánh client huỷ chỉ bắt ca bị bọc.** Khi exception đứng đầu là `OperationCanceledException` hay
+`IOException` và `RequestAborted` đã huỷ, `ExceptionHandlerMiddleware` của framework đã trả 499 và ghi log
+mức `Debug` trước khi gọi `IExceptionHandler` nào. Chuỗi thông điệp của nhánh đó (*"The request was aborted by the
+client"*) có trong `Microsoft.AspNetCore.Diagnostics.dll` của shared framework bản 10 đang cài, đo ngày 2026-09-22.
+Còn lại là ca một tầng giữa **bọc** lần huỷ vào exception khác. Ca đó rơi xuống nhánh 500 và ghi một dòng
+`Error` cho một việc không phải lỗi, nên cảnh báo vận hành kêu mỗi lần người dùng đóng tab giữa chừng. Không
+ghi envelope vì client đã đi.
+
 ---
 
 ## 3. `ApiControllerBase`
@@ -122,10 +169,66 @@ Route không dùng token `[controller]` để đổi tên class không làm đ�
 thừa thẳng `ControllerBase` là một controller không có `[Authorize]` mặc định và không đi qua
 `ResultToHttpMapper` — đó là thứ `EveryController_Inherits_ApiControllerBase` canh.
 
+Khối đầy đủ — chuyển từ file luật §3 ngày 2026-09-23; bảng trách nhiệm và luật S3 vẫn ở đó. **Năm** lối dưới **bốn** tên: hai overload `HandleResult`, `HandleCreated`, `HandleExport` ([ADR-0064](../../../adr/0064-nhanh-tra-tep-di-qua-apicontrollerbase.md)), `HandleFile` ([ADR-0068](../../../adr/0068-nhanh-tai-tep-di-qua-handlefile.md)) — và **một** `Failure` dùng chung cho nhánh lỗi của cả bốn:
+
+```csharp
+// Core.Web/Controllers/ApiControllerBase.cs
+[Authorize]
+public abstract class ApiControllerBase : ControllerBase
+{
+    protected IActionResult HandleResult<T>(Result<T> result)
+        => result.IsSuccess ? Ok(Envelope.Success(result.Value, HttpContext.TraceIdentifier)) : Failure(result.Error!);
+
+    protected IActionResult HandleResult(Result result)
+        => result.IsSuccess ? Ok(Envelope.Success<object>(null, HttpContext.TraceIdentifier)) : Failure(result.Error!);
+
+    protected IActionResult HandleCreated<T>(Result<T> result, string location)
+        => result.IsSuccess ? Created(location, Envelope.Success(result.Value, HttpContext.TraceIdentifier)) : Failure(result.Error!);
+
+    protected IActionResult HandleExport(Result<ExportFile> result)
+        => result.IsSuccess ? new ExportFileResult(result.Value) : Failure(result.Error!);
+
+    protected IActionResult HandleFile(Result<FileDownload> result)
+        => result.IsSuccess ? FileDownloadResponse.For(result.Value) : Failure(result.Error!);
+
+    private IActionResult Failure(Error error)
+        => StatusCode(ResultToHttpMapper.ToStatusCode(error.Type), Envelope.Failure(error, HttpContext.TraceIdentifier));
+}
+```
+
+Hai lối tệp tách nhau bằng **kiểu tham số**, không bằng kỷ luật của người viết: `ExportFile` mang một delegate ghi, `FileDownload` mang một luồng **đã mở**. Gọi nhầm lối là lỗi biên dịch — và nhờ vậy dấu hiệu cú pháp `HandleExport` mà cổng S20 dò vẫn chỉ trỏ vào endpoint **xuất**, không trỏ nhầm sang một lần tải tệp thường (ADR-0068 quyết định 2).
+
+Cả hai đi tới **một** lớp kết quả, `ExportFileResult` — chỗ duy nhất trong repo đặt ba header bắt buộc của một phản hồi tệp (`Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`). Lớp đó giữ `internal`, và tên nó là **hằng số cú pháp** của cổng S20 nên không đổi dù nay nó phục vụ cả hai nhánh. `FileDownloadResponse.For` chỉ là lối bọc: nó gói luồng đã mở vào một hàm ghi có `await using`, để việc **đóng luồng** — kể cả khi client ngắt giữa chừng — thuộc về đúng một chỗ thay vì một câu dặn trong chú thích của record.
+
 ### 3.1 Controller mẫu
 
 Một `if` trong controller là một luật nghiệp vụ nằm ngoài tầm test của tầng Application. `try/catch` hay
 `StatusCode(500, ...)` trong controller đều tạo nguồn sự thật thứ hai cho ánh xạ `Result` → HTTP.
+
+Khối mẫu đầy đủ — chuyển từ file luật §3.1 ngày 2026-09-22 (`UsersController` thật còn có action `Export`, §7.2 ngoại lệ có tên):
+
+```csharp
+// Core.Web/Controllers/UsersController.cs
+[ApiController]
+[Route(CoreRoutes.Users)] // hằng số §8.1 — không gõ tay "api/v1/core/users"
+public sealed class UsersController(ISender mediator) : ApiControllerBase
+{
+    [HttpGet]
+    [RequirePermission(CorePermissions.UserRead)]
+    public async Task<IActionResult> GetList([FromQuery] GetUsersListQuery query, CancellationToken ct)
+        => HandleResult(await mediator.Send(query, ct));
+
+    [HttpGet("{id:guid}")]
+    [RequirePermission(CorePermissions.UserRead)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+        => HandleResult(await mediator.Send(new GetUserByIdQuery(id), ct));
+
+    [HttpPost]
+    [RequirePermission(CorePermissions.UserWrite)]
+    public async Task<IActionResult> Create([FromBody] CreateUserCommand command, CancellationToken ct)
+        => HandleResult(await mediator.Send(command, ct));
+}
+```
 
 ---
 
@@ -203,6 +306,46 @@ internal sealed class RequirePermissionFilter(
 }
 ```
 
+Khối khai ba attribute — chuyển từ file luật §4.2 ngày 2026-09-23; hình dạng và ràng buộc `AllowMultiple` là luật, ở đó:
+
+```csharp
+// Core.Web/Permissions/RequirePermissionAttribute.cs
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
+public sealed class RequirePermissionAttribute(string key) : Attribute
+{
+    public string Key { get; } = key;
+}
+
+// Core.Web/Permissions/RequireSystemOperatorAttribute.cs
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
+public sealed class RequireSystemOperatorAttribute : Attribute
+{
+}
+
+// Core.Web/Permissions/AuthenticatedOnlyAttribute.cs
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
+public sealed class AuthenticatedOnlyAttribute(string reason) : Attribute
+{
+    public string Reason { get; } = reason;
+}
+```
+
+Chữ ký seam `IPermissionChecker` — chuyển từ file luật §4.2 ngày 2026-09-23; ba vai của ba phương thức vẫn khai ở đó:
+
+```csharp
+// Core.Application/Permissions/IPermissionChecker.cs — seam
+public interface IPermissionChecker
+{
+    Task<bool> HasPermissionAsync(Guid userId, string permissionKey, CancellationToken ct);
+
+    // Tập quyền hiệu lực (§4.3)
+    Task<IReadOnlySet<string>> GetEffectivePermissionsAsync(Guid userId, CancellationToken ct);
+
+    // Tập quyền từng vai trò cấp, một truy vấn theo tập, không qua cờ bypass — luật chống leo thang, contracts/users.md §2
+    Task<IReadOnlyDictionary<Guid, IReadOnlySet<string>>> GetPermissionsForRolesAsync(IReadOnlyCollection<Guid> roleIds, CancellationToken ct);
+}
+```
+
 ### 4.3 Ma trận quyền theo resource
 
 Khoá là hằng số **chuỗi**, không phải enum, để module thêm khoá của mình mà không sửa Core.
@@ -246,6 +389,21 @@ Allowlist này cùng khuôn với hai danh sách khai tường minh khác — m�
 
 ---
 
+Khuôn khai allowlist ẩn danh — chuyển từ file luật §5 ngày 2026-09-23. **Bốn dòng dưới đây là ví dụ về hình dạng, không phải danh sách sống**: danh sách thật đọc từ chính tệp đó, và ArchTest `EveryAllowAnonymous_IsOn_TheAllowlist` cũng đọc code chứ không đọc tài liệu:
+
+```csharp
+// Core.Web/Security/AnonymousEndpointAllowlist.cs
+public static class AnonymousEndpointAllowlist
+{
+    public static readonly IReadOnlySet<string> Endpoints = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "GET /api/v1/core/diagnostics/probe",   // endpoint thử của B0
+        "POST /api/v1/core/auth/login",
+        // … dòng khác: đọc trong tệp
+    };
+}
+```
+
 ## 6. Rate limiting
 
 ### 6.1 Các hàng rào
@@ -271,9 +429,31 @@ mỗi IP. Hệ quả **ngược hẳn mục tiêu**:
 ("mặc định của limiter là phân vùng theo remote IP"), và code chép y theo nên mang nguyên
 lỗi. Rule sai không nằm yên — nó sinh ra code sai.
 
+Dạng đúng — khối đầy đủ, chuyển từ file luật §6.2 ngày 2026-09-22; con số là mặc định đã chốt ở đó:
+
+```csharp
+// ✅ ĐÚNG
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1) }));
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new SlidingWindowRateLimiterOptions
+                { PermitLimit = 200, Window = TimeSpan.FromMinutes(1), SegmentsPerWindow = 6 }));
+});
+```
+
+Hàng rào 3 không có trong khối trên — nó nằm trong handler đăng nhập, file luật §6.5.
+
 Action đăng nhập gắn policy theo tên. Đây là action của Core có việc giữa `Send` và `HandleResult` —
-phát cookie phiên là việc của `Core.Web`; thân action và kiểu trả về của handler ở
-[`be-api-controller.md`](../../../quy-uoc/be-api-controller.md) §7.4, không chép lại đây:
+phát cookie phiên là việc của `Core.Web`; kiểu trả về của handler ở
+[`be-api-controller.md`](../../../quy-uoc/be-api-controller.md) §7.4, thân action ở §7.4 của file này:
 
 ```csharp
 [HttpPost("login")]
@@ -281,7 +461,7 @@ phát cookie phiên là việc của `Core.Web`; thân action và kiểu trả v
 [EnableRateLimiting("login")]
 public async Task<IActionResult> Login([FromBody] LoginCommand command, CancellationToken ct)
 {
-    ...   // thân action: be-api-controller.md §7.4
+    ...   // thân action: §7.4 của file này
 }
 ```
 
@@ -308,7 +488,8 @@ public async Task<IActionResult> Login([FromBody] LoginCommand command, Cancella
 
 ### 6.4 Con số là ước lượng, không phải số đo
 
-Có 429 không đi kèm sự cố FE nghĩa là hạn mức chặt hơn hành vi thật. Không có 429 nào nghĩa là hạn
+Cách đọc log sau khi chạy thật: có 429 **không** kèm sự cố FE → nới lên; không có 429 nào trong nhiều
+tuần → **vẫn giữ**. Có 429 không đi kèm sự cố FE nghĩa là hạn mức chặt hơn hành vi thật. Không có 429 nào nghĩa là hạn
 mức đang không làm gì cả — vẫn giữ, vì nó không phải công cụ đo tải. Tấn công DDoS thật đến từ hàng
 nghìn IP, mỗi IP dưới ngưỡng; không đặt kỳ vọng vào app.
 
@@ -353,7 +534,16 @@ Vì sao từng quyết định ở đường ra:
 5. Nhưng một subdomain **khác** của cùng tên miền gốc vẫn là cùng site với trình duyệt — `Lax`
    không chặn nó. Nên vẫn cần hai lớp.
 
+Điều kiện của cả chuỗi — cùng tên miền gốc **và** cùng scheme — lệch thì:
+
+| Lệch | Hậu quả |
+| --- | --- |
+| Khác scheme — FE `http`, API `https` | **Khác site.** Cookie `Lax` không được gửi ⇒ đăng nhập xong vẫn 401. Đó là lý do mọi môi trường, kể cả máy dev, chạy HTTPS |
+| Khác tên miền gốc | Cookie thành **bên thứ ba**: phải `SameSite=None`, và trình duyệt có thể chặn hẳn. Đổi điều kiện này là một **ADR mới**, không phải một dòng cấu hình |
+
 ### 7.2 Hai lớp
+
+**Vì sao đăng nhập và đăng xuất cũng cần token:** đăng nhập thiếu token là ép được người dùng đăng nhập vào tài khoản của kẻ tấn công (login CSRF) — mọi thứ họ làm sau đó nằm trong tài khoản người khác; đăng xuất bị ép là phiền, tuy nhẹ.
 
 Hai lớp mang hai mã vì FE xử lý khác nhau: lấy token mới rồi gửi lại chữa được `CSRF_REJECTED`,
 không chữa được `ORIGIN_REJECTED`. Ca *`Origin` lạ nhưng token hợp lệ vẫn 403 `ORIGIN_REJECTED`* là phép thử
@@ -370,13 +560,16 @@ internal sealed class AntiforgeryValidationMiddleware(
 {
     public async Task InvokeAsync(HttpContext http)
     {
-        if (IsSafeMethod(http.Request.Method))
+        var endpoint = http.GetEndpoint();
+
+        // Chỉ method ghi (bẫy thứ ba ở §7.5) — TRỪ action tự khai nó có tác dụng phụ; đọc METADATA, không đọc đường dẫn
+        if (IsSafeMethod(http.Request.Method) &&
+            endpoint?.Metadata.GetMetadata<RequireAntiforgeryAttribute>() is null)
         {
-            await next(http);   // chỉ method ghi — bẫy thứ ba ở §7.5
+            await next(http);
             return;
         }
 
-        var endpoint = http.GetEndpoint();
         var requiresAuthentication =
             endpoint?.Metadata.GetMetadata<IAuthorizeData>() is not null &&
             endpoint.Metadata.GetMetadata<IAllowAnonymous>() is null;
@@ -395,13 +588,27 @@ internal sealed class AntiforgeryValidationMiddleware(
             return;
         }
 
-        if (!await antiforgery.IsRequestValidAsync(http))
+        // Lớp 2 — ValidateRequestAsync trong try/catch, KHÔNG IsRequestValidAsync (bẫy ngay dưới)
+        if (!await HasValidTokenAsync(http))
         {
-            await SecurityEnvelopeWriter.WriteEnvelopeAsync(http, SecurityErrors.CsrfRejected);     // lớp 2
+            await SecurityEnvelopeWriter.WriteEnvelopeAsync(http, SecurityErrors.CsrfRejected);
             return;
         }
 
         await next(http);
+    }
+
+    private async Task<bool> HasValidTokenAsync(HttpContext http)
+    {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(http);
+            return true;
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return false;
+        }
     }
 
     private static bool IsSafeMethod(string method) =>
@@ -410,16 +617,42 @@ internal sealed class AntiforgeryValidationMiddleware(
 }
 ```
 
+**Hai bẫy của nhánh ngoại lệ có tên** — `GET` mang dấu `[RequireAntiforgery]` (endpoint xuất, [ADR-0062](../../../adr/0062-endpoint-xuat-kiem-token-chong-gia-mao-nhu-lenh-ghi.md)):
+
+- **Bước 1 phải hỏi metadata của endpoint trước khi nhường cho method an toàn.** Nhường theo method rồi mới đọc endpoint là mọi `GET` đi qua, kể cả `GET` mang dấu.
+- **Nhánh kiểm cho `GET` mang dấu không được gọi `IsRequestValidAsync`.** Hợp đồng của hàm đó nói thẳng: request dùng method an toàn thì **không kiểm token**, trả `true`. Gọi nó cho một `GET` là một cổng luôn xanh — không lỗi, không log, và test gọi export thiếu token vẫn 200. Đường đúng là `ValidateRequestAsync`, bắt `AntiforgeryValidationException` rồi ghi envelope `CsrfRejected`. Đây là đúng loại "cổng xanh rỗng" mà [`../../../audit/2026-09-11-lenh-kiem-tu-dem-chinh-no.md`](../../../audit/2026-09-11-lenh-kiem-tu-dem-chinh-no.md) đã trả giá — nên test S20 phải có ca *thiếu token → 403* chứ không chỉ ca *có token → 200*.
+
 Vì sao phiên hết hạn phải ra 401 chứ không 403: token FE đang giữ gắn với danh tính lúc phát. Khi
 phiên đã hết — cookie quá hạn, hoặc phép kiểm security stamp vừa từ chối principal — request tới
 middleware này không còn danh tính, và kiểm token sẽ ra `CSRF_REJECTED` cho một ca thật ra là hết phiên.
 Bỏ qua ở đây không mở lỗ nào: request đó không tới được action.
 
+**Vì sao request ghi thiếu token tới đường dẫn không tồn tại ra 403 chứ không 404.** Bước 2 chỉ nhường khi đọc
+được metadata của một endpoint; không có endpoint thì middleware đi tiếp bước 3–4 như với mọi request ghi.
+Hệ quả có lợi: người ngoài không có token không phân biệt được đường dẫn có thật với đường dẫn bịa bằng
+request ghi, vì cả hai cùng ra 403. Cái giá chỉ rơi vào người gỡ lỗi bằng `curl` không kèm token — họ thấy
+`CSRF_REJECTED` cho một lỗi gõ sai đường dẫn. FE luôn gửi token ở request ghi, nên đi qua bước 4 và nhận
+404 `CORE.ROUTE.NOT_FOUND` như thường.
+
 ### 7.3 CORS
+
+Khối policy đầy đủ ([`be-api-controller.md`](../../../quy-uoc/be-api-controller.md) §7.3):
+
+```csharp
+services.AddCors(options => options.AddPolicy(CorsPolicyNames.Default, policy =>
+{
+    policy.WithOrigins(authOptions.AllowedOrigins)
+          .AllowAnyHeader()
+          .AllowAnyMethod()
+          .AllowCredentials()                         // bắt buộc để cookie đi qua
+          .WithExposedHeaders("Retry-After", "Content-Disposition");
+}));
+```
 
 - FE và API khác nguồn ([`../../../adr/0015-fe-va-api-khac-nguon.md`](../../../adr/0015-fe-va-api-khac-nguon.md)),
   nên header không nằm trong `WithExposedHeaders` vẫn tới trình duyệt mà mã FE đọc ra `null` — `Retry-After`
-  của 429 là header FE cần đọc. `WithOrigins` lấy từ `IOptions` để không hardcode.
+  của 429 và `Content-Disposition` của endpoint trả tệp là hai header FE cần đọc. Lỗi này **không có thông
+  báo**: FE nhận đúng tệp, chỉ không biết tên. `WithOrigins` lấy từ `IOptions` để không hardcode.
 - CORS là cơ chế của **trình duyệt**: nó không bảo vệ được trước một client không phải trình duyệt.
 - `AllowAnyOrigin()` cùng `AllowCredentials()` gây lỗi lúc chạy — nhưng đó không phải hàng rào để
   trông vào.
@@ -467,7 +700,9 @@ static Task<bool> IsSessionStillValidAsync(CookieValidatePrincipalContext ctx)
 {
     // Đọc CoreClaimTypes.TenantId / UserId / UserName / SecurityStamp / IssuedAt từ ctx.Principal.
     // IssuedAt + authOptions.SessionAbsoluteHours đã qua ⇒ false. Còn lại: mở IExecutionContextScope.Enter(tenantId, userId, userName)
-    // rồi trả IIdentityService.IsSessionValidAsync(userId, securityStamp).
+    // rồi IIdentityService.IsSessionValidAsync(userId, securityStamp) — chỉ kiểm stamp — false ⇒ false;
+    // sau đó ITenantLookup.FindByIdAsync(tenantId): null hoặc !IsActive ⇒ false. Hai seam, hai lần đọc —
+    // quy-uoc/be-api-controller.md §7.4.
     ...
 }
 ```
@@ -529,9 +764,60 @@ cookie hoặc đổi security stamp (đổi mật khẩu, đặt lại hộ), n�
 đặt lúc tạo tài khoản ([`../../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../../adr/0023-dich-vu-tao-don-vi-dung-chung.md))
 nên cũng vậy.
 
+Khối `AuthController` mẫu — cấp cookie sau đăng nhập và sau đổi mật khẩu ([`be-api-controller.md`](../../../quy-uoc/be-api-controller.md) §7.4):
+
+```csharp
+// Core.Web/Controllers/AuthController.cs
+[HttpPost("login")]
+[AllowAnonymous]
+[EnableRateLimiting("login")]
+public async Task<IActionResult> Login([FromBody] LoginCommand command, CancellationToken ct)
+{
+    var result = await mediator.Send(command, ct);
+    if (result.IsFailure)
+        return HandleResult(result);
+
+    await SignInAsync(result.Value, issuedAt: timeProvider.GetUtcNow());
+    return HandleResult(Result.Success(result.Value.Session));
+}
+
+[HttpPost("change-password")]
+[AuthenticatedOnly("Đổi mật khẩu của chính mình")]
+public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordCommand command, CancellationToken ct)
+{
+    var result = await mediator.Send(command, ct);
+    if (result.IsFailure)
+        return HandleResult(result);
+
+    var issuedAt = DateTimeOffset.Parse(User.FindFirstValue(CoreClaimTypes.IssuedAt)!, CultureInfo.InvariantCulture);
+    await SignInAsync(result.Value, issuedAt);
+    return HandleResult(Result.Success());
+}
+
+private Task SignInAsync(LoginOutcome outcome, DateTimeOffset issuedAt) => HttpContext.SignInAsync(
+    CookieAuthenticationDefaults.AuthenticationScheme,
+    principalFactory.Create(outcome, issuedAt),
+    new AuthenticationProperties { IsPersistent = false });
+```
+
+
 **Vì sao phép kiểm phiên gộp `is_active` của đơn vị:** đơn vị ngưng hoạt động phải đá phiên đang mở ở request kế
 tiếp — cùng yêu cầu "thu hồi tức thì" với khoá tài khoản; gộp vào lần đọc đã có thì không thêm chi phí
 ([`../02-identity-auth.md`](../02-identity-auth.md) §6.3).
+
+Helper ghi envelope từ hạ tầng — chuyển từ file luật §7.4 ngày 2026-09-23; catalog mã vẫn là định nghĩa gốc ở đó:
+
+```csharp
+// Core.Web/Security/SecurityEnvelopeWriter.cs — helper DUY NHẤT ghi envelope lỗi từ hạ tầng
+internal static class SecurityEnvelopeWriter
+{
+    public static Task WriteEnvelopeAsync(HttpContext http, Error error)
+    {
+        http.Response.StatusCode = ResultToHttpMapper.ToStatusCode(error.Type);
+        return http.Response.WriteAsJsonAsync(Envelope.Failure(error, http.TraceIdentifier));
+    }
+}
+```
 
 ### 7.5 ⚠️ Antiforgery — hai nửa, hai đường
 
@@ -577,6 +863,12 @@ Phiên bản nằm trong đường dẫn vì đó là thứ đọc được tron
 câu `curl` dán vào issue. Core sở hữu `/api/vN/core/…`, module sở hữu `/api/vN/<module>/…` — không tranh
 chấp không gian tên. Chuỗi đường dẫn viết ở hai chỗ là chuỗi sẽ lệch — lệch ở điều kiện rate limit là cả
 hàng rào ngừng chặn.
+
+**Vì sao `ApiRoutes.Root` và `ApiRoutes.V1` là `public`.** Module khai route dưới `ApiRoutes.V1 + "/<module>"`,
+và `EnvelopeMiddleware` chỉ bọc response dưới tiền tố `ApiRoutes.Root`. Nếu module tự gõ tiền tố thì một lần
+gõ lệch là endpoint của module ra thân trần, không envelope, mà không lỗi nào báo. Cái giá là hai hằng số đó
+thành hợp đồng với module: đổi tên chúng là thay đổi phá vỡ. Tiền tố khu `core` thì không đưa ra ngoài. Module
+không bao giờ đăng ký dưới `/core`, nên một hằng số `public` cho tiền tố đó chỉ mở sẵn đúng đường sai.
 
 Dòng "đổi ngữ nghĩa mà giữ nguyên hình dạng" là dòng đáng sợ nhất của bảng phát hành: hình dạng
 không đổi nên không cổng nào bắt được, mà client vẫn hiểu sai. Ở dự án tiền nhiệm, việc *"bỏ một

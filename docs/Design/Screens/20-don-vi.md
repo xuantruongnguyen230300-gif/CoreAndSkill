@@ -6,12 +6,35 @@ verified: chua-doi-chieu
 
 # Quản trị đơn vị (khu hệ thống) — màn hình
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo chưa có `src/`. Khu này dựng sau F3 và đóng khi pha B3 xong ([00-lo-trinh-tong-the.md](../../wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md) §1).
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Màn đã dựng ở `src/FE` (trang danh sách, hai component hộp thoại, một hộp xác nhận). Mới đối chiếu **từng mục** — bảng "Có thật hôm nay → sẽ thành" ngay dưới ghi mục nào đã so, mục nào lệch, mục nào chưa so; chưa đối chiếu trọn file nên `verified: chua-doi-chieu` giữ nguyên. Lộ trình: khu này dựng sau F3 và đóng khi pha B3 xong ([00-lo-trinh-tong-the.md](../../wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md) §1).
 
 Tài khoản vận hành hệ thống xem, tìm đơn vị; tạo đơn vị ([V2](../../luong/V2-tao-don-vi-moi.md)); ngưng và bật lại ([V3](../../luong/V3-ngung-va-bat-lai-don-vi.md)); khôi phục tài khoản quản trị của một đơn vị và, khi không còn ai đủ điều kiện, tạo tài khoản quản trị mới ([V4](../../luong/V4-khoi-phuc-quan-tri-don-vi.md)). Người vận hành **không** thấy dữ liệu bên trong đơn vị: không có màn chi tiết, không có danh sách người dùng của đơn vị. Một màn, ba hộp thoại, một hộp xác nhận. Nghiệp vụ: [tenants.md](../../contracts/tenants.md) — không chép lại. Bố cục theo [ListScreen.md](../Templates/ListScreen.md) §2.
 
 > **Khung:** khung ứng dụng ([00-khung-ung-dung.md](./00-khung-ung-dung.md))
 > **Quyền:** cờ `isSystemOperator` qua `systemOperatorGuard` — **không** phải permission ([fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §1, §4). Mọi endpoint mang `[RequireSystemOperator]` ([tenants.md](../../contracts/tenants.md)). Không phân quyền theo nút: vào được màn là dùng được mọi thao tác.
+> **Đường vào:** **URL gõ thẳng — không có mục nào trên `Sidebar` trỏ tới màn này**, và đó là quyết định, không phải chỗ còn sót ([00-khung-ung-dung.md](./00-khung-ung-dung.md), bảng Quyết định bố cục). Cây menu đến từ máy chủ và ba bước lọc của nó không đọc được cờ `isSystemOperator`, nên một mục trỏ vào khu hệ thống hôm nay hiện sai người dù khai cách nào. Đường vào nhìn thấy được: **đã quyết, hoãn** — v1 không dựng cơ chế nào, xét lại khi một điều kiện kích hoạt xảy ra ([ADR-0079](../../adr/0079-khu-he-thong-khong-nhan-duong-vao-nhin-thay-duoc-o-v1.md); [00-khung-ung-dung.md](./00-khung-ung-dung.md) §Cần chốt #1).
+
+## Có thật hôm nay → sẽ thành
+
+Đối chiếu 2026-09-21, chỉ bằng đọc mã (không chạy ứng dụng), với `src/FE/src/app/platform/he-thong/don-vi/pages/danh-sach/danh-sach-don-vi.page.html`, `danh-sach-don-vi.page.ts`, `src/FE/src/app/platform/he-thong/don-vi/don-vi.routes.ts`, `src/FE/src/app/platform/he-thong/don-vi/components/hop-tao-don-vi/hop-tao-don-vi.component.html`, `src/FE/src/app/platform/he-thong/don-vi/components/hop-quan-tri-don-vi/hop-quan-tri-don-vi.component.html`, `src/FE/src/app/platform/he-thong/don-vi/components/hop-tao-don-vi/hop-tao-don-vi.component.ts`, `src/FE/src/app/platform/he-thong/don-vi/components/hop-quan-tri-don-vi/hop-quan-tri-don-vi.component.ts`, `src/FE/src/app/platform/he-thong/don-vi/state/tao-don-vi.store.ts`, `src/FE/src/app/platform/he-thong/don-vi/state/khoi-phuc-tao-quan-tri.store.ts`, `src/FE/src/app/shared/forms/apply-form-failure.ts`. Neo bằng chuỗi tìm được trong tệp, không bằng số dòng.
+
+| Khoản | Có thật hôm nay | Sẽ thành |
+| --- | --- | --- |
+| Tuyến và guard | Có — `don-vi.routes.ts` chuỗi `systemOperatorGuard` trong `canActivate`; một tuyến, không tuyến con chi tiết | — |
+| Đầu trang, ô tìm | Có — `danh-sach-don-vi.page.html` chuỗi `app-page-header`, nút `variant="primary" icon="plus"`, `app-toolbar` với `variant="search"` | Biến thể mặc định của `PageHeader` và cỡ `md` của `Toolbar`: chỗ gọi không khai giá trị, mặc định của component **chưa so** |
+| Bảng | Có — năm cột khoá `code`, `name`, `trangThai`, `createdAt`, `hanhDong` (chuỗi `columns = computed`); sắp xếp được ba cột `code`/`name`/`createdAt`; `priority` `high` ở tên, `low` ở ngày tạo; không nghe `rowClick` | Biến thể `paged` của `DataTable`: chỉ suy từ `[totalRecords]` và `[page]` ở chỗ gọi, chưa mở [DataTable.md](../Components/DataTable.md) so |
+| Menu hàng | Có — chuỗi `mucMenu(dv: DonVi)`: bốn khoá `ngung`, `bat-lai`, `khoi-phuc`, `tao-quan-tri`; `danger: true` ở mục ngưng; mục khoá lại khi `dangXuLyId` trùng hàng | — |
+| `loadingTemplate` | **Lệch có lý do** — `tplDangTai` dùng `SkeletonLoader` `variant="text"` một dòng; spec ghi `group` dạng hàng, mà `group` hiện không render ([SkeletonLoader.md](../Components/SkeletonLoader.md) §Đã có → còn thiếu) | Đổi sang `group` khi `SkeletonLoader` có khuôn hàng bảng. Không sửa spec cho khớp code |
+| Trạng thái rỗng, lỗi tải | Có — `tplRong` hai nhánh `first-use` (nút "Tạo đơn vị") và `no-results` (nhắc từ khoá, nút "Xoá bộ lọc", không mời tạo); `tplLoi` `variant="error"` nút `chung.thuLai` | — |
+| Ngưng và bật lại | Có — `app-confirm-dialog` `severity="warning"`, tiêu đề nêu tên và mã; bật lại gọi thẳng `xuLyDatTrangThai(dv, true)` không hỏi | Xem dòng `CORE.TENANT.NOT_FOUND` ngay dưới |
+| `CORE.TENANT.NOT_FOUND` — tải lại danh sách | Có — `danh-sach-don-vi.page.ts`: nhánh bật lại chuỗi `this.toast.loi(dichLoiHoacMatKetNoi` rồi `this.list.reload()`; nhánh ngưng chuỗi `if (laKhongTimThay(err)) this.list.reload()` sau khi đặt `loiXacNhanNgung`; hai hộp quản trị: page truyền `() => this.list.reload()` và `khoi-phuc-tao-quan-tri.store.ts` chuỗi `khiDonViKhongTonTai()` chạy khi mã là `CORE.TENANT.NOT_FOUND` | — |
+| Hộp "Tạo đơn vị" | Có — `hop-tao-don-vi.component.html`: `app-dialog` `size="md"`, `[dirty]`, `[loadingBlocksClose]`, banner `danger` đầu thân, hai `<fieldset>` (`donVi.form.nhomDonVi`, `donVi.form.nhomQuanTri`), sáu ô; ô mật khẩu tạm `type="password"` không truyền `revealable` (mặc định bật), không có ô nhập lại; chuẩn hoá chữ HOA ở `(maBlurred)="taoHop.chuanHoaMa()"` (`danh-sach-don-vi.page.html`, nối từ `(focusout)="maBlurred.emit()"` của hộp) và ở đầu `gui()`; `state/tao-don-vi.store.ts` chuỗi `MA_DON_VI_PATTERN` cùng biểu thức với [tenants.md](../../contracts/tenants.md) §2 | — |
+| Ô mã — `maxlength` | Không có; `Validators.maxLength(50)` chỉ báo lỗi bằng validator | **Spec bỏ yêu cầu `maxlength`** — xem bảng Quyết định. Code giữ nguyên |
+| Hai hộp quản trị | Có — `hop-quan-tri-don-vi.component.html`: hai `app-dialog` `size="sm"`, banner `severity="info"` ở hộp khôi phục, "Gõ lại mã đơn vị" kiểm ở FE (`kiemKhopMa`, so `toLocaleUpperCase`) và **không** gửi (`khoiPhucQuanTri(dv.id, { userName`) | — |
+| Focus về ô khi bấm gửi sai (gồm ô "Gõ lại mã đơn vị" chưa khớp) | Có — `state/khoi-phuc-tao-quan-tri.store.ts`: `kiemKhopMa` gắn lỗi `mismatch` rồi `this.lanGuiSai.update(` khi form không hợp lệ; `hop-quan-tri-don-vi.component.ts` chuỗi `focusOSaiKhiGuiSai(` chọn form của hộp đang mở. Focus đi tới ô sai **đầu tiên** theo thứ tự trên trang, nên khi ô khác cũng sai thì ô đó được focus trước ô gõ lại mã. Nếu bảng Quyết định muốn focus riêng ô gõ lại mã trong ca đó thì cần `design-expert` quyết — chưa ai hỏi | — |
+| Ca lỗi không kèm `fieldErrors` | Có — `state/tao-don-vi.store.ts` chuỗi `this.loiChung.set(applyFormFailure(` cho `CORE.VALIDATION.FAILED` và `CORE.TENANT.ADMIN_CREATE_FAILED`; `state/khoi-phuc-tao-quan-tri.store.ts` cùng lời gọi cho mọi mã của hai hộp quản trị; `shared/forms/apply-form-failure.ts` khớp [fe-ui-conventions.md](../../quy-uoc/fe-ui-conventions.md) §6.2: chuỗi `khongKhop.flatMap((khoa) => fieldErrors[khoa] ?? [])` đưa mã chưa hiện vào `cauTungMa` (`shared/forms/field-errors-text.ts`, chuỗi `.join('\n')`); câu mã gốc chỉ ở nhánh `every((loi) => loi.length === 0)` (so lại 2026-09-24) | — |
+
+Chưa đối chiếu: §Responsive, bảng Icon (chỉ so `ellipsis-v`, `plus`, `power-off`, `key`), giá trị từng khoá i18n ở `public/i18n/vi.json` (mới thấy nhóm `donVi` tồn tại và câu `goiYMa`), hàm `fieldErrorText` có gắn `CORE.CLIENT.VALIDATION_MISMATCH` cho khoá `mismatch` không, trạng thái "phủ mờ" khi đổi trang, token trong SCSS của hộp, mọi thứ chỉ thấy khi chạy ứng dụng, ảnh màn hình.
 
 ---
 
@@ -51,7 +74,8 @@ Tham số URL và dây: `page`, `pageSize`, `sortBy` (`code` · `name` · `creat
 | --- | --- |
 | "Ngưng hoạt động" là `Badge` `danger` — cùng vai "bị khoá, bị chặn", cùng màu với "Đã khoá" ở [10-nguoi-dung.md](./10-nguoi-dung.md) | [V3](../../luong/V3-ngung-va-bat-lai-don-vi.md) bước 5 · [Badge.md](../Components/Badge.md) §Biến thể |
 | Ô "Mật khẩu tạm" có nút hiện/ẩn (`revealable` bật sẵn), **không** có ô nhập lại — ở mọi hộp có ô này; cùng quyết định với [10-nguoi-dung.md](./10-nguoi-dung.md) | [Input.md](../Components/Input.md) §API |
-| Khuôn mã đơn vị kiểm ở FE trước khi gửi, cùng khuôn với card (tập ký tự, ký tự đầu, độ dài tối đa sống ở card — màn không chép biểu thức); ô có `maxlength` bằng độ dài tối đa; FE **chuyển chuỗi về chữ HOA** trước khi kiểm và gửi, ô đổi sang chữ hoa khi rời ô. Sai khuôn → `CORE.CLIENT.VALIDATION_PATTERN`; quá dài → `CORE.CLIENT.VALIDATION_MAXLENGTH`; máy chủ vẫn kiểm lại, trả `CORE.VALIDATION.FAILED` khoá `Code` | [tenants.md](../../contracts/tenants.md) §2 |
+| Khuôn mã đơn vị kiểm ở FE trước khi gửi, cùng khuôn với card (tập ký tự, ký tự đầu, độ dài tối đa sống ở card — màn không chép biểu thức); FE **chuyển chuỗi về chữ HOA** trước khi kiểm và gửi, ô đổi sang chữ hoa khi rời ô. Sai khuôn → `CORE.CLIENT.VALIDATION_PATTERN`; quá dài → `CORE.CLIENT.VALIDATION_MAXLENGTH`; máy chủ vẫn kiểm lại, trả `CORE.VALIDATION.FAILED` khoá `Code` | [tenants.md](../../contracts/tenants.md) §2 |
+| Ô "Mã đơn vị" **không** đặt `maxlength` — độ dài tối đa chỉ do validator báo lỗi (`CORE.CLIENT.VALIDATION_MAXLENGTH`), không chặn lúc gõ. Ba lý do: (1) `maxlength` gốc của trình duyệt **cắt im lặng** cả chuỗi dán; mã đơn vị là thứ người dùng của đơn vị gõ lúc đăng nhập, nên một mã dài dán vào bị cắt vẫn ra chuỗi hợp khuôn nhưng **sai**, và đơn vị được tạo với mã sai mà không ai thấy lỗi — báo lỗi thì người vận hành thấy; (2) con số tối đa sống ở card, thuộc tính `maxlength` là nguồn thứ hai cho cùng con số; (3) câu `VALIDATION_MAXLENGTH` và cách báo sau-khi-gõ đã là khuôn chung của mọi ô có độ dài tối đa (vd [03-ho-so-ca-nhan.md](./03-ho-so-ca-nhan.md)), không riêng ô này. Đánh đổi chấp nhận: mất việc ngừng nhận phím ở ký tự thứ 51 | [Input.md](../Components/Input.md) §API dự kiến — không có `maxlength`, có ghi lý do |
 | Hộp "Ngưng hoạt động" là `ConfirmDialog` `warning` (hậu quả rộng nhưng khắc phục được bằng bật lại); tiêu đề nêu **tên và mã**; xác nhận → `PUT .../active` với `isActive` = `false` | [V3](../../luong/V3-ngung-va-bat-lai-don-vi.md) bước 5 · [tenants.md](../../contracts/tenants.md) §3 |
 | "Bật lại hoạt động" không hỏi xác nhận (thao tác khôi phục); gửi ngay `isActive` = `true`; `Toast` `success`; tải lại danh sách | [ConfirmDialog.md](../Components/ConfirmDialog.md) |
 | Hộp khôi phục và hộp tạo quản trị có ô "Gõ lại mã đơn vị": so với `code` của hàng, kiểm ở FE, **không** gửi lên (card §4 nhận đúng hai trường); so không phân biệt hoa thường; chưa khớp → lỗi dưới ô `CORE.CLIENT.VALIDATION_MISMATCH`, focus về ô, không gọi API | [tenants.md](../../contracts/tenants.md) §2, §4 |
@@ -64,7 +88,7 @@ Tham số URL và dây: `page`, `pageSize`, `sortBy` (`code` · `name` · `creat
   - thân
     - NoticeBanner sm vai danger (lỗi không gắn được vào ô, gồm CORE.TENANT.SEED_FAILED)
     - nhóm "Đơn vị"
-      - FormRow required "Mã đơn vị" — Input text, maxlength và khuôn theo tenants.md §2, FE kiểm cùng khuôn trước khi gửi; gợi ý: câu tĩnh nêu khuôn bằng lời
+      - FormRow required "Mã đơn vị" — Input text, khuôn và độ dài tối đa theo tenants.md §2 (kiểm bằng validator, không đặt `maxlength` — bảng Quyết định), FE kiểm cùng khuôn trước khi gửi; gợi ý: câu tĩnh nêu khuôn bằng lời
       - FormRow required "Tên đơn vị" — Input text
     - nhóm "Tài khoản quản trị đầu tiên"
       - FormRow required "Tên đăng nhập" — Input text, autocomplete off
@@ -132,7 +156,7 @@ Câu không ghi nguồn: người dùng duyệt 2026-09-15 ([Screen.md](../Templ
 | Rỗng — chưa có đơn vị | Chưa có đơn vị nào · Tạo đơn vị đầu tiên cùng tài khoản quản trị của nó. | `donVi.trong.tieuDe` · `donVi.trong.moTa` |
 | Rỗng — tìm không ra | Không có đơn vị nào khớp "{{tuKhoa}}" · Thử từ khoá khác hoặc xoá từ khoá đang tìm. | `donVi.khongKetQua.tieuDe` · `donVi.khongKetQua.moTa` |
 | Tiêu đề khối lỗi tải danh sách | Không tải được danh sách đơn vị | `donVi.loi.taiThatBai` |
-| Thân khối lỗi | Câu dịch theo mã; không có mã thì câu mất kết nối | `loi.<mã>` · `loi.CORE.CLIENT.NO_CONNECTION` |
+| Thân khối lỗi | Không có: `danhSach` không tắt toast, nên câu theo mã và `traceId` nằm ở toast | — |
 | Nút thử lại · nút xoá bộ lọc | Thử lại · Xoá bộ lọc | `chung.thuLai` · `chung.xoaBoLoc` |
 
 Mã lỗi → chỗ hiện (câu sống ở `loi.<mã>`):
@@ -140,18 +164,21 @@ Mã lỗi → chỗ hiện (câu sống ở `loi.<mã>`):
 | Mã | Endpoint | Hiện ở |
 | --- | --- | --- |
 | `CORE.VALIDATION.FAILED` — khoá tham số danh sách, gồm `SearchText` | danh sách | `errorTemplate` của `DataTable` |
-| `CORE.VALIDATION.FAILED` | tạo | Dòng lỗi dưới ô theo khoá `fieldErrors` ở trên; khoá không khớp → `NoticeBanner` trong hộp |
+| `CORE.VALIDATION.FAILED` | tạo | Dòng lỗi dưới ô theo khoá `fieldErrors` ở trên; khoá không khớp hoặc không kèm `fieldErrors` → `NoticeBanner` trong hộp (quy tắc dưới bảng) |
 | `CORE.TENANT.CODE_DUPLICATE` | tạo | Dòng lỗi dưới ô "Mã đơn vị" (FE tự gắn mã vào ô) |
-| `CORE.TENANT.ADMIN_CREATE_FAILED` | tạo | Theo `fieldErrors`; khoá không khớp → `NoticeBanner` trong hộp |
+| `CORE.TENANT.ADMIN_CREATE_FAILED` | tạo | Theo `fieldErrors`; lỗi không vào được ô nào → `NoticeBanner` trong hộp (quy tắc dưới bảng) |
 | `CORE.TENANT.SEED_FAILED` | tạo | `NoticeBanner` `danger` trong hộp; hộp và nội dung giữ nguyên |
 | `CORE.TENANT.NOT_FOUND` | ngưng/bật, khôi phục, tạo quản trị | `NoticeBanner` `danger` trong hộp đang mở; ca bật lại (không có hộp) → `Toast` `danger`; tải lại danh sách |
 | `CORE.TENANT.SYSTEM_IMMUTABLE` | ngưng/bật | `NoticeBanner` `danger` trong `ConfirmDialog` — không kỳ vọng xảy ra vì danh sách không chứa đơn vị hệ thống |
 | `CORE.VALIDATION.FAILED` — `fieldErrors["UserName"]` / `["TempPassword"]` | khôi phục | Dòng lỗi dưới ô tương ứng |
 | `CORE.TENANT.RECOVERY_TARGET_NOT_ELIGIBLE` | khôi phục | `NoticeBanner` `danger` trong hộp — **một câu cho cả hai ca** (card gộp mã có chủ đích); **không** gắn vào ô "Tên đăng nhập" |
-| `CORE.TENANT.RECOVERY_RESET_FAILED` | khôi phục | Theo `fieldErrors`, thường là ô "Mật khẩu tạm" |
+| `CORE.TENANT.RECOVERY_RESET_FAILED` | khôi phục | Theo `fieldErrors`, thường là ô "Mật khẩu tạm"; không kèm `fieldErrors` hoặc khoá không khớp → `NoticeBanner` `danger` trong hộp (quy tắc dưới bảng) |
 | `CORE.VALIDATION.FAILED` — `UserName` / `Email` / `FullName` / `TempPassword` | tạo quản trị | Dòng lỗi dưới ô tương ứng |
-| Mã còn lại của endpoint ([tenants.md](../../contracts/tenants.md)) | tạo quản trị | Theo `fieldErrors`; khoá không khớp → `NoticeBanner` `danger` trong hộp, hộp và nội dung giữ nguyên |
+| `CORE.USER.USERNAME_RESERVED` — trong `fieldErrors` của `CORE.VALIDATION.FAILED`, khoá `AdminUserName` (tạo) / `UserName` (tạo quản trị) | tạo, tạo quản trị | Dòng lỗi dưới ô "Tên đăng nhập" |
+| Mã còn lại của endpoint ([tenants.md](../../contracts/tenants.md)) | tạo quản trị | Theo `fieldErrors`; khoá không khớp hoặc không kèm `fieldErrors` → `NoticeBanner` `danger` trong hộp, hộp và nội dung giữ nguyên (quy tắc dưới bảng) |
 | `CORE.AUTH.FORBIDDEN` · `CORE.AUTH.CSRF_REJECTED` | mọi endpoint | Đường chung ở [fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §8 |
+
+**Lỗi từ máy chủ không bao giờ được im lặng — quy tắc chung của cả ba hộp có ô nhập.** Theo [tenants.md](../../contracts/tenants.md) §2, §4, §6, chỉ ba mã khai `fieldErrors`: `CORE.VALIDATION.FAILED` (mọi endpoint ghi), `CORE.TENANT.ADMIN_CREATE_FAILED` (§2, §6), `CORE.TENANT.RECOVERY_RESET_FAILED` (§4). Các mã còn lại của màn (`CODE_DUPLICATE`, `SEED_FAILED`, `NOT_FOUND`, `SYSTEM_IMMUTABLE`, `RECOVERY_TARGET_NOT_ELIGIBLE`) không khai `fieldErrors` và đã có chỗ hiện riêng ở bảng trên. Nhưng ngay cả ba mã kia vẫn có thể đến **không kèm `fieldErrors`**: card §6 ghi `ADMIN_CREATE_FAILED` gộp mọi ca thất bại, "không nêu nguyên nhân liên quan `userName`" — chỉ lý do chính sách mật khẩu mới ra ở `fieldErrors["TempPassword"]`; một tên đăng nhập trùng vì thế cho ra 422 trần. Xử lý: lỗi nào không vào được ô — `fieldErrors` vắng, rỗng, hoặc còn khoá không khớp control — hiện ở `NoticeBanner` `danger` đầu thân hộp; hộp và nội dung giữ nguyên để gửi lại. **Câu nào** trong banner do [fe-ui-conventions.md](../../quy-uoc/fe-ui-conventions.md) §6.2 quyết; màn này không khai lại. Ca bị cấm: nút gửi hết xoay mà không banner, không lỗi ô, không `Toast` — vi phạm [09-forms-validation.md](../../wiki-core/fe/09-forms-validation.md) §4.3.
 
 ### Trạng thái
 
@@ -186,8 +213,12 @@ Theo [Icons.md](../Icons.md) §5.
 
 ### Ảnh màn hình
 
-Chưa có — repo chưa có `src/`, không có gì để chụp.
+Chưa có — màn đã dựng ở `src/FE` (bảng "Có thật hôm nay → sẽ thành" ở đầu file) nhưng chưa ai chạy ứng dụng chụp màn hình; lượt đối chiếu 2026-09-21 chỉ đọc mã.
 
 ### Cần chốt
 
 Không còn.
+
+## Điểm mở rộng cho dự án hạ nguồn
+
+Theo [ListScreen.md](../Templates/ListScreen.md) §5 và seam `CORE_SCREEN_EXT` khoá `tenants` ([fe-architecture.md](../../quy-uoc/fe-architecture.md) §2.7): màn nhận thêm **cột dạng chữ** — tiêu đề là khoá i18n, ô là chuỗi đã định dạng, không sắp xếp được — nối **sau** "Ngày tạo" và **trước** cột "Hành động", vì cột hành động luôn đứng cuối ([DataTable.md](../Components/DataTable.md) §Responsive); cột thêm không chứa liên kết hay `Badge`. Trường lọc, mục thêm vào menu hàng, nút vào `Toolbar`: **chưa có** điểm mở rộng, hoãn theo [ADR-0057](../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md). Không bớt cột nào.

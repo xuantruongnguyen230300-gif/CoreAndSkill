@@ -60,6 +60,16 @@ Khối import của `core/config/core-branding.ts` ([`fe-architecture.md`](../..
 import { InjectionToken, EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
 ```
 
+`core/config/core-home.ts` thêm `Type` vào đúng dòng đó; `core/config/core-i18n.ts` thêm `LOCALE_ID` và dòng `import { registerLocaleData } from '@angular/common';`. `platform/trang-chu/trang-chu.routes.ts`:
+
+```typescript
+import { inject } from '@angular/core';
+import { Routes } from '@angular/router';
+import { CORE_HOME, CoreHomeLoader } from '../../core/config/core-home';
+```
+
+- **Vì sao `CORE_HOME` đọc bằng `{ optional: true }` dù token không có mặc định** — Luật "không mặc định" chặn một giao diện mang tên sản phẩm **khác**. Trang chào của Core không mang tên nào: nó đọc `CORE_BRANDING` và phiên. Quên khai vì vậy ra một trang đúng nhưng nghèo, không ra một trang sai — cái giá ở [`../../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md`](../../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md).
+
 ### 2.6 Composition root — nơi mọi seam được nối lại
 
 - **Vì sao mặc định là `useExisting`** — Nhu cầu có hai thể hiện của một service hạ tầng gần như luôn là dấu hiệu của một nhầm lẫn.
@@ -82,7 +92,10 @@ Các seam khác ở [`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) 
 
 Đường thứ hai nguy hiểm hơn vì nó **vô hình**: nó không sửa file nào của Core nên không cổng nào thấy, nhưng bản vá Core lần sau sẽ không bao giờ tới được màn đã nhân đôi.
 
-**Vì sao ở `platform/config/`, không ở `core/config/`.** Cột, hành động dòng, trường lọc là kiểu công khai của thư viện UI, sống ở `shared/` — chủ của chúng là [`fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §9. Token đặt ở `core/` thì phải import `shared/`, tức gãy luật F1 ngay dòng `import` đầu tiên. Người đọc token này là màn Core ở `platform/`, nên token ở cùng tầng với người đọc nó.
+**Vì sao ở `platform/config/`, không ở `core/config/`.** Kiểu dòng của từng khoá là model của màn Core — `NguoiDung`, `VaiTro`, `DonVi` — sống ở `platform/`. Token đặt ở `core/` thì phải import `platform/`, tức gãy luật F1 ngay dòng `import` đầu tiên. Người đọc token này là màn Core ở `platform/`, nên token ở cùng tầng với người đọc nó.
+
+- **Vì sao không `TemplateRef`, không chuỗi đã dịch** — Dự án khai token ở cấu hình app. Ở đó chưa có view nào để dựng `TemplateRef`, và bảng dịch chưa nạp. Một trường mà nơi khai không dựng nổi là một trường không ai dùng được, dù trình biên dịch vẫn chấp nhận nó.
+- **Vì sao kiểu theo từng mã màn** — Với `Record<string, …>`, khoá gõ sai bị bỏ qua mà không ai biết, và màn nào cũng phải ép kiểu dòng. `provideCoreScreenExt` có kiểu biến cả hai lỗi thành lỗi biên dịch. Dùng `useValue` trần thì mất lợi ích này, vì provider của Angular không kiểm kiểu giá trị.
 
 - **Luật 1 — chỉ THÊM, không BỚT** — Một dự án giấu cột "Trạng thái" khỏi danh sách người dùng là giấu một thông tin mà luồng khoá tài khoản của Core dựa vào — và lỗi đó chỉ lộ khi có người hỏi *"sao tài khoản này đăng nhập được"*. Cần bớt thì đó là dấu hiệu màn Core sai, và sửa ở Core.
 
@@ -90,40 +103,28 @@ Các seam khác ở [`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) 
 
 - **Luật 3 — khoá là mã màn** — Route đổi được qua `CORE_ROUTES`; mã màn thì không. Khoá theo route là khoá vào một thứ đã có seam riêng để đổi.
 
-- **Vì sao phạm vi là màn danh sách, không có khoá cho màn hồ sơ hay màn form** — Cột, hành động dòng, trường lọc là ba thứ chỉ tồn tại ở màn danh sách. Muốn thêm một ô vào màn form là thêm một trường dữ liệu, tức đổi hợp đồng API và schema — việc đó không giải được bằng một seam giao diện, và một khoá cho màn form trong token chỉ hứa thứ seam không làm được.
+- **Vì sao phạm vi là màn danh sách, không có khoá cho màn hồ sơ hay màn form** — Cột (và, khi thêm lại, hành động dòng, trường lọc) chỉ tồn tại ở màn danh sách. Muốn thêm một ô vào màn form là thêm một trường dữ liệu, tức đổi hợp đồng API và schema — việc đó không giải được bằng một seam giao diện, và một khoá cho màn form trong token chỉ hứa thứ seam không làm được.
 
 **Cái giá, nói thẳng:** mỗi màn Core phải tự đọc token này và tự nối phần mở rộng vào — tức là một đoạn mã lặp ở mọi màn `platform/`. Nếu quên ở một màn thì màn đó **im lặng không mở rộng được**, và dự án hạ nguồn sẽ phát hiện bằng cách thấy cột mình khai không hiện ra. Đây là chỗ cần một mục kiểm khi có `src/`: mọi màn danh sách trong `platform/` phải đọc `CORE_SCREEN_EXT`.
 
 Khối import của `platform/config/core-screen-ext.ts` ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.7):
 
 ```typescript
-import { InjectionToken, TemplateRef } from '@angular/core';
-import { DataColumnDef, FilterField, UiMenuItem } from '../../shared/ui/types';
+import { EnvironmentProviders, InjectionToken, makeEnvironmentProviders } from '@angular/core';
+import type { NguoiDung } from '../quan-tri/nguoi-dung/models/nguoi-dung.model';
+import type { VaiTro } from '../quan-tri/vai-tro/models/vai-tro.model';
+import type { DonVi } from '../he-thong/don-vi/models/don-vi.model';
 ```
 
 ### 2.8 Trạng thái màn danh sách
 
 - **Vì sao tầng này không nằm trong [`../Design/COMPONENTS.md`](../../../Design/COMPONENTS.md) §3** — Tầng này là smart (biết route); mọi component ở đó dumb, chỉ phát sự kiện; store nhận sự kiện và ghi lên URL.
 
-Khối import của `GridQuery`, `ListStateStore` và `DanhSachNguoiDungPage` ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.8):
+- **Luật 9 — vì sao về trang cuối, không hiện một trạng thái riêng** — Ca thường gặp nhất không phải URL cũ mà là **xoá dòng cuối của trang cuối**: tải lại cho `items` rỗng, `totalCount` còn dương. Không xử lý thì bảng trắng ở trạng thái `idle`, dải phân trang ghi *"81–30 trên tổng 30"*, và `p-paginator` bỏ qua lệnh đổi trang vì trang hiện hành đã nằm ngoài khoảng — người dùng kẹt. Một trạng thái riêng kèm nút "về trang cuối" bắt người dùng bấm thêm một lần sau **mỗi** lần xoá như vậy mà không cho họ thông tin gì mới.
+- **Vì sao `replaceUrl`** — Người dùng không điều hướng; thêm bước lịch sử thì nút Quay lại đưa họ về đúng trang vượt, store lại đẩy sang trang cuối, và nút Quay lại coi như hỏng.
+- **Vì sao `min(page − 1, …)` chứ không chỉ `⌈totalCount / pageSize⌉`** — Đếm và lấy dòng là hai câu truy vấn; ghi đồng thời giữa hai câu có thể cho `totalCount` đủ lớn để trang hiện hành *trông như* hợp lệ. Chỉ dùng phép chia thì store ghi lại chính `page` cũ — URL không đổi, không lượt tải nào chạy, màn kẹt ở `loading`. Lấy `min` với `page − 1` bảo đảm mỗi lần ghi `page` giảm ngặt, nên chuỗi dừng muộn nhất ở trang 1 — đây là lý do ngoại lệ này không rơi vào bẫy vòng lặp của luật 1.
 
-```typescript
-// core/list/grid-query.ts — phần import
-import type { PageQuery } from '../http/paged.model';
-```
-
-```typescript
-// core/list/list-state.store.ts — phần import
-import { DestroyRef, Injectable, Injector, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, ParamMap, Params, Router } from '@angular/router';
-import {
-  EMPTY, Observable, Subject, catchError, combineLatest, debounceTime,
-  distinctUntilChanged, map, switchMap, tap,
-} from 'rxjs';
-import type { PagedList } from '../http/paged.model';
-import type { GridQuery } from './grid-query';
-```
+Khối import của `DanhSachNguoiDungPage` ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.8):
 
 ```typescript
 // platform/quan-tri/nguoi-dung/pages/danh-sach/danh-sach-nguoi-dung.page.ts — phần import
@@ -250,7 +251,14 @@ Phía BE, ranh giới tầng do **compiler** ép: `Core.Domain` không có `Proj
 
 Phía FE, quyết định đã chốt là **giữ cấu trúc thư mục** trong một app Angular duy nhất, không tách Angular workspace nhiều library, không dùng Nx ([`../adr/0007-fe-giu-cau-truc-thu-muc.md`](../../../adr/0007-fe-giu-cau-truc-thu-muc.md)). Hệ quả trực tiếp: **không có compiler nào ép ranh giới tầng.** Một import trỏ ngược lên tầng trên vẫn biên dịch sạch sẽ.
 
-Hàng rào duy nhất còn lại là ESLint, và **nó tắt được bằng một dòng comment** — vì vậy F1–F4 đi thành một bộ.
+Hàng rào duy nhất còn lại là ESLint, và **nó tắt được bằng một dòng comment** — vì vậy F1–F4 đi thành một bộ, thiếu một thì những cái kia mất hiệu lực:
+
+| Luật | Nội dung | Nếu thiếu |
+| --- | --- | --- |
+| **F1** | `core/` không import ngược lên | Tầng đáy không còn là tầng đáy |
+| **F2** | `modules/A` không import `modules/B` | Module dính nhau, không bỏ ra được |
+| **F3** | Cấm `eslint-disable` cho danh sách rule ranh giới | **F1 và F2 chỉ còn là gợi ý** |
+| **F4** | `BUSINESS_MODULES` khớp thư mục `modules/` thật | F2 thành no-op im lặng |
 
 ### 4.2 Zone `coreLayerZones` — `core/` là tầng đáy
 
@@ -290,30 +298,41 @@ Không có luật này thì F1 và F2 chỉ là gợi ý: bất kỳ ai gặp li
 
 - **Vì sao cổng phải có test của chính nó** — Một cổng hỏng âm thầm tệ hơn không có cổng: nó tạo cảm giác được bảo vệ. Xem [`../audit/2026-08-23-cong-khong-ton-tai.md`](../../../audit/2026-08-23-cong-khong-ton-tai.md).
 
+- **Vì sao mẫu neo vào đầu comment cộng nhãn**, không ghép cặp mở–đóng comment: ghép cặp thì một chuỗi `'/*'` trong code nuốt mất phần mở của comment thật đứng sau nó. Nhãn phải là đúng `eslint` hoặc một trong ba từ khoá tắt, nên `eslint-enable` và chú thích văn xuôi nhắc tên rule không bị bắt. Dạng `//` được quét dù ESLint 9 bỏ qua cấu hình nội tuyến trong comment dòng: cổng không dựa vào hành vi đó của một phiên bản.
+
+- **Vì sao không dùng `linterOptions.noInlineConfig`** Tuỳ chọn đó bịt cả hai dạng ngay trong ESLint, nhưng nó tắt luôn **mọi** comment `eslint-disable`, kể cả dạng tắt một rule ngoài danh sách trên — thứ luật này cố ý cho phép ([`05-gate.md`](../trien-khai/05-gate.md) §8.1). Bật nó là đổi luật F3 từ "cấm tắt rule ranh giới" thành "cấm tắt mọi rule"; quyết định đó không thuộc về việc vá cổng.
+
+
 Đánh đổi của F3 nói thẳng: nó **sẽ** gây khó chịu đúng vào lúc người ta đang vội. Đó là chủ đích. Một hàng rào chỉ có tác dụng khi việc vượt qua nó đắt hơn việc đi vòng.
 
 ### 4.6 Zone `sharedUiZones` — `shared/ui/` không import `shared/components/` — luật F24
 
 - **Vì sao cần zone riêng** — F1 chỉ canh `core/`, nên một import từ `shared/ui/` sang `shared/components/` không chạm zone nào của F1 hay F2.
 
-> **Bẫy flat config — khối sau thay khối trước** — Trong flat config, hai khối cùng khai `import/no-restricted-paths` cho một file thì tuỳ chọn của khối sau **thay** tuỳ chọn của khối trước, không cộng dồn: zone của khối trước biến mất và lint vẫn xanh. Các khối hiện có canh những cây rời nhau — `core/`, `modules/`, `shared/ui/` — nên không chồng lên nhau.
+> **Bẫy flat config — khối sau thay khối trước** — Trong flat config, hai khối cùng khai `import/no-restricted-paths` cho một file thì tuỳ chọn của khối sau **thay** tuỳ chọn của khối trước, không cộng dồn: zone của khối trước biến mất và lint vẫn xanh. Các khối canh những cây rời nhau — `core/`, `shared/`, `platform/`, `modules/` — nên không chồng lên nhau; vì thế `sharedUiZones` nối vào khối `shared/**` của F35 thay vì đứng khối `shared/ui/**` riêng.
 
 Canary theo bẫy resolver ở [`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §4.2: tạm import một component từ `shared/components/` vào một file trong `shared/ui/`, thấy lint đỏ đúng thông điệp, rồi hoàn nguyên. Tắt rule này bằng comment bị F3 chặn — cùng tên rule với F1 và F2 ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §4.5).
 
-Khối config nối `sharedUiZones` vào file trong `shared/ui/` ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §4.6):
+Khối config của cây `shared/`, gom zone của F24 và F35 ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §4.6, §4.7). Khối `platform/**` cùng khuôn, `zones: platformLayerZones`:
 
 ```typescript
 {
-  files: ['src/app/shared/ui/**/*.ts'],
+  files: ['src/app/shared/**/*.ts'],
   plugins: { import: importPlugin },
   settings: {
     'import/resolver': { node: { extensions: ['.ts', '.js'] } },
   },
   rules: {
-    'import/no-restricted-paths': ['error', { zones: sharedUiZones }],
+    'import/no-restricted-paths': ['error', { zones: [...sharedLayerZones, ...sharedUiZones] }],
   },
 }
 ```
+
+### 4.7 Zone `sharedLayerZones` và `platformLayerZones` — luật F35
+
+- **Vì sao cần** — F1 chỉ canh `core/`, F2 chỉ canh `modules/`, F24 chỉ canh `shared/ui/`. Chiều đi xuống của `shared/` và `platform/` ở §1 không zone nào canh. Thử bằng `npx eslint --stdin` ngày 2026-09-22: một import `platform/` đặt vào `shared/components/` đi qua lint xanh.
+- **Vì sao canary bằng `--stdin`** — `--stdin-filename` cho ESLint tin rằng đoạn mã nằm ở đường dẫn đó, nên resolver phân giải import như với một tệp thật. Canary chạy trên cây thật mà không để lại tệp nào phải hoàn nguyên. F1 và F24 đã thử theo cách này, cùng ngày.
+- **Vì sao chiều `platform/` → `modules/` cần fixture** — Resolver chỉ phân giải import tới một tệp có thật, và repo Core không bao giờ có `modules/` ([`../../../adr/0032-module-mau-o-du-an-ha-nguon.md`](../../../adr/0032-module-mau-o-du-an-ha-nguon.md)). Thử trên cây thật thì import không phân giải được và zone không bắn — xanh vì mù.
 
 ## 5. Ngưỡng kích thước file
 
@@ -324,6 +343,8 @@ Không có ngưỡng thì không có thời điểm nào để tách, và mọi 
 - **Vì sao không cắt đôi file rồi import lại** — Hai file gọi nhau mà không có ranh giới ý nghĩa thì tệ hơn một file dài.
 
 - **Vì sao không áp cho `*.spec.ts`** — Test dài là bình thường; tách test theo số dòng là phản tác dụng.
+
+- **Vì sao đếm dòng mã chứ không đếm dòng thô, và vì sao dòng thô vẫn in `NOTE`** — Đếm thô đánh thuế chú thích, nặng nhất ở lớp bọc thư viện, đúng nơi cần chú thích nhất; bỏ hẳn dòng thô thì khoản nới đó xảy ra trong im lặng. Phép đo, phương án đã loại và cái giá: [`../../../adr/0081-nguong-kich-thuoc-fe-do-bang-dong-ma-dong-tho-chi-note.md`](../../../adr/0081-nguong-kich-thuoc-fe-do-bang-dong-ma-dong-tho-chi-note.md).
 
 ## 6. So sánh với phương án đã loại
 

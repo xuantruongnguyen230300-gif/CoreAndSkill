@@ -6,7 +6,17 @@ verified: chua-doi-chieu
 
 # Contract card — Meta / Menu
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi card trong file này mang `Status: DRAFT`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20, **chỉ ở mức định tuyến**). Mọi card giữ
+> `Status: DRAFT`: chưa endpoint nào được gọi thử ([`README.md`](README.md) §3).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/MetaController.cs` có action `GetMenu` — khớp route §1 | Gọi thử thật, thay ví dụ bằng response thật, rồi mới lật `Status:` |
+> | §2 và §3 **không** có action nào dưới `src/BE` — đúng chủ đích; nhãn `📐` tại chỗ vẫn đúng | Chỉ dựng khi có quyết định mở phạm vi v1 |
+> | Thứ tự mảng của §1 khớp `src/BE/Core/CoreAndSkill.Core.Infrastructure/Menu/MenuQueryService.cs` — chuỗi `.OrderBy(m => m.ParentId is null ? 0 : 1)` (đối chiếu 2026-09-23) | — |
+> | Mục `trang-chu` của ví dụ §1 có thật trong nguồn seed của Core: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/CoreTenantSeedSource.cs` — chuỗi `new("trang-chu", "menu.trang-chu", "pi-home", "/trang-chu"` (đối chiếu 2026-09-23; **trước** ngày này nguồn seed không gửi mục đó). Cả tập mục Core seed được ghim bằng `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Tenants/CoreTenantSeedMenuTests.cs` — chuỗi `CoreSeedMenu_MatchesTheContract` | — |
+> | **Không** mục nào của nguồn seed Core trỏ vào khu quản trị hệ thống (`/he-thong/…`) — ba bước lọc ở §1.4 không đọc được cờ `is_system_operator`, nên mục như vậy hôm nay hiện sai người dù khai cách nào. Cổng chặn: cùng tệp test, chuỗi `CoreSeedMenu_HasNoItemPointingIntoTheSystemOperatorArea` (đối chiếu 2026-09-23) | **Không đổi ở v1** — [`../adr/0079-khu-he-thong-khong-nhan-duong-vao-nhin-thay-duoc-o-v1.md`](../adr/0079-khu-he-thong-khong-nhan-duong-vao-nhin-thay-duoc-o-v1.md) chốt: khu đó không nhận đường vào nhìn thấy được, đường vào là URL gõ thẳng, và cổng trên giữ nguyên với nghĩa mới là *thi hành quyết định*. Sáu điều kiện kích hoạt để xét lại nằm ở cuối ADR đó; có cơ chế rồi thì cổng và card này sửa cùng lượt |
+> | Sáu luật lọc menu ở §1.1–§1.6 và các field khác của thân response §1: **chưa ai đối chiếu với handler** | Đối chiếu rồi mới lật `verified:` |
 >
 > Envelope, `ErrorType` → HTTP, khuôn mã lỗi: [`README.md`](README.md). Bảng dữ liệu:
 > [`../database/schema-core.md`](../database/schema-core.md) §6.
@@ -68,6 +78,12 @@ Trả cây điều hướng mà **người dùng hiện tại** được thấy.
 | `icon` | string \| null | Class icon THẬT (`pi-home`), FE dùng thẳng làm class CSS |
 | `route` | string \| null | `null` cho mục cha (chỉ đóng/mở, không điều hướng) |
 | `displayOrder` | int | Thứ tự trong cùng một cấp |
+
+**Thứ tự của mảng là một phần hợp đồng, và là một thứ tự TOÀN PHẦN** — FE dựng cây rồi hiển thị theo đúng thứ tự nhận được, không tự sắp lại. Ba tiêu chí, theo đúng thứ tự này: mục gốc (`parentId: null`) trước mọi mục con, rồi `displayOrder` tăng dần, rồi `code` so theo mã ký tự. Tiêu chí thứ ba **không phải thứ trang trí**: thiếu nó, hai mục cùng `displayOrder` đổi chỗ giữa hai lần tải và menu "nhảy" mà không ai giải thích được.
+
+🛑 Tiêu chí thứ ba phân xử được **chỉ vì** `code` duy nhất trong tập trả về — `ux_menu_item_tenant_code_active` ([`../database/schema-core.md`](../database/schema-core.md) §6.1) duy nhất theo *(đơn vị, code)* và **chỉ trên dòng chưa xoá mềm**. Nó còn đúng chừng nào truy vấn menu còn đi qua **cả hai** bộ lọc toàn cục (đơn vị và xoá mềm). Một `IgnoreQueryFilters()` thêm vào đường nạp này làm thứ tự thôi toàn phần **mà không gì báo** — đó là dấu hiệu đầu tiên cần tìm khi menu bắt đầu đổi chỗ.
+
+✅ CÓ THẬT (đối chiếu 2026-09-23): `src/BE/Core/CoreAndSkill.Core.Infrastructure/Menu/MenuQueryService.cs` — chuỗi `.OrderBy(m => m.ParentId is null ? 0 : 1)` kèm hai `ThenBy`, sắp **trong bộ nhớ** sau khi đã lọc; câu nạp cố ý không có `ORDER BY` và không phân trang, nên nó không quyết định tập trả về.
 
 ### Lỗi
 

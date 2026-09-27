@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 11. Hiệu năng và cache
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Code của chủ đề này đã có một phần dưới `src/BE`, nhưng **chưa mục nào trong tệp được đối chiếu** với nó — tệp vẫn trong tầm chấm review (2026-09-24).
 >
 > Quy ước viết truy vấn, repository, chỉ mục cụ thể: [`../../quy-uoc/be-performance.md`](../../quy-uoc/be-performance.md). File này lo **thứ tự ưu tiên và lý do**.
 

@@ -6,9 +6,38 @@ verified: chua-doi-chieu
 
 # AuthField
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** tự dựng, không bọc PrimeNG — theo [`../COMPONENTS.md`](../COMPONENTS.md) §4, đây chỉ là một ô nhập gốc kèm hai phần trang trí ở hai đầu. Toàn bộ hành vi khó ở đây là hành vi **của trình duyệt** (tự điền, quản lý mật khẩu), và bọc thêm một lớp thư viện chỉ làm hành vi đó khó giữ đúng hơn.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/components/auth-field/auth-field.component.ts` — selector `app-auth-field`, class gốc `.auth-field`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | `label` và `autocomplete` đều `input.required`; thêm `variant`, `size` (mặc định `lg`), `placeholder`, `errorMessage`, `hint`, `controlId`, `revealable` | — |
+| `ControlValueAccessor` | Có, đủ bốn phương thức | — |
+| Dựng thẳng trên `<input>` gốc | Có — **không** lồng `app-input` bên trong. Chú thích component khai đây là đơn giản hoá có ghi nhận để tránh CVA lồng CVA | Spec mô tả `AuthField` như một lớp trên [`Input.md`](./Input.md); code không đi đường đó. Hai bên cần thống nhất lời, không phải sửa code vội |
+| Bốn biến thể + icon dẫn | Đủ, đúng bảng §Biến thể: `identifier` → `pi-user`, `password` → `pi-key`, `tenantCode` → `pi-building`, `code` → không icon | — |
+| Nút hiện/ẩn ở `password` | Có, `<button>` thật, `aria-label` qua i18n (`xacThuc.matKhau.hien`/`.an`), đổi `pi-eye`/`pi-eye-slash`, có vòng focus **riêng** đúng spec | — |
+| `focus()` công khai | Có — `viewChild` tới `<input>`, để trang xác thực đặt focus ban đầu như [`AuthCard.md`](./AuthCard.md) §Trạng thái đòi | — |
+| Khuôn id dòng phụ | Có, `<controlId>-error` / `<controlId>-hint`; `describedBy` tự chọn lỗi trước, gợi ý sau | — |
+| Lỗi thay chỗ gợi ý, `role="alert"` | Có, cùng khuôn [`FormRow.md`](./FormRow.md) | — |
+| `default` | Nền `--color-surface`, viền `--border-w` `--color-border-strong`, `--radius-sm`, icon dẫn `--color-text-muted` — khớp spec | — |
+| Cỡ `lg` | Chiều cao `--size-control-lg`, cỡ chữ `--fs-md`, đệm ngang `--sp-5` — khớp spec | — |
+| Cỡ `md` | `.auth-field__input--md` đổi chiều cao `--size-control-md` và cỡ chữ `--fs-sm` | Đệm ngang **không** đổi sang `--sp-4` như §Kích thước khai — giữ `--sp-5` của cỡ `lg` |
+| `focus-visible` | Vòng `--border-w-strong` `--color-focus` + `outline-offset: 2px`, viền chuyển `--color-brand` | Icon dẫn **không** chuyển `--color-brand` khi ô nhận focus — spec đòi |
+| `error` | Viền `--border-w-strong` `--color-danger-border`, `aria-invalid`, icon `pi-times-circle` và dòng lỗi dưới ô — kênh thứ hai là chữ, đúng §2.7 | Điều kiện bật **khác spec**: bật theo chuỗi `errorMessage()` trang truyền vào, không theo `invalid && touched` của control như §Trạng thái khai (đây là khuôn của `FormRow`, không phải khuôn của `Input`) |
+| `disabled` | Nền `--color-surface-3`, chữ `--color-text-disabled`, `cursor: not-allowed`; đến từ control qua `setDisabledState` | Nút hiện/ẩn **không** bị `disabled` kèm — spec đòi |
+| `loading` giữ nguyên giá trị đã gõ | Đúng — `setDisabledState` chỉ đặt cờ, không đụng `gia`; không có gì xoá ô hay đổi placeholder | — |
+| `empty` | Đúng — không có gì tô đỏ ô trước khi trang truyền `errorMessage` | — |
+| `hover` | — | **Chưa có.** Không có khối `@media (hover: hover)` nào; spec đòi viền đậm thêm một bậc và con trỏ `text` |
+| `active` của nút hiện/ẩn | — | Chưa có quy tắc `:active` nào |
+| Biến thể `code` | Chỉ khác ở chỗ không có icon dẫn | **Hình thức riêng chưa có**: spec đòi chữ căn giữa và giãn chữ `--ls-wide`; không có class nào theo `variant() === 'code'` trong SCSS |
+| Cỡ nút hiện/ẩn | — | ⚠️ **Giá trị trần trong SCSS**: `.auth-field__nut-hien-an` đặt `width: 28px; height: 28px` thay vì một token. 28px đúng bằng `--size-control-sm`, nên đây là chỗ thay được bằng token mà không đổi hình thức. Trái luật cấm hardcode ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) |
+
+Chưa đối chiếu: §Responsive, phần còn lại của §Accessibility (mới so thẻ `<input>`/`<button>`, `aria-invalid`, `aria-describedby`, `aria-label` của nút hiện/ẩn), và việc `type` có đúng `email`/`tel` cho từng ca hay không — code chỉ sinh `text` hoặc `password`.
 
 ---
 

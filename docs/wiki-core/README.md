@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # `wiki-core/` — kiến thức nền: một Core tốt gồm gì và vì sao
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo đang ở giai đoạn 1, chưa có `src/`. Mọi mô tả kỹ thuật trong khu này là thứ Core **phải trở thành**, không phải mô tả hiện trạng.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mỗi file giữ nhãn này cho tới khi có người đối chiếu đúng file đó với `src/` — hiện trạng repo: [`../README.md`](../README.md) mục *Trạng thái repo*. Mọi mô tả kỹ thuật trong khu này là thứ Core **phải trở thành**, không phải mô tả hiện trạng.
 
 ---
 
@@ -74,7 +74,7 @@ Danh sách đầy đủ, kèm ngưỡng "khi nào Nhóm B thành cần thiết",
 | Triển khai một bản mới, bí mật theo môi trường, quay lui, truy một sự cố | [`be/18-trien-khai-va-van-hanh.md`](be/18-trien-khai-va-van-hanh.md) |
 | Cấu hình khác nhau theo từng đơn vị, thứ tự ưu tiên, ai khai khoá | [`be/19-cau-hinh-theo-don-vi.md`](be/19-cau-hinh-theo-don-vi.md) |
 | Sinh số phiếu, số văn bản không trùng và không nhảy | [`be/20-sinh-ma-nghiep-vu.md`](be/20-sinh-ma-nghiep-vu.md) |
-| "Class này nằm file nào" | [`be/tra-cuu-file-class.md`](be/tra-cuu-file-class.md) — **rỗng có chủ đích ở giai đoạn 1** |
+| "Class này nằm file nào" | [`be/tra-cuu-file-class.md`](be/tra-cuu-file-class.md) — **tra bằng lệnh, không giữ bảng chép tay** |
 
 **Lộ trình thi công BE** (thứ tự làm, không phải lý thuyết): bắt đầu ở [`be/trien-khai/00-lo-trinh-tong-the.md`](be/trien-khai/00-lo-trinh-tong-the.md).
 
@@ -143,7 +143,7 @@ Mọi file trong khu này khai `kind` / `scope` / `verified` ở frontmatter. Ý
 Hai điều cần nhớ khi dùng khu này:
 
 1. **Chỉ file `kind: luat` mới là thứ code phải tuân.** File `kind: tham-chieu` là bảng tra hoặc mô tả một dự án khác — đối chiếu code với nó sẽ sinh ra finding cho những yêu cầu chưa bao giờ là luật ở đây.
-2. **`verified: chua-doi-chieu` ở giai đoạn 1 là giá trị đúng**, không phải việc tồn đọng. Chưa có `src/` thì không ai đối chiếu được với cái gì.
+2. **`verified: chua-doi-chieu` là giá trị đúng cho tới khi có người mở đúng file đó ra đối chiếu với `src/`**, không phải việc tồn đọng. `src/` có trên đĩa, build xanh hay quyết định chuyển giai đoạn đều không thay được lần đối chiếu ấy — [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §4.
 3. **`kind` là khoá CẤP FILE, và phần lớn file khu này trộn hai loại câu** — thân bài giải thích (không ràng buộc) và §Áp dụng (ràng buộc). Khoá cấp file không diễn đạt được sự trộn đó, nên nó lấy giá trị của **câu mạnh nhất trong file**: có một câu ràng buộc thì cả file mang `kind: luat`. Phân biệt câu nào ràng buộc thì đọc §Áp dụng và bốn ký hiệu ở §9 — **đừng suy từ `kind` ra**.
 
 > 🛑 **Đừng đọc dòng "Ràng buộc" ở §2 rồi kết luận cả khu là tham chiếu.** Ở repo này `kind: tham-chieu` có nghĩa hẹp — *bảng tra hoặc mô tả một dự án khác* (điểm 1 ở trên) — không có nghĩa "kiến thức nền có thể lệch". Hạ cả khu xuống nhãn đó sẽ mở khoá `verified: khong-ap-dung` cho toàn bộ file ở đây (cổng §12 chỉ chấp nhận giá trị đó khi `kind` là `tham-chieu`/`lich-su`), và sáu "định nghĩa gốc" đã đăng ký ở [`../OWNERSHIP.md`](../OWNERSHIP.md) sẽ nằm trong file tự khai là không ràng buộc.
@@ -171,7 +171,7 @@ Khi một mục ở khu này bắt đầu dài ra thành hướng dẫn thi côn
 
 | Ký hiệu | Nghĩa | Cách phản ứng |
 | --- | --- | --- |
-| 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG** | Mô tả thứ Core phải trở thành | Đây là mặc định ở giai đoạn 1. Không phải nợ |
+| 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG** | Mô tả thứ Core phải trở thành | Mặc định cho tới khi file được đối chiếu với `src/`. Không phải nợ |
 | ✅ **sẽ có** trong bảng §Áp dụng | Hạng mục nằm trong phạm vi v1 | Vắng mặt khi có `src/` là finding |
 | ❌ **chưa** trong bảng §Áp dụng | Cố ý hoãn, kèm điều kiện kích hoạt | Đề xuất làm ngay phải chứng minh điều kiện đã xảy ra |
 | ❌ **loại, không hoãn** `K##` | Một hướng đã bị bác, không phải một việc xếp sau | Muốn lật thì viết ADR **trích mã đó**, không mở finding |

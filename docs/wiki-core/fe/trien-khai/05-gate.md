@@ -6,9 +6,16 @@ verified: chua-doi-chieu
 
 # Cổng Frontend — bảng đầy đủ
 
-> 📐 **MỌI CỔNG TRONG FILE NÀY MANG NHÃN `ĐÍCH ĐẾN — CHƯA THI CÔNG`.**
+> ⚠️ **Cập nhật 2026-09-17 — `src/`, `src/FE` và `scripts/fe-gate.sh` đã tồn tại.** Nhóm cổng script
+> (§3.1) đã có phần thực thi cho một số mã — phạm vi chính xác đọc bằng lệnh, không chép ở đây:
 >
-> Giai đoạn 1 chưa có `src/`, chưa có `src/FE`, chưa có `scripts/fe-gate.sh`. **Không cổng FE nào đang chạy**, và không có ngoại lệ nào trong bảng dưới. Đây là trạng thái đúng theo thiết kế, không phải thiếu sót — xem [`../../../../.claude/CLAUDE.md`](../../../../.claude/CLAUDE.md) §4.
+> ```bash
+> grep -n '^section "' scripts/fe-gate.sh
+> ```
+>
+> Trạng thái từng mã **không** ghi ở file này: nó ở cột "Trạng thái" của [`../../../RULES.md`](../../../RULES.md) §7,
+> lật riêng từng dòng khi có người chạy cổng và đọc output — đúng nguyên tắc
+> [`../../../../.claude/CLAUDE.md`](../../../../.claude/CLAUDE.md) §4. Hai cột trạng thái cho cùng một mã là hai nguồn.
 >
 > **Mã luật trong file này là mã F của [`../../../RULES.md`](../../../RULES.md) — §7 cho luật đã có cổng, §10 cho luật còn nợ cổng**, không phải một hệ đánh số riêng. Hai hệ mã song song cho cùng một tập luật là nguồn lệch, và lệch ở tài liệu cổng thì không ai phát hiện được — vì bảng nào cũng "trông đúng" khi đọc một mình.
 
@@ -39,7 +46,7 @@ Thứ tự chạy đúng — **script → lint → test → build** — đi từ
 
 ## 3. Bảng cổng đầy đủ
 
-> Cột "Trạng thái" là trạng thái **hôm nay**, giai đoạn 1.
+> **Hai bảng dưới không có cột trạng thái.** Cổng nào đã chạy, chạy ngày nào: cột "Trạng thái" ở [`../../../RULES.md`](../../../RULES.md) §7 — nguồn duy nhất.
 >
 > Cột "Ép bằng" trỏ tới **nơi giữ lệnh**. Lệnh nằm ở file quy ước chủ của luật thì script chạy đúng lệnh đó; lệnh nằm ở §8 của file này khi chưa file quy ước nào giữ nó. Trong tài liệu, mỗi lệnh chỉ có một bản.
 >
@@ -47,40 +54,54 @@ Thứ tự chạy đúng — **script → lint → test → build** — đi từ
 
 ### 3.1 Cổng chạy bằng script
 
-| Mã | Nội dung | Ép bằng | Bật ở pha | Trạng thái |
-| --- | --- | --- | --- | --- |
-| **F3** | `eslint-disable` bị cấm cho **danh sách quy tắc ranh giới** | `fe-gate.sh` — đọc danh sách từ bảng chủ lúc chạy, §8.1 | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F4** | Mảng module của cấu hình ranh giới **khớp thư mục `modules/` thật** | `fe-gate.sh` — đọc `src/FE/eslint.boundaries.cjs`, §8.2 | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F5** | Component nghiệp vụ không import trực tiếp thư viện UI — đi qua `shared/ui/` | `fe-gate.sh` — allowlist theo **đường dẫn**, đọc từ bảng chủ lúc chạy, §8.3 | F1 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F6** | Không hex color literal trong SCSS — trừ đúng tệp khai token | `fe-gate.sh` — §8.4 | F1 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F7** | Không `rgb()`/`rgba()` literal trong SCSS — trừ dạng đọc token pha alpha | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §3.2; bẫy §8.5 | F1 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F8** | Template `.html` không chứa chữ tiếng Việt | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §5.2; bẫy §8.6 | F2 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F9** | Không còn cú pháp Angular lỗi thời | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §1.4 | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F10** | `components/` và `pages/` không import DTO trực tiếp | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §4.3; bẫy §8.7 | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F11** | `components/` không inject service lấy dữ liệu | `fe-gate.sh` — không tha đường dẫn nào; allowlist **token** đọc từ bảng chủ lúc chạy, §8.8 | F1 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F12** | Mọi `*.service.ts` có `.spec.ts` cạnh nó | `fe-gate.sh` — đối chiếu tên file, §8.9 | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F18** | Không đọc `data` của envelope bằng các dạng bị cấm | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §1.2 | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F19** | Lời gọi HTTP trong service không mang tiền tố của base URL | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §2.1 | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F20** | `app.routes.ts` không import tĩnh component của feature | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §2.1 | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F21** | `core/` không điều hướng tới đường dẫn route viết cứng | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §6 | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F22** | File không vượt ngưỡng cứng về số dòng | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §5 | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F23** | Các tệp ngôn ngữ có cùng tập khoá, kiểm **từng tầng** `public/i18n/` và `public/i18n-app/` riêng | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §5.3; thư mục vắng hay một tệp thì thoát 0, hành vi khai ở đó | F2 — cùng lúc với F8 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
+| Mã | Nội dung | Ép bằng | Bật ở pha |
+| --- | --- | --- | --- |
+| **F3** | `eslint-disable` bị cấm cho **danh sách quy tắc ranh giới** | `fe-gate.sh` — đọc danh sách từ bảng chủ lúc chạy, §8.1 | F0 |
+| **F4** | Mảng module của cấu hình ranh giới **khớp thư mục `modules/` thật** | `fe-gate.sh` — đọc `src/FE/eslint.boundaries.cjs`, §8.2 | F0 |
+| **F5** | Component nghiệp vụ không import trực tiếp thư viện UI — đi qua `shared/ui/` | `fe-gate.sh` — allowlist theo **đường dẫn**, đọc từ bảng chủ lúc chạy, §8.3 | F1 |
+| **F6** | Không hex color literal trong SCSS — trừ đúng tệp khai token | `fe-gate.sh` — §8.4 | F1 |
+| **F7** | Không `rgb()`/`rgba()` literal trong SCSS — trừ dạng đọc token pha alpha | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §3.2; bẫy §8.5 | F1 |
+| **F8** | Mọi câu đến từ i18n — hai vế: template `.html` không chứa chữ tiếng Việt; khoá dịch literal có trong `vi.json` | `fe-gate.sh` — vế 1: lệnh ở [`../../../quy-uoc/fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §5.2, bẫy §8.6; vế 2: lệnh §8.6; canary `scripts/tests/fe-gate-f8.test.sh` | F2 |
+| **F9** | Không còn cú pháp Angular lỗi thời | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §1.4 | F0 |
+| **F10** | `components/` và `pages/` không import DTO trực tiếp | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §4.3; bẫy §8.7 | F0 |
+| **F11** | `components/` không inject service lấy dữ liệu | `fe-gate.sh` — không tha đường dẫn nào; allowlist **token** đọc từ bảng chủ lúc chạy, §8.8 | F1 |
+| **F12** | Mọi `*.service.ts` có `.spec.ts` cạnh nó | `fe-gate.sh` — đối chiếu tên file, §8.9 | F0 |
+| **F18** | Không đọc `data` của envelope bằng các dạng bị cấm | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §1.2 | F0 |
+| **F19** | Lời gọi HTTP trong service không mang tiền tố của base URL | `fe-gate.sh` — so trên nội dung cả tệp, §8.13; canary `scripts/tests/fe-gate-f19.test.sh` | F0 |
+| **F20** | `app.routes.ts` không import tĩnh component của feature | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §2.1 | F0 |
+| **F21** | `core/` không điều hướng tới đường dẫn route viết cứng | `fe-gate.sh` — bốn API của Router, so trên nội dung cả tệp, §8.14; canary `scripts/tests/fe-gate-f21.test.sh` | F0 |
+| **F22** | File không vượt ngưỡng cứng về số dòng | `fe-gate.sh` — lệnh ở [`../../../quy-uoc/fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §5 | F0 |
+| **F23** | Các tệp ngôn ngữ có cùng tập khoá, kiểm **từng tầng** `public/i18n/` và `public/i18n-app/` riêng | `fe-gate.sh` — **chưa có section**; lệnh dự kiến §8.15; luật và hành vi khi thư mục vắng ở [`../../../quy-uoc/fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §5.3 | F2 — cùng lúc với F8 |
+| **F25** | Mọi màn danh sách Core trong `platform/` đọc `CORE_SCREEN_EXT` | `fe-gate.sh` — nhận diện màn danh sách qua `ListStateStore`; canary `scripts/tests/fe-gate-f25.test.sh` | Đóng từ nợ `DEBT.md`, không theo pha |
+| **F27** | `platform/shell/` dựng `Sidebar`/`Topbar` qua component dumb | `fe-gate.sh`; canary `scripts/tests/fe-gate-f27.test.sh` | Đóng từ nợ `DEBT.md`, không theo pha |
+| **F29** | `prime-preset.ts` ghép đủ sub-preset của component PrimeNG import trực tiếp, không vượt bao đóng của gói, không `Aura` gộp | `fe-gate.sh` — ba tập và hai bảng tên đọc từ §8.12; canary `scripts/tests/fe-gate-f29.test.sh` | Đóng từ nợ `DEBT.md`, không theo pha |
+| **F36** | `LOCALE_ID` và `registerLocaleData` chỉ ở tệp cấp seam `core/config/core-i18n.ts` | `fe-gate.sh` — lệnh và hai chiều đỏ ở [`../../../RULES.md`](../../../RULES.md) §7 F36, [ADR-0063](../../../adr/0063-locale-id-den-tu-seam-core-i18n.md); canary `scripts/tests/fe-gate-f36.test.sh` | Đóng cùng lượt thi công ADR-0063, không theo pha |
+| **F37** | Hằng số thời lượng chuyển động trong TypeScript nêu đích danh token `--dur-*` và khớp giá trị của nó | `fe-gate.sh` — hai nửa và chốt chống xanh rỗng ở [`../../../RULES.md`](../../../RULES.md) §7 F37; canary `scripts/tests/fe-gate-f37.test.sh` | Đóng cùng lượt thi công [ADR-0073](../../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md), không theo pha |
+| **F38** | `src/FE/src/index.html` không mang giá trị riêng dự án | `fe-gate.sh` — phép dò ở [`../../../RULES.md`](../../../RULES.md) §7 F38; canary `scripts/tests/fe-gate-f38.test.sh` | Không theo pha |
+| **F39** | Provider hoạt ảnh của Angular chỉ khai ở `core/`, qua `provideCoreAnimations()` | `fe-gate.sh` — năm tiêu chí ở [`../../../RULES.md`](../../../RULES.md) §7 F39; canary `scripts/tests/fe-gate-f39.test.sh` | Đóng cùng lượt thi công [ADR-0080](../../../adr/0080-nua-provider-giam-chuyen-dong-nap-luoi-va-song-o-core.md), không theo pha |
+
+**Canary có tệp giữ lại** — `scripts/tests/fe-gate-f<mã>.test.sh`, mã nào có thì đếm bằng `ls scripts/tests/`, đừng chép
+danh sách. Mỗi tệp chép `src/FE/src` ra ngoài cây (`_fixture-that.sh`) hoặc dựng fixture tối giản, cắm đúng một vi phạm
+mỗi ca, gọi **thẳng** `scripts/fe-gate.sh` qua biến `FE`, chấm riêng khối output của section mình; CI chạy mọi tệp ở
+bước 1b của §5. Mã chưa có tệp canary thì §4.3 vẫn áp — cắm tay, thấy đỏ, hoàn nguyên — nhưng canary tay không chặn hồi
+quy: một mẫu dò bị nới sau đó vẫn qua được PR.
 
 ### 3.2 Cổng chạy bằng công cụ
 
-| Mã | Nội dung | Ép bằng | Bật ở pha | Trạng thái |
-| --- | --- | --- | --- | --- |
-| **F1** | `core/` không import ngược lên `shared/` / `platform/` / `modules/` | `ng lint` — quy tắc chặn đường dẫn, vùng tầng đáy | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F2** | `modules/<A>/` không import nội bộ `modules/<B>/` | `ng lint` — quy tắc chặn đường dẫn, vùng module sinh từ mảng module | Cấu hình từ F0; **ép thật** khi có module nghiệp vụ đầu tiên — sau F3, ở dự án hạ nguồn ([`00-lo-trinh-tong-the.md`](00-lo-trinh-tong-the.md) §4.1) | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F24** | `shared/ui/` không import `shared/components/` | `ng lint` — quy tắc chặn đường dẫn, vùng lớp bọc ([`../../../quy-uoc/fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §4.6) | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F13** | Mọi `@for` có `track` | `ng build` — `@for` thiếu `track` là lỗi biên dịch template, §8.10 | F0 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
-| **F14** | Bundle không vượt ngân sách đã khai | `ng build` — ngân sách trong cấu hình build | F3 | 📐 ĐÍCH ĐẾN — CHƯA THI CÔNG |
+| Mã | Nội dung | Ép bằng | Bật ở pha |
+| --- | --- | --- | --- |
+| **F1** | `core/` không import ngược lên `shared/` / `platform/` / `modules/` | `ng lint` — quy tắc chặn đường dẫn, vùng tầng đáy | F0 |
+| **F2** | `modules/<A>/` không import nội bộ `modules/<B>/` | `ng lint` — quy tắc chặn đường dẫn, vùng module sinh từ mảng module | Cấu hình từ F0; **ép thật** khi có module nghiệp vụ đầu tiên — sau F3, ở dự án hạ nguồn ([`00-lo-trinh-tong-the.md`](00-lo-trinh-tong-the.md) §4.1) |
+| **F24** | `shared/ui/` không import `shared/components/` | `ng lint` — quy tắc chặn đường dẫn, vùng lớp bọc ([`../../../quy-uoc/fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §4.6) | F0 |
+| **F13** | Mọi `@for` có `track` | `ng build` — `@for` thiếu `track` là lỗi biên dịch template, §8.10 | F0 |
+| **F14** | Bundle không vượt ngân sách đã khai | `ng build` — ngân sách trong cấu hình build | F3 |
+| **F35** | `shared/` không import `platform/`/`modules/`; `platform/` không import `modules/` | `ng lint` — quy tắc chặn đường dẫn, hai vùng tầng giữa ([`../../../quy-uoc/fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §4.7) | Chốt 2026-09-22, sau F3 |
 
 **F2 bật lúc nào — đọc theo file chủ** ([`../../../quy-uoc/fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §4.3–§4.4). Vùng module sinh ra từ mảng tên module; mảng rỗng thì khối cấu hình bị bỏ hẳn ([`01-f0-nen-mong.md`](01-f0-nen-mong.md) §3.2). Vì vậy từ F0 tới hết F3, repo Core **không có** module nào và F2 **chưa ép gì** — thứ canh khoảng đó là F4. F2 bắt đầu ép khi tên module đầu tiên vào mảng, và được chứng minh bằng canary theo bước 4 của quy trình thêm module ở file chủ.
 
 ### 3.3 Luật có mã nhưng chưa có cổng — F15, F16, F17
 
-Các luật dưới đây có mã và có dòng riêng trong bảng nợ ở [`../../../RULES.md`](../../../RULES.md) §10; chúng **không** phải luật vô danh.
+Các luật dưới đây có mã và có dòng riêng trong bảng nợ ở [`../../../DEBT.md`](../../../DEBT.md); chúng **không** phải luật vô danh.
 
 | Mã | Luật | Khai chi tiết ở | Vì sao chưa chạy được |
 | --- | --- | --- | --- |
@@ -88,9 +109,23 @@ Các luật dưới đây có mã và có dòng riêng trong bảng nợ ở [`.
 | **F16** | Mọi khoá i18n FE tra cứu khớp một mã lỗi BE đã khai | [`../08-i18n.md`](../08-i18n.md) §5.3 | Cần cả hai phía tồn tại để đối chiếu hai chiều |
 | **F17** | Template đạt bộ quy tắc tiếp cận đã chọn | [`../15-accessibility.md`](../15-accessibility.md) §6 | Phần lớn tiêu chí cần render thật, không quét tĩnh được |
 
-Chúng nằm ở đây, **không** nằm trong §3.1–§3.2: một dòng trong bảng cổng đọc như một cổng đang canh, trong khi chưa có gì canh cả. Cách ép dự kiến của từng luật ghi ở cột tương ứng của `RULES.md` §10. Bộ test vẫn chạy ở bước 3 của §5; thứ còn nợ là **sàn** coverage và bộ quy tắc tiếp cận, không phải việc chạy test.
+Chúng nằm ở đây, **không** nằm trong §3.1–§3.2: một dòng trong bảng cổng đọc như một cổng đang canh, trong khi chưa có gì canh cả. Cách ép dự kiến của từng luật ghi ở cột tương ứng của `DEBT.md`. Bộ test vẫn chạy ở bước 3 của §5; thứ còn nợ là **sàn** coverage và bộ quy tắc tiếp cận, không phải việc chạy test.
 
 > 📌 **Tên section trong `scripts/fe-gate.sh` mang mã luật F, không mang một hệ mã thứ hai.** Lý do: hai hệ số song song cho cùng một tập luật thì mỗi bảng đều "trông đúng" khi đọc một mình, và lệch chỉ lộ ra khi có người mở cả hai — tức gần như không bao giờ.
+
+### 3.4 Prettier KHÔNG phải cổng của repo này
+
+Nó không có trong §3.1, không có trong §3.2, và đó là **chủ ý** chứ không phải sót — [ADR-0076](../../../adr/0076-prettier-khong-phai-cong-cua-repo-nay.md). Mục này tồn tại vì thiếu nó thì người sau lại suy ra ngược: câu hỏi *"prettier có phải cổng không"* đã tốn một lượt điều phối và hai lượt agent báo trái ngược nhau.
+
+Ba điều cần biết để không đi lại vòng đó:
+
+- **Không lệnh cổng nào gọi prettier.** Kiểm bằng `grep -n prettier scripts/fe-gate.sh .github/workflows/docs-gate.yml` — các dòng in ra là **chú thích** của vài phép dò, khai rằng mẫu tìm phải chịu được một dòng bị bẻ. Chúng chống đỡ prettier, không phụ thuộc nó.
+- **Không có bản cài nào.** Prettier không nằm trong `devDependencies` của `src/FE/package.json`, nên mỗi lần `npx prettier` là một lần tải một phiên bản **không ghim** từ mạng về — trái với luật ghim chính xác ([ADR-0028](../../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md) quyết định 4).
+- **Kết quả nó in ra không phải căn cứ cho phán quyết nào.** Hai lượt cho hai kết quả trái ngược vì chúng kiểm **hai tập tệp khác nhau**; chỗ đứng lúc gõ lệnh thì **không** đổi gì — prettier phân giải cấu hình theo từng tệp, đi ngược lên từ thư mục chứa tệp.
+
+> 🛑 **Đừng chạy `prettier --write` trên `src/FE/`.** Một lượt như thế viết lại hàng chục tệp cùng lúc, trong đó phần lớn không ai đang sửa.
+
+Muốn nhận prettier vào thì đường đi khai ở ADR-0076 quyết định 4 — và bước đầu tiên là một ADR mới, không phải một tệp cấu hình.
 
 ---
 
@@ -139,7 +174,11 @@ ls scripts/fe-gate.sh
 # 1. Cổng script (nhóm 3.1) — rẻ nhất, chạy trước
 bash scripts/fe-gate.sh
 
-# 2. Cổng lint (F1, F2, F24)
+# 1b. Canary của chính cổng script — mỗi tệp một lệnh; thư mục rỗng là ĐỎ, không phải xanh (§4.3)
+ls scripts/tests/*.test.sh
+bash scripts/tests/fe-gate-f3.test.sh    # và từng tệp còn lại trong danh sách ở dòng trên
+
+# 2. Cổng lint (F1, F2, F24, F35)
 cd src/FE && npx ng lint
 
 # 3. Bộ test — Karma + Jasmine trên ChromeHeadless; sàn coverage F15 còn là nợ (§3.3)
@@ -172,6 +211,7 @@ Hai ràng buộc cho phần CI:
 
 1. **CI chạy đúng các lệnh ở §5, đúng thứ tự đó**, và fail ở bất kỳ lệnh nào là fail cả job.
 2. **Bước kiểm sự tồn tại của script không được bỏ trên CI.** Một script thiếu phải làm CI đỏ, không được để nó trượt qua thành một dòng cảnh báo.
+3. **Bước 1b chạy mọi tệp `scripts/tests/*.test.sh`, và đỏ khi thư mục không có tệp nào.** Canary không chạy ở CI thì một mẫu dò bị nới vẫn qua được PR.
 
 ---
 
@@ -222,7 +262,7 @@ grep -rnE "eslint-disable(-next-line|-line)?.*($RULES)" src/FE/src --include='*.
 
 Quy ước của bảng chủ mà lệnh dựa vào: mỗi dòng rule có cột đầu là **một** tên rule trong dấu backtick; dòng không mở đầu bằng backtick bị bỏ qua.
 
-Mẫu phủ cả ba dạng tắt theo tên — cho cả file, cho dòng kế tiếp, cho chính dòng đó — và dùng `.*` giữa `eslint-disable` với tên rule, vì một comment tắt nhiều rule liệt kê tên theo thứ tự bất kỳ. Dạng tắt **toàn file không kèm tên rule** cần mẫu riêng: lệnh ở file chủ, cùng §4.5.
+Mẫu phủ cả ba dạng tắt theo tên — cho cả file, cho dòng kế tiếp, cho chính dòng đó — và dùng `.*` giữa `eslint-disable` với tên rule, vì một comment tắt nhiều rule liệt kê tên theo thứ tự bất kỳ. Dạng tắt **không kèm tên rule** (cả ba từ khoá, cả ba kiểu comment) cần mẫu riêng: lệnh ở file chủ, cùng §4.5. Mẫu trên so **theo dòng**, nên nó cũng mù trước cấu hình nội tuyến `/* eslint <rule>: "off" */` và trước comment tắt trải nhiều dòng: mẫu đọc cả comment cho hai dạng đó cũng ở file chủ §4.5, và dùng lại `$RULES` của lệnh trên.
 
 **Không có F3 thì F1 và F2 chỉ là gợi ý** — vì cả hai đều gỡ được bằng một dòng comment.
 
@@ -238,6 +278,20 @@ Mảng tên module khai ở `src/FE/eslint.boundaries.cjs`; `eslint.config.js` `
 | --- | --- |
 | Cấu hình liệt kê một module **không tồn tại** | Quy tắc không phân giải nổi đường dẫn đích ⇒ không chặn được gì, nhưng **trông như đang chạy** |
 | Thư mục module tồn tại nhưng **không** có trong cấu hình | Module đó không bị ràng buộc ranh giới nào |
+
+> 🛑 **Trạng thái KHÔNG hỏng, dễ nhầm là hỏng: thư mục `modules/` vắng mặt VÀ `BUSINESS_MODULES`
+> rỗng.** Đây là PASS, không phải lỗi — [`../../../adr/0036-f4-rong-khop-rong-la-hop-le.md`](../../../adr/0036-f4-rong-khop-rong-la-hop-le.md).
+> Repo Core không bao giờ có `modules/` ([ADR-0032](../../../adr/0032-module-mau-o-du-an-ha-nguon.md)), nên với
+> chính repo Core, F4 **PASS vĩnh viễn theo thiết kế** — không phải vì cổng mù. Một dự án hạ nguồn
+> ở trạng thái trước module đầu tiên cũng PASS vì cùng lý do, tạm thời. Đây là **ngoại lệ có tên
+> của riêng F4**: các allowlist đọc từ bảng chủ ở F3/F5/F11 vẫn phải đỏ khi đọc ra 0 phần tử — với
+> chúng, rỗng luôn là dấu hiệu nguồn đọc hỏng, không phải trạng thái nghiệp vụ hợp lệ. Đừng suy
+> rộng ngoại lệ này sang cổng khác.
+>
+> Hệ quả cần nhớ: F4 sẽ không bao giờ có cơ hội đỏ trong suốt vòng đời của repo Core. Trách nhiệm
+> chứng minh phép so khớp còn sống (không mù) dồn vào dự án hạ nguồn đầu tiên, đúng lúc thêm module
+> đầu tiên — canary bắt buộc: gỡ tạm tên khỏi `BUSINESS_MODULES` hoặc xoá tạm thư mục, xác nhận đỏ,
+> rồi hoàn nguyên ([`00-lo-trinh-tong-the.md`](00-lo-trinh-tong-the.md) §4.1).
 
 Cả hai đều là "cổng xanh vì không kiểm gì cả" — dạng hỏng mà toàn bộ file này tồn tại để chống.
 
@@ -289,6 +343,33 @@ Cách dò và ba giới hạn: [`../08-i18n.md`](../08-i18n.md) §10.
 Bẫy phải tránh: khi xoá chú thích HTML trước lúc dò, **phải thay chúng bằng đúng số ký tự xuống dòng mà chúng chiếm**. Xoá trắng làm luồng ngắn lại và số dòng báo ra lệch so với file thật — người sửa mở nhầm chỗ, không thấy gì, rồi kết luận cổng báo bậy và bỏ qua nó.
 
 Một cổng chỉ sai số dòng thôi cũng đủ để mất hết uy tín.
+
+**Vế thứ hai của F8 — khoá dịch literal phải có trong tệp dịch.** Câu luật F8 là "mọi câu đến từ i18n". Một khoá không có trong `vi.json` thì hiện ra thành chính chuỗi khoá, nghĩa là câu đó không đến từ i18n, dù template sạch dấu thanh. Đây là phép kiểm hàng đầu ở [`../08-i18n.md`](../08-i18n.md) §9. Section F8 của script chạy thêm lệnh này:
+
+```bash
+# Luật F8, vế khoá dịch — PASS khi lệnh cuối không in dòng nào. Tập khoá có = hợp mọi tầng
+# public/i18n*/vi.json, kể cả nút trung gian. Khoá dùng = literal trước `| translate`, đối số đầu của
+# translate.instant/stream/get, và `title:` trong *.routes.ts — so trên cả tệp vì prettier bẻ dòng.
+[ -f src/FE/public/i18n/vi.json ] || { echo "F8: không có src/FE/public/i18n/vi.json"; exit 1; }
+KHOA_CO=$(for j in src/FE/public/i18n*/vi.json; do
+  node -e 'const f=(o,p)=>Object.entries(o).flatMap(([k,v])=>v!==null&&typeof v==="object"?[p+k,...f(v,p+k+".")]:[p+k]);
+process.stdout.write(f(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")),"").join("\n")+"\n")' "$j" \
+    || { echo "F8: $j không đọc được thành JSON" >&2; exit 1; }
+done | sort -u) || exit 1
+KHOA_DUNG=$(find src/FE/src/app \( -name '*.ts' -o -name '*.html' \) -not -name '*.spec.ts' -print0 \
+  | xargs -0 -r perl -0777 -ne '
+      my $k = qr{[A-Za-z][\w-]*(?:\.[\w-]+)+};
+      while (/([\x27"])($k)\1\s*\|\s*translate\b/g) { print "$2\n" }
+      while (/\btranslate\s*\.\s*(?:instant|stream|get)\s*\(\s*([\x27"])($k)\1/g) { print "$2\n" }
+      if ($ARGV =~ /\.routes\.ts$/) { while (/\btitle\s*:\s*([\x27"])($k)\1/g) { print "$2\n" } }' \
+  | sort -u)
+[ -n "$KHOA_DUNG" ] || { echo "F8: không trích được khoá literal nào — mẫu trích đã mục?"; exit 1; }
+comm -23 <(printf '%s\n' "$KHOA_DUNG") <(printf '%s\n' "$KHOA_CO")
+```
+
+Hai chốt chống xanh rỗng: tệp dịch hỏng cú pháp là **đỏ**, không phải tập khoá rỗng; không trích được khoá nào là **đỏ**, vì code FE luôn có khoá literal. Giới hạn: khoá dựng từ biến hay từ chuỗi mẫu thì lệnh không thấy — đúng cái giá ghi ở [`../08-i18n.md`](../08-i18n.md) §9. Canary: `scripts/tests/fe-gate-f8.test.sh`.
+
+Vế này là **vế thứ hai của F8**, không có mã riêng — chốt 2026-09-22 ở [`../../../RULES.md`](../../../RULES.md) §7: cùng một câu luật *mọi câu đến từ i18n*, cùng một section, cùng một canary. Tách mã chỉ thêm một hàng sổ mà không thêm cổng nào.
 
 ### 8.7 F10 — mẫu tìm DTO
 
@@ -357,11 +438,180 @@ Giới hạn: cổng kiểm **sự tồn tại** của spec, không kiểm nội
 
 Thứ compiler **không** bắt: khoá `track` có ổn định không. `track $index` vẫn biên dịch, dù nó gần như vô hiệu hoá `track` khi danh sách sắp xếp lại ([`../05-component-library.md`](../05-component-library.md) §6). Phần đó thuộc review.
 
-### 8.11 F14 — lỗ mù đã biết
+### 8.11 F14 — ngân sách, số đo lúc bật (F3) và lỗ mù còn lại
 
-Ngân sách thường chỉ khai cho phần khởi động; **lazy chunk không bị ràng buộc gì**. Một chunk lazy lớn hơn cả bundle khởi động vẫn đi qua cổng im lặng — điều này đã xảy ra thật ở dự án tiền nhiệm.
+Ngân sách thường chỉ khai cho phần khởi động; **lazy chunk không bị ràng buộc gì** nếu không khai thêm. Một chunk lazy lớn hơn cả bundle khởi động vẫn đi qua cổng im lặng — điều này đã xảy ra thật ở dự án tiền nhiệm.
 
-Khai ngân sách cho lazy chunk ngay khi có lazy chunk đầu tiên. Không khai được thì **phải ghi lỗ mù đó ra ở chính file này**, để không ai tưởng F14 phủ hết.
+F3 là lazy chunk đầu tiên của repo (ba màn `platform/quan-tri/`), nên đây là lúc bật ngân sách theo đúng lộ trình. `angular.json` không cho phép chú thích hay trường tuỳ ý trong khối `budgets` (schema kiểm nghiêm ngặt) — số đo và lý do vì vậy ghi **ở đây**, cạnh đúng cổng F14, thay vì trong chính tệp cấu hình.
+
+Đo bằng `npx ng build --configuration production` ngay sau khi F3 xong (2026-09-18):
+
+| Khoản | Đo được | Ngân sách đặt | Vì sao |
+| --- | --- | --- | --- |
+| `initial` (khởi động) | 502.12 kB thô / 136.02 kB truyền | Cảnh báo 600 kB · Lỗi 900 kB | 600 kB chừa ~100 kB dư địa thật cho các pha sau; 900 kB là mốc coi là hỏng ngân sách, không phải giữ nguyên mặc định của schematic (500 kB / 1 MB) |
+| `anyComponentStyle` | Lớn nhất ~2.5 KB mã nguồn (`card.component.scss`), xa ngưỡng | Giữ mặc định: cảnh báo 4 kB · lỗi 8 kB | Chưa file nào tới gần, không có lý do đổi |
+| Lazy chunk lớn nhất — khối dùng chung PrimeNG cho `Dialog`/`Autocomplete`/`Menu`/`Table` | 385.60 kB thô / 67.37 kB truyền | Cảnh báo 450 kB · Lỗi 700 kB, qua `type: "any"` (mọi tệp kết xuất, từng tệp một) | Angular CLI không có `type` riêng cho "lazy" — `any` là loại **duy nhất** phủ được từng chunk lazy theo từng tệp. Đây là cách bịt lỗ mù, không phải lựa chọn tiện |
+| Lazy chunk theo trang lớn nhất — `danh-sach-vai-tro-page` | 41.06 kB thô / 10.53 kB truyền | Cùng ngân sách `any` ở trên | Cách xa ngưỡng, còn nhiều dư địa cho các màn phức tạp hơn sau này |
+
+Đo lại cùng lệnh ngay sau khi cài gói PrimeIcons ([`../../../adr/0061-primeicons-la-phu-thuoc-tuong-minh-ghim-chinh-xac-nap-mot-lan.md`](../../../adr/0061-primeicons-la-phu-thuoc-tuong-minh-ghim-chinh-xac-nap-mot-lan.md) nghiệm thu b, 2026-09-22) — stylesheet của icon vào `styles.css`, tức vào `initial`; năm tệp font của gói ra `media/` và chịu ngân sách `any` từng tệp:
+
+| Khoản | Trước khi cài | Sau khi cài | So với ngân sách |
+| --- | --- | --- | --- |
+| `initial` (khởi động) | 520.23 kB thô / 137.83 kB truyền | 535.13 kB thô / 140.39 kB truyền | Dưới ngưỡng cảnh báo 600 kB; điều kiện lật 2 của ADR-0061 chưa chạm |
+| `styles.css` (nằm trong `initial`) | 14.91 kB thô / 2.62 kB truyền | 29.81 kB thô / 5.19 kB truyền | — |
+| Tệp `media/` lớn nhất — `primeicons-*.svg` (font dạng SVG, trình duyệt hiện đại tải bản `woff2` ≈ 32 kB) | không có | 347.20 kB | Dưới ngưỡng cảnh báo 450 kB của `any`; là tệp lớn nhất mà ngân sách này đang canh |
+
+**Lỗ mù còn lại, cố ý chưa đóng:** `type: "any"` áp cho **từng tệp kết xuất riêng lẻ** (bundle chunk, và về lý thuyết cả ảnh/css nếu build sinh ra dạng đó) — nó **không** cộng dồn nhiều lazy chunk của cùng một route lại để so với một trần theo-route. Một route tương lai bị chẻ thành nhiều chunk nhỏ, mỗi chunk dưới 450 kB nhưng cộng lại vượt xa, vẫn lọt qua cổng này. Angular CLI không có loại ngân sách "theo route" hay "theo lazy chunk nói riêng" ở bản đang dùng — đây là giới hạn của chính công cụ, không phải thiếu sót khi cấu hình. Ghi ra để không ai tưởng F14 đã phủ hết mọi hình dạng phình to.
+
+### 8.12 F29 — tập sub-preset PrimeNG: sàn là thứ import trực tiếp, trần là bao đóng của gói
+
+Quyết định và cái giá: [`../../../adr/0056-f29-tinh-component-con-duoc-dung-ben-trong.md`](../../../adr/0056-f29-tinh-component-con-duoc-dung-ben-trong.md). Section F29 của script so **ba tập**:
+
+| Tập | Dựng từ | Đỏ khi |
+| --- | --- | --- |
+| **Có** | `import … from '@primeuix/themes/aura/<y>'` trong `src/FE/src/app/core/theme/prime-preset.ts` | Rỗng |
+| **Bắt buộc** | `base` cộng sub-preset của mọi `primeng/<x>` import trực tiếp trong `src/FE/src` (không tính `*.spec.ts`) | Một phần tử không có trong tập *có* |
+| **Trần** | `base` cộng sub-preset của mọi module trong bao đóng: bắt đầu từ các module trực tiếp, đọc lệnh `from 'primeng/<y>'` trong `node_modules/primeng/fesm2022/primeng-<x>.mjs`, lặp tới khi không thêm được gì | Một phần tử của tập *có* nằm ngoài trần |
+
+Đỏ thêm khi: có import `@primeuix/themes/<preset>` gộp (không có đoạn `/<y>` sau tên preset); không đọc được thư mục gói `primeng` hay tệp `primeng-<x>.mjs` của một module trực tiếp; một module trực tiếp không có sub-preset cùng tên (sau khi đổi tên theo bảng dưới) mà cũng không nằm trong bảng thứ hai.
+
+Vế *"component con thật sự dựng ra"* (nút đóng của `Dialog`, ô số dòng của `Paginator`…) **không** có trong tập bắt buộc của script: nó nằm giữa sàn và trần, và chỉ test canh — `src/FE/src/app/core/theme/prime-preset.spec.ts`, chuỗi `sinh biến của`.
+
+Tên module đổi sang tên sub-preset qua bảng thứ nhất; module nằm ở bảng thứ hai thì không mang sub-preset nào. Căn cứ của mọi dòng là gói đã cài: lớp style của từng component PrimeNG khai `name = '<tên theme>'`, và sub-preset tồn tại khi có thư mục `node_modules/@primeuix/themes/dist/aura/<tên>/`.
+
+#### Tên module PrimeNG khác tên sub-preset — định nghĩa gốc
+
+| Module `primeng/…` | Sub-preset `@primeuix/themes/aura/…` | Căn cứ |
+| --- | --- | --- |
+| `table` | `datatable` | `primeng-table.mjs` khai `name = 'datatable'` |
+| `scroller` | `virtualscroller` | `primeng-scroller.mjs` khai `name = 'virtualscroller'` |
+
+#### Module PrimeNG không có sub-preset — định nghĩa gốc
+
+| Module `primeng/…` | Vì sao không có sub-preset |
+| --- | --- |
+| `api` | Kiểu và service dùng chung (`MessageService`, `MenuItem`), không phải component |
+| `config` | `providePrimeNG`, `PrimeNG` — cấu hình, không phải component |
+| `base` | Lớp nền của style; sub-preset `base` là token gốc, luôn nằm trong tập bắt buộc bất kể module này |
+| `basecomponent` | Lớp cha của mọi component |
+| `baseeditableholder` | Lớp cha của control nhập liệu |
+| `baseinput` | Lớp cha của ô nhập |
+| `basemodelholder` | Lớp cha giữ giá trị model |
+| `bind` | Directive gắn thuộc tính `pBind` |
+| `dom` | Hàm tiện ích DOM |
+| `utils` | Hàm tiện ích |
+| `usestyle` | Nạp style vào trang |
+| `icons` | Icon SVG dựng sẵn |
+| `autofocus` | Directive đặt focus |
+| `focustrap` | Directive giữ focus |
+| `overlay` | Component lớp nổi nội bộ; `name = 'overlay'` nhưng không có thư mục sub-preset |
+| `fluid` | Component bọc bề rộng; `name = 'fluid'` nhưng không có thư mục sub-preset |
+| `inputicon` | Icon trong ô nhập; `name = 'inputicon'` nhưng không có thư mục sub-preset |
+
+Thêm một dòng vào một trong hai bảng là thêm kèm căn cứ đọc được trong gói. Hai bảng chỉ cần đủ cho **module trực tiếp**: module lạ nằm sâu trong bao đóng chỉ làm trần nhỏ đi, tức cổng đỏ nhầm theo chiều an toàn, không bao giờ xanh nhầm.
+
+```bash
+# Luật F29 — PASS khi không in dòng nào. Chạy từ gốc repo; cần src/FE/node_modules đã cài.
+BANG=docs/wiki-core/fe/trien-khai/05-gate.md
+PKG=src/FE/node_modules/primeng/fesm2022
+AURA=src/FE/node_modules/@primeuix/themes/dist/aura
+PRESET=src/FE/src/app/core/theme/prime-preset.ts
+DOI_TEN=$(awk '/Tên module PrimeNG khác tên sub-preset/ { f = 1; next } /^#/ { f = 0 }
+               f && /^\| `/' "$BANG" | awk -F'`' '{ print $2 "=" $4 }')
+KHONG_PRESET=$(awk '/Module PrimeNG không có sub-preset/ { f = 1; next } /^#/ { f = 0 }
+                    f && /^\| `/' "$BANG" | cut -d'`' -f2)
+[ -n "$DOI_TEN" ] && [ -n "$KHONG_PRESET" ] || { echo "F29: không đọc được hai bảng từ $BANG"; exit 1; }
+[ -d "$PKG" ] && [ -d "$AURA" ] || { echo "F29: chưa cài primeng / @primeuix/themes"; exit 1; }
+ten_preset() { printf '%s\n' "$DOI_TEN" | awk -F= -v m="$1" '$1 == m { print $2; d = 1 } END { if (!d) print m }'; }
+khong_preset() { printf '%s\n' "$KHONG_PRESET" | grep -qx "$1"; }
+TRUC_TIEP=$(grep -rhoE "from '(primeng/[a-z0-9-]+)'" src/FE/src --include='*.ts' --exclude='*.spec.ts' \
+  | sed -E "s#from 'primeng/(.*)'#\1#" | sort -u)
+[ -n "$TRUC_TIEP" ] || { echo "F29: không có import primeng/ trực tiếp nào"; exit 1; }
+CO=$(grep -oE "from '@primeuix/themes/aura/[a-z0-9-]+'" "$PRESET" | sed -E "s#.*/aura/(.*)'#\1#" | sort -u)
+[ -n "$CO" ] || { echo "F29: $PRESET không import sub-preset nào"; exit 1; }
+grep -rnE "['\"]@primeuix/themes/[a-z0-9-]+['\"]" src/FE/src --include='*.ts'   # preset gộp
+BAT_BUOC=base; TRAN=base; DA=""; HANG="$TRUC_TIEP"
+for m in $TRUC_TIEP; do                       # sàn: module trực tiếp mang sub-preset
+  khong_preset "$m" && continue
+  p=$(ten_preset "$m")
+  [ -d "$AURA/$p" ] || { echo "F29: module lạ primeng/$m — thêm một dòng kèm căn cứ vào một trong hai bảng"; continue; }
+  [ -f "$PKG/primeng-$m.mjs" ] || echo "F29: không đọc được $PKG/primeng-$m.mjs"
+  BAT_BUOC="$BAT_BUOC $p"
+done
+while :; do                                   # trần: đi qua MỌI module có .mjs, kể cả module nền
+  set -- $HANG; [ "$#" -eq 0 ] && break       # hàng đợi chỉ còn khoảng trắng: module lá
+  m=$1; shift; HANG="$*"
+  case " $DA " in *" $m "*) continue ;; esac; DA="$DA $m"
+  if ! khong_preset "$m"; then p=$(ten_preset "$m"); [ -d "$AURA/$p" ] && TRAN="$TRAN $p"; fi
+  [ -f "$PKG/primeng-$m.mjs" ] || continue
+  HANG="$HANG $(grep -ohE "from 'primeng/[a-z0-9-]+'" "$PKG/primeng-$m.mjs" | sed -E "s#from 'primeng/(.*)'#\1#" | sort -u | tr '\n' ' ')"
+done
+comm -23 <(printf '%s\n' $BAT_BUOC | sort -u) <(printf '%s\n' $CO) | sed 's/^/F29: thiếu sub-preset /'
+comm -13 <(printf '%s\n' $TRAN | sort -u) <(printf '%s\n' $CO) | sed 's/^/F29: sub-preset ngoài trần /'
+```
+
+Canary: `scripts/tests/fe-gate-f29.test.sh` — dựng gói `primeng` và `@primeuix/themes` giả để kiểm từng nhánh, và chạy trên bản sao `src/FE/src` thật với gói thật để kiểm ca gỡ một sub-preset bắt buộc và ca thêm một sub-preset ngoài trần.
+
+### 8.13 F19 — so trên nội dung cả tệp, hai mẫu
+
+Lệnh gốc của F19 nằm **ở đây** (chuyển từ [`../../../quy-uoc/fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §2.1 ngày 2026-09-22 — bản cũ so theo dòng và chỉ nhìn `this.http.<verb><`, hẹp hơn thứ script đang chạy). Prettier bẻ `this.http` / `.get<…>(` / đường dẫn ra ba dòng, và đường dẫn còn đi qua một trường hay hằng trước khi tới lời gọi — nên hai mẫu, cả hai so trên **nội dung cả tệp**:
+
+```bash
+# Luật F19 — PASS khi không in dòng nào. Dùng cho cả F21 (§8.14): quet <mẫu perl> đọc danh sách tệp
+# ngăn bằng NUL từ stdin, so trên cả tệp, in tệp:dòng. \x27 \x22 \x60 là ba loại nháy.
+[ -d src/FE/src ] || { echo "F19: không có src/FE/src để quét"; exit 1; }
+quet() { MAU="$1" xargs -0 -r perl -0777 -ne 'while (/$ENV{MAU}/g) { my $vt = $-[0]; print "$ARGV:", 1 + (substr($_, 0, $vt) =~ tr/\n//), "\n" }'; }
+# (1) chuỗi mở đầu bằng /api ở BẤT KỲ đâu
+find src/FE/src -name '*.ts' -not -name '*.spec.ts' -print0 | quet '[\x27\x22\x60]/api(?=[/\x27\x22\x60])'
+# (2) đối số đầu của một lời gọi HTTP mang tiền tố api/, có hay không có / đầu
+find src/FE/src -name '*.ts' -not -name '*.spec.ts' -print0 \
+  | quet '\.\s*(?:get|post|put|patch|delete|head|options|request|jsonp)\s*(?:<[^()]*?>)?\s*\(\s*[\x27\x22\x60]/?api/'
+```
+
+Canary: `scripts/tests/fe-gate-f19.test.sh`. Giới hạn: đường dẫn ghép lúc chạy từ nhiều mảnh thì mẫu không thấy.
+
+### 8.14 F21 — bốn API của Router, so trên nội dung cả tệp
+
+Lệnh gốc của F21 nằm **ở đây** (chuyển từ [`../../../quy-uoc/fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §6 cùng ngày — bản cũ chỉ khớp `navigate(['/` trên một dòng). Bốn API nhận đường dẫn: `navigate([…])`, `createUrlTree([…])` (guard trả `UrlTree`), `navigateByUrl(…)`, `parseUrl(…)` (`RedirectCommand`). Đỏ khi phần tử hay đối số đầu là chuỗi mở đầu bằng `/`:
+
+```bash
+# Luật F21 — PASS khi không in dòng nào. `quet` khai ở §8.13.
+[ -d src/FE/src/app/core ] || { echo "F21: không có src/FE/src/app/core để quét"; exit 1; }
+find src/FE/src/app/core -name '*.ts' -not -name '*.spec.ts' -print0 \
+  | quet '\b(?:(?:navigate|createUrlTree)\s*\(\s*\[\s*|(?:navigateByUrl|parseUrl)\s*\(\s*)[\x27\x22\x60]/'
+```
+
+Canary: `scripts/tests/fe-gate-f21.test.sh`. Giới hạn: đường dẫn đi qua một biến trước khi tới lời gọi thì mẫu không thấy — F21 là cổng cho dạng viết cứng tại chỗ, phần còn lại do review.
+
+---
+
+### 8.15 F23 — so tập khoá theo TỪNG tầng tệp dịch
+
+Lệnh gốc của F23 nằm **ở đây** (chuyển từ [`../../../quy-uoc/fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §5.3 ngày 2026-09-23; luật và hành vi khi thư mục vắng vẫn ở đó). Hai tầng `public/i18n/` và `public/i18n-app/` đối chiếu **riêng**, không gộp — gộp thì một khoá chỉ có ở tầng dự án trông như thiếu ở tầng Core:
+
+```bash
+# Luật F23 — trong MỖI tầng tệp dịch, mọi tệp ngôn ngữ có cùng tập khoá với vi.json.
+# Hai tầng đối chiếu riêng, không gộp. PASS khi thoát 0 và không in dòng khác biệt nào.
+# Chỉ cần Node, không cần jq; chạy được trên Git Bash.
+khoa_dich() {
+  node -e 'const f=(o,p)=>Object.entries(o).flatMap(([k,v])=>v!==null&&typeof v==="object"?f(v,p+k+"."):[p+k]);
+process.stdout.write(f(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")),"").join("\n")+"\n")' "$1" | sort
+}
+[ -d src/FE/public ] || { echo "F23: không có src/FE/public để quét"; exit 1; }
+lech=0
+for TM in src/FE/public/i18n src/FE/public/i18n-app; do
+  [ -d "$TM" ] || { echo "F23: không có $TM, bỏ qua"; continue; }
+  if [ "$(find "$TM" -maxdepth 1 -name '*.json' | wc -l)" -lt 2 ]; then
+    echo "F23: $TM có một ngôn ngữ, không có gì để đối chiếu"; continue
+  fi
+  [ -f "$TM/vi.json" ] || { echo "F23: $TM thiếu vi.json"; lech=1; continue; }
+  for f in "$TM"/*.json; do
+    [ "$f" = "$TM/vi.json" ] && continue
+    diff <(khoa_dich "$TM/vi.json") <(khoa_dich "$f") || lech=1
+  done
+done
+exit $lech
+```
 
 ---
 

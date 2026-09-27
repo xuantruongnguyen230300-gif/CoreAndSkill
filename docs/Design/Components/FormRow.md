@@ -6,9 +6,33 @@ verified: chua-doi-chieu
 
 # FormRow
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`, hiện thực **một** trong ba biến thể bố cục. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** tự dựng. Theo tiêu chí ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 đây là component thuần trình bày — nó không có hành vi khó, chỉ có **luật hiển thị lỗi**, và luật đó là thứ phải tự quyết chứ không nhận từ thư viện.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/components/form-row/form-row.component.ts` — selector `app-form-row`, class gốc `.form-row`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | Có `label` (`input.required`), `layout`, `required`, `hint`, `error`, `disabled`, `controlId` (tự sinh) | **`span` chưa có.** §API dự kiến khai `span: 1 \| 2` để `FormRow` chiếm hai cột trong lưới `form-grid`; không có input nào tương ứng |
+| Chuỗi rỗng coi là không lỗi | Có, đúng luật spec: `coLoi` tính `(this.error() ?? '').length > 0` | — |
+| Khuôn id dòng phụ | Có, đúng `<controlId>-error` và `<controlId>-hint` — khớp hợp đồng mà [`Input.md`](./Input.md) và [`Check.md`](./Check.md) trông vào | — |
+| `<label for>` thật | Có, `[for]="controlId()"` | — |
+| Dấu bắt buộc mang `aria-hidden` | Có, `<span aria-hidden="true">*</span>`, màu `--color-danger` | Câu "Trường có dấu * là bắt buộc" ở đầu form là việc của trang, chưa soát trang nào |
+| Lỗi thay chỗ gợi ý | Có, đúng spec: `@if (coLoi())` … `@else if (hint())` — hai dòng không bao giờ cùng hiện | — |
+| `role="alert"` chỉ khi có lỗi | Có, và đúng cảnh báo của spec: vùng lỗi **chỉ tồn tại khi có lỗi**, không phải một vùng rỗng luôn có sẵn | — |
+| Icon lỗi `pi-times-circle` | Có, `aria-hidden="true"` | Chưa đặt cỡ `--icon-sm` mà spec khai — icon ăn theo `font-size: var(--fs-xs)` của dòng lỗi |
+| Nhãn không đổi màu khi lỗi | Đúng — không có quy tắc nào đổi màu nhãn theo `coLoi()` | — |
+| Không vẽ vòng focus ở mức vùng chứa | Đúng — không có `:focus`/`:focus-visible` nào trên `.form-row` | — |
+| `default` | Nhãn `--fs-sm` `--fw-medium` `--color-text`; gợi ý `--fs-xs` `--color-text-muted` — khớp spec | — |
+| `layout` | Input khai đủ ba giá trị | **`inline` và `group` không render gì.** Không có class nào theo `layout()` trong template, và `.form-row` luôn là `flex-direction: column` — tức luôn là `stacked`. Riêng `group` còn là một khoảng trống về ngữ nghĩa: §Accessibility đòi `<fieldset>` + `<legend>`, template luôn dùng `<label>` |
+| Khe nhãn → ô | `--sp-5`, đúng spec | — |
+| Khe ô → dòng gợi ý/lỗi | — | **Đang là `--sp-5`, spec khai `--sp-3`.** `.form-row` dùng **một** `gap` cho cả hai khe, nên khe thứ hai không đặt riêng được |
+| `disabled` | Nhãn chuyển `--color-text-disabled`; vùng chứa không đổi nền, đúng spec | **Dòng gợi ý chưa chuyển** `--color-text-disabled` — spec đòi "nhãn **và gợi ý**"; `.form-row--disabled` chỉ chạm `.form-row__nhan`. Và `disabled` **không được truyền xuống ô**: §API khai "Truyền xuống ô", nhưng ô vào qua `<ng-content>` nên `FormRow` không chạm tới được — trang phải tự đặt `disabled` cho cả hai |
+
+Chưa đối chiếu: §Responsive (lưới hai cột, `inline` tự chuyển thành `stacked` dưới `$bp-md` — đều là luật của vùng chứa form, không có gì tương ứng trong SCSS của component), bảng "lúc nào hiện lỗi" (luật của trang gọi, không phải của component), và tầng i18n của `label`/`hint`/`error` (chuỗi do nơi gọi truyền vào).
 
 ---
 

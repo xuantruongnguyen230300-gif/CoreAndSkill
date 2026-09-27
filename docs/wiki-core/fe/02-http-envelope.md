@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 02. Envelope HTTP — hình dạng dữ liệu giữa BE và FE
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`; mọi đoạn code dưới đây là thứ phải viết, không phải thứ đang chạy.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Mọi đoạn code dưới đây là đích phải đạt, không trích từ code đang chạy.
 >
 > **Hợp đồng chính thức của từng endpoint nằm ở [`../../contracts/README.md`](../../contracts/README.md).** File này mô tả *hình dạng chung* và *cách FE tiêu thụ nó*. Khi hai bên lệch nhau, `contracts/` thắng và file này phải sửa.
 >

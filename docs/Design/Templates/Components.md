@@ -31,11 +31,11 @@ verified: chua-doi-chieu
 
 ### Bảng mục lục — bốn cột, không hơn
 
-| Component | Là gì | Spec | Nền | Trạng thái |
-| --- | --- | --- | --- | --- |
-| `Button` | Nút có nhãn chữ, bốn vai, ba cỡ | [Components/Button.md](../Components/Button.md) | tự dựng | 📐 spec xong, chưa dựng |
+| Component | Là gì | Spec | Nền |
+| --- | --- | --- | --- |
+| `Button` | Nút có nhãn chữ, bốn vai, ba cỡ | [Components/Button.md](../Components/Button.md) | tự dựng |
 
-Cột `Trạng thái` chỉ nhận **bốn** giá trị định nghĩa ở [`../CLAUDE.md`](../CLAUDE.md) §4. Không phát minh giá trị thứ năm.
+🛑 **Không thêm cột `Trạng thái`.** Trạng thái thi công của một component đọc ở nhãn cấp tệp đầu spec của nó ([`../CLAUDE.md`](../CLAUDE.md) §2), không ở mục lục — cùng luật với [`ProjectReadme.md`](./ProjectReadme.md) §1: mục lục giữ nhãn **cấp khu**, không giữ nhãn cấp file. Cách đọc bằng lệnh kèm tiêu chí PASS ở [`../COMPONENTS.md`](../COMPONENTS.md) §3.
 
 Cột `Là gì` là **một câu**, và câu đó phải phân biệt được component này với component gần giống nó. "Thông báo" không đủ; "thông báo nằm trong trang, ở lại cho tới khi bối cảnh đổi" thì đủ — vì nó nói luôn cái khác với `Toast`.
 

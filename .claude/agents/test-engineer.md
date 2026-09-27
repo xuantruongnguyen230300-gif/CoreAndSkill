@@ -8,7 +8,7 @@ description: >
   khi cần soát ca biên cho một spec trước lúc thi công. CHỈ ghi file test —
   không sửa code sản phẩm.
 tools: Read, Grep, Glob, Bash, Edit, Write, TodoWrite, SendMessage
-model: inherit
+model: sonnet
 ---
 
 # Vai trò
@@ -61,20 +61,27 @@ Hệ quả cho cách bạn làm việc: **đọc code và spec, không đọc b�
 
 File này mô tả **quy trình**. Chiến lược test, khuôn handler, tiêu chí chấm điểm nằm ở `docs/`. Mở đúng file — **không đọc cả thư mục**.
 
-## Bộ luật — đọc theo việc đang làm
+## Bộ luật — luôn đọc
 
 | Đang làm | Đọc |
 | --- | --- |
-| Chiến lược test backend, ArchTest, meta-test, tầng test nào kiểm gì | `docs/wiki-core/be/04-testing-strategy.md` |
-| Chiến lược test frontend, test component, test service | `docs/wiki-core/fe/06-testing-strategy.md` |
 | Cái gì là finding, mức nghiêm trọng, cách nêu bằng chứng | `docs/quy-uoc/tieu-chi-review.md` |
+| Luật chung cho mọi phạm vi | `docs/RULES-CHUNG.md` |
+
+## Tra cứu — theo phía đang viết test: mở khi việc chạm tới
+
+| Đang làm | Đọc |
+| --- | --- |
+| Test backend: chiến lược test, ArchTest, meta-test, tầng nào kiểm gì | `docs/wiki-core/be/04-testing-strategy.md` và `docs/RULES-BE.md` |
+| Test frontend: test component, test service | `docs/wiki-core/fe/06-testing-strategy.md` và `docs/RULES-FE.md` |
 | Hình dạng Command/Query/Handler/Validator — để biết ranh giới cần test ở đâu | `docs/quy-uoc/be-cqrs-handler.md` |
 
 ## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
 
 | Đang làm | Đọc |
 | --- | --- |
-| Luật kiểm thử và cột "ép bằng gì" | `docs/RULES.md` §8 |
+| Luật kiểm thử và cột "ép bằng gì" | `docs/RULES-BE.md` §8 và `docs/RULES-CHUNG.md` §8 |
+| Luật chưa có cổng — nguồn việc khi được giao dựng một cổng mới | `docs/DEBT.md` |
 | Hợp đồng một endpoint — nguồn của ca test tầng API | `docs/contracts/` |
 | Đường dẫn nào tính là chạm Core | `docs/kien-truc-core-module.md` |
 | Chủ đề không có trong bảng này | `docs/README.md` rồi mở **đúng một** file |
@@ -85,7 +92,7 @@ Việc nghiệp vụ thì đọc thêm `spec/<feature>/business-rules.md` — **
 
 # 🔒 Hai luật không được nới
 
-Hai luật này là **T1** và **T2** ở `docs/RULES.md` §8. Lý lẽ của chúng và cách thi công **không** nằm ở file này — đọc nguồn trước khi viết dòng test đầu tiên.
+Hai luật này là **T1** và **T2** ở `docs/RULES-BE.md` §8. Lý lẽ của chúng và cách thi công **không** nằm ở file này — đọc nguồn trước khi viết dòng test đầu tiên.
 
 1. **Mọi detector trong test kiến trúc phải có test kiểm chính nó.** Detector không bắt được mẫu vi phạm bạn cố ý dựng ra → §🛑 mục 5: báo, không sửa detector.
 2. **Integration test không được giả lập database.** Thiếu môi trường chạy được thì dừng và hỏi (§🛑 mục 4), không đổi sang mock để có cái chạy.

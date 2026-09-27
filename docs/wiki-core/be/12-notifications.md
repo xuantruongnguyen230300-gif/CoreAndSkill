@@ -6,7 +6,14 @@ verified: chua-doi-chieu
 
 # 12. Sự kiện và thông báo
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ các dòng nêu dưới đây**; phần còn lại của file chưa ai đối chiếu nên `verified:` giữ `chua-doi-chieu`).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | Ghi outbox cùng giao dịch: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/Interceptors/OutboxInterceptor.cs` (`Stage`) — logic chuyển sự kiện thành dòng đã có test không cần DB (`OutboxInterceptorTests.cs`). Dòng outbox **thật sự** cùng commit/rollback với dữ liệu: `OutboxDatabaseTests.cs` (`RequiresDocker`) — **chưa chạy** | Chạy được ở CI có Docker |
+> | Bộ phát: `OutboxDispatcher.cs` (mỗi dòng một giao dịch, `FOR UPDATE SKIP LOCKED`, lỗi `Result` ⇒ `dead` ngay, exception ⇒ thử lại lùi dần tới `Core:Outbox:MaxAttempts`; riêng lỗi ở pha lưu/commit mà PostgreSQL từ chối không tạm thời — vd. 23503, 23505 — ⇒ `dead` ngay (`StoreFailure`); một dòng hỏng không chặn các dòng sau trong lô — đối chiếu lại 2026-09-26), `OutboxDispatcherHostedService.cs`; readiness `Degraded` khi có dòng `dead` hoặc `pending` quá tuổi (`OutboxHealthCheck.cs`, phần quyết định có test không cần DB; phần đo SQL thì chưa); lệnh `core outbox-replay` (`CoreCommandRunner.cs`, `RunOutboxReplayAsync`) | `SKIP LOCKED` trên PostgreSQL thật chưa từng chạy |
+> | Thông báo trong ứng dụng lưu **khoá + tham số** (`InAppNotificationChannel.cs`); kênh email chỉ có giao diện (`IEmailSender`, `INotificationTemplateRenderer`), **không bản mặc định** — thiếu nhà cung cấp thì dòng `dead` kèm mã `CORE.NOTIFICATION.EMAIL_NOT_CONFIGURED`. Ngôn ngữ email theo **người nhận**, mặc định `Core:Notification:DefaultLanguage` | Nhà cung cấp email: `architect` chọn. Bảng tuỳ chọn thông báo của người dùng: chưa có (seam `INotificationPreferences` mặc định bật hết) |
+> | Chưa có: đẩy thời gian thực (§6) | — |
 >
 > Phần **nhất quán dữ liệu** giữa các module ở [`05-cross-module-consistency.md`](05-cross-module-consistency.md). File này lo phần **báo cho người dùng** và chi tiết vận hành Outbox.
 

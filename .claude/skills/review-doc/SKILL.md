@@ -52,11 +52,11 @@ git show -- docs .claude spec
 
 Mở [`../../../docs/quy-uoc/tieu-chi-review.md`](../../../docs/quy-uoc/tieu-chi-review.md) — file này quyết định **cái gì là finding, cái gì không**. Chấm theo nó, không chấm theo cảm giác.
 
-Đối chiếu luật với [`../../../docs/RULES.md`](../../../docs/RULES.md): mỗi finding phải nêu được **luật số mấy** bị vi phạm. Không nêu được thì đó là góp ý, không phải finding — và phải ghi vào mục riêng, đừng trộn lẫn.
+Đối chiếu luật với bảng luật — các tệp `docs/RULES-*.md`, mục lục [`../../../docs/RULES.md`](../../../docs/RULES.md): mỗi finding phải nêu được **luật số mấy** bị vi phạm. Không nêu được thì đó là góp ý, không phải finding — và phải ghi vào mục riêng, đừng trộn lẫn.
 
 ### 3. Kiểm nhãn trạng thái
 
-Ba nhãn hợp lệ theo [`../../CLAUDE.md`](../../CLAUDE.md) §4. Repo chưa có `src/` — xác nhận bằng lệnh:
+Ba nhãn hợp lệ theo [`../../CLAUDE.md`](../../CLAUDE.md) §4. Xác nhận giai đoạn bằng lệnh, đừng tin trí nhớ:
 
 ```bash
 test -d src && echo "CO src" || echo "CHUA CO src"
@@ -71,7 +71,7 @@ Chưa có `src/` → mô tả kiến trúc mới thêm vào phải mang nhãn **
 | Nhãn chép vào mục lục thay vì đặt ở đầu chính file | Trạng thái ở chỗ thứ hai không bao giờ được sửa cùng lúc |
 | Đóng một việc tồn đọng bằng cách sửa mô tả cho khớp mong muốn | Dạng sai đắt nhất: không lỗi biên dịch, không test nào bắt |
 
-Kiểm thêm khoá `verified` của file vừa sửa: đóng dấu ngày cho một file chưa ai mở source ra so là đúng khuôn sai mà §4 cấm. Giai đoạn 1 thì `chua-doi-chieu` mới là giá trị trung thực.
+Kiểm thêm khoá `verified` của file vừa sửa: đóng dấu ngày cho một file chưa ai mở source ra so là đúng khuôn sai mà §4 cấm. `chua-doi-chieu` là giá trị trung thực cho tới khi có người đối chiếu **đúng file đó** — sự tồn tại của `src/` không lật nó.
 
 ### 4. Kiểm chép nội dung sang `.claude/`
 

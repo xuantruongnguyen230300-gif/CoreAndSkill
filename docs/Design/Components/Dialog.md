@@ -6,9 +6,40 @@ verified: chua-doi-chieu
 
 # Dialog
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`, bọc `primeng/dialog`. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** **bọc PrimeNG**. Theo tiêu chí ở [`../COMPONENTS.md`](../COMPONENTS.md) §4, bẫy focus và khôi phục focus là ca "khó" điển hình: làm đúng toàn bộ ca biên (Tab vòng lại, Shift+Tab ngược, phần tử xuất hiện động, Escape, khoá cuộn nền, iframe bên trong) là hàng trăm dòng và rất nhiều lần sai.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/ui/dialog/dialog.component.ts` — selector `app-dialog`, `styleClass` gắn `.app-dialog` và `.app-dialog--<cỡ>`. Phần chạm DOM do PrimeNG dựng nằm ở `src/FE/src/styles/_thu-vien.scss` (khối `.app-dialog`), ngoài encapsulation của component.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| Nơi duy nhất import `primeng/dialog` | Đúng — chú thích đầu file khai vai trò này | Chưa tự kiểm bằng lệnh là không còn chỗ nào khác import |
+| API | `open`, `size`, `title` (`input.required`), `description`, `closable`, `dismissOnBackdrop`, `dirty`, `loading`, `loadingBlocksClose`, `errorTemplate`; output `closed`, `dismissAttempted` | — |
+| Bốn cỡ bề rộng | Có, ở `_thu-vien.scss`: `sm`/`md`/`lg` dùng `min(94vw, --layout-dialog-w-*)`, `full` trừ `--sp-8` mỗi mép | — |
+| Đệm đầu / thân / chân `--sp-6` | Có cả ba (`.p-dialog-header`, `.p-dialog-content`, `.p-dialog-footer`) | — |
+| Khe giữa các nút ở chân `--sp-4` | Có, `.p-dialog-footer` là flex căn phải, `gap: var(--sp-4)` | — |
+| Khe tiêu đề → mô tả `--sp-3` | Có, `.app-dialog__dau` `gap: var(--sp-3)` | — |
+| Hình thức tiêu đề, mô tả | Tiêu đề `--fs-lg` `--fw-bold` `--lh-tight` `--color-text`; mô tả `--fs-sm` `--lh-normal` `--color-text-muted` | — |
+| Tiêu đề là `<h2>` thật | Có | — |
+| Bẫy focus, khoá cuộn nền | Có, `[focusTrap]`, `[focusOnShow]`, `[blockScroll]`, `[modal]` — đúng lý do §Nền chọn bọc thư viện | Việc `closed` phát **sau** khi focus đã về nơi mở (chú thích trong code khẳng định) chưa kiểm được — cần chạy thật |
+| `dirty` chặn đóng | Có, đúng luật: `onVisibleChange` giữ dialog mở rồi phát `dismissAttempted`, **không** tự vẽ hộp hỏi — trang cha ghép `ConfirmDialog` | — |
+| `loadingBlocksClose` | Có: `khoaDong` tắt `closeOnEscape` và chặn cả backdrop khi đang gửi dữ liệu; `loading` thường thì Escape **vẫn đóng được** — khớp đúng §Trạng thái | — |
+| `closable` / `dismissOnBackdrop` | Có, `maskDongDuoc` ghép cả hai trước khi truyền `dismissableMask` | — |
+| `aria-busy` khi `loading` | Có | — |
+| Nhãn nút đóng qua i18n | Có, `closeAriaLabel` nhận `chung.dong` | — |
+| `errorTemplate` ở đầu thân | Có, `.app-dialog__loi` đặt **trên** `<ng-content />` | **Không cuộn thân lên đầu** khi template chuyển từ `null` sang khác `null` — §Trạng thái đòi, không có gì trong code làm việc đó |
+| Lớp phủ khi `loading` | Có, `.app-dialog__phu-tai` phủ `--color-scrim`, `pointer-events: none`, `aria-hidden` | **Không có spinner.** §Trạng thái khai "phủ `--color-scrim` **+ spinner**"; lớp phủ hiện chỉ là một mảng màu |
+| Chiều cao tối đa | Chỉ có ở nhánh màn nhỏ (`max-height: 90vh` dưới `$bp-sm`) | Không thấy quy tắc nào cho màn thường. §Kích thước đòi `min(viewport − --sp-9 * 2, chiều cao nội dung)` với thân cuộn còn đầu/chân đứng yên — chưa kiểm được là preset PrimeNG có tự lo hay chưa dựng |
+| `draggable` / `resizable` / `maximizable` | Tắt tường minh (`[draggable]="false"`, `[resizable]="false"`) | Chưa dựng — chú thích component khai không màn nào cần. Chưa đối chiếu với spec xem ba thứ này có được khai là bắt buộc không |
+| Dính đáy dưới `$bp-sm` | Có, đúng §Responsive: rộng hết màn, dính đáy, chỉ bo hai góc trên, chân xếp dọc ngược | — |
+| Bốn trạng thái "không áp dụng" | Đúng — không có quy tắc `hover`/`focus`/`active`/`disabled` nào ở mức hộp | — |
+| §Trạng thái, đoạn "Mở và đóng" — thời lượng và đường cong (đối chiếu 2026-09-23, chỉ đọc mã) | Thư viện chạy vào/ra bằng hoạt ảnh Angular, tham số lấy từ **một** input duy nhất: `primeng/dialog` § `transitionOptions = '150ms cubic-bezier(0, 0, 0.2, 1)'`, và cùng chuỗi đó đi vào **cả hai** chiều — § `params: { transform: transformOptions, transition: transitionOptions }` dùng chung cho `showAnimation` và `hideAnimation`. Lớp bọc Core chưa truyền gì vào input đó, nên mặc định của thư viện là thứ đang chạy | Truyền vào `transitionOptions` một chuỗi dựng từ **một hằng số có tên** phản chiếu `--dur-base`, kèm `--ease-standard`. Chuỗi đó là đối số hoạt ảnh Angular nên **không giải `var()`**: token quyết giá trị, hằng số TypeScript chỉ là chỗ áp — [`../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md`](../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md) quyết định 3 và 4, ép bằng luật **F37** ([`../../RULES.md`](../../RULES.md) §7). Một input chở được đúng một bộ giá trị, và §Trạng thái nay chỉ đòi một bộ — xem đoạn "Mở và đóng" |
+| Backdrop — "mờ dần cùng lúc" (đối chiếu 2026-09-23, chỉ đọc mã) | **Chưa cùng lúc.** Backdrop đi đường khác hẳn hộp: CSS thuần, `@primeuix/styles/base` § `.p-overlay-mask-enter` chạy `animation: p-overlay-mask-enter-animation dt('mask.transition.duration') forwards`. Khoá đó là `semantic.mask.transitionDuration`, và preset Aura cho nó một chuỗi trần **riêng** — nó không đi theo khoá thời lượng chung của thư viện | Khai `semantic.mask.transitionDuration` trong `definePreset` ở `src/FE/src/app/core/theme/prime-preset.ts`, giá trị là **cùng token với hộp** (`--dur-base`). Backdrop là biến CSS nên token tới thẳng được, không cần hằng số. 🛑 Khai **cùng lượt** với hằng số của hộp: nối lẻ backdrop về một token khác làm khoảng lệch giữa hai thứ **rộng ra**, không hẹp lại |
+
+Chưa đối chiếu: nền/viền/bo góc/bóng ở trạng thái `default` (`--color-surface`, `--color-border`, `--radius-lg`, `--shadow-4`) và màu backdrop `--color-overlay` — những giá trị này đến từ preset PrimeNG ở `src/FE/src/app/core/theme/prime-preset.ts`, chưa soát từng cái. Cũng chưa đối chiếu §Accessibility ngoài bẫy focus và nhãn nút đóng.
 
 ---
 
@@ -72,7 +103,11 @@ Không có biến thể "không đóng được". Mọi dialog phải đóng đ�
 
 **Escape trong lúc đang gửi dữ liệu:** đóng dialog lúc request đang bay khiến người dùng không biết thao tác thành công hay không. Luật: trong lúc `loading` **do một thao tác ghi**, Escape **không** đóng; thay vào đó không làm gì và giữ nguyên. Trong lúc `loading` do đang tải dữ liệu để hiển thị, Escape **đóng bình thường** — chưa có gì để mất.
 
-**Mở và đóng:** vào bằng mờ dần + phóng nhẹ (`--dur-base`, `--ease-decelerate`); ra bằng mờ dần (`--dur-fast`, `--ease-accelerate`). Backdrop mờ dần cùng lúc. Cả hai tắt khi `prefers-reduced-motion: reduce` ([`../DESIGN.md`](../DESIGN.md) §7).
+**Mở và đóng — một thời lượng, một đường cong, cho cả hai chiều.** Vào bằng mờ dần + phóng nhẹ; ra bằng mờ dần. Cả hai chiều dùng `--dur-base` với `--ease-standard`. Backdrop mờ dần cùng lúc, **cùng token thời lượng** với hộp. Cả hai tắt khi `prefers-reduced-motion: reduce` ([`../DESIGN.md`](../DESIGN.md) §7).
+
+**Vì sao một bộ giá trị chứ không phải hai.** Nền bọc thư viện chở chuyển động vào/ra qua **một** input duy nhất (§Đã có → còn thiếu), nên "vào chậm, ra nhanh" là một ý đồ nền này không dựng được — [`../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md`](../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md) quyết định 5. Hai token hướng — `--ease-decelerate` cho thứ đi vào, `--ease-accelerate` cho thứ rời đi — vì thế không dùng được ở đây: một đường cong phải phục vụ cả hai hướng, và `--ease-standard` là token [`../DESIGN.md`](../DESIGN.md) §7 giao đúng vai đó. Thời lượng thì không phải chọn: §7 đã giao `--dur-base` cho việc mở/đóng `Dialog`.
+
+🛑 **Giá trị này đi vào TypeScript, không vào CSS.** Xem §Token dùng.
 
 ## Token dùng
 
@@ -85,7 +120,11 @@ Không có biến thể "không đóng được". Mọi dialog phải đóng đ�
 | Kích thước | `--layout-dialog-w-sm`, `--layout-dialog-w-md`, `--layout-dialog-w-lg` |
 | Bóng | `--shadow-4` |
 | Lớp | `--z-dialog`, `--z-backdrop` |
-| Chuyển động | `--dur-fast`, `--dur-base`, `--ease-decelerate`, `--ease-accelerate` |
+| Chuyển động | `--dur-base`, `--ease-standard` |
+
+🛑 **Hai token chuyển động ở trên đi vào TypeScript, không vào CSS — và chúng vẫn ở lại bảng này.** `Dialog` giữ quyền đặt số; chỗ **áp** số thì khác mọi dòng còn lại của bảng: không phải một khai báo `var(--dur-base)` trong stylesheet mà một hằng số có tên cạnh lớp bọc, vì input nhận chuỗi tham số hoạt ảnh Angular và chuỗi đó bị phân tích thành số trước khi có ai giải `var()`. Hằng số đó phải nêu **đích danh** tên token nó phản chiếu — luật **F37** ([`../../RULES.md`](../../RULES.md) §7). Đây **không** phải ca [`Tooltip.md`](./Tooltip.md): ở đó spec nhường hẳn quyền đặt số vì thư viện không nhận số nào; ở đây spec vẫn quyết, chỉ là quyết ở một chỗ áp khác.
+
+⚠️ Riêng backdrop thì `--dur-base` đi bằng CSS thật, qua `semantic.mask.transitionDuration` của preset. Cùng token, hai đường áp — ai đổi giá trị phải sửa cả hai.
 
 ## Responsive
 

@@ -208,6 +208,19 @@ jobs:
         working-directory: .
         run: bash scripts/fe-gate.sh
 
+      # Canary của chính cổng: nới một mẫu dò trong fe-gate.sh thì bước này đỏ.
+      - name: 1b. canary của fe-gate.sh (scripts/tests)
+        working-directory: .
+        run: |
+          set -e
+          shopt -s nullglob
+          tests=(scripts/tests/*.test.sh)
+          [ "${#tests[@]}" -gt 0 ] || { echo "::error::scripts/tests/ không có canary nào — bước này sẽ xanh rỗng"; exit 1; }
+          for t in "${tests[@]}"; do
+            echo "== $t"
+            bash "$t"
+          done
+
       - name: 2. ng lint
         run: npx ng lint
 

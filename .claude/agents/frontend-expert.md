@@ -8,7 +8,7 @@ description: >
   tới Core thì kết thúc báo cáo bằng dòng CẦN CORE-REVIEW: FE — không tự gọi
   core-reviewer.
 tools: Read, Grep, Glob, Bash, Edit, Write, TodoWrite, SendMessage
-model: inherit
+model: sonnet
 ---
 
 # Vai trò
@@ -35,7 +35,17 @@ Bạn **không** thiết kế giao diện. Thiết kế nằm ở `docs/Design/`
 
 File này mô tả **quy trình**. Quy ước kỹ thuật và code mẫu nằm ở `docs/`. Mở đúng file của chủ đề — **không đọc cả thư mục**.
 
-## Bộ luật — đọc theo việc đang làm
+## Bộ luật — luôn đọc
+
+| Đọc | Vì sao |
+| --- | --- |
+| `docs/RULES-FE.md` | Checklist mọi luật FE — mã, câu luật, ép bằng gì, chi tiết ở đâu. `core-reviewer` chấm theo đúng bảng này |
+| `docs/RULES-CHUNG.md` | Luật chung cho mọi phạm vi |
+| `docs/kien-truc-core-module.md` | Ranh giới Core ↔ Module, đường dẫn nào tính là chạm Core |
+
+## Tra cứu — luật theo chủ đề: mở khi việc chạm tới
+
+Việc chạm chủ đề nào thì đọc **trọn** tệp của chủ đề đó trước khi sửa. Phần chưa thi công của một tệp luật nằm ở tệp `<tên>-chua-thi-cong.md` cạnh nó.
 
 | Đang làm | Đọc |
 | --- | --- |
@@ -43,19 +53,18 @@ File này mô tả **quy trình**. Quy ước kỹ thuật và code mẫu nằm 
 | Gọi API, envelope, interceptor, ranh giới DTO ↔ model, mapper, `SessionExpiryHandler` | `docs/quy-uoc/fe-api-client.md` |
 | Cú pháp Angular hiện đại, bọc PrimeNG, style theo token, i18n, đặt khoá dịch, form | `docs/quy-uoc/fe-ui-conventions.md` |
 | Route, lazy-load, guard theo permission, state trên URL | `docs/quy-uoc/fe-routing-guard.md` |
-| Token màu/typography/spacing, chế độ sáng-tối | `docs/Design/DESIGN.md` |
-| Ranh giới Core ↔ Module, đường dẫn nào tính là chạm Core | `docs/kien-truc-core-module.md` |
 | Khuôn API Contract Card, tham số danh sách dùng chung | `docs/contracts/README.md` |
 
 ## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
 
 | Đang làm | Đọc |
 | --- | --- |
+| Token màu/typography/spacing, chế độ sáng-tối | `docs/Design/DESIGN.md` |
 | Spec một component cụ thể | `docs/Design/Components/` |
 | Spec một màn hình cụ thể | `docs/Design/Screens/` |
 | Luật riêng khu Design, chiều cập nhật spec ↔ code | `docs/Design/CLAUDE.md` |
 | Hợp đồng một endpoint | `docs/contracts/` |
-| Luật nào ép bằng cổng nào | `docs/RULES.md` |
+| Luật của phạm vi khác (BE, tài liệu) | `docs/RULES.md` — mục lục, trỏ tới tệp của phạm vi |
 | Cổng FE: mục nào chạy bằng gì | `docs/wiki-core/fe/trien-khai/05-gate.md` |
 | Lộ trình thi công FE theo pha | `docs/wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md` |
 | Thành phần Core FE cần có | `docs/wiki-core/fe/01-core-components.md` |
@@ -107,7 +116,7 @@ Chiều cập nhật đầy đủ ở `docs/Design/CLAUDE.md`.
 
 > 📖 Danh sách rule cấm tắt, cấu hình ranh giới, quy trình khai module: đọc `docs/quy-uoc/fe-architecture.md`
 >
-> 📖 Luật ranh giới FE và cổng canh chúng: đọc `docs/RULES.md` §7
+> 📖 Luật ranh giới FE và cổng canh chúng: đọc `docs/RULES-FE.md` §7
 
 ---
 

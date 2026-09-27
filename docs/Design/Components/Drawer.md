@@ -76,7 +76,7 @@ Bo góc: `--radius-0` ở cạnh dính mép màn hình, `--radius-lg` ở hai g�
 
 | Trạng thái | Xử lý | Áp dụng |
 | --- | --- | --- |
-| `default` | Nền `--color-surface`, viền `--color-border` ở cạnh giáp nội dung, `--shadow-4`. Trượt vào bằng `transform` trong `--dur-base` với `--ease-decelerate`; trượt ra với `--ease-accelerate` | Có |
+| `default` | Nền `--color-surface`, viền `--color-border` ở cạnh giáp nội dung, `--shadow-4`. Trượt bằng `transform` trong `--dur-base` với `--ease-standard` — **một thời lượng và một đường cong cho cả chiều vào lẫn chiều ra** | Có |
 | `hover` | **Không áp dụng cho chính tấm drawer.** Nó là vùng chứa; hover thuộc về từng control bên trong | — |
 | `focus-visible` | **Không áp dụng cho chính tấm drawer** — nó không nhận focus. Nhưng thứ tự Tab bên trong là bắt buộc: nút đóng → nội dung theo thứ tự đọc → nhóm hành động ở chân | — |
 | `active` | **Không áp dụng.** Không có gì để nhấn xuống | — |
@@ -84,6 +84,22 @@ Bo góc: `--radius-0` ở cạnh dính mép màn hình, `--radius-lg` ở hai g�
 | `loading` | Nội dung chưa về: màn đặt [`SkeletonLoader.md`](./SkeletonLoader.md) theo đúng hình dạng nội dung sắp tới vào slot thân; `Drawer` đặt `aria-busy="true"` trên thân. **Đầu và chân dựng ngay** — tiêu đề và nút đóng phải có mặt từ khung hình đầu tiên, nếu không người dùng mở nhầm thì không có đường thoát | Có |
 | `error` | Tải nội dung hỏng: màn đặt [`EmptyState.md`](./EmptyState.md) biến thể `error` kèm nút "Thử lại" vào slot thân. **Drawer không tự đóng** — đóng đi thì người dùng không biết vừa có chuyện gì | Có |
 | `empty` | Bản ghi không còn tồn tại (vừa bị người khác xoá): màn đặt `EmptyState` nói rõ điều đó vào slot thân, chỉ có nút "Đóng". Phân biệt hẳn với `error` — một cái là hỏng, một cái là mất | Có |
+
+### Chuyển động vào/ra — một bộ giá trị, đến từ ba cơ chế
+
+Chiều vào và chiều ra dùng **chung** `--dur-base` và `--ease-standard`. Bất đối xứng "vào chậm hơn ra" đã bị bỏ có chủ ý: nền bọc thư viện chở hoạt ảnh vào/ra qua **một** input duy nhất, nên hai đường cong là thứ nền này không dựng được — [`../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md`](../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md) quyết định 5. `--ease-standard` là token [`../DESIGN.md`](../DESIGN.md) §7 giao cho vai "mặc định cho mọi chuyển tiếp", nên nó là token đúng khi một đường cong phải phục vụ cả hai hướng; `--ease-decelerate` và `--ease-accelerate` chia theo hướng nên không dùng được ở đây.
+
+🛑 **Người dựng phải biết: chuyển động của component này đến từ BA cơ chế, không phải một.** Đây là chỗ phức tạp nhất spec để lại, và giấu nó đi thì người sửa sau sẽ đổi một cơ chế rồi tưởng đã đổi hết.
+
+| Cơ chế | Chở khoản nào | Token tới bằng đường nào |
+| --- | --- | --- |
+| Hoạt ảnh Angular — một input `transitionOptions` | Nhịp vào/ra của chính tấm trượt | **Không** giải `var()`. Số đi qua một hằng số có tên cạnh lớp bọc, nêu đích danh `--dur-base` — luật **F37** ([`../../RULES.md`](../../RULES.md) §7) |
+| CSS tĩnh của thư viện — `@primeuix/styles/drawer` § `transition: transform 0.3s` trên `.p-drawer` | Thời lượng của chính phép trượt `transform` | Một con số trần, không qua biến nào. Phải **đè** bằng một khối override trong `src/FE/src/styles/_thu-vien.scss`, đặt `--dur-base` |
+| CSS tĩnh của thư viện — § `transition: opacity 400ms cubic-bezier(0.25, 0.8, 0.25, 1)` trên `.p-drawer-full` | Mờ dần của chế độ toàn màn thư viện | Cùng đường đè như trên |
+
+Hai khối override là CSS, nên chúng thuộc `_thu-vien.scss` chứ **không** thuộc hằng số TypeScript — quyết định 8 của ADR trên, và là ngoại lệ có tên của luật "không khai thời lượng thư viện theo từng component".
+
+⚠️ **Chế độ toàn màn của thư viện không phải một biến thể của spec này.** §Biến thể chỉ có `inspect` và `edit`, và §Kích thước chặn trần ở `min(<bề rộng cỡ>, 92vw)` — một tấm trượt phủ kín màn đã là `Dialog` toàn màn. Khối override thứ hai vì thế canh một chế độ Core hiện **không** vẽ tới; nó tồn tại để con số `400ms` không nằm ngoài hệ nếu có ngày ai bật chế độ đó. Xem §Cần chốt 3.
 
 ## Token dùng
 
@@ -95,7 +111,9 @@ Bo góc: `--radius-0` ở cạnh dính mép màn hình, `--radius-lg` ở hai g�
 | Hình dạng | `--radius-0`, `--radius-lg`, `--border-w`, `--border-w-strong` |
 | Kích thước | `--layout-drawer-w-sm`, `--layout-drawer-w-md`, `--layout-drawer-w-lg` |
 | Bóng, lớp | `--shadow-4`, `--z-dialog`, `--z-backdrop` |
-| Chuyển động | `--dur-base`, `--ease-decelerate`, `--ease-accelerate` |
+| Chuyển động | `--dur-base`, `--ease-standard` |
+
+🛑 **`--dur-base` ở dòng cuối bảng đi tới đích bằng hai đường khác nhau, và một trong hai không phải CSS.** Phần nhịp vào/ra sống trong một hằng số TypeScript; phần trượt `transform` sống trong một khối override CSS. Bảng này vẫn giữ token vì `Drawer` vẫn **quyết** giá trị — khác hẳn [`Tooltip.md`](./Tooltip.md), nơi bảng token bỏ hẳn nhóm chuyển động vì spec ở đó không đặt được số nào cả.
 
 ## Responsive
 
@@ -155,3 +173,4 @@ Nội dung vào qua ba slot: đầu, thân, chân. Khác [`Menu.md`](./Menu.md) 
 | --- | --- | --- |
 | 1 | Có cho kéo đổi bề rộng không? Người dùng bảng nhiều cột hay muốn drawer hẹp lại. Đổi lại là một thao tác chuột nữa phải có đường đi bằng bàn phím | Sau F3 — dự án hạ nguồn đầu tiên có bảng nhiều cột kèm drawer |
 | 2 | Cần xác minh `p-drawer` của PrimeNG 20 cho phép tắt bẫy focus và bỏ `aria-modal` cho `inspect`. Không cho phép thì `inspect` **tự dựng** phần khung, `edit` vẫn bọc — chưa kiểm, không ghi trước | `frontend-expert` ở F1, khi có `src/` |
+| 3 | Khối override cho chế độ toàn màn (`.p-drawer-full`, §Trạng thái) có đáng dựng không, khi §Biến thể và §Kích thước của chính spec này **không** cho `Drawer` phủ kín màn? Dựng thì `_thu-vien.scss` mang một khối canh thứ chưa ai vẽ tới — và một khối override không có gì trên màn để đối chiếu là khối sẽ mục ruỗng trong im lặng. Không dựng thì con số `400ms` nằm ngoài hệ, chờ ngày có người bật chế độ đó mà không biết nó không theo token nào | `frontend-expert` khi dựng `Drawer`, dựa trên việc lớp bọc có phơi chế độ đó ra hay khoá hẳn. Khoá hẳn thì câu hỏi này tự đóng |

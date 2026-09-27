@@ -6,7 +6,16 @@ verified: chua-doi-chieu
 
 # Icons.md — hệ icon của Core
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo chưa có `src/`. Bảng ánh xạ dưới đây là **quy ước đã quyết**, chưa có màn hình nào dùng.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Các màn đã dựng ở `src/FE` gọi icon theo bảng §5, và gói icon **đã được cài, đã được nạp** — dòng đầu bảng dưới. Bảng khai những mục đã mở source ra so ngày 2026-09-22 và 2026-09-23, chỉ bằng đọc mã; mục không có tên trong bảng thì chưa ai đối chiếu, nên `verified:` giữ `chua-doi-chieu`.
+
+| Mục | Có thật hôm nay (neo bằng chuỗi trong `src/FE`) | Sẽ thành |
+| --- | --- | --- |
+| §1 PrimeIcons là bộ duy nhất | Mã chỉ dùng lớp `pi` / `pi-*`, không có bộ icon nào khác trong `src/FE/package.json`. Gói `primeicons` **đã được cài và đã được nạp**: `src/FE/package.json` § `"primeicons"` (phiên bản ghim ở đó — tài liệu không chép số), và `src/FE/src/styles/styles.scss` § `@use 'primeicons/primeicons.css'` nạp đúng một lần ở điểm vào toàn cục theo [`../adr/0061-primeicons-la-phu-thuoc-tuong-minh-ghim-chinh-xac-nap-mot-lan.md`](../adr/0061-primeicons-la-phu-thuoc-tuong-minh-ghim-chinh-xac-nap-mot-lan.md). Riêng icon do PrimeNG tự vẽ bên trong component bọc thì là SVG nội tuyến — thấy ở template `p-table` (`data-p-icon="spinner"`), không phụ thuộc gói này (đối chiếu 2026-09-23) | — |
+| §5 Bảng ánh xạ — tên icon mã đang dùng | So mọi tên `pi-*` trong `src/FE/src/app` (trừ tệp test) và tên icon truyền qua input với bảng §5: **tất cả có trong bảng**. Nợ cũ đã đóng — `shared/ui/data-table/data-table.component.html` § `[class.pi-sort-amount-up-alt]` nay đúng dòng "Sắp xếp tăng" của §5 (đối chiếu 2026-09-23). Icon của menu đến từ dữ liệu máy chủ, không nằm trong mã FE | — |
+| §5 mục *Tên icon ở API component* | **Một chiều, đã khép** (đối chiếu 2026-09-23). Mọi component ghép tiền tố, nơi gọi truyền tên trần: `button.component.html` § `'pi-' + icon()`, `icon-button.component.html`, `badge.component.html`, `empty-state.component.html`, `menu.component.ts` § `` `pi pi-${muc.icon}` ``, `topbar.component.html` § `class="pi pi-{{ muc.icon }}"`, `notice-banner.component.html`, `auth-field.component.html`, `confirm-dialog.component.html` — bốn tệp vừa kể dùng chung một khuôn `class="pi pi-{{ … }}"`. Nguồn giá trị cũng đã là tên trần: `shell.component.ts` § `icon: 'sign-out'`, `notice-banner.component.ts` § `return 'check-circle'`, `auth-field.component.ts` § `return 'building'`, `confirm-dialog.component.ts` § `'question-circle' : 'exclamation-triangle'`. Bốn chỗ lệch nay đã sửa hết — ngoài `Topbar` và `NoticeBanner` còn `AuthField` và `ConfirmDialog`, cùng khuôn và cùng lượt. Đừng chép danh sách vào đây khi kiểm lại; đếm bằng lệnh, **PASS = không in dòng nào**: `grep -rn "'pi-" src/FE/src/app --include=*.ts --exclude=*.spec.ts` | — |
+| §7 Icon trang trí vô hình với trình đọc màn hình | Mọi `<i class="pi` trong mã FE mang `aria-hidden="true"` hoặc nằm trong phần tử cha mang nó (`confirm-dialog__icon-vong`, `empty-state__icon`) | — |
+
+Chưa đối chiếu: §3 bốn luật hình học, §4 màu icon, §7 loại 2 (icon mang nghĩa có văn bản thay thế).
 
 > Kích thước và màu icon lấy token từ [`DESIGN.md`](./DESIGN.md). File này quyết **chọn icon nào cho việc gì** và **icon phải hành xử ra sao với trình đọc màn hình**.
 
@@ -14,15 +23,15 @@ verified: chua-doi-chieu
 
 ## 1. Bộ icon: PrimeIcons
 
-**Bộ chuẩn duy nhất của Core là PrimeIcons** (đi kèm PrimeNG — phiên bản khoá ở [`../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md)).
+**Bộ chuẩn duy nhất của Core là PrimeIcons** — gói `primeicons`, cài **thêm** và ghim phiên bản ở `src/FE/package.json` như mọi gói khác. Nó **không** phải phụ thuộc của bản PrimeNG đang cài: cài PrimeNG không kéo nó về, và component PrimeNG vẽ icon bên trong chúng bằng SVG nội tuyến chứ không đọc gói này. Quyết định thêm gói ghi ở [**ADR-0061**](../adr/0061-primeicons-la-phu-thuoc-tuong-minh-ghim-chinh-xac-nap-mot-lan.md).
 
-Ba lý do chọn, và một cái giá:
+Một lý do chọn, và một cái giá:
 
 | Lý do | Cụ thể |
 | --- | --- |
-| Đã có sẵn | Là dependency của PrimeNG. Không thêm gói mới, không thêm bước build |
-| Nhất quán với component bọc | `DataTable`, `Dialog`, `Toast`, `Pagination`, `FileUpload` **tự chèn icon PrimeIcons của chúng** khi chạy. Chọn bộ khác nghĩa là ứng dụng có hai phong cách icon cạnh nhau, và một nửa không sửa được |
-| Đủ dùng cho ứng dụng quản trị | Bao phủ CRUD, điều hướng, trạng thái, tệp, bảng |
+| Đủ dùng cho ứng dụng quản trị, và tên icon đã là hợp đồng | Bao phủ CRUD, điều hướng, trạng thái, tệp, bảng. Tên lớp `pi-*` là thứ máy chủ trả thẳng cho `Sidebar` ([`../contracts/meta-menu.md`](../contracts/meta-menu.md) §1.3) và mọi component tự dựng nhận qua input `icon` — đổi bộ là đổi hợp đồng dữ liệu, không chỉ đổi một gói |
+
+**Icon SVG nội tuyến mà component PrimeNG tự vẽ bên trong lớp bọc không tính là bộ thứ hai:** Core không chọn, không đổi được chúng. Chúng có nhất quán với glyph `pi-*` cạnh bên hay không là việc phải kiểm bằng mắt khi có ứng dụng chạy — §8.
 
 **Cái giá, nói thẳng:** PrimeIcons là **icon font**, không phải SVG. Hệ quả thật:
 
@@ -175,6 +184,39 @@ Ba luật màu:
 
 Cần một hành động chưa có trong bảng → thêm dòng vào đây **trước**, rồi mới dùng.
 
+### Tên icon ở API component — tên trần, không tiền tố
+
+Bảng trên viết **lớp CSS đầy đủ** (`pi-plus`), vì đó là thứ cuối cùng có mặt trong DOM. Nhưng giá trị đi qua **input `icon`** của một component thì khác, và đây là chỗ đã sinh ra hai cách đọc cùng tồn tại trong mã.
+
+🛑 **Chốt: mọi input `icon` của component trong [`Components/`](./Components/) nhận TÊN TRẦN — không tiền tố `pi`, không tiền tố `pi-`. Component tự ghép `pi pi-<tên>`.**
+
+| Dạng | Ví dụ | Đúng? |
+| --- | --- | --- |
+| Tên trần | `icon="plus"`, `{ icon: 'sign-out' }` | ✅ |
+| Kèm `pi-` | `icon="pi-plus"` | 🛑 ra `pi pi-pi-plus`, không vẽ gì |
+| Kèm cả `pi` và `pi-` | `icon="pi pi-plus"` | 🛑 |
+
+Hai lý do, không phải sở thích:
+
+1. **Luật đã có, ở nơi khác.** [`../quy-uoc/fe-ui-conventions.md`](../quy-uoc/fe-ui-conventions.md) §9 khai `icon` của `UiMenuItem` là *"tên PrimeIcons, không kèm tiền tố"*. Đó là bề mặt công khai của Core và thuộc quyền `architect`; khu Design **áp** luật đó chứ không đổi nó. Chốt theo chiều ngược lại sẽ buộc phải sửa §9.
+2. **Đa số mã đã đi chiều này** — xem dòng đối chiếu ở bảng đầu tệp. Chiều còn lại có đúng hai nơi.
+
+**Câu chữ cũ trong các spec component là nguồn của sự mơ hồ, không phải hai quyết định khác nhau.** Câu *"không kèm tiền tố `pi `"* — với dấu cách ở cuối — đọc được theo hai nghĩa: "bỏ chữ `pi` rồi truyền `pi-plus`", hoặc "bỏ hết, truyền `plus`". Nghĩa thứ hai mới đúng. Spec nào còn viết kiểu đó thì sửa cho hết đường đọc thứ hai, kèm một ví dụ — đừng để người đọc tự suy.
+
+**Vì sao lỗi này chỉ mới nhìn thấy được:** trước khi gói `primeicons` được nạp (§1), lớp sai và lớp đúng đều không vẽ ra glyph nào. Nạp gói xong thì `pi-pi-user` lộ ra ngay — cùng khuôn với bài học ở [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §8: một cổng xanh vì nó chưa kiểm gì cả.
+
+#### Một chỗ hở, và nó không phải ngoại lệ của luật này
+
+`Sidebar` nhận icon từ **dữ liệu máy chủ**, không từ nơi gọi: [`../contracts/meta-menu.md`](../contracts/meta-menu.md) §1.3 chốt rằng máy chủ trả thẳng lớp CSS thật (`pi-home`) để không phải nuôi một bảng ánh xạ khoá → lớp ở FE. Đó là một **hợp đồng dữ liệu**, thuộc quyền `architect`, và khu Design không đổi nó.
+
+Hai luật gặp nhau ở chỗ dữ liệu menu đổi sang `NavItem` của [`Components/Sidebar.md`](./Components/Sidebar.md):
+
+- Chuỗi **trên dây** mang tiền tố — đúng hợp đồng.
+- Chuỗi **vào input của component Core** là tên trần — đúng mục này.
+- Nên chỗ nối giữa hai bên là nơi cắt tiền tố, cùng chỗ nhãn được dịch.
+
+🛑 **Chỗ nối đó chưa được ai duyệt.** Nó đụng một hợp đồng ngoài khu Design; câu hỏi để ngỏ ghi ở [`Components/Sidebar.md`](./Components/Sidebar.md) §Cần chốt.
+
 ---
 
 ## 6. Thêm một icon mới
@@ -252,3 +294,5 @@ Với icon **không** tương tác nhưng mang nghĩa (chấm trạng thái tron
 | 1 | Có gom PrimeIcons thành subset chỉ chứa icon dùng thật không? Bộ đầy đủ tốn băng thông không cần thiết, nhưng subset làm việc thêm một icon phải chạy lại bước build | Sau khi có ngân sách bundle thật ([`../RULES.md`](../RULES.md) §7 F14) |
 | 2 | Icon do PrimeNG tự chèn lúc chạy (`DataTable`, `Pagination`, `FileUpload`) có `aria-hidden` đúng không? Chúng không xuất hiện trong source của mình nên grep không thấy | Khi có `src/` để kiểm bằng trình đọc màn hình |
 | 3 | Có cần một icon riêng cho "bản ghi đã xoá mềm" không? Core có soft delete ([`../RULES.md`](../RULES.md) §4 E3) nhưng chưa quyết cách hiển thị | Dự án đầu tiên có màn thùng rác |
+| 4 | `Sidebar` nhận icon đã mang tiền tố từ máy chủ ([`../contracts/meta-menu.md`](../contracts/meta-menu.md) §1.3) trong khi input component nhận tên trần (§5). Chỗ cắt tiền tố đặt ở đâu, và hợp đồng có cần đổi không? Hai phương án và đề xuất ở [`Components/Sidebar.md`](./Components/Sidebar.md) §Cần chốt #3 — không chép lại ở đây | Người dùng; `architect` giữ hợp đồng đó |
+| 5 | Glyph `pi-*` của gói `primeicons` và icon SVG nội tuyến mà component PrimeNG tự vẽ có cùng độ dày nét, cùng cỡ khi đứng cạnh nhau không? | Khi có ứng dụng chạy để nhìn — cùng lượt với #2 |

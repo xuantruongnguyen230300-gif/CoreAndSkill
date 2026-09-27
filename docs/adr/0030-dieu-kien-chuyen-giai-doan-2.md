@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0030 — Repo chuyển sang giai đoạn 2 khi đủ một danh sách điều kiện kiểm được; `architect` lật nhãn trạng thái trong `docs/`, phiên chính lật `.claude/` và `README.md` gốc
 
-> **Trạng thái:** Đã chấp nhận (2026-09-14)
+> **Trạng thái:** Đã chấp nhận (2026-09-14) · Bổ sung bởi [ADR-0035](0035-hoan-dieu-kien-3-den-pr-cham-core-dau-tien.md) (2026-09-16) · Bổ sung bởi [ADR-0043](0043-lenh-do-cho-phai-lat-doi-sang-nhan-dich-den.md) (2026-09-20) — khối lệnh ở cuối mục *Chỗ phải lật* dò chữ "giai đoạn 1" nên mù với tài liệu viết "sẽ xây ở giai đoạn 2"; ADR-0043 thay nó, phần còn lại giữ nguyên
 
 ## Bối cảnh
 

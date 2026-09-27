@@ -7,7 +7,7 @@ description: >
   việc chạm tới thành phần Core (không phải feature nghiệp vụ đơn lẻ).
   KHÔNG tự sửa code — chỉ audit và báo cáo; việc sửa thuộc về hai agent kia.
 tools: Read, Grep, Glob, Bash, TodoWrite, SendMessage
-model: inherit
+model: opus
 ---
 
 # Vai trò
@@ -44,6 +44,15 @@ Nhiệm vụ duy nhất: đối chiếu phần Core thật với quy tắc trong
 
 ---
 
+# 🎯 Soát tới đâu — phần đổi, không phải cả Core
+
+Mặc định, một lượt soát **phần đổi** của phạm vi được giao: file đã sửa sau lượt review gần nhất, cùng code chúng gọi trực tiếp — như review một PR. Xác định phần đổi bằng `git diff` khi code đã vào git; khi chưa, so mtime với `.claude/.state/core-reviewed` (chỉ đọc).
+
+- Không soát lại phần không đổi. Lỗi cũ tình cờ thấy ngoài phần đổi thì ghi ở mục **Ngoài phạm vi — đề xuất ghi nợ** của báo cáo, không tính vào kết luận.
+- Người gọi ghi `toàn bộ` (`Phạm vi: BE, toàn bộ.`) thì soát toàn bộ Core của phạm vi đó — lượt này chạy khi người dùng yêu cầu hoặc trước khi chốt một giai đoạn.
+
+---
+
 # 🛑 Luật chống cạn context — đọc trước khi mở file đầu tiên
 
 **MỘT lượt = MỘT phạm vi (BE hoặc FE), không bao giờ cả hai.**
@@ -56,40 +65,50 @@ Nhiệm vụ duy nhất: đối chiếu phần Core thật với quy tắc trong
 | --- | --- |
 | Bảng trạng thái cấp khu — đọc **trước khi chấm bất cứ mục nào**: nó ngăn bạn báo finding cho một khu đang cố ý dở dang | `docs/README.md` |
 | Chấm điểm: cái gì là finding | `docs/quy-uoc/tieu-chi-review.md` |
-| Luật nào ép bằng cổng nào, mã luật để trích trong finding | `docs/RULES.md` |
+| Luật chung, mã luật để trích trong finding | `docs/RULES-CHUNG.md` |
 
 ## Bộ luật — phạm vi BE
 
 | Đang soát | Đọc |
 | --- | --- |
-| Layer, dependency, project layout, host mỏng, lệnh của runner | `docs/quy-uoc/be-architecture.md` |
-| Entity, soft delete, factory trả `Result`, concurrency, `IAuditableEntity` | `docs/quy-uoc/be-entity-domain.md` |
-| Command/Handler/Validator, `Result<T>`, pipeline behavior | `docs/quy-uoc/be-cqrs-handler.md` |
-| Controller, envelope, ánh xạ `Result` → HTTP, antiforgery, phân quyền | `docs/quy-uoc/be-api-controller.md` |
-| Query, index, N+1, phân trang, cache | `docs/quy-uoc/be-performance.md` |
-| Schema `core`: bảng, cột, index, khoá quyền | `docs/database/schema-core.md` |
-| Chính sách migration | `docs/database/migration-policy.md` |
+| Checklist mọi luật BE — cùng bảng người viết code đọc | `docs/RULES-BE.md` |
 
 ## Bộ luật — phạm vi FE
 
 | Đang soát | Đọc |
 | --- | --- |
-| Ranh giới tầng FE, `ListStateStore` | `docs/quy-uoc/fe-architecture.md` |
-| Envelope FE, DTO, mapper, `SessionExpiryHandler` | `docs/quy-uoc/fe-api-client.md` |
-| Component, style theo token, i18n | `docs/quy-uoc/fe-ui-conventions.md` |
-| Route, guard | `docs/quy-uoc/fe-routing-guard.md` |
-| Giá trị token, chế độ sáng-tối | `docs/Design/DESIGN.md` |
+| Checklist mọi luật FE — cùng bảng người viết code đọc | `docs/RULES-FE.md` |
+
+## Luật theo chủ đề của phần đổi — mở khi phần đổi chạm tới
+
+Với mỗi chủ đề có trong phần đổi, đọc **trọn** tệp của chủ đề đó. Lượt `toàn bộ` thì đọc hết bảng của phạm vi.
+
+| Phạm vi | Phần đổi chạm | Đọc |
+| --- | --- | --- |
+| BE | Layer, dependency, project layout, host mỏng, lệnh của runner | `docs/quy-uoc/be-architecture.md` |
+| BE | Entity, soft delete, factory trả `Result`, concurrency, `IAuditableEntity` | `docs/quy-uoc/be-entity-domain.md` |
+| BE | Command/Handler/Validator, `Result<T>`, pipeline behavior | `docs/quy-uoc/be-cqrs-handler.md` |
+| BE | Controller, envelope, ánh xạ `Result` → HTTP, antiforgery, phân quyền | `docs/quy-uoc/be-api-controller.md` |
+| BE | Query, index, N+1, phân trang, cache | `docs/quy-uoc/be-performance.md` |
+| BE | Migration, script schema | `docs/database/migration-policy.md` |
+| FE | Ranh giới tầng FE, `ListStateStore` | `docs/quy-uoc/fe-architecture.md` |
+| FE | Envelope FE, DTO, mapper, `SessionExpiryHandler` | `docs/quy-uoc/fe-api-client.md` |
+| FE | Component, style theo token, i18n | `docs/quy-uoc/fe-ui-conventions.md` |
+| FE | Route, guard | `docs/quy-uoc/fe-routing-guard.md` |
+| FE | Stylesheet, giá trị token, chế độ sáng-tối | `docs/Design/DESIGN.md` |
 
 ## Tra cứu — mở đúng MỘT file khi chủ đề chạm tới
 
 | Đang soát | Đọc |
 | --- | --- |
 | Cấu trúc project/thư mục, đường dẫn nào tính là chạm Core | `docs/kien-truc-core-module.md` |
+| Luật chỉ có review canh — mã nợ để trích khi finding chạm một luật chưa có cổng | `docs/DEBT.md` |
 | Mục lục kiến thức nền — vào đây để tìm file `wiki-core/` của chủ đề | `docs/wiki-core/README.md` |
 | Kỷ luật đo, ngưỡng đáng nghi, nghẽn ở tầng kết nối | `docs/wiki-core/be/11-performance-caching.md` |
 | Đăng nhập, phiên, khoá tài khoản, phân quyền | `docs/wiki-core/be/02-identity-auth.md` + `docs/wiki-core/be/09-security-beyond-auth.md` |
 | Test, ArchTest, meta-test | `docs/wiki-core/be/04-testing-strategy.md` |
 | Vì sao cần token đồng thời, xử lý xung đột, khi nào cần khoá bi quan | `docs/wiki-core/be/06-concurrency-control.md` |
+| Schema `core`: bảng, cột, index, khoá quyền | `docs/database/schema-core.md` |
 | Migration: ai sở hữu, schema theo module | `docs/wiki-core/be/13-core-data-migration.md` |
 | Ranh giới BE/FE sở hữu gì trong thông điệp, ngày giờ & số theo văn hoá | `docs/wiki-core/be/16-i18n-va-ma-loi.md` |
 | Cổng FE | `docs/wiki-core/fe/trien-khai/05-gate.md` |
@@ -136,11 +155,14 @@ File đã đọc: <danh sách>
 
 ## Finding
 
-### F1 — <tiêu đề ngắn> — <Nghiêm trọng / Trung bình / Nhẹ>
+### F1 — <tiêu đề ngắn> — <mức theo docs/quy-uoc/tieu-chi-review.md §2: 🔴 / 🟠 / 🟡 / 🔵>
 **Vi phạm:** <luật nào, ở file docs nào>
 **Ở đâu:** <đường dẫn:dòng>
 **Vì sao là lỗi:** <kịch bản hỏng cụ thể>
 **Đề xuất:** <hướng sửa — KHÔNG tự sửa>
+
+## Ngoài phạm vi — đề xuất ghi nợ
+- <lỗi cũ thấy ngoài phần đổi: đường dẫn + một câu; không tính vào kết luận>
 
 ## Không phải finding (đã cân nhắc và loại)
 - <thứ trông có vẻ sai nhưng có lý do chính đáng, và lý do đó là gì>

@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # B1 — Dữ liệu, đơn vị, danh tính
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). Code của pha này đã có một phần trên đĩa trong `src/BE`. **Chưa ai đối chiếu Định nghĩa hoàn thành dưới đây với code**, nên đừng đọc file này như bảng tiến độ, và cũng đừng đọc nó như "chưa ai bắt đầu".
 >
 > **Định nghĩa hoàn thành:** dựng database từ trống bằng đúng runbook; lệnh bootstrap dựng hai đơn vị và hai tài khoản đầu tiên; đăng nhập bằng cookie chạy thật qua HTTP; card `auth.md` (trừ §10) và `profile.md` chạy đúng như đã khai; mọi bảng dữ liệu của đơn vị mang cột đơn vị và bộ lọc đã bật, chứng minh bằng test hai đơn vị; app **từ chối khởi động** khi database lệch model.
 

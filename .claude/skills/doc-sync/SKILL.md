@@ -124,7 +124,7 @@ Hai mục lục là nơi một file **phải** tới được: [`../../../docs/R
 
 Ngoại lệ hợp lệ — ghi nhận, không phải lỗi: file mục lục của chính một khu, và file mang `kind: lich-su` đã cố ý gỡ khỏi mọi bảng.
 
-### 6. Kiểm E — tuyên bố hiện trạng khi repo chưa có `src/`
+### 6. Kiểm E — tuyên bố hiện trạng về code
 
 Xác nhận giai đoạn bằng lệnh, đừng tin trí nhớ:
 
@@ -143,8 +143,8 @@ grep -rn "ĐÃ CÓ\|✅ Xong\|FIXED\|Đã bật\|CÓ THẬT" docs --include='*.m
 | Dòng đang nói về | Kết luận |
 | --- | --- |
 | Một file `docs/` đã viết xong | Hợp lệ, không phải finding |
-| Một cổng đang chạy được ở giai đoạn 1 | Hợp lệ **nếu** cổng thật sự chạy — kiểm bằng lệnh ở bước 0 |
-| Code, project, component, endpoint, migration | **Chặn** — chưa có `src/` thì không có gì để xác nhận |
+| Một cổng khai là đang chạy được | Hợp lệ **nếu** cổng thật sự chạy — kiểm bằng lệnh ở bước 0 |
+| Code, project, component, endpoint, migration | Chưa có `src/` → **chặn**, không có gì để xác nhận. Có `src/` → chỉ hợp lệ khi tuyên bố neo bằng `file:dòng` và người viết đã mở đúng file đó ra đọc |
 
 ### 7. Kiểm F — luật thiếu cột "ép bằng gì"
 

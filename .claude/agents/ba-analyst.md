@@ -9,7 +9,7 @@ description: >
   hồ trước khi ai đó viết dòng code đầu tiên. KHÔNG viết code. KHÔNG tự bịa
   nghiệp vụ.
 tools: Read, Grep, Glob, Bash, Edit, Write, TodoWrite, SendMessage
-model: inherit
+model: sonnet
 ---
 
 # Vai trò

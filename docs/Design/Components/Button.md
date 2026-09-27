@@ -6,9 +6,33 @@ verified: chua-doi-chieu
 
 # Button
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`. Bảng dưới đây khai **đúng những mục đã mở source ra so** — mục không có trong bảng là mục chưa đối chiếu.
 
 **Nền:** tự dựng, không bọc PrimeNG. Lý do ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 — một nút không có hành vi khó nào; bọc thư viện chỉ đổi một lớp trung gian này lấy một lớp trung gian khác, mà lại nhận thêm một tập CSS mặc định phải đè.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/components/button/button.component.ts` — selector `app-button`, class gốc `.nut`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | Đủ chữ ký §API dự kiến: `variant`, `size`, `block`, `icon`, `iconPosition`, `type`, `disabled`, `loading`, `ariaLabel`, output `clicked` | — |
+| Mặc định `variant` = `secondary` | Đúng chủ đích spec — khai ngay tại `input<...>('secondary')` | — |
+| `clicked` không phát khi `disabled`/`loading` | Có, chặn trong `onClick()` | — |
+| Nhãn qua `<ng-content>`, không qua input `label` | Có | — |
+| Bốn biến thể | Đủ: `.nut--primary`, `.nut--secondary`, `.nut--ghost`, `.nut--danger`, đúng token nền/chữ/viền spec khai | — |
+| Ba cỡ | Đủ: `.nut--sm`/`.nut--md`/`.nut--lg` theo `--size-control-*`, `--sp-4`/`--sp-5`/`--sp-6`, `--fs-xs`/`--fs-sm`/`--fs-md` | — |
+| `block` | Có, `.nut--block { width: 100% }` | — |
+| `hover` bọc trong `@media (hover: hover)` | Có ở cả bốn biến thể | — |
+| `focus-visible` | Có, `--border-w-strong` + `--color-focus` + `outline-offset: 2px` | — |
+| `active` | Có, `translateY(1px)` và bỏ bóng; không dùng `scale` | — |
+| `disabled` | Có, `opacity: 0.55` + `cursor: not-allowed`; thuộc tính `disabled` thật, gắn cả khi `loading` | — |
+| `loading` | Có: `pi-spinner pi-spin` thay icon dẫn, nhãn giữ nguyên, `aria-busy="true"`, nút tự vô hiệu hoá | **Không dự trữ bề rộng.** Spec §Trạng thái đòi `min-width` đo ở trạng thái nghỉ để bề rộng không đổi khi sang `loading`; không có gì trong `.ts`/`.scss` làm việc đó — nút sẽ co giãn nếu nhãn hẹp hơn spinner |
+| Icon mang `aria-hidden="true"` | Có ở cả ba nhánh (`loading`, `leading`, `trailing`) | — |
+| Thẻ `<button>` thật, `type` luôn tường minh | Có, `[type]="type()"` | — |
+| Token `danger` bậc hover/active | `.nut--danger` dùng `--color-danger-hover` và `--color-danger-active`; hai token này có khai ở [`../DESIGN.md`](../DESIGN.md) | §Token dùng của **chính spec này** chưa liệt kê hai token đó — thiếu sót của spec, không phải của code |
+
+Chưa đối chiếu: §Responsive (ba ngưỡng đều là luật của nơi **đặt** nút — `Dialog`, `Toolbar` — không có gì tương ứng trong SCSS của component, chưa mở hai chỗ đó ra so), vùng bấm ≥ 28×28px (đo trên app đang chạy), và tầng i18n của nhãn (nhãn do nơi gọi truyền vào).
 
 ---
 
@@ -121,7 +145,7 @@ Nhãn nút **không xuống dòng** (`white-space: nowrap`). Nhãn dài quá th�
 | `variant` | input | `'primary' \| 'secondary' \| 'ghost' \| 'danger'` | `'secondary'` | Mặc định là `secondary` **có chủ đích**: quên khai biến thể thì ra nút phụ, không ra nút chính. Sai theo hướng an toàn |
 | `size` | input | `'sm' \| 'md' \| 'lg'` | `'md'` | |
 | `block` | input | `boolean` | `false` | |
-| `icon` | input | `string \| null` | `null` | Tên icon PrimeIcons, không có tiền tố `pi ` |
+| `icon` | input | `string \| null` | `null` | **Tên trần** của icon PrimeIcons: `plus`, không phải `pi-plus`, không phải `pi pi-plus`. Component tự ghép — [`../Icons.md`](../Icons.md) §5 |
 | `iconPosition` | input | `'leading' \| 'trailing'` | `'leading'` | |
 | `type` | input | `'button' \| 'submit' \| 'reset'` | `'button'` | Mặc định `'button'` để bẫy submit ngoài ý muốn không xảy ra |
 | `disabled` | input | `boolean` | `false` | |

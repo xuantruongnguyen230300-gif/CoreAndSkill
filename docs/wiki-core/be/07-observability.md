@@ -6,7 +6,14 @@ verified: chua-doi-chieu
 
 # 07. Quan sát hệ thống — log, metric, health check, trace
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20, **chỉ mục §5**). Mọi mục khác trong file này
+> **chưa ai mở `src/` ra đối chiếu**, nên đừng đọc file này như bảng tiến độ — và cũng đừng đọc nó như
+> "chưa ai bắt đầu".
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | Bộ lọc trường nhạy cảm của §5 đã có thật: `src/BE/Core/CoreAndSkill.Core.Application/Common/Logging/SensitiveTextRedactor.cs`, kèm test kiểm chính bộ lọc và test đọc dòng log thật của đường `client-errors` | Bộ lọc gắn ở **tầng cấu hình log** thay vì được gọi tay ở từng chỗ ghi — luật **S13** và nợ **B11** ở [`../../RULES.md`](../../RULES.md) |
+> | Log có cấu trúc, mã lần gọi, mức log, chỉ số, health check: **chưa ai đối chiếu với code** | Đối chiếu từng mục, rồi mới lật `verified:` của file này |
 >
 > Phía FE: [`../fe/10-observability.md`](../fe/10-observability.md).
 
@@ -248,7 +255,8 @@ Khuyến nghị cho Core này:
 | Log có cấu trúc (Serilog) | ✅ sẽ có | Ghi ra đầu ra chuẩn |
 | Mã lần gọi trong phạm vi log | ✅ sẽ có | Sinh ở middleware đầu chuỗi |
 | Mã lần gọi trong envelope lỗi | ✅ sẽ có | Hình dạng envelope ở [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) |
-| Bộ lọc trường nhạy cảm + test kiểm bộ lọc | ✅ sẽ có | Bộ lọc không có test là bộ lọc không tin được |
+| Bộ lọc trường nhạy cảm + test kiểm bộ lọc, **đường `client-errors`** | ✅ có (đối chiếu 2026-09-20) | Bộ lọc không có test là bộ lọc không tin được. Luật **S13** ở [`../../RULES.md`](../../RULES.md) §6 |
+| Bộ lọc gắn ở **tầng cấu hình log**, phủ mọi đường ghi | ❌ chưa | Hôm nay bộ lọc được gọi tay ở đúng một handler, nên một đường log mới bỏ qua nó mà không gì báo. Nợ **B11** ở [`../../DEBT.md`](../../DEBT.md) |
 | Liveness và readiness tách riêng | ✅ sẽ có | Liveness **không** chạm DB |
 | Readiness thất bại khi còn migration chưa áp | ✅ sẽ có | Mặt còn lại của luật E8 |
 | Đặt tên thuộc tính theo chuẩn OpenTelemetry | ✅ sẽ có | Chi phí gần bằng không |

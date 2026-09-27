@@ -6,8 +6,17 @@ verified: chua-doi-chieu
 
 # Contract card — Auth
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`, ví dụ JSON là **phác thảo** chứ không phải body
-> thật. BE đã cam kết endpoint nào: đọc dòng `Status:` của từng card.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20, **chỉ ở mức định tuyến**). Ví dụ JSON
+> trong file này vẫn là **phác thảo**, không phải body thật: chưa endpoint nào được gọi thử. Mọi
+> card giữ nguyên `Status:` đang có — ba điều kiện lên `IMPLEMENTED` ở [`README.md`](README.md) §3.
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/AuthController.cs` có action `Login`, `Logout`, `Me`, `ChangePassword`, `ChangePasswordRequired` — khớp route §3–§7 | Gọi thử thật, thay ví dụ bằng response thật, rồi mới lật `Status:` |
+> | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/AntiforgeryController.cs` có action `GetToken` — khớp route §2 | Như trên |
+> | §8 và §9 **không** có action nào dưới `src/BE` — đúng chủ đích; nhãn `📐` tại chỗ vẫn đúng | Chỉ dựng nếu quyết định ở ADR-0029 bị lật |
+> | Thân request, thân response, bảng lỗi của từng card: **chưa ai đối chiếu với handler** | Đối chiếu từng card rồi mới lật `verified:` |
+> | §10 Response 429, header và `messageParams.RetryAfterSeconds` cùng số (đối chiếu 2026-09-26): cả `src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreWebServiceCollectionExtensions.cs` lẫn `src/BE/Core/CoreAndSkill.Core.Web/ExceptionHandling/CoreExceptionHandler.cs` có `SecurityErrors.RateLimitExceeded.WithParams(("RetryAfterSeconds", retryAfterSeconds))`; test `LoginPartitionLimitExceeded_Returns429_WithRetryAfterSecondsEqualToTheHeader` | — |
 >
 > Envelope, `ErrorType` → HTTP, khuôn mã lỗi, phân trang: [`README.md`](README.md). Định nghĩa
 > đầy đủ: [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md). Card này không
@@ -33,7 +42,10 @@ FE tự gắn header — cách gắn và vì sao không dùng cơ chế có sẵ
 
 **Antiforgery áp theo METHOD, không theo endpoint.** Mọi `POST`/`PUT`/`PATCH`/`DELETE` phải mang
 `X-XSRF-TOKEN` — **kể cả `POST /api/v1/core/auth/login`**. Không có allowlist ngoại lệ, vì một
-allowlist là một danh sách sẽ dài dần và không ai rà lại.
+allowlist là một danh sách sẽ dài dần và không ai rà lại. Chiều ngược — một `GET` **đòi** token — có
+đúng một ngoại lệ có tên: endpoint xuất ([`exports.md`](exports.md) §1), vì nó ghi nhật ký kiểm toán.
+Nó thêm kiểm chứ không bớt, và mục mới chỉ được vào khi `GET` đó ghi nhật ký hoặc đổi dữ liệu
+([ADR-0062](../adr/0062-endpoint-xuat-kiem-token-chong-gia-mao-nhu-lenh-ghi.md)).
 
 **Xác thực chạy trước antiforgery** — thứ tự ở
 [`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §3.1. Request ghi của một phiên
@@ -220,7 +232,7 @@ Mã chỉ là điều kiện tra cứu: hệ thống nhận ra đơn vị hệ t
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | `tenantCode`, `userName` hoặc `password` rỗng, hoặc `userName` quá dài. Kèm `fieldErrors["TenantCode"]` / `["UserName"]` / `["Password"]` — mã từng ô ở bảng dưới |
+| `CORE.VALIDATION.FAILED` | `tenantCode`, `userName` hoặc `password` rỗng, hoặc `tenantCode` / `userName` vượt trần độ dài. Kèm `fieldErrors["TenantCode"]` / `["UserName"]` / `["Password"]` — mã từng ô ở bảng dưới |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 | `CORE.RATE_LIMIT.EXCEEDED` | Chạm hạn mức — theo IP, hoặc theo cặp mã đơn vị + tên đăng nhập (§10). Kèm header `Retry-After` |
@@ -231,6 +243,7 @@ Mã chỉ là điều kiện tra cứu: hệ thống nhận ra đơn vị hệ t
 | Khoá | Mã trong `fieldErrors` | Khi nào |
 | --- | --- | --- |
 | `TenantCode` | `CORE.VALIDATION.REQUIRED` | Rỗng |
+| `TenantCode` | `CORE.VALIDATION.MAX_LENGTH` — `messageParams` khoá `MaxLength` | Vượt trần độ dài — cùng trần với `code` ở [`tenants.md`](tenants.md) §2 |
 | `UserName` | `CORE.VALIDATION.REQUIRED` | Rỗng |
 | `UserName` | `CORE.VALIDATION.MAX_LENGTH` — `messageParams` khoá `MaxLength` | Vượt trần độ dài; trần đi trong `messageParams`, card không chép |
 | `Password` | `CORE.VALIDATION.REQUIRED` | Rỗng |
@@ -266,6 +279,12 @@ con số.
 > Đường liệt kê hàng loạt thật là **chênh lệch thời gian phản hồi** giữa "user không tồn tại" và
 > "user tồn tại, sai mật khẩu" — vá đường đó, đừng vá bằng cách làm thông điệp mơ hồ. Xem
 > [`../wiki-core/be/09-security-beyond-auth.md`](../wiki-core/be/09-security-beyond-auth.md).
+> Phép băm giả chỉ san phần băm. Các nhánh trượt vẫn khác nhau ở phần truy vấn: nhánh sai mật khẩu
+> ghi thêm một lần sai, nhánh đơn vị không có thì không tra tài khoản. Vì vậy **mọi phản hồi trượt
+> của endpoint này — trừ 429 — đi ra không sớm hơn một sàn thời gian chung**, tính từ lúc handler
+> bắt đầu. Giá trị và khoá cấu hình ở
+> [`../wiki-core/be/02-identity-auth.md`](../wiki-core/be/02-identity-auth.md) §4.2. Lý do ở
+> [`../adr/0058-dang-nhap-truot-cho-du-mot-san-thoi-gian.md`](../adr/0058-dang-nhap-truot-cho-du-mot-san-thoi-gian.md).
 
 > **Bốn ca gộp vào `CORE.AUTH.INVALID_CREDENTIALS` là cố ý.** Mã đơn vị không tồn tại, đơn vị đã
 > ngưng hoạt động, sai tên đăng nhập, sai mật khẩu — cùng một mã, cùng một câu. Tách chúng ra là
@@ -282,6 +301,7 @@ con số.
 > sau khoảng thời gian trong `Retry-After`.
 
 Bổ sung mã `fieldErrors` 2026-09-16 — không đổi hình dạng request/response, `Status` giữ nguyên.
+Bổ sung sàn thời gian cho phản hồi trượt 2026-09-22 — không đổi hình dạng, `Status` giữ nguyên.
 
 ---
 
@@ -681,7 +701,7 @@ Retry-After: 47
   "error": {
     "code": "CORE.RATE_LIMIT.EXCEEDED",
     "type": "BusinessRule",
-    "message": "Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.",
+    "message": "Quá nhiều yêu cầu, thử lại sau.",
     "messageParams": { "RetryAfterSeconds": "47" },
     "fieldErrors": null
   },
@@ -700,9 +720,15 @@ Retry-After: 47
   thật, và dùng `code` để phân nhánh. Trường `type` vẫn phải có mặt vì hình dạng envelope không có
   nhánh thứ hai.
 - `Retry-After` (giây) lấy **từ chính bộ đếm đã chặn**, không hardcode — cửa sổ đổi thì giá trị
-  tự đi theo. Dùng chính con số này cho đồng hồ đếm ngược, đừng giả định 60.
-- **429 không còn là chuyện riêng của màn đăng nhập.** Bất kỳ màn nào cũng gặp được, nên xử lý nó
-  ở interceptor chung chứ không ở màn đăng nhập.
+  tự đi theo. Hai tầng đăng nhập trả số giây còn tới lúc được thử lại. Giới hạn nền là cửa sổ trượt
+  của `UseRateLimiter`, không cho biết số đó, nên trả **nguyên độ dài cửa sổ**: chờ đủ chừng đó thì
+  lần thử lại chắc chắn qua được tầng này (người dùng chốt 2026-09-26). FE dùng chính con số nhận
+  được cho câu báo số giây chờ, đừng giả định 60.
+- **`messageParams.RetryAfterSeconds` mang cùng số giây với header.** Màn tắt toast (đăng nhập)
+  tự hiện 429 ở khu lỗi của nó mà chỉ có envelope trong tay, không có header.
+- **429 không còn là chuyện riêng của màn đăng nhập.** Bất kỳ màn nào cũng gặp được: interceptor
+  chung toast mặc định, màn tắt toast tự hiện — cách thi công ở
+  [`../quy-uoc/fe-api-client.md`](../quy-uoc/fe-api-client.md) §2.2.
 
 ---
 
@@ -719,7 +745,7 @@ Mã mà **mọi** card đều có thể trả. Card của từng endpoint nhắc
 | `CORE.AUTH.CSRF_REJECTED` | `Forbidden` | 403 | Thiếu/sai `X-XSRF-TOKEN` | Gọi lại `GET /api/v1/core/antiforgery/token` rồi thử lại **một** lần |
 | `CORE.AUTH.ORIGIN_REJECTED` | `Forbidden` | 403 | Request ghi mang header `Origin` ngoài allowlist — chặn ở lớp antiforgery, kể cả khi token hợp lệ ([`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md) §7.2) | Thông báo chung như nhóm `CORE.AUTH.*`; **không** gửi lại, **không** lấy lại token — `Origin` do trình duyệt gắn nên gửi lại vẫn bị chặn |
 | `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` | `Forbidden` | 403 | Đang ở trạng thái §1.2 | Interceptor làm mới phiên, guard điều hướng sang màn đổi mật khẩu bắt buộc — [`../quy-uoc/fe-routing-guard.md`](../quy-uoc/fe-routing-guard.md) §5.4 |
-| `CORE.RATE_LIMIT.EXCEEDED` | `BusinessRule` | 429 | Chạm hạn mức ở bất kỳ tầng nào của §10. Kèm header `Retry-After` (giây) | Xử lý ở interceptor chung, đếm ngược theo `Retry-After` |
+| `CORE.RATE_LIMIT.EXCEEDED` | `BusinessRule` | 429 | Chạm hạn mức ở bất kỳ tầng nào của §10. Kèm header `Retry-After` (giây) | Báo số giây chờ: interceptor chung toast, màn tắt toast hiện ở khu lỗi của nó — §10 |
 | `CORE.CONCURRENCY.CONFLICT` | `Conflict` | 409 | Request ghi trượt phép kiểm đồng thời: bản ghi đích đã bị một thao tác khác ghi xong giữa lúc handler đọc và lúc ghi. Token là `concurrency_stamp` của Identity với tài khoản ([`../database/schema-core.md`](../database/schema-core.md) §3.6), `xmin` với entity khác ([`../quy-uoc/be-entity-domain.md`](../quy-uoc/be-entity-domain.md) §6). Mô hình và cách bắt ở một chỗ: [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.1; token đi trên dây thế nào (field `version`): §6.3 cùng file. Card của từng endpoint ghi nhắc mã này; endpoint thay cả một tập có mã riêng ([`permissions.md`](permissions.md) §6) | **Không** tự gửi lại. Giữ nguyên dữ liệu người dùng đang nhập, nói rõ người khác vừa đổi bản ghi, cho tải lại rồi nhập lại — ba câu bắt buộc ở [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.2 |
 | `CORE.ROUTE.NOT_FOUND` | `NotFound` | 404 | Không route nào khớp | Bug của FE — **không** hiển thị như "bản ghi không tồn tại" |
 | `CORE.ROUTE.METHOD_NOT_ALLOWED` | `NotFound` | 405 | Sai verb. Kèm header `Allow` | Bug của FE |

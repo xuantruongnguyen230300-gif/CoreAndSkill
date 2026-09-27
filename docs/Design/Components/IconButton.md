@@ -6,9 +6,31 @@ verified: chua-doi-chieu
 
 # IconButton
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** tự dựng, không bọc PrimeNG. Lý do ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 — nó là một `<button>` vuông chứa một icon, không có hành vi nào thuộc nhóm "khó". Bọc thư viện ở đây chỉ đổi lấy một tập CSS mặc định phải đè.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/components/icon-button/icon-button.component.ts` — selector `app-icon-button`, class gốc `.icon-button`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | Khớp **đúng từng dòng** §API dự kiến: `icon` và `ariaLabel` đều `input.required` (không mặc định, đúng chủ đích spec), `variant`, `size`, `type`, `disabled`, `loading`, `pressed`, output `clicked` | — |
+| `clicked` không phát khi `disabled`/`loading` | Có, chặn trong `onClick()` | — |
+| Bốn biến thể | Đủ, đúng token §Biến thể: `ghost` (nghỉ), `.icon-button--secondary`, `--primary`, `--danger` | — |
+| Ba cỡ | Đủ, và **cả ba chiều** khớp spec: cạnh `--size-control-*`, đệm `--sp-3`/`--sp-4`/`--sp-5`, icon `--icon-sm`/`--icon-md`/`--icon-lg` | — |
+| `hover` | Đúng spec ở cả bốn biến thể, bọc `@media (hover: hover)`; `danger` đổi nền nhưng **giữ** `--color-danger` cho icon | — |
+| `focus-visible` | Có, `--border-w-strong` + `--color-focus` + `outline-offset: 2px` | — |
+| `active` | Có, `--color-surface-3` + `translateY(1px)`; `primary` dùng `--color-brand-active` | — |
+| `disabled` | Có, `--color-text-disabled` + `cursor: not-allowed`; thuộc tính `disabled` thật, gắn cả khi `loading` | — |
+| `loading` | Có: icon đổi thành `pi-spinner pi-spin`, `aria-busy="true"`, nút vô hiệu hoá. **Cạnh nút không đổi** vì cạnh đến từ token cỡ, đúng như spec lập luận | — |
+| `aria-pressed` | Có — `null` thì không sinh thuộc tính, đúng §API | — |
+| Hình thức khi `pressed` | `.icon-button[aria-pressed='true']` đổi nền `--color-brand-subtle`, icon `--color-brand-on-subtle`; hai token này **có** khai ở [`../DESIGN.md`](../DESIGN.md) | **Spec không mô tả hình thức này.** §Trạng thái không có dòng nào cho trạng thái "đang bật", và §Token dùng không liệt kê hai token đó. Code đang quyết một hình thức mà spec chưa chốt — cần một lượt bổ sung spec, không phải sửa code |
+
+✅ **Quy ước tên icon đã chốt (2026-09-23) và `IconButton` đang đúng.** `icon-button.component.html` § `'pi-' + icon()` ghép tiền tố trong template, tức nơi gọi truyền `ellipsis-v` — đúng chiều "tên trần" ở [`../Icons.md`](../Icons.md) §5. Ghi chú cũ ở đây khai [`Button.md`](./Button.md) đi chiều ngược lại; **đó là mô tả sai** — `Button` ghép y như component này.
+
+Chưa đối chiếu: §Responsive (bốn ngưỡng đều là luật của nơi **đặt** nút — hàng bảng, `Toolbar`, cột hành động — không có gì tương ứng trong SCSS của component), và vùng bấm thật ở cỡ `sm` (đo trên app đang chạy).
 
 ---
 
@@ -112,7 +134,7 @@ Nút bật/tắt (`aria-pressed="true"`, ví dụ ghim cột) không có biến 
 
 | Tên | Chiều | Kiểu | Mặc định | Ghi chú |
 | --- | --- | --- | --- | --- |
-| `icon` | input | `string` | — | **Bắt buộc.** Tên icon PrimeIcons, không kèm tiền tố `pi ` |
+| `icon` | input | `string` | — | **Bắt buộc. Tên trần** của icon PrimeIcons: `ellipsis-v`, không phải `pi-ellipsis-v`. Component tự ghép — [`../Icons.md`](../Icons.md) §5 |
 | `ariaLabel` | input | `string` | — | **Bắt buộc.** Không có mặc định, và không suy ra từ `icon` — xem ghi chú dưới |
 | `variant` | input | `'ghost' \| 'secondary' \| 'primary' \| 'danger'` | `'ghost'` | Mặc định nhẹ nhất, sai theo hướng an toàn |
 | `size` | input | `'sm' \| 'md' \| 'lg'` | `'md'` | |

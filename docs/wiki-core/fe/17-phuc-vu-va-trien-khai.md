@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 17. Phục vụ và triển khai Frontend
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`, chưa có cấu hình triển khai nào.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/`, kể cả cấu hình triển khai — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
 >
 > Cái gì được commit và cái gì là artifact build: [`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md). Bảo mật liên quan: [`14-security.md`](14-security.md).
 

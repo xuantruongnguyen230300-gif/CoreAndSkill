@@ -6,7 +6,19 @@ verified: chua-doi-chieu
 
 # Quy ước Backend — Controller, envelope, `Result` → HTTP, bảo mật đường vào
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi code mẫu là khuôn cho `src/BE` sẽ xây ở giai đoạn 2.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). Đối chiếu diễn ra theo **từng mục** —
+> mục nào bảng dưới không nhắc tới thì vẫn là khuôn chưa được so với code.
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | ✅ **Hình dạng envelope ở §2.1 khớp code** — `src/BE/Core/CoreAndSkill.Core.Web/Http/ApiEnvelope.cs`, dòng khai `record ApiEnvelope<T>`, cho `ApiEnvelope<T>`, `ApiError`, `ApiFieldError` đúng từng field (đối chiếu 2026-09-20) | — |
+> | ✅ **Bảng ánh xạ `ErrorType` → HTTP khớp code** — `src/BE/Core/CoreAndSkill.Core.Web/Http/ResultToHttpMapper.cs`, hàm `ToStatusCode(ErrorType type)`, liệt kê đúng bảy nhánh, không nhánh mặc định (đối chiếu 2026-09-20) | — |
+> | ✅ **Cả năm lối của §3 khớp code** — `ApiControllerBase.cs` có hai overload `HandleResult`, `HandleCreated<T>(Result<T> result, string location)`, `HandleExport(Result<ExportFile> result)` ([ADR-0064](../adr/0064-nhanh-tra-tep-di-qua-apicontrollerbase.md)) và `HandleFile(Result<FileDownload> result)` ([ADR-0068](../adr/0068-nhanh-tai-tep-di-qua-handlefile.md)); `UsersController.cs` action `Export` gọi `=> HandleExport(await mediator.Send(command, ct))`, `FilesController.cs` action `Download` gọi `=> HandleFile(await mediator.Send(new GetFileQuery(id), ct));` — không action nào tự dựng `ExportFileResult` (đối chiếu 2026-09-23) | — |
+> | ✅ **Câu *"controller không tự dựng `IActionResult` nào"* ở bảng §3 nay mô tả CODE, không còn mô tả luật-chưa-khớp** — hai dòng `Response.Headers.XContentTypeOptions` và `Response.Headers.CacheControl` đã rời `FilesController.cs`; ba header của một phản hồi tệp chỉ còn ở `src/BE/Core/CoreAndSkill.Core.Web/Http/ExportFileResult.cs`, khai `internal sealed class ExportFileResult`, và nhánh tải tệp tới đó qua `FileDownloadResponse.For`. Cổng: ArchTest `EveryControllerAction_PutsItsStatusCode_ThroughApiControllerBase` (`src/BE/Tests/CoreAndSkill.ArchTests/ControllerResultPathTests.cs`), tập ngoại lệ có tên **rỗng** (đối chiếu 2026-09-23) | — |
+> | ✅ **Ngoại lệ có tên của §7.2 khớp code** — `RequireAntiforgeryAttribute.cs`; bước 1 của `AntiforgeryValidationMiddleware.cs` mang `GetMetadata<RequireAntiforgeryAttribute>() is null`; `UsersController.cs` action `Export` mang `[RequireAntiforgery]`; `.WithExposedHeaders("Retry-After", "Content-Disposition")` ở `CoreWebServiceCollectionExtensions.cs`. `B4ExportEndpointTests.cs` 14/14 và `AntiforgeryMarkTests.cs` 9/9 xanh (đối chiếu 2026-09-23) | — |
+> | ✅ **Catalog mã của hạ tầng HTTP ở §7.4 khớp code** — `src/BE/Core/CoreAndSkill.Core.Web/Security/SecurityErrors.cs`, chuỗi `Forbidden = CommonErrors.Forbidden` (đối chiếu 2026-09-26) | — |
+> | ✅ **Tiền tố đường dẫn ở §8.1 khớp code** — `src/BE/Core/CoreAndSkill.Core.Web/Http/ApiRoutes.cs`: `public static class ApiRoutes` chỉ phơi `Root`, `V1`; mọi `[Route(` dưới `src/BE/Core` dùng `CoreRoutes.`; cổng `HandTypedApiPrefixTests.cs` (đối chiếu 2026-09-24) | — |
+> | Các mục còn lại chưa ai mở code ra so, nên `verified:` giữ `chua-doi-chieu` | Từng mục lật riêng lẻ khi có người đối chiếu |
 >
 > Đây là file chủ của mọi mốc `— định nghĩa gốc` bên dưới ([`../OWNERSHIP.md`](../OWNERSHIP.md) §3). File khác
 > chỉ được trỏ tới đây.
@@ -33,22 +45,7 @@ verified: chua-doi-chieu
 
 ### 1.2 Hiện thực — switch expression, không reflection
 
-```csharp
-// Core.Web/Http/ResultToHttpMapper.cs
-public static class ResultToHttpMapper
-{
-    public static int ToStatusCode(ErrorType type) => type switch
-    {
-        ErrorType.Validation   => StatusCodes.Status400BadRequest,
-        ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
-        ErrorType.Forbidden    => StatusCodes.Status403Forbidden,
-        ErrorType.NotFound     => StatusCodes.Status404NotFound,
-        ErrorType.Conflict     => StatusCodes.Status409Conflict,
-        ErrorType.BusinessRule => StatusCodes.Status422UnprocessableEntity,
-        ErrorType.Unexpected   => StatusCodes.Status500InternalServerError,
-    };
-}
-```
+`ResultToHttpMapper.ToStatusCode(ErrorType)` (`Core.Web/Http/`, `public static`) là một **switch expression** trả đúng bảng §1.1, không hơn — khối đầy đủ: ly-do §1.2.
 
 **Không có nhánh `_`** — thiếu nhánh phải là **lỗi biên dịch**: cảnh báo CS8509 + `TreatWarningsAsErrors` (luật T4).
 
@@ -113,26 +110,7 @@ Thành công:
   "error": null, "traceId": "4bf92f3577b34da6a3ce929d0e0e4736" }
 ```
 
-Lỗi nghiệp vụ:
-
-```json
-{ "success": false, "data": null,
-  "error": { "code": "CORE.USER.EMAIL_DUPLICATED", "type": "Conflict", "message": "Email 'an@vd.vn' đã được dùng.",
-             "messageParams": { "Email": "an@vd.vn" }, "fieldErrors": null },
-  "traceId": "0af7651916cd43dd8448eb211c80319c" }
-```
-
-Lỗi validation:
-
-```json
-{ "success": false, "data": null,
-  "error": { "code": "CORE.VALIDATION.FAILED", "type": "Validation", "message": "Dữ liệu gửi lên không hợp lệ.",
-             "messageParams": null,
-             "fieldErrors": {
-               "Email": [ { "code": "CORE.VALIDATION.FORMAT", "messageParams": null } ],
-               "UserName": [ { "code": "CORE.VALIDATION.MAX_LENGTH", "messageParams": { "MaxLength": "64" } } ] } },
-  "traceId": "5b8aa5a2d2c872e8321cf37308d69df2" }
-```
+Ví dụ lỗi nghiệp vụ và lỗi validation: ly-do §2.1.
 
 Mã trong `fieldErrors` lấy từ catalog validation dùng chung — [`be-cqrs-handler.md`](be-cqrs-handler.md) §7.1.
 
@@ -140,14 +118,21 @@ Mã trong `fieldErrors` lấy từ catalog validation dùng chung — [`be-cqrs-
 header `traceparent` khi phía gọi đã gửi, tự sinh khi không. `TraceIdMiddleware` gán nó vào
 `HttpContext.TraceIdentifier` ([`be-architecture.md`](be-architecture.md) §2.1).
 
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §2.1
+
 ### 2.2 Bốn luật về envelope
 
-1. **Mọi response dưới `/api` đều mang envelope này.** Không có ngoại lệ.
+1. **Mọi response dưới `/api` đều mang envelope này** — trừ **đúng một** ngoại lệ có tên: nhánh
+   **thành công** của endpoint trả tệp (tải tệp, xuất dữ liệu) là thân tệp thô kèm `Content-Disposition`;
+   nhánh **lỗi** của chính endpoint đó vẫn là envelope. Endpoint ngoài `/api` (health check) nằm ngoài
+   luật này từ đầu — §8.1, §8.3. Card nào trả tệp thì trỏ về đây, không tự khai lại ngoại lệ.
+   🛑 Đây là ngoại lệ của **envelope**, không phải của §3: [ADR-0064](../adr/0064-nhanh-tra-tep-di-qua-apicontrollerbase.md)
+   gỡ ngoại lệ ở §3 và không chạm câu này — qua `HandleExport` rồi thân vẫn là tệp thô. Đừng gỡ theo ADR-0064.
 2. **`traceId` luôn có mặt**, kể cả khi thành công.
 3. **`message` là dev-facing.** Client dựng câu hiển thị từ `code` + `messageParams`; BE không được coi
    `message` là hợp đồng — [`be-cqrs-handler.md`](be-cqrs-handler.md) §8.
 4. **`error` là `null` khi thành công, `data` là `null` khi lỗi.** Không bao giờ cả hai cùng có giá trị.
-   Luật `HandBuiltErrorEnvelope_AlwaysCarries_ABusinessCode` canh: envelope lỗi dựng tay vẫn phải mang `code`.
+   Envelope lỗi dựng tay vẫn phải mang `code` — luật R6 ([`../RULES.md`](../RULES.md) §5).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §2.2
 
@@ -166,17 +151,19 @@ Toàn bộ payload serialize theo `JsonNamingPolicy.CamelCase`, nhưng **khoá**
 | Đường | Xử lý | Ở đâu |
 | --- | --- | --- |
 | `ApiControllerBase.HandleResult` | Mọi `Result` từ handler | `Core.Web` |
-| `IExceptionHandler` của Core, nối bằng `UseExceptionHandler()` | `DbUpdateConcurrencyException` → 409 `CommonErrors.ConcurrencyConflict` — **đường duy nhất** dịch lỗi đồng thời, handler không bắt (§5.3 của `be-cqrs-handler.md`: `SaveChangesAsync` nằm trong behavior). `LoginAttemptLimitExceededException` → 429 `SecurityErrors.RateLimitExceeded` kèm `Retry-After`, §6.5. Exception còn lại → 500 `CommonErrors.Unexpected`, không lộ chi tiết | `Core.Web` |
+| `IExceptionHandler` của Core, nối bằng `UseExceptionHandler()` | `DbUpdateConcurrencyException` → 409 `CommonErrors.ConcurrencyConflict` — dịch ghi qua `DbContext`/`IUnitOfWork`, handler không bắt (§5.3 `be-cqrs-handler.md`); ghi qua `UserManager` đi đường khác (hàng dưới). `LoginAttemptLimitExceededException` → 429 `SecurityErrors.RateLimitExceeded` kèm `Retry-After`, §6.5. `BadHttpRequestException { StatusCode: 413 }`, hoặc `InvalidDataException` khi request là form → 400 `FileErrors.TooLarge` (thân vượt trần trong lúc đọc dở). **Client huỷ** (`RequestAborted` đã huỷ, chuỗi `InnerException` chứa `OperationCanceledException`/`IOException`) → 499, không envelope, log `Debug` — luật R10. Exception còn lại → 500 `CommonErrors.Unexpected`, không lộ chi tiết | `Core.Web` |
+| `IdentityConcurrency.DetectConflict` (ghi qua `UserManager`) | 409 `CommonErrors.ConcurrencyConflict` — **không** qua `IExceptionHandler`: `UserStore` tự bắt `DbUpdateConcurrencyException` bên trong, `DetectConflict` đọc mã `"ConcurrencyFailure"` rồi forward qua `Result` bình thường (`ApiControllerBase.HandleResult`, hàng đầu bảng) — [`06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.1 | `Core.Infrastructure` |
 | `OnRedirectToLogin` của cookie scheme | 401 `SecurityErrors.NotAuthenticated` — chưa đăng nhập hoặc phiên hết hạn; mọi `ChallengeResult` đi qua đây | `Core.Web`, §7.4 |
 | `OnRedirectToAccessDenied` của cookie scheme | 403 `SecurityErrors.Forbidden` — mọi `ForbidResult` đi qua đây | `Core.Web`, §7.4 |
 | `AntiforgeryValidationMiddleware` | 403 `SecurityErrors.OriginRejected` — request ghi mang `Origin` ngoài allowlist; 403 `SecurityErrors.CsrfRejected` — thiếu hoặc sai `X-XSRF-TOKEN`. Chặn trước khi tới phân quyền | `Core.Web`, §7.2 |
-| `ModelBindingProblemFactory` | Body không parse được, kiểu sai, thiếu tham số bắt buộc — lỗi xảy ra **trước** khi vào action | `Core.Web` |
+| `ModelBindingProblemFactory` | Body không parse được, kiểu sai, thiếu tham số bắt buộc — lỗi xảy ra **trước** khi vào action. Trường **trong** body bị thiếu/rỗng không thuộc hàng này: đó là việc của validator (`CORE.VALIDATION.REQUIRED`) | `Core.Web` |
+| `UploadSizeLimitAttribute` | 400 `FileErrors.TooLarge` — `Content-Length` khai vượt trần, chặn trước khi đọc thân | `Core.Web` |
 | `OnRejected` của rate limiter | 429 `SecurityErrors.RateLimitExceeded` — request bị chặn **trước** khi tới action nào, nên không có `Result` để bọc | `Core.Web`, §6 |
 | `PasswordChangeRequiredMiddleware` | 403 `SecurityErrors.PasswordChangeRequired` — chặn trước khi vào action, xem [`be-architecture.md`](be-architecture.md) §3.1. Đọc cờ từ claim `CoreClaimTypes.MustChangePassword` (§7.4), **không** truy DB; cờ trong cookie chỉ đổi khi cookie được cấp lại sau đổi mật khẩu | `Core.Web` |
 | `EnvelopeMiddleware` | Response do **hạ tầng định tuyến** sinh — 404 `SecurityErrors.RouteNotFound`, 405 `SecurityErrors.RouteMethodNotAllowed`; chúng có thân rỗng nên không đi qua đường nào ở trên | `Core.Web` |
 
-> **Bảng này là danh sách đầy đủ** ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §6). Luật
-> `HandBuiltErrorEnvelope_AlwaysCarries_ABusinessCode` áp vào từng dòng; mọi `Error` khai ở `SecurityErrors` (§7.4) hoặc `CommonErrors` ([`be-cqrs-handler.md`](be-cqrs-handler.md) §7.1).
+> **Bảng này là danh sách đầy đủ** ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §6). Luật R6
+> ([`../RULES.md`](../RULES.md) §5) áp vào từng dòng; mọi `Error` khai ở một catalog — `SecurityErrors` (§7.4), `CommonErrors` ([`be-cqrs-handler.md`](be-cqrs-handler.md) §7.1), hoặc `FileErrors` cho hai nhánh trần dung lượng.
 
 Ba ràng buộc của `EnvelopeMiddleware`:
 
@@ -195,58 +182,23 @@ status **không** suy từ `type` — như 429 ở §6, hạ tầng đặt statu
 
 ## 3. `ApiControllerBase`
 
-```csharp
-// Core.Web/Controllers/ApiControllerBase.cs
-[Authorize]
-public abstract class ApiControllerBase : ControllerBase
-{
-    protected IActionResult HandleResult<T>(Result<T> result)
-        => result.IsSuccess ? Ok(Envelope.Success(result.Value, HttpContext.TraceIdentifier)) : Failure(result.Error!);
-
-    protected IActionResult HandleResult(Result result)
-        => result.IsSuccess ? Ok(Envelope.Success<object>(null, HttpContext.TraceIdentifier)) : Failure(result.Error!);
-
-    private IActionResult Failure(Error error)
-        => StatusCode(ResultToHttpMapper.ToStatusCode(error.Type), Envelope.Failure(error, HttpContext.TraceIdentifier));
-}
-```
+`ApiControllerBase` (`Core.Web/Controllers/`, `abstract`, kế thừa `ControllerBase`) mang `[Authorize]` và **năm** lối đặt status dưới **bốn** tên: hai overload `HandleResult` (`Result<T>` và `Result` — nhánh rỗng trả `data: null`), `HandleCreated<T>(Result<T>, string location)`, `HandleExport(Result<ExportFile>)` ([ADR-0064](../adr/0064-nhanh-tra-tep-di-qua-apicontrollerbase.md)), `HandleFile(Result<FileDownload>)` ([ADR-0068](../adr/0068-nhanh-tai-tep-di-qua-handlefile.md)), cùng một `private Failure(Error)` gọi `ResultToHttpMapper.ToStatusCode`. Khối đầy đủ: ly-do §3.
 
 | Trách nhiệm | Ghi chú |
 | --- | --- |
 | Mang `[Authorize]` — **fail-closed** | Endpoint công khai phải khai `[AllowAnonymous]` tường minh. Quên khai = bị chặn, không phải lộ ra. Mọi action khác khai **đúng một** mức phân quyền — §4.2 |
-| Cung cấp `HandleResult` | Chỗ **duy nhất** controller đặt status code |
+| Cung cấp `HandleResult`, `HandleCreated`, `HandleExport`, `HandleFile` | Bốn tên **duy nhất** controller đặt status code — controller không tự dựng `IActionResult` nào. `HandleCreated(result, location)` trả 201 kèm header `Location`; `HandleExport(result)` trả nhánh tệp **xuất** của §2.2 luật 1 và là lối **duy nhất** module dùng được (`ExportFileResult` giữ `internal` — ADR-0064); `HandleFile(result)` trả nhánh **tải tệp** và là chỗ duy nhất đặt `nosniff` cùng `no-store` cho nhánh đó, kể cả việc đóng luồng của `FileDownload` (ADR-0068). Hai lối tệp tách nhau bằng **kiểu tham số** — `ExportFile` ↔ `FileDownload` — nên gọi nhầm là lỗi biên dịch, không phải lỗi kỷ luật, và dấu hiệu `HandleExport` mà cổng S20 dò không đổi nghĩa. Nhánh lỗi của cả bốn đi chung `Failure`. Cổng canh câu này: ArchTest `EveryControllerAction_PutsItsStatusCode_ThroughApiControllerBase` (`src/BE/Tests/CoreAndSkill.ArchTests/ControllerResultPathTests.cs`), tập ngoại lệ có tên rỗng |
 | Gắn `traceId` | Lấy từ `HttpContext.TraceIdentifier` — `TraceIdMiddleware` đã gán giá trị W3C `Activity.Current.TraceId` vào đó (§2.1). Không tự sinh |
 
-**Không** khai `[ApiController]` và `[Route]` ở lớp cơ sở: chúng khai ở **từng** controller, route viết
-**tường minh** (`[Route("api/v1/core/users")]`), không dùng token `[controller]`. Tiền tố bắt buộc gồm cả số
-phiên bản — §8.1.
+**Không** khai `[ApiController]` và `[Route]` ở lớp cơ sở: chúng khai ở **từng** controller, không dùng token
+`[controller]`. Phần tiền tố `api/v<N>/<khu>` của route — và của mọi chuỗi đường dẫn khác, như header
+`Location` — ghép từ **hằng số dùng chung** của §8.1, không gõ tay; chỉ đoạn tài nguyên (`users`) viết tường minh.
 
-Luật `EveryController_Inherits_ApiControllerBase` ([`../RULES.md`](../RULES.md) §6) canh.
+Luật S3 ([`../RULES.md`](../RULES.md) §6).
 
 ### 3.1 Controller mẫu
 
-```csharp
-// Core.Web/Controllers/UsersController.cs
-[ApiController]
-[Route("api/v1/core/users")]
-public sealed class UsersController(ISender mediator) : ApiControllerBase
-{
-    [HttpGet]
-    [RequirePermission(CorePermissions.UserRead)]
-    public async Task<IActionResult> GetList([FromQuery] GetUsersListQuery query, CancellationToken ct)
-        => HandleResult(await mediator.Send(query, ct));
-
-    [HttpGet("{id:guid}")]
-    [RequirePermission(CorePermissions.UserRead)]
-    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
-        => HandleResult(await mediator.Send(new GetUserByIdQuery(id), ct));
-
-    [HttpPost]
-    [RequirePermission(CorePermissions.UserWrite)]
-    public async Task<IActionResult> Create([FromBody] CreateUserCommand command, CancellationToken ct)
-        => HandleResult(await mediator.Send(command, ct));
-}
-```
+Hình dạng: `[ApiController]` + `[Route(CoreRoutes.<Tài nguyên>)]` (hằng số §8.1, không gõ tay) trên lớp `sealed` kế thừa `ApiControllerBase`, nhận `ISender` qua primary constructor; mỗi action một attribute HTTP, một mức phân quyền (§4.2), thân là `HandleResult(await mediator.Send(…, ct))`. Khối mẫu đầy đủ: ly-do §3.1.
 
 Ba luật cho mọi controller:
 
@@ -295,36 +247,9 @@ S11 bắt cả ca không khai mức nào lẫn ca khai hai mức — bằng Arch
 | Action khai mức **khác** mức cấp controller | **Vi phạm** | — Controller trộn nhiều mức thì khai mức ở từng action, không khai ở cấp controller |
 | Action mang `[AllowAnonymous]` trong controller đã khai mức | **`[AllowAnonymous]` thắng** — S11 bỏ qua action này, chỉ sau khi kiểm nó có tên trong allowlist ẩn danh (§5) | Không kiểm gì — thấy `IAllowAnonymous` trong `EndpointMetadata` thì trả về ngay |
 
-```csharp
-// Core.Web/Permissions/RequirePermissionAttribute.cs
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public sealed class RequirePermissionAttribute(string key) : Attribute
-{
-    public string Key { get; } = key;
-}
+Ba attribute ở `Core.Web/Permissions/`, đều `AttributeTargets.Class | AttributeTargets.Method`: `RequirePermissionAttribute(string key)` — **`AllowMultiple = true`**, phơi `Key`; `RequireSystemOperatorAttribute` — không tham số; `AuthenticatedOnlyAttribute(string reason)` — phơi `Reason`. Khối khai đầy đủ: ly-do §4.2.
 
-// Core.Web/Permissions/RequireSystemOperatorAttribute.cs
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
-public sealed class RequireSystemOperatorAttribute : Attribute
-{
-}
-
-// Core.Web/Permissions/AuthenticatedOnlyAttribute.cs
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
-public sealed class AuthenticatedOnlyAttribute(string reason) : Attribute
-{
-    public string Reason { get; } = reason;
-}
-
-// Core.Application/Permissions/IPermissionChecker.cs — seam
-public interface IPermissionChecker
-{
-    Task<bool> HasPermissionAsync(Guid userId, string permissionKey, CancellationToken ct);
-
-    // Tập quyền hiệu lực (§4.3)
-    Task<IReadOnlySet<string>> GetEffectivePermissionsAsync(Guid userId, CancellationToken ct);
-}
-```
+Seam `IPermissionChecker` (`Core.Application/Permissions/`) có **ba** phương thức, mỗi phương thức một vai: `HasPermissionAsync(userId, permissionKey, ct)` cho filter; `GetEffectivePermissionsAsync(userId, ct)` trả tập quyền hiệu lực (§4.3, có tính cờ bypass); `GetPermissionsForRolesAsync(roleIds, ct)` trả tập quyền **từng vai trò cấp** bằng một truy vấn theo tập, **không** qua cờ bypass — luật chống leo thang ([`../contracts/users.md`](../contracts/users.md) §2). Chữ ký đầy đủ: ly-do §4.2.
 
 `RequirePermissionFilter` (`Core.Web/Filters/`, `internal sealed`, `IAsyncAuthorizationFilter`, nhận
 `IPermissionChecker` + `ICurrentUser`) — bốn bước trong `OnAuthorizationAsync`, theo thứ tự:
@@ -396,27 +321,19 @@ Nó kiểm quyền ở mức **endpoint**, không ở mức **bản ghi**. Kiể
 
 ## 5. `[AllowAnonymous]` — allowlist khai tường minh
 
-`ApiControllerBase` mang `[Authorize]` (§3), nên mỗi `[AllowAnonymous]` phải nằm trong một allowlist khai ở
-một chỗ:
-
-```csharp
-// Core.Web/Security/AnonymousEndpointAllowlist.cs
-public static class AnonymousEndpointAllowlist
-{
-    public static readonly IReadOnlySet<string> Endpoints = new HashSet<string>(StringComparer.Ordinal)
-    {
-        "POST /api/v1/core/auth/login",
-        "GET /api/v1/core/antiforgery/token",
-        "POST /api/v1/core/client-errors",
-        "GET /health/live",
-        "GET /health/ready",
-    };
-}
-```
+`ApiControllerBase` mang `[Authorize]` (§3), nên mỗi `[AllowAnonymous]` phải nằm trong allowlist khai ở **đúng một chỗ**: `AnonymousEndpointAllowlist.Endpoints` (`Core.Web/Security/`, tập chuỗi `"<VERB> <đường dẫn>"`, so `Ordinal`). **Danh sách sống ở code, không chép vào tài liệu** ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §6) — đọc bằng `grep -n '"' src/BE/Core/CoreAndSkill.Core.Web/Security/AnonymousEndpointAllowlist.cs`; khuôn khai ở ly-do §5.
 
 Luật `EveryAllowAnonymous_IsOn_TheAllowlist` ([`../RULES.md`](../RULES.md) §6) đối chiếu mọi
-`[AllowAnonymous]` trong solution với danh sách này. Thêm một dòng vào allowlist là một thay đổi phải
-giải trình trong PR.
+`[AllowAnonymous]` **trên action controller** trong solution với danh sách này. Thêm một dòng vào allowlist là
+một thay đổi phải giải trình trong PR.
+
+**Health check không nằm trong danh sách trên.** `/health/live` và `/health/ready` không phải action controller:
+chúng ẩn danh qua `.AllowAnonymous()` gắn lúc map trong `UseCoreAsync()`
+([`be-architecture.md`](be-architecture.md) §3.1), nên cổng S4 không quét tới. Endpoint nào mở ẩn danh bằng
+đường map đó thì **không có cổng nào canh** — chỉ người review thấy.
+
+`diagnostics/probe` **chỉ có ngoài Production**: ở Production tuyến không được đăng ký và trả 404 như tuyến
+không tồn tại ([`../contracts/diagnostics.md`](../contracts/diagnostics.md) mục *Ghi chú*).
 
 **`[AllowAnonymous]` trên một action thắng mức khai ở cấp controller** (bảng §4.2) và phải có tên trong danh
 sách trên; ngoài danh sách thì đỏ ở cả S4 lẫn S11.
@@ -444,27 +361,9 @@ Thêm lại một trong hai là đảo một ADR, không phải thêm một dòn
 
 ### 6.2 ⚠️ Chọn đúng overload — bẫy đã dính thật
 
-**Không dùng overload `AddFixedWindowLimiter("login", …)`** — dùng `AddPolicy` + `RateLimitPartition`:
+**Không dùng overload `AddFixedWindowLimiter("login", …)`** — dùng `AddPolicy` + `RateLimitPartition.GetFixedWindowLimiter` với `partitionKey` là địa chỉ kết nối; giới hạn nền là `GlobalLimiter` dựng bằng `PartitionedRateLimiter.Create` + `GetSlidingWindowLimiter`, cùng khoá phân vùng; `RejectionStatusCode` = 429. Mặc định đã chốt: `login` **5 lượt / 1 phút** mỗi IP; nền **200 lượt / 1 phút** mỗi IP, 6 đoạn. Khối đầy đủ, cạnh dạng sai: ly-do §6.2.
 
-```csharp
-// ✅ ĐÚNG
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-    options.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
-        partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        factory: _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1) }));
-
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
-        RateLimitPartition.GetSlidingWindowLimiter(
-            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new SlidingWindowRateLimiterOptions
-                { PermitLimit = 200, Window = TimeSpan.FromMinutes(1), SegmentsPerWindow = 6 }));
-});
-```
-
-Hàng rào 3 không có trong khối trên — §6.5. Action đăng nhập gắn policy bằng `[EnableRateLimiting("login")]`.
+Hàng rào 3 không nằm trong `AddRateLimiter` — §6.5. Action đăng nhập gắn policy bằng `[EnableRateLimiting("login")]`.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §6.2
 
@@ -478,15 +377,14 @@ Hàng rào 3 không có trong khối trên — §6.5. Action đăng nhập gắn
 4. **Đếm trong bộ nhớ của từng instance là hạn mức nhân lên.** v1 chạy một instance nên chấp nhận được;
    đây là **điều kiện bắt buộc phải giải trước khi mở instance thứ hai**.
 5. **Thông điệp từ chối không tiết lộ ngưỡng.** Trả mã lỗi chung, không kèm con số.
-6. **429 phải ra đúng envelope**, mang `SecurityErrors.RateLimitExceeded` (§7.4).
+6. **429 phải ra đúng envelope**, mang `SecurityErrors.RateLimitExceeded` (§7.4) và `messageParams.RetryAfterSeconds`
+   bằng số giây của header `Retry-After` (`contracts/auth.md` §10) — luật B21 ([`../RULES.md`](../RULES.md) §5).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §6.3
 
 ### 6.4 Con số là ước lượng, không phải số đo
 
-Hạn mức trên là mặc định cho vài chục người dùng đồng thời, mỗi người một IP. Sau khi chạy thật, đếm số
-lần 429 trong log: có 429 **không** kèm sự cố FE → nới lên; không có 429 nào trong nhiều tuần → **vẫn giữ**.
-Rate limit theo IP **không phải** phòng thủ DDoS — việc đó thuộc tầng mạng.
+Hạn mức trên là mặc định cho vài chục người dùng đồng thời; chỉnh theo số lần 429 trong log, cách đọc ở ly-do §6.4. Rate limit theo IP **không phải** phòng thủ DDoS — việc đó thuộc tầng mạng.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §6.4
 
@@ -521,7 +419,7 @@ public interface ILoginAttemptLimiter
     ValueTask EnsureAttemptAllowedAsync(string tenantCode, string userName, CancellationToken ct);
 }
 
-// Core.Application/Identity/LoginAttemptLimitExceededException.cs
+// Core.Application/Identity/ILoginAttemptLimiter.cs — lớp exception khai cùng tệp
 public sealed class LoginAttemptLimitExceededException(TimeSpan retryAfter) : Exception
 {
     public TimeSpan RetryAfter { get; } = retryAfter;
@@ -548,39 +446,33 @@ FE và API ở **hai origin khác nhau nhưng cùng tên miền gốc**
 **`SameSite=Lax`**, **không** cần `SameSite=None`; vẫn cần hai lớp ở §7.2.
 
 > 🛑 **Điều kiện của cả chuỗi: cùng tên miền gốc VÀ cùng scheme.**
->
-> | Lệch | Hậu quả |
-> | --- | --- |
-> | Khác scheme — FE `http`, API `https` | **Khác site.** Cookie `Lax` không được gửi ⇒ đăng nhập xong vẫn 401. Đó là lý do mọi môi trường, kể cả máy dev, chạy HTTPS |
-> | Khác tên miền gốc | Cookie thành **bên thứ ba**: phải `SameSite=None`, và trình duyệt có thể chặn hẳn. Đổi điều kiện này là một **ADR mới**, không phải một dòng cấu hình |
+> Lệch điều kiện này — khác scheme hay khác tên miền gốc — là cookie không đi hoặc thành bên thứ ba; đổi nó là một **ADR mới**. Hậu quả từng ca: ly-do §7.1.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §7.1
 
 ### 7.2 Hai lớp
 
-Cả hai lớp nằm trong **một** middleware, `AntiforgeryValidationMiddleware` (§2.4; vị trí:
-[`be-architecture.md`](be-architecture.md) §3.1; `Core.Web/Security/`, `internal sealed`, nhận `IAntiforgery` +
-`IOptions<CoreAuthOptions>`).
+Cả hai lớp nằm trong **một** middleware, `AntiforgeryValidationMiddleware` (§2.4; vị trí: [`be-architecture.md`](be-architecture.md) §3.1; `Core.Web/Security/`, `internal sealed`, nhận `IAntiforgery` + `IOptions<CoreAuthOptions>`).
 
 | Lớp | Cơ chế | Từ chối bằng | Chặn gì |
 | --- | --- | --- | --- |
 | 1 | Request ghi có header `Origin` không nằm trong allowlist — cùng allowlist với CORS (§7.3) | 403 `CORE.AUTH.ORIGIN_REJECTED` | Request từ site lạ do trình duyệt phát sinh, vì trình duyệt luôn gắn `Origin` cho request cross-origin và **script không sửa được** header đó |
-| 2 | Token antiforgery — mọi `POST`/`PUT`/`PATCH`/`DELETE` phải mang header `X-XSRF-TOKEN` khớp | 403 `CORE.AUTH.CSRF_REJECTED` | Ca lớp 1 bỏ lọt (request không có `Origin`, hoặc allowlist bị cấu hình rộng) |
+| 2 | Token antiforgery — mọi `POST`/`PUT`/`PATCH`/`DELETE`, cộng `GET` mang dấu ở bảng dưới, phải mang header `X-XSRF-TOKEN` khớp | 403 `CORE.AUTH.CSRF_REJECTED` | Ca lớp 1 bỏ lọt (request không có `Origin` — kể cả điều hướng cấp cao nhất xuyên site — hoặc allowlist bị cấu hình rộng) |
 
-Hai lớp độc lập: request với `Origin` lạ nhưng token hợp lệ vẫn phải bị **403 `CORE.AUTH.ORIGIN_REJECTED`**.
-Cách FE xử lý từng mã: [`../contracts/auth.md`](../contracts/auth.md) §11.
+Hai lớp độc lập: request với `Origin` lạ nhưng token hợp lệ vẫn phải bị **403 `CORE.AUTH.ORIGIN_REJECTED`**. Cách FE xử lý từng mã: [`../contracts/auth.md`](../contracts/auth.md) §11.
 
-**Phiên hết hạn ra 401, không ra 403** — bước 2 dưới đây cho đi tiếp để `UseAuthorization` trả 401 qua
-`OnRedirectToLogin`.
+**Phiên hết hạn ra 401, không ra 403** — bước 2 dưới đây cho đi tiếp để `UseAuthorization` trả 401 qua `OnRedirectToLogin`.
 
 Thứ tự trong `InvokeAsync`:
 
-1. `GET` / `HEAD` / `OPTIONS` / `TRACE` ⇒ `next` (chỉ kiểm method ghi — bẫy thứ ba ở §7.5).
+1. `GET` / `HEAD` / `OPTIONS` / `TRACE` ⇒ `next` — **trừ** action mang dấu ngoại lệ ở bảng dưới (chỉ kiểm method ghi — bẫy thứ ba ở §7.5).
 2. Endpoint có `IAuthorizeData`, không `IAllowAnonymous`, và `User` chưa xác thực ⇒ `next` (401 ở `UseAuthorization`).
 3. Header `Origin` có mặt và không nằm trong `AllowedOrigins` (so `OrdinalIgnoreCase`) ⇒
    `SecurityEnvelopeWriter.WriteEnvelopeAsync(http, SecurityErrors.OriginRejected)` — lớp 1.
-4. `!antiforgery.IsRequestValidAsync(http)` ⇒ `WriteEnvelopeAsync(http, SecurityErrors.CsrfRejected)` — lớp 2.
+4. Token không hợp lệ ⇒ `WriteEnvelopeAsync(http, SecurityErrors.CsrfRejected)` — lớp 2. Kiểm bằng `ValidateRequestAsync` trong `try/catch`, **không** `IsRequestValidAsync`: hàm sau trả `true` cho mọi method an toàn (ly-do §7.2).
 5. `next`.
+
+Request ghi thiếu token tới đường dẫn **không có endpoint** ra 403 `CORE.AUTH.CSRF_REJECTED`, không 404 — có chủ đích.
 
 `WriteEnvelopeAsync` (§7.4) dùng chung cho hai cookie event và middleware này — status lấy từ `ResultToHttpMapper`,
 không gõ tay.
@@ -590,27 +482,19 @@ không gõ tay.
 | Loại | Cần? |
 | --- | --- |
 | Mọi endpoint ghi (`POST`, `PUT`, `PATCH`, `DELETE`) | ✅ |
-| Đăng nhập | ✅ — chống ép người dùng đăng nhập vào tài khoản của kẻ tấn công |
-| Đăng xuất | ✅ — bị ép đăng xuất là phiền, tuy nhẹ |
-| Endpoint đọc (`GET`) | ❌ — nhưng khi đó `GET` **không được** gây thay đổi trạng thái. Một `GET` có tác dụng phụ là lỗ hổng, không phải một lựa chọn thiết kế |
+| Đăng nhập, đăng xuất | ✅ — vì sao: ly-do §7.2 |
+| Endpoint đọc (`GET`) không tác dụng phụ | ❌ |
+| `GET` **có tác dụng phụ** — hôm nay đúng một: endpoint xuất theo khuôn [`../contracts/exports.md`](../contracts/exports.md) §1, vì mỗi lần xuất ghi nhật ký kiểm toán | ✅ **ngoại lệ có tên** ([ADR-0062](../adr/0062-endpoint-xuat-kiem-token-chong-gia-mao-nhu-lenh-ghi.md), điều kiện vào hàng này ở đó): action mang `[RequireAntiforgery]` (`Core.Web/Security/`), bước 1 đọc **metadata của endpoint** rồi kiểm hai lớp như lệnh ghi. Thiếu dấu là lỗ hổng, không phải lựa chọn — luật S20 |
 
 > 📖 Lý do, bẫy, ví dụ mở rộng (gồm khối `AntiforgeryValidationMiddleware` đầy đủ): [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §7.2
 
 ### 7.3 CORS
 
-```csharp
-services.AddCors(options => options.AddPolicy(CorsPolicyNames.Default, policy =>
-{
-    policy.WithOrigins(authOptions.AllowedOrigins)
-          .AllowAnyHeader()
-          .AllowAnyMethod()
-          .AllowCredentials()                         // bắt buộc để cookie đi qua
-          .WithExposedHeaders("Retry-After");
-}));
-```
+Một policy `CorsPolicyNames.Default`: `WithOrigins` + `AllowAnyHeader` + `AllowAnyMethod` + `AllowCredentials` + `WithExposedHeaders` — khối đầy đủ ở ly-do §7.3.
 
 - Allowlist đọc qua `IOptions<CoreAuthOptions>` — fail-fast lúc khởi động ([`be-architecture.md`](be-architecture.md) §4).
-- Header phản hồi mà FE cần đọc phải nằm trong `WithExposedHeaders` — `Retry-After` của 429 (§6.5) là một.
+- `AllowCredentials()` là bắt buộc để cookie đi qua.
+- Header phản hồi FE cần đọc phải nằm trong `WithExposedHeaders` — hai header: `Retry-After` của 429 (§6.5), `Content-Disposition` của endpoint trả tệp. Thiếu thì FE đọc ra `null`, không lỗi.
 - **Không bao giờ** `AllowAnyOrigin()` một khi đã có auth thật.
 
 > 🛑 **Không bao giờ dùng CORS thay cho phân quyền.** Không "sửa" lỗi CORS bằng cách phản hồi lại đúng
@@ -620,29 +504,17 @@ services.AddCors(options => options.AddPolicy(CorsPolicyNames.Default, policy =>
 
 ### 7.4 Cookie phiên
 
-```csharp
-// Core.Web/DependencyInjection/CoreWebServiceCollectionExtensions.cs — cookie scheme sống ở Core.Web; khối đầy đủ: ly-do §7.4
-services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.Cookie.Name = authOptions.CookieName;
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(authOptions.SessionMinutes);
-        // Events: bảng §2.4 và đoạn "Phép kiểm phiên ở mọi request" dưới
-    });
-```
+Cookie scheme sống ở `Core.Web` (`CoreWebServiceCollectionExtensions`): `AddAuthentication` + `AddCookie` với `Cookie.Name` từ `CoreAuthOptions`, `HttpOnly = true`, `SameSite = Lax`, `SecurePolicy = Always`, `ExpireTimeSpan` từ `SessionMinutes`; ba `Events` — hai redirect ở bảng §2.4 và `OnValidatePrincipal` ở đoạn *Phép kiểm phiên ở mọi request* dưới. Khối đầy đủ: ly-do §7.4.
 
-**Catalog mã của hạ tầng HTTP — định nghĩa gốc.** Mọi mã ở bảng §2.4 khai ở đây.
+**Catalog mã của hạ tầng HTTP — định nghĩa gốc.** Mọi mã ở bảng §2.4 có mặt ở đây; mã handler cũng phát thì khai một lần ở `CommonErrors` và ở đây trỏ tới (R3). ✅ CÓ THẬT (đối chiếu 2026-09-26): `src/BE/Core/CoreAndSkill.Core.Web/Security/SecurityErrors.cs`, chuỗi `Forbidden = CommonErrors.Forbidden`.
 
 ```csharp
-// Core.Web/Security/SecurityErrors.cs — catalog DUY NHẤT của mã mà hạ tầng HTTP phát (nơi phát: bảng §2.4); không trùng AuthErrors (mã CORE.AUTH.* của handler)
+// Core.Web/Security/SecurityErrors.cs — mã mà hạ tầng HTTP phát (nơi phát: bảng §2.4); không trùng AuthErrors (mã CORE.AUTH.* của handler)
 internal static class SecurityErrors
 {
     public static readonly Error NotAuthenticated = new("CORE.AUTH.NOT_AUTHENTICATED", "Chưa đăng nhập hoặc phiên đã hết hạn.", ErrorType.Unauthorized);
 
-    public static readonly Error Forbidden = new("CORE.AUTH.FORBIDDEN", "Không có quyền thực hiện thao tác này.", ErrorType.Forbidden);
+    public static readonly Error Forbidden = CommonErrors.Forbidden;
 
     public static readonly Error OriginRejected = new("CORE.AUTH.ORIGIN_REJECTED", "Nguồn gọi không nằm trong danh sách được phép.", ErrorType.Forbidden);
 
@@ -657,17 +529,9 @@ internal static class SecurityErrors
 
     public static readonly Error RouteMethodNotAllowed = new("CORE.ROUTE.METHOD_NOT_ALLOWED", "Phương thức không được hỗ trợ ở đường dẫn này.", ErrorType.NotFound);
 }
-
-// Core.Web/Security/SecurityEnvelopeWriter.cs — helper DUY NHẤT ghi envelope lỗi từ hạ tầng
-internal static class SecurityEnvelopeWriter
-{
-    public static Task WriteEnvelopeAsync(HttpContext http, Error error)
-    {
-        http.Response.StatusCode = ResultToHttpMapper.ToStatusCode(error.Type);
-        return http.Response.WriteAsJsonAsync(Envelope.Failure(error, http.TraceIdentifier));
-    }
-}
 ```
+
+`SecurityEnvelopeWriter.WriteEnvelopeAsync(HttpContext, Error)` (`Core.Web/Security/`, `internal static`) là helper **duy nhất** ghi envelope lỗi từ hạ tầng: đặt status bằng `ResultToHttpMapper.ToStatusCode(error.Type)` rồi ghi `Envelope.Failure` kèm `TraceIdentifier` — khối ở ly-do §7.4.
 
 **Seam dựng principal và kiểu của phiên — định nghĩa gốc.** File khác trỏ về đây, không chép chữ ký.
 
@@ -675,7 +539,7 @@ internal static class SecurityEnvelopeWriter
 // Core.Application/Auth/ — hiện thực factory ở Core.Infrastructure
 public interface ISessionPrincipalFactory
 {
-    // Không truy vấn gì; issuedAt: khối AuthController dưới
+    // Không truy vấn gì; issuedAt: đoạn "Controller đăng nhập" dưới
     ClaimsPrincipal Create(LoginOutcome outcome, DateTimeOffset issuedAt);
 }
 
@@ -690,7 +554,9 @@ public static class CoreClaimTypes
     public const string IsSystemOperator   = "core.is_system_operator";
 }
 
-public sealed record LoginOutcome(SessionDto Session, string SecurityStamp);
+// TenantId: dữ liệu nội bộ để factory dựng claim CoreClaimTypes.TenantId — không lộ ra response
+// (SessionDto không có field này, luật M2)
+public sealed record LoginOutcome(SessionDto Session, string SecurityStamp, Guid TenantId);
 
 // Ý nghĩa từng trường: contracts/auth.md §3, §5
 public sealed record SessionDto(
@@ -700,39 +566,7 @@ public sealed record SessionDto(
     string? PreferredLanguage, string TenantCode, string TenantName);
 ```
 
-```csharp
-// Core.Web/Controllers/AuthController.cs
-[HttpPost("login")]
-[AllowAnonymous]
-[EnableRateLimiting("login")]
-public async Task<IActionResult> Login([FromBody] LoginCommand command, CancellationToken ct)
-{
-    var result = await mediator.Send(command, ct);
-    if (result.IsFailure)
-        return HandleResult(result);
-
-    await SignInAsync(result.Value, issuedAt: timeProvider.GetUtcNow());
-    return HandleResult(Result.Success(result.Value.Session));
-}
-
-[HttpPost("change-password")]
-[AuthenticatedOnly("Đổi mật khẩu của chính mình")]
-public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordCommand command, CancellationToken ct)
-{
-    var result = await mediator.Send(command, ct);
-    if (result.IsFailure)
-        return HandleResult(result);
-
-    var issuedAt = DateTimeOffset.Parse(User.FindFirstValue(CoreClaimTypes.IssuedAt)!, CultureInfo.InvariantCulture);
-    await SignInAsync(result.Value, issuedAt);
-    return HandleResult(Result.Success());
-}
-
-private Task SignInAsync(LoginOutcome outcome, DateTimeOffset issuedAt) => HttpContext.SignInAsync(
-    CookieAuthenticationDefaults.AuthenticationScheme,
-    principalFactory.Create(outcome, issuedAt),
-    new AuthenticationProperties { IsPersistent = false });
-```
+Controller đăng nhập gọi `principalFactory.Create(outcome, issuedAt)` rồi `HttpContext.SignInAsync` với `IsPersistent = false`; `issuedAt` là giờ hiện tại khi đăng nhập và là claim `CoreClaimTypes.IssuedAt` của principal cũ khi đổi mật khẩu. Khối `AuthController` mẫu: ly-do §7.4.
 
 **Ranh giới Identity ↔ cookie** ([ADR-0026](../adr/0026-ranh-gioi-identity-va-cookie.md)):
 
@@ -744,7 +578,7 @@ private Task SignInAsync(LoginOutcome outcome, DateTimeOffset issuedAt) => HttpC
 (`LoginCommand` cài `INoTransaction` — [`be-cqrs-handler.md`](be-cqrs-handler.md) §5.3). Thứ tự trong handler:
 `ILoginAttemptLimiter` (§6.5) → `ITenantLookup.FindByCodeAsync` → mở phạm vi đơn vị →
 `IIdentityService.CheckCredentialsAsync` trả `CredentialCheck` ([`be-entity-domain.md`](be-entity-domain.md) §7.1)
-→ dựng `SessionDto` → `LoginOutcome(session, check.SecurityStamp)`. `SessionDto` ghép từ các seam, không chạm
+→ dựng `SessionDto` → `LoginOutcome(session, check.SecurityStamp, tenant.Id)`. `SessionDto` ghép từ các seam, không chạm
 `AppUser`: `IUserLookupService.FindByIdAsync` (`UserSummaryDto`: danh tính, `IsSystemOperator`, `PreferredLanguage`),
 `IUserLookupService.GetRoleNamesAsync` (`Roles`), `IPermissionChecker.GetEffectivePermissionsAsync` (`Permissions`),
 `TenantSummary` đã tra ở bước trước (`TenantCode`, `TenantName`); `MustChangePassword` từ `CredentialCheck` — cùng lần
@@ -757,9 +591,20 @@ lấy từ `UserSummaryDto`. Controller gọi `principalFactory.Create(outcome, 
 
 **Phép kiểm phiên ở mọi request** (`OnValidatePrincipal`): mở phạm vi ngữ cảnh thực thi bằng `TenantId` từ
 **claim của chính principal đang kiểm** (mục allowlist luật A12 ở [`be-architecture.md`](be-architecture.md) §1.1),
-rồi gọi `IIdentityService.IsSessionValidAsync(userId, securityStamp)`. Phép kiểm trả `false` khi security stamp lệch
-**hoặc** đơn vị của claim có `is_active = false` — cùng một lần đọc. `false` ⇒ `RejectPrincipal` + `SignOutAsync`;
-`true` ⇒ `ShouldRenew = true`.
+rồi kiểm **hai phép riêng, hai lần đọc, theo thứ tự này**:
+
+| # | Seam | Kiểm gì | Không kiểm gì |
+| --- | --- | --- | --- |
+| 1 | `IIdentityService.IsSessionValidAsync(userId, securityStamp)` | Tài khoản còn tồn tại **và** security stamp khớp | Trạng thái đơn vị |
+| 2 | `ITenantLookup.FindByIdAsync(tenantId)` | Đơn vị của claim còn tồn tại **và** `IsActive` | Stamp |
+
+Phép nào hỏng ⇒ `RejectPrincipal` + `SignOutAsync`; qua cả hai ⇒ `ShouldRenew = true`. Trước hai phép này,
+`OnValidatePrincipal` đã từ chối principal thiếu claim hoặc quá trần tuyệt đối của phiên.
+
+🛑 **`IsSessionValidAsync` trả `true` không có nghĩa phiên hợp lệ** — nó không biết gì về đơn vị. Chỗ nào mới gọi
+seam này để quyết một phiên còn dùng được (hub realtime, job chạy thay người dùng, endpoint ngoài pipeline cookie)
+thì **phải tự gọi phép 2**; chỉ gọi phép 1 là để phiên của một đơn vị đã ngưng hoạt động đi qua.
+Hiện thực: `ValidatePrincipalAsync` trong `Core.Web/DependencyInjection/CoreWebServiceCollectionExtensions.cs`.
 
 **Đổi mật khẩu thành công** (cả hai endpoint ở [`../contracts/auth.md`](../contracts/auth.md) §6, §7): handler gọi
 `IIdentityService.ChangePasswordAsync` ([`be-entity-domain.md`](be-entity-domain.md) §7.1) — endpoint §7 truyền
@@ -778,16 +623,9 @@ thao tác đó. **Mở khoá không đổi stamp.** Hợp đồng: [`../contract
 Cơ chế: `ShouldRenew = true` sau khi phép kiểm qua. **Không** dựa vào `SlidingExpiration`. Request mà handler trả
 lỗi nghiệp vụ **vẫn gia hạn**.
 
-**`SessionMinutes` — chốt 30 phút cho MỌI phiên ở v1 (2026-09-10).** Không có tuỳ chọn *ghi nhớ đăng nhập*:
-phiên phát với `IsPersistent = false`. Ba mươi phút là thời gian **không thao tác**; giá trị là **cấu hình**, nhưng
-đổi nó là một quyết định về bảo mật. FE v1 **không** hẹn giờ cảnh báo theo con số này
-([`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md) §10); trường vẫn nằm trong DTO.
+**`SessionMinutes` — chốt 30 phút không thao tác cho MỌI phiên ở v1 (2026-09-10).** Không có tuỳ chọn *ghi nhớ đăng nhập*: phiên phát với `IsPersistent = false`. Giá trị là cấu hình, nhưng đổi nó là quyết định bảo mật (ly-do §7.4). FE v1 **không** hẹn giờ cảnh báo theo con số này ([`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md) §10); trường vẫn nằm trong DTO.
 
-**Trần tuyệt đối của phiên: `Core:Auth:SessionAbsoluteHours`, mặc định 12 giờ** từ lúc đăng nhập — thuộc tính
-`CoreAuthOptions.SessionAbsoluteHours` ([`be-architecture.md`](be-architecture.md) §4.1). Quá trần
-thì `OnValidatePrincipal` từ chối principal và trả 401 `CORE.AUTH.NOT_AUTHENTICATED` **dù phiên đang được gia
-hạn đều**. Cơ chế: claim `CoreClaimTypes.IssuedAt` — tham số `issuedAt` của factory (khối trên); kiểm cùng chỗ với
-security stamp. Response đăng nhập không mang giá trị này.
+**Trần tuyệt đối của phiên: `Core:Auth:SessionAbsoluteHours`, mặc định 12 giờ** từ lúc đăng nhập (`CoreAuthOptions.SessionAbsoluteHours`, [`be-architecture.md`](be-architecture.md) §4.1). Quá trần thì `OnValidatePrincipal` từ chối principal và trả 401 `CORE.AUTH.NOT_AUTHENTICATED` **dù phiên đang được gia hạn đều**; cơ chế là claim `CoreClaimTypes.IssuedAt`, kiểm cùng chỗ với security stamp. Response đăng nhập không mang giá trị này.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng (gồm khối cookie scheme đầy đủ): [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §7.4
 
@@ -806,21 +644,12 @@ Antiforgery có **hai nửa**, đi **hai đường khác nhau**:
 
 **Không có cookie thứ hai chứa request-token** — không dùng mô hình double-submit cổ điển.
 
-```csharp
-services.AddAntiforgery(options =>
-{
-    options.Cookie.Name = authOptions.AntiforgeryCookieName;
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.HeaderName = "X-XSRF-TOKEN";
-});
-```
+`AddAntiforgery`: `Cookie.Name` từ `CoreAuthOptions.AntiforgeryCookieName` (khác tên cookie phiên — fail-fast lúc khởi động), `HttpOnly = true`, `SameSite = Lax`, `SecurePolicy = Always`, `HeaderName = "X-XSRF-TOKEN"`.
 
 Endpoint phát token (`[AllowAnonymous]`, `[DisableRateLimiting]`) gọi `GetAndStoreTokens` rồi trả
 `RequestToken` trong body envelope — hợp đồng ở [`../contracts/auth.md`](../contracts/auth.md) §2.
 
-FE **gọi lại endpoint phát token ngay sau đăng nhập và sau đăng xuất** — token gắn với danh tính lúc phát ([`../contracts/auth.md`](../contracts/auth.md)). Validate antiforgery **chỉ áp cho method ghi**, không áp cho `GET`.
+FE **gọi lại endpoint phát token ngay sau đăng nhập và sau đăng xuất** — token gắn với danh tính lúc phát ([`../contracts/auth.md`](../contracts/auth.md)). Validate antiforgery **chỉ áp cho method ghi**, không áp cho `GET` — trừ ngoại lệ có tên ở bảng §7.2.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §7.5
 
@@ -841,6 +670,8 @@ khoẻ ở §8.3 — ngoại lệ có tên, đóng, không có ca thứ ba.
 | Ví dụ đầy đủ | `/api/v1/core/users` | |
 
 > 🚨 **Đường dẫn trong code phải đến từ MỘT hằng số dùng chung.**
+>
+> ✅ **CÓ THẬT** (đối chiếu 2026-09-24): `src/BE/Core/CoreAndSkill.Core.Web/Http/ApiRoutes.cs` — `public static class ApiRoutes` chỉ mang `Root`, `V1`; `public const string CoreV1` nằm trong `internal static class CoreRoutes`; mọi `[Route(` dưới `src/BE/Core` và host dùng `CoreRoutes.`. Cổng: `src/BE/Tests/CoreAndSkill.ArchTests/HandTypedApiPrefixTests.cs` — `CoreSource_MustNotContain_HandTypedApiPrefix` (luật A16) và `ApiRoutes_ExposesOnly_RootAndV1_ToModules`; kết quả chạy ở [`../RULES.md`](../RULES.md) §3.
 
 **Quy tắc phát hành** — thay đổi nào buộc tăng version:
 
@@ -862,10 +693,7 @@ contract card ở [`../contracts/`](../contracts/).
 
 ### 8.2 Swagger / OpenAPI
 
-- Bật ở Development; ở Production **chỉ** bật sau xác thực, hoặc tắt hẳn.
-- Mọi action khai `[ProducesResponseType]` cho status thành công và ít nhất một nhánh lỗi.
-- Kiểu trả về trong tài liệu là `ApiEnvelope<T>`, không phải `T`.
-- OpenAPI là tài liệu **sinh ra**, không phải hợp đồng — hợp đồng nằm ở [`../contracts/`](../contracts/).
+> 📐 Phần chưa thi công: [be-api-controller-chua-thi-cong.md](be-api-controller-chua-thi-cong.md) §8.2.
 
 ### 8.3 Health check
 
@@ -874,6 +702,6 @@ contract card ở [`../contracts/`](../contracts/).
 | `/health/live` | Process còn sống — **không** chạm DB | Orchestrator, để quyết định restart |
 | `/health/ready` | DB kết nối được, migration đã áp đủ. Trả `Degraded` khi Outbox có bản ghi `dead` hoặc bản ghi chưa phát cũ nhất quá 15 phút — [`../wiki-core/be/07-observability.md`](../wiki-core/be/07-observability.md) §8 | Load balancer, để quyết định đưa vào luồng |
 
-Cả hai `[AllowAnonymous]`, **có tên riêng trong allowlist §5**, miễn rate limit, không trả chi tiết nội bộ, không versioning, không envelope (ngoại lệ §8.1). `/health/ready` đỏ khi còn migration chưa áp — luật `Startup_Fails_When_PendingMigrationsExist` ([`../RULES.md`](../RULES.md) §4).
+Cả hai ẩn danh qua `.AllowAnonymous()` lúc map — **không** nằm trong allowlist §5, không cổng nào canh (§5), miễn rate limit, không trả chi tiết nội bộ, không versioning, không envelope (ngoại lệ §8.1). `/health/ready` đỏ khi còn migration chưa áp — luật E8 ([`../RULES.md`](../RULES.md) §4).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §8.3

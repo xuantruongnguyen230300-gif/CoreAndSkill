@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # DataTable
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`, hiện thực biến thể `paged` và **không** công tắc nào. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** **bọc PrimeNG**. Theo tiêu chí ở [`../COMPONENTS.md`](../COMPONENTS.md) §4 đây là ca rõ nhất của nhóm "khó": ảo hoá dòng, cột ghim, sắp xếp, phân trang phía máy chủ — vừa nhiều ca biên vừa nhạy hiệu năng.
 
@@ -15,6 +15,34 @@ verified: chua-doi-chieu
 **`DataTable` là chủ hợp đồng phân trang của màn danh sách.** Ở biến thể `paged`, dải phân trang là **phần cấu trúc của lớp bọc** ([`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5): `DataTable` dùng [`Pagination.md`](./Pagination.md) bên trong và vẽ nó ngay dưới khung bảng — màn **không** tự đặt thêm một `Pagination` nào. Vì vậy `page`, `pageSize`, `totalRecords` và sự kiện đổi trang vào ra qua API của `DataTable` ở mục API; [`Pagination.md`](./Pagination.md) giữ hình thức, trạng thái và accessibility của chính dải đó, không giữ hợp đồng của màn. Hai nơi cùng khai một hợp đồng là cách chúng lệch nhau ([`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §5).
 
 **Lớp bọc không import component tự dựng** — luật chiều import giữa hai tầng ở [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.2. Vì vậy nội dung do màn quyết — khối **trống**, khung **đang tải lần đầu**, khối **lỗi** kèm nút "Thử lại" — vào qua input `TemplateRef`: màn ghép [`EmptyState.md`](./EmptyState.md) và [`SkeletonLoader.md`](./SkeletonLoader.md) vào đó. Hợp đồng slot ở mục API. Phần cấu trúc của chính bảng — như nút "Đóng hết" của công tắc `expandable` — do thư viện vẽ, tạo hình bằng token ([`../COMPONENTS.md`](../COMPONENTS.md) §4 luật 5).
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/ui/data-table/data-table.component.ts` — selector `app-data-table`, chữ ký cột `DataColumnDef`, kiểu trạng thái `DataTableViewState`, class gốc `.data-table`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| Nơi duy nhất import `primeng/table` | Đúng — chú thích đầu file khai vai trò này | Chưa tự kiểm bằng lệnh là không còn chỗ nào khác import |
+| API | `rows`, `columns`, `caption`, `rowKey`, `state`, nhóm phân trang (`totalRecords`, `page`, `pageSize`, `pageSizeOptions`, `paginationAriaLabel`), nhóm sắp xếp (`sortBy`, `sortDescending`), ba slot template; output `pageChange`, `sortChange` | — |
+| Ghép `Pagination` bên trong ở chân khung | Có, đúng luật F5 — `<app-pagination>` nằm trong `.data-table`, nhận `loading` theo `state()` | — |
+| Biến thể `paged` | Có, là hình dạng duy nhất dựng | — |
+| Biến thể `scroll` | — | Chưa dựng. Không có input `variant` nào |
+| Sáu công tắc (`selectable`, `frozen`, `tree`, `grouped`, `expandable`, `summary`) | — | **Chưa dựng cái nào.** Chú thích component khai không màn nào cần. Toàn bộ mục §Lưới cây và §Dòng tổng của spec vì thế chưa có gì để đối chiếu |
+| Sắp xếp | Có: `th` sắp xếp được bọc một `<button>` thật, `aria-sort` tính đúng ba giá trị, đổi cột thì về `ascending` trước; icon đổi theo `pi-sort-alt` / `pi-sort-amount-up-alt` / `pi-sort-amount-down` (`data-table.component.html` § `[class.pi-sort-amount-up-alt]`) — khớp bảng [`../Icons.md`](../Icons.md) §5, đối chiếu 2026-09-22 | — |
+| `scope="col"` trên mọi `th` | Có | — |
+| Tên truy cập của bảng cho trình đọc màn hình | Có (đối chiếu 2026-09-22) — `data-table.component.ts` § `ptBang` dựng `{ table: { 'aria-label': … } }` từ input `caption` và truyền vào `p-table` qua § `[pt]="ptBang()"`, nên `aria-label` nằm **thẳng trên `<table>`**. Slot `#caption` không còn dùng: chú thích trong `data-table.component.ts` ghi lý do — bản PrimeNG đang cài chiếu slot đó vào một `div` **ngoài** `<table>`, một `<caption>` đặt ở đó không thuộc bảng. Vùng cuộn bao ngoài vẫn có tên riêng (`role="region"` + `aria-label`) | — (đủ theo dòng "Tên truy cập của bảng" ở §Accessibility) |
+| Khung cuộn nhận được focus | Có, `tabindex="0"` + `role="region"` + `aria-label` — đúng khuôn cho vùng cuộn ngang | — |
+| `aria-busy` khi đang tải | Có, trên `p-table` | — |
+| Ba trạng thái rỗng/lỗi/tải đi qua slot | Có, đúng luật spec: một `#emptymessage` duy nhất phân nhánh `loadingTemplate` / `errorTemplate` / `emptyTemplate`, và slot trống nhận `state()` làm ngữ cảnh nên màn phân biệt được `'empty'` với `'empty-filtered'` | — |
+| Tiêu đề cột giữ nguyên khi lỗi/rỗng | Có — `#header` luôn vẽ, ba trạng thái chỉ thay phần thân | — |
+| Hai ca `loading` | Phân biệt đúng ở mức logic: `dangTai` (lần đầu, chưa có dòng) dùng `loadingTemplate`; `dangTaiLai` (đã có dòng) chỉ gắn class `--tai-lai` để giữ nguyên dữ liệu cũ | Chưa kiểm `.data-table__khung--tai-lai` có thật sự phủ `--color-scrim` + spinner và khoá thao tác như §Trạng thái đòi — mới thấy tên class, chưa soát nội dung quy tắc |
+| Ẩn cột ở màn hẹp | `DataColumnDef` khai `hideBelow` và `priority`; template phát `[attr.data-priority]` lên `th` và `td` | ⚠️ **Không có tác dụng.** Không có quy tắc CSS nào đọc `data-priority` trong toàn bộ `src/FE`, và `hideBelow` **không được đọc ở đâu cả** — kể cả trong template. Chú thích component khai việc này "xử lý bằng CSS thuần", nhưng phần CSS đó chưa tồn tại. Đây **không** phải khoảng trống lý thuyết: `danh-sach-nguoi-dung.page.ts` đã khai `hideBelow: 'md'` và `hideBelow: 'sm'` cho hai cột thật, và hai cột đó hiện **không** ẩn ở màn hẹp |
+| `width` và `align` của cột | `width` gắn qua `[style.width]`; `align: 'end'` gắn class `.data-table__o--end` | — |
+| §Token dùng — `--dur-fast` (đối chiếu 2026-09-23, chỉ đọc mã) | Chuyển tiếp của hàng và ô tiêu đề do CSS thư viện lo: `@primeuix/styles/datatable` § `transition:` dùng `dt('datatable.transition.duration')` cho `background`, `color`, `border-color`, `box-shadow`. Biến đó nhận primitive `transition.duration` của Aura là `0.2s` → **200ms** đang chạy, spec đòi `120ms` | Token **tới được**: khai `--p-datatable-transition-duration` trỏ về `--dur-fast`. Chưa ai khai |
+| Chuyển động **không** tới được bằng token — nhưng chưa dùng tới (đối chiếu 2026-09-23) | `primeng/table` còn một hoạt ảnh ghi cứng, không qua input nào: khối `animations:` của `ColumnFilter` § `animate('.12s cubic-bezier(0, 0, 0.2, 1)')` vào và § `animate('.1s linear'` ra. Hai con số đó là literal trong mã thư viện | ✅ **Không phải lỗi đang hoạt động.** Chúng thuộc lớp nổi lọc-theo-cột, mà lớp bọc Core không dựng: không chỗ nào trong `shared/ui/data-table/` dùng `p-columnFilter`, và spec cũng không khai tính năng lọc theo cột. Ghi ở đây để lần sau ai mở tính năng đó thì biết trước là thời lượng của nó **không đặt được** |
+| `rowKey` | Có (đối chiếu 2026-09-24) — dòng track theo khoá: `data-table.component.html` § `[rowTrackBy]="khoaHang"` truyền hàm `data-table.component.ts` § `khoaHang` (đọc trường `rowKey()` của dòng) vào `p-table`, thay mặc định track theo tham chiếu của thư viện; § `[dataKey]="rowKey()"` dùng cùng khoá. Ca kiểm trong `data-table.component.spec.ts`: § `tải lại trả object MỚI cùng khoá` (mọi `<tr>` giữ nguyên phần tử, nút đang focus giữ focus) và § `xoá một dòng rồi tải lại` (track theo khoá, không theo vị trí) | — |
+
+Chưa đối chiếu — **lỗ mù lớn của file này**: toàn bộ hình thức ở §Trạng thái (`default` nền dòng và vạch ngăn, `th` nền `--color-surface-2` dính đỉnh, `hover`, `focus-visible` với `outline-offset` âm, dòng `active`, dòng `disabled`) chưa soát — phần lớn đến từ sub-preset `table` của PrimeNG, và tôi mới mở SCSS của component chứ chưa mở preset. Cũng chưa đối chiếu §Responsive, §Accessibility ngoài bốn khoản ghi ở bảng, và mọi luật thuộc các công tắc chưa dựng.
 
 ---
 
@@ -173,7 +201,7 @@ Khối chi tiết có dải trái `--border-w-accent` màu `--color-brand` để
 | Khoản | Yêu cầu |
 | --- | --- |
 | Thẻ | `<table>` thật với `<thead>`, `<tbody>`, `<th scope="col">`. 🛑 Không dựng bảng bằng `<div role="grid">` khi dữ liệu là bảng thật |
-| Tiêu đề bảng | `<caption>`, ẩn về mặt hình ảnh nếu tiêu đề đã hiện ở `PageHeader` — nhưng **phải có** |
+| Tên truy cập của bảng | `<table>` **phải có** tên truy cập, ẩn về mặt hình ảnh nếu tiêu đề đã hiện ở `PageHeader`. Cơ chế: `aria-label` đặt **thẳng trên `<table>`** qua pass-through của thư viện, từ input `caption`. Không dùng `<caption>` — đổi ngày 2026-09-22: slot chú thích của bản PrimeNG đang cài nằm ngoài `<table>`, nên `<caption>` đặt qua slot đó không thuộc bảng và tên không tới được trình đọc màn hình. Tên trên vùng cuộn (`role="region"`) là tên **khác**, không thay được tên của bảng |
 | Sắp xếp | `th` sắp xếp được chứa một `<button>`; `aria-sort` nhận `ascending` / `descending` / `none` |
 | Chọn dòng | Ô đánh dấu có `aria-label` nêu **bản ghi nào** ("Chọn người dùng Nguyễn Văn A"), không phải "Chọn" |
 | Chọn tất cả | Ô đánh dấu ở `th` dùng trạng thái `indeterminate` khi chỉ chọn một phần. Phạm vi là **trang hiện tại** — `rows` và `selection` chỉ chứa dòng đã tải (§API); nhãn nói rõ điều đó, vì người dùng luôn hiểu nhầm thành toàn bộ kết quả. Chọn toàn bộ kết quả sau lọc cần hợp đồng phía máy chủ, không có ở v1 |
@@ -196,6 +224,7 @@ Khối chi tiết có dải trái `--border-w-accent` màu `--color-brand` để
 | Tên | Chiều | Kiểu | Mặc định | Ghi chú |
 | --- | --- | --- | --- | --- |
 | `rows` | input | `ReadonlyArray<T>` | `[]` | Dữ liệu của **trang hiện tại**, không phải toàn bộ |
+| `caption` | input | `string` | — | **Bắt buộc.** Tên truy cập của bảng, đã dịch — đặt lên `<table>` theo dòng "Tên truy cập của bảng" ở §Accessibility; không hiện ra hình |
 | `columns` | input | `ReadonlyArray<DataColumnDef<T>>` | `[]` | Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9. **Đây là điểm mở rộng chính**: dự án hạ nguồn thêm hoặc đổi cột qua đây, không sửa file Core |
 | `variant` | input | `'paged' \| 'scroll'` | `'paged'` | Hai biến thể loại trừ nhau ở mục Biến thể. `paged` vẽ dải [`Pagination.md`](./Pagination.md) ở chân khung và nhận `page` / `pageSize` / `totalRecords`; `scroll` không vẽ dải nào và tải thêm khi tới đáy vùng cuộn |
 | `switches` | input | `DataTableSwitches` | `{}` | Sáu công tắc ở mục Biến thể, khai bằng **một** object có tên. Chữ ký ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 — `frozen` nhận cả `'first' \| 'both'`, không chỉ boolean |

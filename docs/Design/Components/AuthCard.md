@@ -6,9 +6,32 @@ verified: chua-doi-chieu
 
 # AuthCard
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Component đã có ở `src/FE`, hiện thực **một** trong hai biến thể. Bảng dưới đây khai đúng những mục đã mở source ra so.
 
 **Nền:** tự dựng, không bọc PrimeNG — theo [`../COMPONENTS.md`](../COMPONENTS.md) §4, đây là một bề mặt được căn giữa; không có bẫy focus, không có lớp nổi, không có ảo hoá. Toàn bộ độ khó nằm ở bố cục, và bố cục là thứ không đi mượn được.
+
+## Đã có → còn thiếu
+
+Component: `src/FE/src/app/shared/components/auth-card/auth-card.component.ts` — selector `app-auth-card`, class gốc `.auth-card`, vùng bọc `.auth-card-vung`.
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | `title` (`input.required`), `description`, `errorMessage`, `loading` | Không có input `variant` lẫn `size` |
+| Component dumb | Đúng — không gọi API đăng nhập, không đọc token, không điều hướng | — |
+| Biến thể `form` | Có, là hình dạng duy nhất component dựng | — |
+| Biến thể `wide` + cỡ `lg` | — | **Chưa có.** Không có `--layout-auth-w-wide`, không có lưới hai cột. Chú thích trong chính component khai đây là cắt bớt có ghi nhận |
+| `LanguageSwitcher` trong khung | — | Chưa có. Chú thích component khai lý do: `CORE_I18N.languages` v1 chỉ có một mục nên `LanguageSwitcher` vốn không render — tức **đúng spec**, không phải thiếu sót. Chưa tự mở `CORE_I18N` ra xác nhận con số đó |
+| Bề rộng, đệm, cỡ chữ tiêu đề | Khớp cỡ `md` của §Kích thước: `--layout-auth-w`, `--sp-11`, `--fs-2xl` | — |
+| `default` | Nền `--color-surface`, viền `--color-border`, `--radius-xl`, `--shadow-2`; vùng bọc căn giữa cả dọc lẫn ngang trong `min-height: 100dvh`, nền `--color-bg` — khớp spec | — |
+| Khe giữa các vùng | `--sp-8`, đúng bậc spec khai | — |
+| Khe tiêu đề → mô tả | Có ý đồ đặt riêng: `gap` chung `--sp-8` rồi kéo lại bằng `margin-top` âm | ⚠️ **Không ra `--sp-3` như spec khai.** `margin-top` là `calc(var(--sp-3) * -1)`, nên khe thật bằng `--sp-8` trừ `--sp-3` = 24px − 6px = **18px**, không phải 6px. Muốn đúng spec thì lượng kéo phải là `calc(var(--sp-3) - var(--sp-8))` |
+| Tiêu đề là `<h1>` thật, trong `<main>` | Có | — |
+| `hover` / `active` / `disabled` / `empty` không áp dụng | Đúng — không có quy tắc nào trên `.auth-card` | — |
+| Khu lỗi | Có: khối `role="alert"`, nền `--color-danger-bg`, viền `--color-danger-border` với mép trái dày `--border-w-strong`, icon `pi-times-circle` màu `--color-danger` | ⚠️ **Không phải một [`NoticeBanner.md`](./NoticeBanner.md).** §Trạng thái khai rõ khu lỗi *là* một `NoticeBanner` vai `danger`; code tự vẽ lại hình thức đó trong SCSS của `AuthCard`. Kết quả nhìn có thể giống, nhưng đây là **nguồn hình thức thứ hai** cho cùng một khái niệm — đúng thứ [`.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §5 cấm. Cần một lượt chốt: hoặc dùng `NoticeBanner` thật, hoặc spec đổi lời. Ngắt dòng đã giữ: `.auth-card__khu-loi` khai `white-space: pre-line` (so 2026-09-24) |
+| `loading` | Có `aria-busy` khi `loading()`, khung không đổi kích thước và không có lớp phủ | `aria-busy` đặt trên `<div class="auth-card">`, spec khai đặt trên `<form>`. Việc "nút chính sang `loading`, mọi ô nhập nhận `disabled`" là của trang gọi — chưa mở trang nào ra so |
+| Focus đầu tiên vào ô trống đầu | — | Không do `AuthCard` làm. [`AuthField.md`](./AuthField.md) có phương thức `focus()` công khai để trang gọi; `AuthCard` không điều phối việc này. Chưa mở trang xác thực ra xem có ai gọi không |
+
+Chưa đối chiếu: §Responsive, §Accessibility (ngoài `<main>`, `<h1>` và `role="alert"`), và toàn bộ luật về `fieldErrors` không khớp ô nào — luật đó thuộc trang gọi.
 
 ---
 
@@ -69,7 +92,7 @@ Khe dọc trong khung, theo vai bậc ở [`../DESIGN.md`](../DESIGN.md) §4 —
 | `active` | **Không áp dụng.** Cùng lý do với `hover` | — |
 | `disabled` | **Không áp dụng cho chính khung.** Không có ca nào cả màn xác thực bị vô hiệu hoá mà vẫn hiển thị; ca gần nhất là `loading` ở dòng dưới | — |
 | `loading` | Nút hành động chính chuyển sang `loading`; mọi ô nhập nhận `disabled`; `aria-busy="true"` trên `<form>`. Khung **không** đổi kích thước, không hiện lớp phủ | Có |
-| `error` | Khu lỗi là một [`NoticeBanner.md`](./NoticeBanner.md) vai `danger` đặt **trên** trường đầu tiên, mang `role="alert"`. Lỗi từng trường vẫn hiện dưới trường theo [`FormRow.md`](./FormRow.md) — hai chỗ này không thay nhau. Khoá `fieldErrors` **không khớp ô nào** cũng vào khu lỗi này, không thành `Toast` | Có |
+| `error` | Khu lỗi là một [`NoticeBanner.md`](./NoticeBanner.md) vai `danger` đặt **trên** trường đầu tiên, mang `role="alert"`. Lỗi từng trường vẫn hiện dưới trường theo [`FormRow.md`](./FormRow.md) — hai chỗ này không thay nhau. Khoá `fieldErrors` **không khớp ô nào** cũng vào khu lỗi này, không thành `Toast`. Khu lỗi **giữ ngắt dòng** của chuỗi (`white-space: pre-line`) — mỗi mã một dòng ([`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.2) | Có |
 | `empty` | **Không áp dụng.** `AuthCard` luôn có tiêu đề và ít nhất một hành động; một khung xác thực rỗng là lỗi định tuyến, không phải một trạng thái để thiết kế | — |
 
 **Vì sao lỗi xác thực hiện ở khu lỗi chung chứ không dưới ô mật khẩu:** máy chủ trả về "tên đăng nhập hoặc mật khẩu không đúng" — cố ý không nói sai cái nào, vì nói ra là để lộ tài khoản nào tồn tại. Gắn thông báo đó dưới ô mật khẩu là ngầm khẳng định tên đăng nhập đã đúng, tức là phá đúng thứ mà câu chữ đang cố giữ.

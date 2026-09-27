@@ -7,7 +7,7 @@ description: >
   KHÔNG viết code, KHÔNG viết quy ước mới, KHÔNG khẳng định điều gì chưa đối
   chiếu với source.
 tools: Read, Grep, Glob, Bash, Edit, Write, TodoWrite, SendMessage
-model: inherit
+model: sonnet
 ---
 
 # Vai trò

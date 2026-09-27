@@ -6,9 +6,24 @@ verified: chua-doi-chieu
 
 # ConfirmDialog
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có class, chưa có component Angular nào hiện thực hoá spec này.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Bản tối thiểu đã có ở `src/FE` (F2, ADR-0037) — biến thể `danger` đã có màn dùng; bảng "đã có → còn thiếu" ngay dưới đây.
 
 **Nền:** dựng **trên** [`Dialog.md`](./Dialog.md), không bọc thư viện riêng. Nó thừa hưởng toàn bộ bẫy focus, khoá cuộn nền, Escape từ `Dialog`; phần thêm vào chỉ là một bố cục cố định và một hợp đồng "đúng hai kết quả".
+
+## Đã có → còn thiếu (F2, ADR-0037)
+
+Component: `src/FE/src/app/shared/components/confirm-dialog/confirm-dialog.component.ts`. Dùng ở `ho-so.page.html` cho xác nhận từ bỏ cờ đặc quyền (`severity="danger"`).
+
+| Khoản | Đã có | Còn thiếu |
+| --- | --- | --- |
+| API | Đủ chữ ký spec: `open`, `severity`, `title`, `message`, `confirmLabel`, `cancelLabel`, `requireAcknowledge`, `loading`, `error`, `confirmed`, `cancelled` | — |
+| Nền | **Không** dựng trên `Dialog.md` như dòng "Nền" ghi — `Dialog.md` chưa được dựng ở F2 (không thuộc bốn component kéo sớm của ADR-0037). Bẫy focus, khoá cuộn nền, Escape, backdrop được viết TRỰC TIẾP trong `ConfirmDialogComponent` | Việc tách phần overlay dùng chung ra một `Dialog` thật, rồi cho `ConfirmDialog` dựng trên nó (đúng dòng "Nền" của spec này) — còn nợ, làm khi F3 dựng `Dialog.md` |
+| Biến thể `danger` | Có, qua một màn thật | — |
+| Biến thể `ask`/`warning` | Dựng trong CSS/logic (icon, màu vòng, nút xác nhận `primary`) | Chưa có màn nào dùng — chưa được thử qua thực tế |
+| Bẫy focus, Escape, backdrop, focus vào nút huỷ lúc mở, trả focus lúc đóng | Có, viết tay bằng `effect()` + truy vấn DOM trong chính component | — |
+| `requireAcknowledge` (ô đánh dấu bắt buộc) | Dựng bằng `<input type="checkbox">` thuần, chưa qua `Check.md` (`Check.md` chưa dựng) | Chưa có màn nào dùng — chưa được thử qua thực tế |
+| `loading`/`error` | Có, đúng luật (Escape/backdrop bị chặn khi `loading`, hộp giữ mở khi `error`) | — |
+| Responsive (`< $bp-sm` đổi cột, đảo thứ tự nút) | Dựng trong CSS (`@include tu-man-hinh`) | Chưa thử trên màn hình thật hẹp — chưa được thử qua thực tế |
 
 ---
 

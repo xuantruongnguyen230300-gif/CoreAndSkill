@@ -149,7 +149,7 @@ Triệu chứng khi cấu hình sai: **luôn nhận 401 dù vừa đăng nhập 
 - [ ] Thu một quyền của tài khoản đang mở app → thao tác kế tiếp nhận 403 → nút **và** mục menu của quyền đó biến mất, người dùng ở lại màn
 - [ ] Đã đăng nhập, gõ URL không tồn tại → trang 404 **trong** khung app; chưa đăng nhập → về màn đăng nhập kèm đường dẫn quay lại
 - [ ] Một request chạm hạn mức ở màn không tắt toast → toast hiện số giây chờ khớp header `Retry-After` của chính response đó
-- [ ] Mở hồ sơ ở hai tab, lưu ở tab thứ nhất rồi lưu ở tab thứ hai → tab thứ hai nhận 409 kèm toast xung đột, dữ liệu vừa nhập còn nguyên trên form, tab Network **không** có request gửi lại tự động ([`../../../quy-uoc/fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §2.2)
+- [ ] Mở hồ sơ ở hai tab, lưu ở tab thứ nhất rồi lưu ở tab thứ hai → tab thứ hai nhận 409 kèm cảnh báo xung đột (toast theo mặc định của interceptor, hoặc cách hiển thị khác nếu màn tự tắt toast — [`../../../Design/Screens/03-ho-so-ca-nhan.md`](../../../Design/Screens/03-ho-so-ca-nhan.md) dùng `NoticeBanner` cho cả ba endpoint hồ sơ), dữ liệu vừa nhập còn nguyên trên form, tab Network **không** có request gửi lại tự động ([`../../../quy-uoc/fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §2.2)
 - [ ] Đăng xuất ở một tab → tab khác tự dọn
 - [ ] Tài khoản thiếu permission gõ thẳng URL → bị chặn, **không** thấy nội dung màn dù chỉ chớp nhoáng
 - [ ] Menu chỉ hiện mục mà tài khoản có quyền; ẩn mục **không** thay được guard
@@ -157,6 +157,11 @@ Triệu chứng khi cấu hình sai: **luôn nhận 401 dù vừa đăng nhập 
 - [ ] Không tệp `.html` nào chứa chữ tiếng Việt (luật F8)
 - [ ] Không hằng số vai trò nào trong `core/`
 - [ ] Xem tab Network: cookie thật sự được gửi kèm request
+- [ ] Rời màn hồ sơ khi còn thay đổi chưa lưu → hỏi đúng câu "Rời trang?" của `unsavedChangesGuard` ([fe-routing-guard.md](../../../quy-uoc/fe-routing-guard.md) §4.1)
+- [ ] Chọn "Rời đi" → mất thay đổi, điều hướng tiếp; chọn "Ở lại" → đóng hộp, không gửi request, thay đổi giữ nguyên
+- [ ] Lưu thành công → cờ thay đổi bị xoá; rời trang ngay sau đó không bị hỏi lại
+- [ ] Đăng xuất hoặc đổi ngôn ngữ ở khung ứng dụng khi màn con còn thay đổi chưa lưu → cùng đi qua đúng một hộp, không hỏi hai lần
+- [ ] Đóng tab/tải lại trang khi còn thay đổi chưa lưu → trình duyệt cảnh báo (đường `beforeunload`, không chỉ đường điều hướng trong app)
 
 ---
 

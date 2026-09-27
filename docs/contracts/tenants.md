@@ -6,7 +6,16 @@ verified: chua-doi-chieu
 
 # Contract card — Quản trị đơn vị (khu hệ thống)
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi card trong file này mang `Status: DRAFT`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20, **chỉ ở mức định tuyến**). Mọi card giữ
+> `Status: DRAFT`: chưa endpoint nào được gọi thử, ví dụ JSON vẫn là phác thảo ([`README.md`](README.md) §3).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/TenantsController.cs` có action `GetList`, `Create`, `SetActive`, `RecoveryResetPassword`, `CreateAdmin` — khớp route §1–§4 và §6 | Gọi thử thật, thay ví dụ bằng response thật, rồi mới lật `Status:` |
+> | Cả controller mang `RequireSystemOperator` ở mức lớp — khớp dòng `Quyền:` của mọi card | — |
+> | Hai dòng nhật ký xuyên đơn vị ở §5, thân request/response, bảng lỗi: **chưa ai đối chiếu với handler** | Đối chiếu từng card rồi mới lật `verified:` |
+> | §2, §6 tên dành riêng (đối chiếu 2026-09-25, [ADR-0090](../adr/0090-ten-dang-nhap-system-la-ten-danh-rieng-chan-o-duong-tao.md)): `CreateTenantCommandValidator.cs` và `CreateTenantAdminCommandValidator.cs` dưới `src/BE/Core/CoreAndSkill.Core.Application/Tenants/` gọi `.NotReservedUserName()`; `TenantValidatorsTests` xanh (`dotnet test`, 2026-09-25). **Chưa có test đi qua HTTP** cho hai card này | Một ca endpoint cho mỗi card, cùng khuôn `CreateUserReservedUserNameEndpointTests` |
+> | §4 không gỡ khoá và dòng `RECOVERY_RESET_FAILED` của bảng lỗi — đối chiếu 2026-09-25, **chỉ hai điểm này**: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/TenantProvisioningService.cs` hàm `RecoveryResetAdminPasswordAsync(` gọi `ResetPasswordWritesAsync(`, hàm đó gọi `RemovePasswordAsync(`, `AddPasswordAsync(`, `RequirePasswordChange(`, `UpdateSecurityStampAsync(` và trả `false` ở lệnh ghi đầu tiên hỏng; thân hai hàm không có `SetLockoutEndDateAsync`, `ClearAdminLock`, `ResetAccessFailedCountAsync` — khớp [ADR-0087](../adr/0087-khoi-phuc-quan-tri-khong-go-khoa.md). Ca ghi hỏng: `PasswordResetWriteFailureTests` xanh (`dotnet test`, 2026-09-25) | — |
 >
 > Quyết định nền: [`../adr/0017-khu-quan-tri-he-thong.md`](../adr/0017-khu-quan-tri-he-thong.md). Service tạo đơn vị dùng chung: [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md). Khôi phục tài khoản quản trị đơn vị: [`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md). Vòng đời đơn vị và seed: [`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §10, §11.4. Envelope và mã lỗi: [`README.md`](README.md).
 
@@ -108,11 +117,13 @@ Tạo một đơn vị qua **service tạo đơn vị dùng chung** — cùng se
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | Thiếu field; `code` sai khuôn hoặc quá 50 ký tự (khuôn ở bảng Request); `name` rỗng. `fieldErrors` mang khoá theo field request: `Code` / `Name` / `AdminUserName` / `AdminEmail` / `AdminFullName` / `AdminTempPassword` |
+| `CORE.VALIDATION.FAILED` | Thiếu field; `code` sai khuôn hoặc quá 50 ký tự (khuôn ở bảng Request); `name` rỗng; `adminUserName` là tên dành riêng (`fieldErrors["AdminUserName"]` mã `CORE.USER.USERNAME_RESERVED`, không `messageParams` — [`users.md`](users.md) §5, *Tên dành riêng*). `fieldErrors` mang khoá theo field request: `Code` / `Name` / `AdminUserName` / `AdminEmail` / `AdminFullName` / `AdminTempPassword` |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 | `CORE.AUTH.FORBIDDEN` | Không mang cờ vận hành |
+
+**Hai lượt tạo cùng `code` chạy đồng thời:** lượt sau hôm nay nhận **500**, không nhận `CORE.TENANT.CODE_DUPLICATE`. Ràng buộc `uq_tenant_code` nằm ngoài phạm vi [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md) — mở rộng sang nó là câu hỏi mở của ADR đó, chờ người dùng. Tài khoản quản trị đầu tiên thuộc một đơn vị vừa tạo, nên hai lượt không va nhau ở tên đăng nhập hay email.
 
 ---
 
@@ -195,13 +206,15 @@ Mở lại **cửa quản trị** của một đơn vị: đặt mật khẩu t�
 
 **Không trả dữ liệu nào về tài khoản đích.** Sau lệnh này tài khoản đích có `mustChangePassword = true` và **mọi phiên đang mở của nó bị chấm dứt ở request kế tiếp** — `SecurityStamp` đổi. Lần đăng nhập kế tiếp đi qua `POST /api/v1/core/auth/change-password-required` ([`auth.md`](auth.md) §7).
 
+**Lệnh này không gỡ khoá.** `lockout_end` và `locked_by_admin` giữ nguyên: tài khoản đích đang bị khoá thì đăng nhập đúng mật khẩu mới vẫn nhận `CORE.AUTH.LOCKED_OUT` ([`auth.md`](auth.md) §3), cho tới khi khoá tự động hết hạn hoặc một người trong đơn vị mở khoá ([`users.md`](users.md) §8). Không gỡ khoá là **có chủ đích**: người vận hành không hoàn tác quyết định khoá của một đơn vị. Tài khoản quản trị bị khoá tay mà trong đơn vị không còn ai mở được thì lối ra là §6 — tạo một tài khoản quản trị mới. Lý do và phương án đã loại: [ADR-0087](../adr/0087-khoi-phuc-quan-tri-khong-go-khoa.md).
+
 ### Lỗi
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.TENANT.NOT_FOUND` | `NotFound` | 404 | Không có đơn vị `{id}` |
+| `CORE.TENANT.NOT_FOUND` | `NotFound` | 404 | Không có đơn vị `{id}`, **hoặc** `{id}` là đơn vị hệ thống |
 | `CORE.TENANT.RECOVERY_TARGET_NOT_ELIGIBLE` | `BusinessRule` | 422 | Không có tài khoản `userName` trong đơn vị đó, **hoặc** có nhưng không mang `has_permission_bypass` và không giữ vai trò `is_system` nào của đơn vị — **hai ca, một mã** |
-| `CORE.TENANT.RECOVERY_RESET_FAILED` | `BusinessRule` | 422 | Identity từ chối — `tempPassword` không đạt chính sách. Lý do ở `fieldErrors` |
+| `CORE.TENANT.RECOVERY_RESET_FAILED` | `BusinessRule` | 422 | Identity từ chối. Hai ca: `tempPassword` không đạt chính sách — kiểm **trước** khi tra đích, lý do ở `fieldErrors`; **hoặc** một lệnh ghi hỏng sau khi đích đã đủ điều kiện — bộ kiểm người dùng từ chối, hoặc xung đột đồng thời — không `fieldErrors`, không dòng nhật ký, lệnh dừng ở lệnh ghi hỏng ([ADR-0096](../adr/0096-lenh-ghi-usermanager-kiem-ket-qua-hong-thi-dung.md)). Xung đột đồng thời ở card này ra **422 mã này**, không ra 409 |
 
 **Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
 
@@ -223,6 +236,14 @@ Hệ quả cho thứ tự kiểm: `CORE.TENANT.RECOVERY_RESET_FAILED` không đ�
 
 **Khôi phục chính tài khoản vận hành hệ thống không đi qua HTTP** — đó là lệnh chạy tay trên máy chủ ([`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)).
 
+Hệ quả, ép ở ba chỗ:
+
+| Đường | Hành vi |
+| --- | --- |
+| Endpoint này với `{id}` là đơn vị hệ thống | `CORE.TENANT.NOT_FOUND` — **cùng mã** với đơn vị không tồn tại, nên phản hồi không xác nhận `{id}` đó là đơn vị hệ thống |
+| §6 với `{id}` là đơn vị hệ thống | Như trên — xem Ghi chú của §6 |
+| Đặt lại mật khẩu hộ, khoá tài khoản ở [`users.md`](users.md) §2 khi đích là tài khoản vận hành | Chặn — luật 4 và luật 5 của file đó |
+
 ---
 
 ## 5. Nhật ký kiểm toán — thao tác xuyên đơn vị
@@ -237,6 +258,8 @@ Các thao tác tác động lên một đơn vị nghiệp vụ — tạo đơn 
 | 2 | Đơn vị đích | Tài khoản vận hành, **đánh dấu là thao tác xuyên đơn vị** |
 
 Cột của bảng nhật ký: [`../database/schema-core.md`](../database/schema-core.md) §9.4. Quyết định: [`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md).
+
+Hai dòng trên là dòng **của thao tác**. Thực thể đổi trong cùng lượt — tài khoản được tạo, mật khẩu được đặt lại, vai trò được seed — còn sinh dòng tự động ở đơn vị đích, và các dòng đó **cũng** mang dấu xuyên đơn vị như dòng 2 (luật cột ở schema-core §9.4 điểm 4).
 
 ---
 
@@ -275,14 +298,14 @@ Tạo một tài khoản quản trị **mới** cho đơn vị `{id}`, mang `has
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.TENANT.NOT_FOUND` | `NotFound` | 404 | Không có đơn vị `{id}` |
+| `CORE.TENANT.NOT_FOUND` | `NotFound` | 404 | Không có đơn vị `{id}`, **hoặc** `{id}` là đơn vị hệ thống |
 | `CORE.TENANT.ADMIN_CREATE_FAILED` | `BusinessRule` | 422 | Identity từ chối tạo tài khoản — **mọi ca, một mã**, không nêu nguyên nhân liên quan `userName`. Chỉ lý do chính sách mật khẩu được trả ở `fieldErrors["TempPassword"]` |
 
 **Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | Thiếu field. Kèm `fieldErrors["UserName"]` / `["Email"]` / `["FullName"]` / `["TempPassword"]` |
+| `CORE.VALIDATION.FAILED` | Thiếu field; `userName` là tên dành riêng (`fieldErrors["UserName"]` mã `CORE.USER.USERNAME_RESERVED`, không `messageParams` — [`users.md`](users.md) §5, *Tên dành riêng*). Kèm `fieldErrors["UserName"]` / `["Email"]` / `["FullName"]` / `["TempPassword"]` |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
@@ -292,6 +315,8 @@ Tạo một tài khoản quản trị **mới** cho đơn vị `{id}`, mang `has
 
 **Ghi nhật ký kiểm toán hai dòng** — §5. Phạm vi đơn vị `{id}` mở **bên trong** service tạo đơn vị, không thêm mục allowlist A12.
 
+**Đơn vị hệ thống không nhận tài khoản quản trị bổ sung.** Tài khoản tạo ở đây mang `has_permission_bypass`; tạo nó trong đơn vị hệ thống là đặt một tài khoản có toàn bộ danh mục quyền vào **cùng đơn vị** với tài khoản vận hành — rồi đặt lại được mật khẩu của tài khoản vận hành qua [`users.md`](users.md) §9, tức khôi phục tài khoản vận hành qua HTTP mà §4 cấm. Trả `CORE.TENANT.NOT_FOUND`, cùng mã với đơn vị không tồn tại.
+
 **Không sửa tài khoản đã có.** Endpoint chỉ **tạo mới**; bật cờ lên tài khoản đang tồn tại là việc luật M12 cấm ở mọi đường.
 
-**Mọi ca thất bại tạo tài khoản gộp một mã là cố ý** — cùng nguyên tắc với §4: tách "`userName` đã có" ra một lý do riêng là cho người vận hành dò được tên đăng nhập trong đơn vị. Chính sách mật khẩu kiểm **trước** khi gọi `UserManager`, nên `fieldErrors["TempPassword"]` không nói gì về tên đăng nhập.
+**Mọi ca thất bại tạo tài khoản gộp một mã là cố ý** — cùng nguyên tắc với §4: tách "`userName` đã có" ra một lý do riêng là cho người vận hành dò được tên đăng nhập trong đơn vị. Chính sách mật khẩu kiểm **trước** khi gọi `UserManager`, nên `fieldErrors["TempPassword"]` không nói gì về tên đăng nhập. Mã riêng cho tên dành riêng cũng không phá luật gộp: tên đó bị từ chối ở mọi đơn vị, bất kể database có gì. Hai lượt tạo cùng `userName` chạy đồng thời thì lượt sau cũng nhận mã gộp, không nhận 500 — **đang thi công**, cùng trạng thái với ghi chú đồng thời ở [`users.md`](users.md) §5.

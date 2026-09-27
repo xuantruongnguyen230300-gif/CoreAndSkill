@@ -6,12 +6,35 @@ verified: chua-doi-chieu
 
 # Ma trận phân quyền — màn hình
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo chưa có `src/`; màn thuộc pha F3 ([04-f3-man-quan-tri.md](../../wiki-core/fe/trien-khai/04-f3-man-quan-tri.md) §1, §3.5).
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Màn đã dựng ở `src/FE` và thuộc pha F3 ([04-f3-man-quan-tri.md](../../wiki-core/fe/trien-khai/04-f3-man-quan-tri.md) §1, §3.5). Mới đối chiếu **từng mục** — bảng "Có thật hôm nay → sẽ thành" ngay dưới khối Khung/Quyền ghi mục nào khớp, mục nào lệch; chưa đối chiếu trọn file nên `verified: chua-doi-chieu` giữ nguyên.
 
 Quản trị đơn vị xem, sửa ma trận vai trò × quyền của đơn vị hiện hành: tick ô rồi lưu **toàn bộ** ma trận một lần — bước 3–5 của [P1](../../luong/P1-tao-vai-tro-va-gan-quyen.md). Một màn, một hộp xác nhận. Nghiệp vụ (deny-by-default, `version`, luật phủ đủ danh mục, bất biến vai trò hệ thống): [permissions.md](../../contracts/permissions.md) §2–§6 — không chép lại.
 
 > **Khung:** khung ứng dụng ([00-khung-ung-dung.md](./00-khung-ung-dung.md))
 > **Quyền:** `core.permission.read` để vào và đọc; `core.permission.write` để sửa và lưu ([permissions.md](../../contracts/permissions.md) §1). Guard theo [fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §1 — thiếu quyền đọc thì bị chặn, không thấy nội dung.
+
+## Có thật hôm nay → sẽ thành
+
+Đối chiếu 2026-09-22, chỉ bằng đọc mã (không chạy ứng dụng). Trang nằm ở `src/FE/src/app/platform/quan-tri/phan-quyen/pages/ma-tran/`; `.ts`, `.html`, `.scss` dưới đây là ba tệp `ma-tran-phan-quyen.page.*` trong thư mục đó.
+
+| Khoản | Có thật hôm nay (neo bằng chuỗi) | Sẽ thành |
+| --- | --- | --- |
+| Tuyến, guard, `title`, chặn rời màn | `platform/quan-tri/quan-tri.routes.ts` § `path: 'phan-quyen'`; `platform/quan-tri/phan-quyen/phan-quyen.routes.ts` § `permissionGuard('core.permission.read')`, § `unsavedChangesGuard`, § `title: 'phanQuyen.tieuDe'`; `.ts` đăng ký cờ thay đổi § `unsavedChanges.dangKy` | — |
+| `PageHeader` có mô tả; nhóm hành động chỉ khi có quyền ghi; hai nút `disabled` khi chưa đổi; nút lưu `loading` khi gửi | `.html` § `<app-page-header` với `phanQuyen.tieuDe` và `phanQuyen.moTa`; § `@if (coQuyenGhi())`; `[disabled]` gắn `coDoi()` và `dangTaiLaiMaTran()`; § `[loading]="dangLuu()"` | — |
+| Nút "Huỷ thay đổi" là nút chữ | **Lệch.** Nút mang § `icon="refresh"` — mục Icon không gán icon cho nút này, và `pi-refresh` là icon dành cho "Tải lại ma trận" | Nút chữ theo mục Icon |
+| Banner chỉ xem (`info`) và banner lưu hỏng (`danger`; ca 409 có tiêu đề, thân, nút "Tải lại ma trận") | `.html` § `severity="info"` với `phanQuyen.chiXem`; § `@if (xungDotVersion())` với `phanQuyen.xungDot.tieuDe`, `phanQuyen.xungDot.noiDung`, `phanQuyen.hanhDong.taiLai`; § `@else if (loiLuu())` | Cỡ `md` của hai banner chưa so |
+| `Table` `bordered`, cỡ `sm`, `stickyHeader`, `cardLayout = false`, `groupBy` vào `resourceName`, `emptyGroupLabel`, `caption` | `.html` § `<app-table` mang đủ các input đó; `resourceName` dẫn xuất ở `.ts` § `dichHoacKhoa(r.resourceNameKey, r.resourceKey)` | — |
+| Cột "Quyền" — nhãn là bản dịch `nameKey`, dòng phụ `code` màu `--color-text-muted` | **Lệch.** Ô chỉ có nhãn (`.html` § `dichTenQuyen(hang)`); `code` không có dòng phụ mà nằm trong `Tooltip` của nhãn (§ `<app-tooltip [text]="hang.code">`). `th scope="row"` do `Table` vẽ — chưa so | Thêm dòng phụ theo sơ đồ bố cục |
+| Tiêu đề cột vai trò hệ thống là `Badge` `neutral` cỡ `sm`, `onSurface2` | **Lệch.** Tiêu đề là chuỗi ghép tên vai trò với câu của `vaiTro.loai.heThong` (`.ts` § `const header = vt.isSystem`), không có `Badge` | `Badge` theo sơ đồ bố cục |
+| Ô tick — `Check` `checkbox` cỡ `sm`, `ariaLabel` nêu cả quyền lẫn vai trò, khoá khi thiếu quyền ghi và ở ô bất biến | `.html` § `<app-check` với `type="checkbox"`, `size="sm"`, khoá `phanQuyen.o.nhan`; `.ts` § `oBiKhoa` | — |
+| `Tooltip` lý do khoá chỉ ở ô hàng `core.permission.write` × cột `isSystem` | **Lệch.** `.html` gắn câu của `phanQuyen.o.lyDoKhoaHeThong` cho **mọi** ô mà `oBiKhoa` trả `true` — gồm cả ca thiếu quyền ghi và lúc đang tải lại, nên người chỉ có quyền đọc thấy lý do "vai trò hệ thống" trên mọi ô. Lời chú **đã** nối xuống `<input>` qua `describedBy` của `Check` (`.html` § `[describedBy]="tipO.idMoTa"`, so 2026-09-26), nên trình đọc màn hình cũng đọc câu sai đó trên mọi ô bị khoá | Chỉ gắn cho ô bất biến theo sơ đồ bố cục; `describedBy` giữ nguyên |
+| Ô đã đổi — dải `--border-w-accent` `--color-brand` kèm chữ chỉ-đọc-lên | `.scss` § `.ma-tran__o--da-doi` — dải vẽ trên khối nội dung chiếu vào ô, không trên chính `<td>`; `.html` § `sr-only` với `phanQuyen.o.daDoi` | — |
+| Luồng lưu — xác nhận khi có gỡ quyền; `PUT` phủ mọi hàng với `version` của lần `GET` gần nhất; 200 → mốc "đã đổi" dời về tập vừa gửi, toast, rồi `GET` lại; nút lưu khoá tới khi một `GET` thành công mang `version` mới về; `GET` sau lưu hỏng → `Table` `error`, "Thử lại" tải lại giữ dữ liệu cũ; 409 giữ thay đổi; tải lại sau 409 và `GET` sau lưu cùng áp lại giá trị đích | Có (so 2026-09-26) — `.ts` § `bamLuu`, § `version: mt.version`, § `entries.map((e) => [e.permissionId, new Set(e.roleIds)])`, § `this.choVersionMoi.set(true);`, § `taiMaTranSauLuu`, § `if (this.maTran()) this.taiMaTranSauLuu();`, § `CORE.PERMISSION.VERSION_MISMATCH`, § `apDuLieuMoi` với § `if (sua.has(roleId) === moc.has(roleId)) continue;`; `.html` § `choVersionMoi()`, § `<app-confirm-dialog` `severity="warning"`, tiêu đề mang `soLuong` | — |
+| `CORE.PERMISSION.NOT_FOUND` / `ROLE_NOT_FOUND` tô viền lỗi đúng hàng, đúng ô | **Chưa có.** Mọi mã ngoài 409 chỉ vào banner (`.ts` § `xuLyLoiLuu`) | Tô ô theo bảng mã lỗi |
+| Tải lần đầu hỏng → trạng thái `error` của `Table` | Có (so 2026-09-26) — `.html` § `[errorHeading]="loiTai() ? ('phanQuyen.loi.taiThatBai' \| translate) : null"` và § `[errorMessage]="loiTai()?.than ?? null"`, thân từ `dichLoiChoMan`; chưa có ma trận thì cột "Quyền" vẫn đứng (`.ts` § `if (!mt) return cols;`) | — |
+| Hai ca rỗng — `not-configured`; `first-use` với nút chỉ khi có `core.role.write` | Đúng biến thể và đúng điều kiện nút (`.html` § `variant="not-configured"`, § `variant="first-use"`, § `auth.coQuyen('core.role.write')`), nhưng `EmptyState` thay cả bảng chứ không nằm trong hàng `colspan` | Đặt trong hàng `colspan` theo mục Trạng thái |
+
+Chưa đối chiếu: mục Responsive, hình thức `loading` lần đầu và lúc tải lại (do `Table` quyết từ `[loading]`), thứ tự nhóm và thứ tự hàng do `Table` giữ.
 
 **Không phải màn danh sách** — ngoại lệ có tên ở [ListScreen.md](../Templates/ListScreen.md): không theo sáu vùng, không `Toolbar`, không `Pagination` (card cấm phân trang danh mục quyền, §4 Ghi chú); [DataTable.md](../Components/DataTable.md) §Khi nào dùng chỉ đích danh ma trận tick quyền là ca dùng `Table` + `Check`.
 
@@ -28,7 +51,7 @@ Quản trị đơn vị xem, sửa ma trận vai trò × quyền của đơn v�
       - tiêu đề + mô tả
       - nhóm hành động (chỉ khi có core.permission.write):
           Button secondary "Huỷ thay đổi" — disabled khi chưa có gì đổi
-          Button primary "Lưu ma trận" — disabled khi chưa có gì đổi; loading khi đang gửi
+          Button primary "Lưu ma trận" — disabled khi chưa có gì đổi, và khi chờ version mới sau lưu (sơ đồ luồng lưu); loading khi đang gửi
     - NoticeBanner md vai info — chỉ khi THIẾU core.permission.write: màn ở chế độ chỉ xem
     - NoticeBanner md vai danger — chỉ khi lưu hỏng (bảng mã lỗi); ca 409 mang nút "Tải lại ma trận"
     - khung Table biến thể bordered, cỡ sm, stickyHeader, cardLayout = false — vùng cuộn DUY NHẤT của màn, cuộn cả dọc lẫn ngang
@@ -68,17 +91,23 @@ bấm "Lưu ma trận"
                                       ├─ huỷ  → giữ nguyên thay đổi trên màn
                                       └─ xác nhận → gửi PUT
 PUT gửi version của lần GET gần nhất + entries phủ đủ MỌI hàng đã tải (card §6)
-   ├─ 200 → Toast success → GET lại ma trận → bỏ mọi đánh dấu "đã đổi"
+   ├─ 200 → mốc "đã đổi" dời NGAY về tập vừa gửi → Toast success → GET lại ma trận (tải lại: giữ dữ liệu cũ, khoá ô)
+   │      │   ô tick thêm trong lúc PUT chạy khác tập vừa gửi → vẫn mang dấu "đã đổi"
+   │      │   nút "Lưu ma trận" disabled từ lúc này tới khi một GET thành công mang version mới về
+   │      ├─ GET thành công → áp dữ liệu mới theo "Áp lại sau 409" (mốc = tập vừa gửi) → nút lưu theo lại luật "có ô đổi"
+   │      └─ GET hỏng → Table trạng thái error như tải hỏng: cùng tiêu đề, cùng nút "Thử lại"; nút lưu vẫn disabled
+   │             └─ bấm "Thử lại" → GET lại, giữ dữ liệu cũ, khoá ô → lại hai nhánh trên
    ├─ 409 VERSION_MISMATCH → GIỮ thay đổi trên màn, NoticeBanner danger "dữ liệu đã thay đổi" + nút "Tải lại ma trận"
    │      └─ bấm → GET ma trận (version mới) → áp lại các ô đã đổi lên dữ liệu mới
    │                 → người dùng xem, rồi bấm "Lưu ma trận" lần nữa (lại qua bước xác nhận nếu có gỡ quyền)
    └─ lỗi khác → giữ nguyên thay đổi trên màn, NoticeBanner danger (bảng mã lỗi)
 ```
 
-**Áp lại sau 409.** Mỗi ô đã đổi là một *giá trị đích*; tải lại **không** bỏ giá trị đích, **không** tự lưu (card §3.1):
+**Áp lại sau 409.** *Giá trị đích* chỉ là những ô người dùng đã đổi so với lần tải gần nhất; tải lại **không** bỏ giá trị đích, **không** tự lưu (card §3.1). `GET` sau lưu dùng chung quy tắc này — mốc khi đó là tập vừa gửi, vì mốc đã dời về tập đó lúc nhận 200:
 
 | Ca trên dữ liệu mới | Màn làm gì |
 | --- | --- |
+| Ô người dùng không chạm (bằng mốc) | Luôn lấy giá trị máy chủ mới, kể cả khi người khác vừa đổi nó; không mang dấu "đã đổi" |
 | Ô còn, giá trị mới khác giá trị đích | Đặt ô về giá trị đích, giữ dấu "đã đổi" |
 | Ô còn, giá trị mới đã bằng giá trị đích | Bỏ dấu "đã đổi" |
 | Hàng quyền hoặc cột vai trò không còn | Thay đổi đó rơi |
@@ -113,6 +142,7 @@ Câu không ghi nguồn: người dùng duyệt 2026-09-15 ([Screen.md](../Templ
 | Câu hỏi khi rời màn | Rời trang? Thay đổi chưa lưu sẽ mất | khoá chung của `unsavedChangesGuard` — không đặt ở màn này |
 | Rỗng — danh mục không có quyền nào | Chưa có quyền nào trong danh mục | `phanQuyen.trong.tieuDe` |
 | Rỗng — đơn vị chưa có vai trò nào | Đơn vị chưa có vai trò nào · nút "Tạo vai trò" | `phanQuyen.trongVaiTro.tieuDe` · `phanQuyen.trongVaiTro.hanhDong` |
+| Tiêu đề hàng lỗi tải ma trận | *Chờ duyệt:* Không tải được ma trận phân quyền | `phanQuyen.loi.taiThatBai` |
 
 Mã lỗi → chỗ hiện (câu sống ở `loi.<mã>`):
 
@@ -127,10 +157,10 @@ Mã lỗi → chỗ hiện (câu sống ở `loi.<mã>`):
 ### Trạng thái
 
 - **mặc định:** bảng đủ hàng, đủ cột; nút lưu và huỷ `disabled` cho tới khi có ô đổi.
-- **đang tải:** lần đầu — `Table` `loading`: giữ `<thead>` nếu đã có vai trò, thân là `SkeletonLoader` dạng hàng; nút ở `PageHeader` `disabled`. 🛑 **Không cho tick khi còn đang tải** (sự cố "tải thiếu rồi lưu", card §3.1). Tải lại sau khi lưu hoặc sau "Tải lại ma trận": phủ `--color-scrim` lên thân, giữ chữ cũ đọc được, khoá mọi ô.
+- **đang tải:** lần đầu — `Table` `loading`: `<thead>` luôn có cột "Quyền", cột vai trò chỉ khi đã có (cũng đúng cho ca tải hỏng), thân là `SkeletonLoader` dạng hàng; nút ở `PageHeader` `disabled`. 🛑 **Không cho tick khi còn đang tải** (sự cố "tải thiếu rồi lưu", card §3.1). Tải lại sau khi lưu hoặc sau "Tải lại ma trận": phủ `--color-scrim` lên thân, giữ chữ cũ đọc được, khoá mọi ô.
 - **rỗng (chưa có bản ghi):** hai ca, hai câu. *Danh mục không có quyền nào* — không kỳ vọng xảy ra (danh mục vào bằng migration, card §2): hàng `colspan` chứa `EmptyState` `not-configured`, không có nút. *Đơn vị chưa có vai trò nào* — có hàng mà không có cột: `EmptyState` `first-use` mời sang [11-vai-tro.md](./11-vai-tro.md), nút chỉ hiện khi có `core.role.write`.
 - **rỗng (lọc không ra kết quả):** không áp dụng — không có tìm, không có lọc.
-- **lỗi:** tải hỏng → `Table` `error` (hàng `colspan` chứa `NoticeBanner` `danger` + thử lại); nút lưu `disabled`. Lưu hỏng → bảng mã lỗi; thay đổi trên màn giữ nguyên.
+- **lỗi:** tải hỏng → `Table` `error` (hàng `colspan` chứa `NoticeBanner` `danger` + thử lại): tiêu đề `phanQuyen.loi.taiThatBai` luôn có; thân là câu `dichLoiChoMan`, lớp xuyên suốt thì không có thân (chi tiết và `traceId` ở toast) — qua `errorHeading` / `errorMessage` của [Table](../Components/Table.md) §API; nút lưu `disabled`. `GET` sau lưu hỏng cũng vào đúng trạng thái này, cùng tiêu đề và nút "Thử lại"; "Thử lại" khi đó tải lại giữ dữ liệu cũ và khoá ô như tải lại ở mục đang tải. Lưu hỏng → bảng mã lỗi; thay đổi trên màn giữ nguyên.
 - **kiểm tra dữ liệu:** không có ô nhập chữ. Lỗi theo chỉ số từ BE tô đúng ô theo bảng mã lỗi; không có lỗi phía client.
 
 ### Responsive
@@ -150,8 +180,8 @@ Không dùng icon ngoài bộ component tự mang (`Check`, `Tooltip`, `NoticeBa
 
 ### Ảnh màn hình
 
-Chưa có — repo chưa có `src/`, không có gì để chụp.
+Chưa có — ma trận đã dựng ở `src/FE` nhưng chưa ai chạy ứng dụng để chụp; lượt đối chiếu 2026-09-22 chỉ đọc mã.
 
 ### Cần chốt
 
-Không còn.
+- **Duyệt các câu mang `*Chờ duyệt:*`** ở bảng Câu chữ.

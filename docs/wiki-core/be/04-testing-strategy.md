@@ -6,9 +6,20 @@ verified: chua-doi-chieu
 
 # 04. Chiến lược kiểm thử — test là một phần của kiến trúc
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa có `src/`, nên chưa có test nào tồn tại. File này mô tả bộ test mà giai đoạn 2 phải dựng.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-19). `src/BE/Tests/` đã tồn tại thật và một phần
+> bộ test trong file này có code thật. Đối chiếu diễn ra theo **từng mục** — mục nào bảng dưới không
+> nhắc tới thì vẫn đứng nguyên `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG`.
 >
 > Danh sách luật và cột "ép bằng gì" là [`../../RULES.md`](../../RULES.md). File này giải thích **vì sao từng loại test tồn tại** và **cách để bộ test không tự lừa mình**.
+
+| Mục | Có thật hôm nay | Sẽ thành |
+| --- | --- | --- |
+| §2 (ArchTest) | Project `CoreAndSkill.ArchTests` tồn tại và chạy thật; tên từng ArchTest đã có nằm ở cột *Ép bằng gì* của [`../../RULES.md`](../../RULES.md) — **đó là nguồn duy nhất**, đừng đếm lại ở đây | Phủ nốt các luật còn mang `📐`/`🕳️` ở `RULES.md` |
+| §4.2 | `Support/PostgresFixture.cs` + `Support/PostgresCollection.cs` (một container cho cả lượt chạy) và `Tenants/TenantProvisioningDatabaseTests.cs` có code thật. Quy ước `[Trait("Category", "RequiresDocker")]` được ép bằng ArchTest — luật **T9** ở [`../../RULES.md`](../../RULES.md) §8 | Nhóm test này **chưa từng chạy một lần nào** — môi trường hiện tại không có Docker daemon; CI là nơi chạy chúng lần đầu |
+| §4.3 | Cô lập bằng xoá dữ liệu giữa các test (`PostgresFixture.ResetAsync`) | Chuyển sang mỗi test một schema khi cần chạy song song |
+| §4.4 | Schema của test lấy từ migration của repo | — |
+| §5 | Ngưỡng coverage ép thật bằng `coverlet.msbuild` — `Threshold` / `ThresholdType` = `line,branch` khai ở `src/BE/Tests/CoreAndSkill.Core.UnitTests/CoreAndSkill.Core.UnitTests.csproj`; con số nằm ở luật **T3**, không chép lại ở đây | Ngưỡng cho module khi có module |
+| Các mục còn lại | Không có gì | `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG` |
 
 ---
 
@@ -47,78 +58,24 @@ ArchTest biến luật thành thứ **hỏng build**. Đó là khác biệt gi�
 **Một điểm cần hiểu rõ:** ArchTest không kiểm code chạy đúng. Nó kiểm code có **hình dạng** đúng. Hai việc khác nhau, và cả hai đều cần.
 
 ### 2.2 Danh sách luật cần canh
-> 📖 **Tên từng ArchTest nằm ở cột "Ép bằng gì" của [`../../RULES.md`](../../RULES.md) — nguồn duy nhất.** Bảng dưới nói *mỗi luật cần canh điều gì*; mở `RULES.md` để lấy **tên** khi thi công.
+> 📖 **Tên, đường dẫn và trạng thái của từng ArchTest nằm ở [`../../RULES.md`](../../RULES.md) §3–§6 và §9 — nguồn duy nhất.** Mục này chỉ nói ArchTest phủ **những nhóm luật nào**, không liệt lại từng mã.
 
-Chép tên test sang đây là dựng nguồn thứ hai: đổi tên một test thì sửa một chỗ không chạm chỗ kia, và tên test chính là thứ người sau `grep` để nối luật với cổng.
-**Kiến trúc và tầng** (RULES §3):
+Chép tên test hay liệt kê lại từng mã luật ở đây là dựng nguồn thứ hai: `RULES.md` thêm một luật hay đổi một tên test thì sửa một chỗ không chạm chỗ kia, và tên test chính là thứ người sau `grep` để nối luật với cổng.
 
-| Luật | Canh điều gì |
-| --- | --- |
-| **A1** | Domain không kéo theo bất kỳ package nào |
-| **A2** | Application không thấy EF Core, ASP.NET Core |
-| **A3** | Core không biết module nào tồn tại |
-| **A4** | Module chỉ nói chuyện qua `Core.Contracts` |
-| **A5** | Core không biết **tên** nghiệp vụ, kể cả dưới dạng chuỗi |
-| **A6** | Không có project nằm ngoài solution — thứ không ai build và không ai test |
-| **A7** | Host chỉ là điểm lắp ráp |
-| **A8** | Cấu hình thiếu thì app không khởi động được |
-| **A9** | Middleware khai rồi mà quên nối — hỏng im lặng |
-| **A10** | Đăng ký hai lần thì mỗi request chạy hai lượt |
-| **A11** | Validator quên đăng ký thì nó **không chạy**, và không ai biết |
-| **A12** | Không ai ngoài các nơi đã khai tự chọn đơn vị và danh tính cho mã đang chạy |
+| Nhóm mã | Chủ đề | Đọc ở |
+| --- | --- | --- |
+| **A** | Kiến trúc và tầng | [`../../RULES.md`](../../RULES.md) §3 |
+| **E** | Domain và dữ liệu | [`../../RULES.md`](../../RULES.md) §4 |
+| **R** | Lỗi và envelope | [`../../RULES.md`](../../RULES.md) §5 |
+| **S** | Bảo mật và phân quyền | [`../../RULES.md`](../../RULES.md) §6 |
+| **M** | Cách ly giữa các đơn vị (multi-tenant) | [`../../RULES.md`](../../RULES.md) §9 |
 
-**Domain và dữ liệu** (RULES §4):
+Hai luật đáng nói riêng: cả hai là **integration test**, không phải ArchTest, vì mỗi luật cần dựng app thật — không có cách nào đọc hình dạng code mà biết được hành vi lúc chạy đúng hay sai.
 
-| Luật | Canh điều gì |
-| --- | --- |
-| **E1** | Trạng thái entity chỉ đổi qua hành vi |
-| **E2** | Định danh không đổi sau khi tạo |
-| **E3** | Không có entity nào lọt lưới lọc xoá mềm |
-| **E4** | Entity Core ở schema `core`, entity module ở schema của module |
-| **E5** | Không có sợi dây trói vĩnh viễn giữa hai schema |
-| **E6** | Migration nằm ở project sở hữu schema |
-| **E7** | Interceptor khai rồi mà quên nối |
-
-Riêng `Startup_Fails_When_PendingMigrationsExist` là **integration test**, không phải ArchTest — nó cần dựng app thật.
-
-**Lỗi và envelope** (RULES §5):
-
-| Luật | Canh điều gì |
-| --- | --- |
-| **R1** | Lỗi nghiệp vụ đi bằng `Result`, không bằng exception |
-| **R2** | Mã lỗi không mọc rải rác |
-| **R3** | Mã lỗi đúng khuôn và không trùng trong toàn hệ |
-| **R4** | Không có loại lỗi nào rơi vào khoảng trống ánh xạ |
-| **R5** | Xem [`../../audit/2026-09-05-reflection-envelope.md`](../../audit/2026-09-05-reflection-envelope.md) |
-| **R6** | Envelope dựng tay vẫn phải có mã |
-| **R7** | Tham số theo tên — xem [`16-i18n-va-ma-loi.md`](16-i18n-va-ma-loi.md) |
-| **R8** | Câu chữ không nằm ở BE |
-
-**Bảo mật và phân quyền** (RULES §6):
-
-| Luật | Canh điều gì |
-| --- | --- |
-| **S1** | Không có hằng số vai trò trong Core |
-| **S2** | Kiểm quyền, không kiểm tên vai trò |
-| **S3** | Không có controller đứng ngoài envelope và quy ước chung |
-| **S4** | Mỗi endpoint công khai là một quyết định, không phải một lần quên |
-| **S5** | Seam Identity không thủng |
-
-Luật S6 (không có secret trong source) được canh bằng công cụ quét bí mật trong CI, không phải ArchTest.
-
-**Cách ly giữa các đơn vị** (RULES §9):
-
-| Luật | Canh điều gì |
-| --- | --- |
-| **M1** | không entity nào mang `ITenantScoped` mà lọt lưới bộ lọc theo đơn vị |
-| **M2** | không DTO nào, không tham số action nào để model binder gán `TenantId` từ request |
-| **M3** | một unique thiếu `TenantId` biến giá trị của đơn vị A thành ràng buộc lên đơn vị B |
-| **M4** | entity mới quên khai `ITenantScoped` mà không có tên trong danh sách miễn trừ |
-| **M5** | mỗi lần bỏ bộ lọc là một quyết định phải giải trình, không phải một lần gõ nhanh |
-| **M6** | SQL thô không đi qua query filter, nên nó phải tự mang điều kiện |
-| **M8** | Dữ liệu đơn vị không bao giờ được ghi khi chưa biết đơn vị — ghi vào `Guid.Empty` là dữ liệu vô hình với mọi người |
-
-Riêng `CrossTenantAccess_Returns_NotFound` (M7) là **integration test**, không phải ArchTest — cùng lý do với `Startup_Fails_When_PendingMigrationsExist` (E8): nó cần một app thật, hai đơn vị thật, và một lượt gọi HTTP thật. Không có cách nào đọc hình dạng code mà biết được endpoint trả 404 hay 403.
+| Luật | Vì sao là integration test | Tên test thật |
+| --- | --- | --- |
+| **E8** | App từ chối khởi động khi còn migration chưa áp vào DB | `DatabaseSchemaStartupCheckTests.TransientFailuresThenTheDatabaseComesUp_RetriesAtTheInterval_ThenRefusesToStartOnMissingMigrations` |
+| **M7** | Ranh giới *"không tìm thấy"* / *"cấm truy cập"* — cần hai đơn vị thật và một lượt gọi HTTP thật | `CrossTenantAccess_Returns_NotFound` (📐 chưa thi công) |
 
 > 🚨 **Nhóm này từng vắng mặt hoàn toàn khỏi mục kiểm kê trên, và đó là lỗ nguy hiểm nhất trong cả file.** Đây là file duy nhất mà `test-engineer` được định tuyến tới; một luật không có tên ở đây là một luật không ai viết test. Mà M1–M7 canh đúng thứ rủi ro nhất của toàn hệ: **rò dữ liệu giữa hai đơn vị** — hỏng mà không có lỗi, không có ngoại lệ, chỉ là truy vấn trả về nhiều hơn đáng ra được thấy ([`../../RULES.md`](../../RULES.md) §9).
 >
@@ -271,6 +228,16 @@ Khởi động một container PostgreSQL tốn vài giây. Nếu mỗi test cla
 
 Cách làm: một fixture ở phạm vi toàn bộ assembly test khởi động container, áp schema một lần, rồi mọi test class dùng chung.
 
+**Cần Docker daemon.** Container dựng qua Testcontainers (`Support/PostgresFixture.cs`), nên `dotnet test` chạy nhóm integration test cần Docker daemon đang chạy trên máy. CI luôn có Docker daemon. Máy dev không có Docker: nhóm test dùng `PostgresFixture` (ví dụ `TenantProvisioningDatabaseTests`) sẽ đỏ ngay ở bước khởi động container — đây không phải lỗi test, là môi trường thiếu điều kiện. Loại nhóm này bằng lối loại trừ **tường minh**, không lặng lẽ bỏ qua:
+
+```bash
+dotnet test --filter "Category!=RequiresDocker"
+```
+
+Mọi test class dùng `PostgresFixture` mang `[Trait("Category", "RequiresDocker")]` để lệnh trên loại đúng nhóm. CI không bao giờ dùng cờ `--filter` này — CI phải chạy đủ cả bộ.
+
+**Câu trên là luật T9, và nó có cổng** ([`../../RULES.md`](../../RULES.md) §8 — tên ArchTest ở cột *Ép bằng gì*). Cần cổng vì đây là loại lỗi không tự lộ: lớp mới quên `[Trait]` vẫn xanh trên CI (CI có Docker), và chỗ vỡ là máy dev không Docker — nơi thông báo lỗi nói về container chứ không nói về `[Trait]` còn thiếu, nên người đọc kết luận sai. Cổng bắt cả hai đường vào container: `[Collection]` của collection PostgreSQL, và `IClassFixture<PostgresFixture>`.
+
 ### 4.3 Cô lập dữ liệu giữa các test — ba cách
 
 | Cách | Ưu | Nhược |
@@ -329,7 +296,7 @@ Vùng phải phủ dù coverage nói gì:
 | Tên tốt | Tên kém |
 | --- | --- |
 | `CreateUser_WhenEmailAlreadyExists_ReturnsConflictError` | `TestCreateUser1` |
-| `Startup_Fails_When_PendingMigrationsExist` | `MigrationTest` |
+| `TransientFailuresThenTheDatabaseComesUp_RetriesAtTheInterval_ThenRefusesToStartOnMissingMigrations` | `MigrationTest` |
 | `Detector_RoleConstant_Catches_RealViolation` | `RoleTest` |
 
 Phép thử: đọc **riêng tên test** trong báo cáo lỗi của CI, có biết luật nào vừa vỡ không? Không biết thì tên chưa đạt.

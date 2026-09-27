@@ -6,7 +6,20 @@ verified: chua-doi-chieu
 
 # Contract card — Users (quản trị người dùng)
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi card trong file này mang `Status: DRAFT`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20, **chỉ ở mức định tuyến**). Mọi card giữ
+> `Status: DRAFT`: chưa endpoint nào được gọi thử ([`README.md`](README.md) §3).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/UsersController.cs` có action `GetList`, `GetById`, `Create`, `Update`, `AssignRoles`, `Lock`, `Unlock`, `ResetPassword` — khớp route §3–§9 | Gọi thử thật, thay ví dụ bằng response thật, rồi mới lật `Status:` |
+> | Năm luật bảo vệ tài khoản quản trị ở §2 là **luật đối chiếu được**, và **chưa ai đối chiếu** — nhãn cũ từng miễn trừ chúng khỏi tầm chấm | Một lượt soi năm luật đó vào handler, trước khi khép pha |
+> | Luật 4 **đã khớp** (đối chiếu 2026-09-24, [ADR-0085](../adr/0085-khoa-tai-khoan-mang-co-bypass-luon-bi-chan.md)): `src/BE/Core/CoreAndSkill.Core.Application/Users/UserPrivilegeGuard.cs` hàm `EnsureCanLockAsync(` chặn trước khi xét vai trò khi đích mang một trong hai cờ (chú thích `Đích mang cờ bypass HOẶC là tài khoản vận hành hệ thống: luôn chặn`), rồi tính `callerCountsAsSystemRoleHolder` có `HasPermissionBypassAsync(callerId, ct)`; `LockUserCommandHandler.cs` cùng thư mục gọi `EnsureNotLockingSelf(` trước. Các ca `EnsureCanLockAsync_` trong `UserPrivilegeGuardTests` xanh (`dotnet test`, 2026-09-24) | — |
+> | §5 tên dành riêng **đã khớp** (đối chiếu 2026-09-25, [ADR-0090](../adr/0090-ten-dang-nhap-system-la-ten-danh-rieng-chan-o-duong-tao.md)): `src/BE/Core/CoreAndSkill.Core.Application/Users/CreateUserCommandValidator.cs` gọi `.NotReservedUserName()`; `CreateUserReservedUserNameEndpointTests` xanh (`dotnet test`, 2026-09-25, host không database) | — |
+> | §5, §6 ghi đồng thời ([ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md)) — đối chiếu 2026-09-25: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Identity/AppUserStore.cs` bắt `DbUpdateException` qua `AppUserUniqueIndexes.Translate(`; `AppUserUniqueViolationTests` và `AppUserUniqueIndexesTests` xanh (`dotnet test`, 2026-09-25, không Docker) | `AppUserUniqueViolationDatabaseTests` chạy trên PostgreSQL thật — **chưa chạy lần nào** (cần Docker). Xanh thì gỡ chữ *Đang thi công* ở hai ghi chú §5, §6 |
+> | §5 `DUPLICATE_ROLE_ENTRY` **đã khớp** (đối chiếu 2026-09-24): `src/BE/Core/CoreAndSkill.Core.Application/Users/CreateUserCommandHandler.cs` gọi `UserRoleAssignmentRules.EnsureNoDuplicateRoleIds(command.RoleIds)` trước mọi phép kiểm khác, không còn `Distinct()`; `CreateUserCommandHandlerTests` xanh (`dotnet test`, 2026-09-24) | — |
+> | Thân request/response và bảng lỗi của bảy card: **chưa ai đối chiếu** | Đối chiếu từng card rồi mới lật `verified:` |
+> | §7 `version` và nhật ký `core.user.role_assign` — đối chiếu 2026-09-24, **chỉ hai điểm**: `src/BE/Core/CoreAndSkill.Core.Application/Users/AssignUserRolesCommand.cs` mang `string? Version`; `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/Interceptors/AuditLogInterceptor.cs` gọi `CollectUserRoleChangesAsync(` rồi ghi `AuditActionCodes.UserRoleAssign` cho từng thay đổi; mục *Thứ tự lỗi* (đối chiếu 2026-09-24): `src/BE/Core/CoreAndSkill.Core.Application/Users/AssignUserRolesCommandHandler.cs` trả `Result.Failure(CommonErrors.ConcurrencyConflict)` sau `UserErrors.NotFound`, trước `UserErrors.RoleNotFound`. **Chưa đối chiếu:** hai test của S21 | Đối chiếu nốt phần còn lại theo ADR-0083 |
+> | §7 ràng buộc 2–3 (phép so-và-đổi token) **đã khớp**, đối chiếu 2026-09-25: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Identity/UserAdminService.cs` — `AssignRolesAsync` gọi `TryClaimAccountVersionAsync(` trước mọi lần đọc hay ghi `db.UserRoles`, kể cả khi tập vai trò không đổi; hàm đó là **một** câu `ExecuteUpdateAsync` lọc `u.ConcurrencyStamp == version` và đặt stamp mới. Thời hạn chờ khoá cũng đã khớp: trong chính hàm đó, `await LockTimeout.SetForCurrentTransactionAsync(db, ct);` đứng trước `ExecuteUpdateAsync` | Chưa test nào chứng minh thời hạn chờ trên PostgreSQL thật (cần Docker) |
 >
 > Envelope, `ErrorType` → HTTP, phân trang: [`README.md`](README.md). Cơ chế phiên và CSRF:
 > [`auth.md`](auth.md). Cấu trúc bảng:
@@ -85,12 +98,30 @@ Muốn gỡ thật thì nhờ một người khác cũng mang vai trò đó th�
 Muốn kết thúc phiên làm việc thì đăng xuất. Tự khoá là thao tác không có ca dùng hợp lệ nào và
 có một hậu quả không tự sửa được.
 
-### Luật 4 — Chỉ người mang vai trò hệ thống mới khoá được tài khoản mang vai trò hệ thống
+### Luật 4 — Khoá tài khoản quản trị: đích giữ vai trò hệ thống thì người gọi phải ngang hàng; đích mang cờ đặc quyền thì không ai trong đơn vị khoá được
 
 `code`: `CORE.USER.SYSTEM_ROLE_LOCK_FORBIDDEN` · `type`: `Forbidden` · HTTP **403**
 
 Không có luật này, một người chỉ có `core.user.lock` khoá được toàn bộ quản trị viên và chiếm
 quyền điều hành hệ thống bằng đúng một quyền.
+
+**Đích là tài khoản vận hành hệ thống (`is_system_operator`) thì luôn chặn**, cùng mã, bất kể người gọi
+mang vai trò gì. Tài khoản đó không giữ vai trò `is_system` nào, nên thiếu vế này thì luật 4 cho qua.
+
+**Đích mang `has_permission_bypass` thì luôn chặn**, cùng mã, bất kể người gọi là ai — kể cả người gọi
+cũng mang cờ đó, vì một đơn vị có thể có nhiều tài khoản mang cờ ([`tenants.md`](tenants.md) §6). Vì sao cần
+vế này: tài khoản quản trị mặc định của đơn vị mang cờ mà không giữ vai trò nào ([`tenants.md`](tenants.md) §2),
+nên thiếu vế này thì người chỉ có `core.user.lock` khoá được nó — và khôi phục ở [`tenants.md`](tenants.md) §4
+không gỡ khoá. Cùng khuôn vế 2 của luật 5: tài khoản mang cờ chỉ quản lý được từ khu hệ thống.
+
+**Người gọi mang `has_permission_bypass` được tính như mang vai trò hệ thống** khi xét luật 4. Tập quyền hiệu
+lực của người đó là toàn bộ danh mục ([`auth.md`](auth.md) §3); thiếu câu này thì quản trị mặc định của đơn vị
+không khoá được một tài khoản giữ vai trò `is_system` nào.
+
+**Luật 3 xét trước luật 4:** đích là chính người gọi thì trả mã của luật 3, kể cả khi người gọi mang cờ.
+
+Lý do và phương án đã loại của hai vế `has_permission_bypass`:
+[ADR-0085](../adr/0085-khoa-tai-khoan-mang-co-bypass-luon-bi-chan.md).
 
 ### Luật 5 — Đặt lại mật khẩu hộ: không nhắm vào tài khoản "cao hơn" người gọi, không nhắm vào chính mình
 
@@ -100,6 +131,7 @@ quyền điều hành hệ thống bằng đúng một quyền.
 | --- | --- | --- | ---: |
 | Tập quyền hiệu lực của đích **vượt** tập quyền của người gọi | `CORE.USER.RESET_PASSWORD_TARGET_FORBIDDEN` | `Forbidden` | **403** |
 | Đích mang `has_permission_bypass` | `CORE.USER.RESET_PASSWORD_TARGET_FORBIDDEN` | `Forbidden` | **403** |
+| Đích là tài khoản vận hành hệ thống (`is_system_operator`) | `CORE.USER.RESET_PASSWORD_TARGET_FORBIDDEN` | `Forbidden` | **403** |
 | Đích là **chính** người gọi | `CORE.USER.CANNOT_RESET_OWN_PASSWORD` | `BusinessRule` | **422** |
 
 Đặt được mật khẩu của một người là nắm được tài khoản đó. Nếu tài khoản đó có quyền mà người gọi
@@ -110,8 +142,11 @@ bộ** danh mục ([`auth.md`](auth.md) §3), nên vế đầu đã chặn mọi
 mang cờ đó. Vế thứ hai chặn nốt ca ấy. Tài khoản mang cờ chỉ được khôi phục từ khu hệ thống
 ([`tenants.md`](tenants.md) §4).
 
-**Hai vế dùng chung một mã, có chủ đích:** tách mã là cho người gọi biết tài khoản đích có mang cờ
-hay không.
+**Vì sao cần vế thứ ba.** Cờ vận hành không phải một quyền trong ma trận, nên tập quyền hiệu lực của tài
+khoản vận hành **rỗng** — vế đầu cho mọi người gọi qua. Tài khoản đó chỉ được khôi phục bằng lệnh chạy tay
+([`tenants.md`](tenants.md) §4 "Ghi chú").
+
+**Ba vế dùng chung một mã, có chủ đích:** tách mã là cho người gọi biết tài khoản đích mang cờ nào.
 
 **Tự đặt lại cho chính mình là 422.** Endpoint này không đòi mật khẩu hiện tại; đổi mật khẩu của
 chính mình đi đường [`auth.md`](auth.md) §6.
@@ -123,7 +158,7 @@ Các mã trên không cùng một loại, và chọn sai loại làm FE hiển t
 | Luật | `type` | HTTP | Vì sao |
 | --- | --- | ---: | --- |
 | 1 — leo thang đặc quyền | `Forbidden` | 403 | Người gọi **thiếu** tập quyền mà vai trò đích cấp |
-| 4 — khoá tài khoản mang vai trò hệ thống | `Forbidden` | 403 | Người gọi **không mang** vai trò hệ thống |
+| 4 — khoá tài khoản quản trị | `Forbidden` | 403 | Người gọi **không mang** vai trò hệ thống, hoặc đích nằm ngoài tầm của mọi người trong đơn vị (cờ vận hành, cờ bypass) |
 | 5 — đặt lại mật khẩu cho tài khoản "cao hơn" | `Forbidden` | 403 | Người gọi **thiếu** tập quyền mà tài khoản đích có |
 | 2 — tự gỡ vai trò hệ thống của mình | `BusinessRule` | 422 | Người gọi **có đủ** quyền; thứ bị chặn là thao tác nhắm vào chính mình |
 | 3 — tự khoá chính mình | `BusinessRule` | 422 | Như trên |
@@ -142,6 +177,11 @@ truy cập — chặn nó là chặn đúng đường sửa sai — và không c
 
 Rủi ro đã cân nhắc và chấp nhận: ai đó mở khoá một tài khoản vừa bị khoá có chủ đích. Đó là hoàn
 tác một thao tác quản trị, không phải chiếm quyền, và người khoá vẫn khoá lại được.
+
+Đích mang `has_permission_bypass` cũng không chặn. Luật 4 cấm quản trị khoá nó, nên khoá trên nó đến từ
+đăng nhập sai nhiều lần; mở khoá chỉ rút ngắn khoá đó, và đăng nhập sai tiếp thì bị khoá tự động lại. Chặn thì
+khoá đó chỉ hết khi tới `lockout_end`: khu hệ thống không có lệnh mở khoá, và khôi phục ở
+[`tenants.md`](tenants.md) §4 không gỡ khoá.
 
 ### Đã cân nhắc và LOẠI — luật "không được hạ/khoá người quản trị CUỐI CÙNG"
 
@@ -215,7 +255,7 @@ Sắp xếp luôn có tiêu chí phụ `id` ở cuối — thiếu nó, dữ li�
 | `lockoutEnd` | Trả kèm để hiện "khoá tới lúc nào". `null` khi không khoá |
 | `lockedByAdmin` | Cột `locked_by_admin` ([`../database/schema-core.md`](../database/schema-core.md) §4.1). `isLocked && lockedByAdmin` ⇒ quản trị khoá (§8); `isLocked && !lockedByAdmin` ⇒ khoá tự động, hết ở `lockoutEnd` |
 | `createdAt` | `string \| null` — cột `created_at` cho phép NULL ([`../database/schema-core.md`](../database/schema-core.md) §4.1, §3.2). FE phải dựng được lưới khi ô này rỗng |
-| `version` | Token đồng thời của bản ghi, **luôn** có mặt; FE gửi lại nguyên chuỗi khi gọi §6, §8, §9. Nguồn giá trị và khuôn: [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.3 |
+| `version` | Token đồng thời của bản ghi, **luôn** có mặt; FE gửi lại nguyên chuỗi khi gọi §6, §7, §8, §9. Nguồn giá trị và khuôn: [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §6.3 |
 
 **`isLocked` tính sẵn ở BE có chủ đích:** để FE tự so `lockoutEnd` với thời điểm hiện tại là đặt
 một quy tắc nghiệp vụ vào hai nơi, và hai đồng hồ (máy chủ và trình duyệt) có thể lệch nhau.
@@ -295,7 +335,7 @@ một quy tắc nghiệp vụ vào hai nơi, và hai đồng hồ (máy chủ v�
 | `email` | ✔ | Duy nhất |
 | `fullName` | ✔ | Tối đa 200 ký tự |
 | `tempPassword` | ✔ | Mật khẩu tạm, **người gọi tự gõ**. Tài khoản tạo ra có `mustChangePassword = true`. Không xuất hiện trong response hay log |
-| `roleIds` | ✘ | Rỗng ⇒ tài khoản không có vai trò nào, tức không có quyền nào |
+| `roleIds` | ✘ | Rỗng ⇒ tài khoản không có vai trò nào, tức không có quyền nào. Tối đa **50** phần tử (§7 Ghi chú) |
 
 ### Response 201
 
@@ -314,6 +354,7 @@ Kèm header `Location: /api/v1/core/users/0192f3c3-4a5b-7c31-9a4e-6b1f2d3c4e5f`.
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
+| `CORE.USER.DUPLICATE_ROLE_ENTRY` | `Validation` | 400 | Cùng một `roleId` xuất hiện từ hai lần trở lên. Chặn ở **handler**, trước mọi phép kiểm khác — cùng luật và cùng lý do với §7 |
 | `CORE.USER.USERNAME_DUPLICATED` | `Conflict` | 409 | `userName` đã tồn tại. `messageParams`: `{ "UserName": "…" }` |
 | `CORE.USER.EMAIL_DUPLICATED` | `Conflict` | 409 | `email` đã tồn tại. `messageParams`: `{ "Email": "…" }` |
 | `CORE.USER.ROLE_NOT_FOUND` | `BusinessRule` | 422 | Một `roleId` không tồn tại |
@@ -324,7 +365,7 @@ Kèm header `Location: /api/v1/core/users/0192f3c3-4a5b-7c31-9a4e-6b1f2d3c4e5f`.
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | Thiếu field, sai định dạng email, `fullName` quá dài |
+| `CORE.VALIDATION.FAILED` | Thiếu field, sai định dạng email, `fullName` quá dài, `roleIds` quá 50 phần tử (`fieldErrors["RoleIds"]` mã `CORE.VALIDATION.MAX_ITEMS`, `messageParams` khoá `MaxItems`), `userName` là tên dành riêng (`fieldErrors["UserName"]` mã `CORE.USER.USERNAME_RESERVED`, loại `Validation`, không `messageParams` — Ghi chú dưới) |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
@@ -339,6 +380,16 @@ thành công" mà đăng nhập vào không làm được gì. `TransactionBehav
 
 **Ghi vai trò phải KIỂM kết quả.** `UserManager.AddToRolesAsync` trả `IdentityResult`; bỏ qua giá
 trị trả về nghĩa là thất bại im lặng.
+
+**Hai lượt tạo cùng `userName` hoặc cùng `email` chạy đồng thời** có thể cùng lọt phép kiểm trước. Lượt sau nhận `CORE.USER.CREATE_FAILED` kèm `fieldErrors["UserName"]` mã `CORE.USER.USERNAME_DUPLICATED` (hoặc `["Email"]` mã `CORE.USER.EMAIL_DUPLICATED`), có `messageParams` — cùng hình dạng như khi Identity từ chối; không bao giờ 500. **Đang thi công** — code đã có, test trên PostgreSQL thật chưa chạy (bảng đầu file); [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md).
+
+**Tên dành riêng — định nghĩa gốc.** Tên đăng nhập `system` — giá trị của `SystemActor.UserName`
+(`src/BE/Core/CoreAndSkill.Core.Application/Identity/SystemActor.cs`) — là danh tính Core ghi vào
+cột audit khi không có người thực hiện, nên **không đường tạo tài khoản nào nhận nó**: card này,
+[`tenants.md`](tenants.md) §2 và §6, và lệnh bootstrap. Phép so cắt khoảng trắng hai đầu rồi so
+như `NormalizedUserName` của Identity, nên `System` hay ` SYSTEM ` cũng bị từ chối. Tài khoản đã
+mang tên đó từ trước **không bị đổi**. Quyết định:
+[ADR-0090](../adr/0090-ten-dang-nhap-system-la-ten-danh-rieng-chan-o-duong-tao.md).
 
 ---
 
@@ -393,6 +444,10 @@ mọi bản ghi audit đang tham chiếu tới.
 | `CORE.AUTH.FORBIDDEN` | Thiếu `core.user.write` |
 | `CORE.CONCURRENCY.CONFLICT` | `version` thiếu, hoặc lệch với bản ghi `{id}` trong database — một thao tác khác đã ghi xong sau khi FE đọc (khoá, đặt lại mật khẩu, chính chủ sửa hồ sơ…). Không ghi gì |
 
+### Ghi chú — sửa email đồng thời
+
+Hai lượt đổi sang cùng một `email` chạy đồng thời có thể cùng lọt phép kiểm trước. Lượt sau nhận `CORE.USER.UPDATE_FAILED` kèm `fieldErrors["Email"]` mã `CORE.USER.EMAIL_DUPLICATED`, có `messageParams` — cùng hình dạng như khi Identity từ chối; không bao giờ 500. **Đang thi công** — code đã có, test trên PostgreSQL thật chưa chạy (bảng đầu file); [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md).
+
 ### Ghi chú — vì sao TÁCH vai trò khỏi endpoint này
 
 Ở dự án tiền nhiệm, endpoint sửa người dùng nhận **cả** danh sách vai trò, và ghi đè trọn gói.
@@ -418,9 +473,15 @@ Tách endpoint gỡ hẳn lớp đó: sửa email **không thể** đụng vai t
   "roleIds": [
     "0192f3c2-1111-7000-8000-000000000001",
     "0192f3c2-1111-7000-8000-000000000002"
-  ]
+  ],
+  "version": "9d3b4c7e-2f10-4a8b-b1c5-6e7f8a9b0c1d"
 }
 ```
+
+| Field | Bắt buộc | Ghi chú |
+| --- | --- | --- |
+| `roleIds` | ✔ | Tập vai trò đích |
+| `version` | ✔ | Token của **tài khoản đích** nhận từ `GET` gần nhất (§3, §4) — cùng token với §6, §8, §9. Thiếu hoặc lệch ⇒ 409, vì `null` không bao giờ khớp |
 
 **Ngữ nghĩa: THAY THẾ, không phải thêm vào.** Vai trò không có trong `roleIds` bị gỡ.
 `roleIds: []` nghĩa là gỡ sạch — đó là thao tác hợp lệ và **cố ý** phải viết ra tường minh.
@@ -447,16 +508,78 @@ Tài khoản đích mang `has_permission_bypass` **vẫn gán vai trò được*
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | `roleIds` là `null` |
+| `CORE.VALIDATION.FAILED` | `roleIds` là `null`, hoặc quá 50 phần tử (`fieldErrors["RoleIds"]` mã `CORE.VALIDATION.MAX_ITEMS`, `messageParams` khoá `MaxItems`) |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 | `CORE.AUTH.FORBIDDEN` | Thiếu `core.user.role.assign` |
+| `CORE.CONCURRENCY.CONFLICT` | `version` thiếu, hoặc lệch với tài khoản `{id}` — một thao tác khác đã ghi xong sau khi FE đọc, **kể cả một lần đổi vai trò khác**. Không ghi gì |
 
 > **`roleIds` trùng lặp là 400, không phải "tự lọc trùng".** `ToDictionary` trên một mảng có khoá
 > trùng ném `ArgumentException`, và exception đó không có nhánh xử lý nghiệp vụ nên client nhận
 > **500** — trong khi đây rõ ràng là lỗi của client. Ở dự án tiền nhiệm, đúng lỗi này xảy ra ở
-> **hai** endpoint khác nhau và phải vá cả hai. Chặn ở validator, tức **trước** khi chạm dữ liệu.
+> **hai** endpoint khác nhau và phải vá cả hai. Chặn ở **handler**, trước khi chạm dữ liệu — không ở validator:
+> `ValidationBehavior` bọc mọi lỗi validator thành mã gốc `CORE.VALIDATION.FAILED`, còn hàng trên đòi mã gốc
+> `CORE.USER.DUPLICATE_ROLE_ENTRY`.
+
+### Ghi chú — đồng thời: token của tài khoản, không phải của tập
+
+Tập vai trò có **một** bản ghi cha, nên nó dùng token của bản ghi đó thay vì băm của tập như ma trận
+quyền ([`permissions.md`](permissions.md) §3.3). Ba ràng buộc cho BE —
+[ADR-0082](../adr/0082-gan-vai-tro-dung-token-cua-tai-khoan.md):
+
+1. **Đổi tập vai trò làm đổi token của tài khoản.** Không đổi thì hai `PUT` cùng đọc một `version`
+   đều qua phép so, và lượt sau gỡ im lặng vai trò lượt trước vừa cấp.
+2. **Phép so-và-đổi token trên `core.app_user` chạy TRƯỚC mọi thay đổi `core.app_user_role`, trong cùng
+   transaction**, dạng một câu `UPDATE … WHERE id = @id AND concurrency_stamp = @version`; 0 dòng ⇒ 409.
+   Câu đó giữ khoá dòng tài khoản, nên hai `PUT` cùng lúc xếp hàng và lượt sau nhận 409 — không lượt nào
+   chạm tới khoá chính `(user_id, role_id)`, không còn 500 `CORE.SYSTEM.UNEXPECTED`.
+   Vì lượt sau **chờ khoá** ở chính câu đó, transaction phải đặt thời hạn chờ khoá **trước** câu `UPDATE`
+   ([`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §7 quy tắc 3). Hết
+   thời hạn thì lỗi đi thẳng ra, không thử lại ([`../quy-uoc/be-performance.md`](../quy-uoc/be-performance.md) §7.2).
+3. **`PUT` không đổi vai trò nào vẫn so `version`**; khớp thì trả 200 và không bắt buộc đổi token.
+
+**Thứ tự lỗi — hệ quả của ADR-0082.** `version` thiếu hoặc lệch ⇒ 409 đứng **sau** 400 `DUPLICATE_ROLE_ENTRY` và 404,
+**trước** mọi mã còn lại của bảng lỗi: `ROLE_NOT_FOUND`, luật 1 và luật 2 §2. Các mã đó xét `roleIds` so với tập vai trò
+**hiện tại**; người cầm token cũ đã nhìn một tập khác, nên phần bị gỡ có thể chứa một vai trò người khác vừa gán mà họ chưa
+từng thấy — trả 403/422 cho vai trò đó là nói về một thao tác họ không định làm, và FE không bao giờ tới nhánh *tải lại* của
+409. Thứ tự giữa các mã sau 409 không cố định: chúng được xét theo từng vai trò. Phép so sớm này là **đọc rồi so**, không
+thay câu `UPDATE` của ràng buộc 2 — lượt ghi chen giữa hai bước vẫn chỉ lộ ra ở câu đó.
+
+Hệ quả phải chấp nhận: hộp *Sửa* (§6) đang mở với `version` cũ nhận 409 sau khi người khác đổi vai
+trò của cùng tài khoản — như sau một lần khoá hay đặt lại mật khẩu. FE `GET` lại rồi gửi lại.
+
+### Nhật ký kiểm toán của lần đổi vai trò người dùng — định nghĩa gốc
+
+Áp cho **mọi** đường ghi `core.app_user_role` qua ứng dụng, không riêng endpoint này — tạo người dùng
+kèm vai trò (§5) cũng vậy. Tạo tài khoản quản trị cho đơn vị **không** là đường ghi bảng này: tài khoản đó
+mang cờ `has_permission_bypass`, không mang vai trò ([`tenants.md`](tenants.md) §2, §6). Yêu cầu gốc: [`../wiki-core/be/10-data-retention.md`](../wiki-core/be/10-data-retention.md)
+§5.4. Lý do và phương án đã loại: [ADR-0083](../adr/0083-doi-vai-tro-nguoi-dung-luon-vao-nhat-ky-kiem-toan.md). Luật S21 ở [`../RULES.md`](../RULES.md) §6.
+
+1. Mỗi người dùng có **ít nhất một** dòng `app_user_role` thêm hoặc xoá trong lượt `SaveChanges` sinh
+   **đúng một** dòng, trong cùng transaction. Lượt không đổi dòng nào thì không sinh dòng nào. Tạo người
+   dùng kèm vai trò sinh **hai** dòng — `core.user.create` và dòng này — không gộp.
+2. Dòng `app_user_role` bị xoá vì vai trò chủ cũng bị xoá trong cùng lượt thì không tính: dòng
+   `core.role.delete` đóng chuỗi — cùng ngoại lệ với ô ma trận ([`permissions.md`](permissions.md) §6).
+3. Không ghi `core.app_user_role` bằng đường bỏ qua `ChangeTracker` (`ExecuteUpdateAsync`,
+   `ExecuteDeleteAsync`, SQL thô) — interceptor không thấy các đường đó.
+
+| Cột ([`../database/schema-core.md`](../database/schema-core.md) §9.4) | Giá trị |
+| --- | --- |
+| `action_code` | `core.user.role_assign` |
+| `tenant_id` | Đơn vị của người dùng |
+| `target_type` · `target_id` | `core.user` · id người dùng |
+| `target_display` | Họ tên người dùng **tại thời điểm ghi** — cùng giá trị với mọi dòng `core.user.*` |
+| `before_value` | `null` |
+| `after_value` | Hai danh sách vai trò, mỗi phần tử `{ id, name }` — `name` là tên **tại thời điểm ghi**, `null` khi không tra được; **không** thay tên bằng id. Sắp theo `name` rồi `id`, cả hai so ordinal trên chuỗi như trong JSON; `name` là `null` đứng **đầu** danh sách. Danh sách rỗng vẫn khai |
+
+```json
+{ "granted": [{ "id": "0192f3c2-1111-7000-8000-000000000002", "name": "Kế toán" }], "revoked": [] }
+```
+
+### Ghi chú — trần 50 phần tử của `roleIds`
+
+Áp cho cả §5 và §7. Đây là hàng rào **kỹ thuật**, không phải luật nghiệp vụ: nó chặn kích thước payload và giữ phép kiểm leo thang đặc quyền (Luật 1 §2, một truy vấn theo tập) trong khối lượng có trần. Con số cao hơn hẳn số vai trò một người mang trong thực tế; chạm trần là dấu hiệu dùng sai, không phải nhu cầu. Kiểm ở validator, **trước** khi chạm dữ liệu — lỗi này đúng là mã gốc `CORE.VALIDATION.FAILED`, khác luật trùng lặp ở trên.
 
 ### Ghi chú — hiệu lực với phiên đang chạy
 

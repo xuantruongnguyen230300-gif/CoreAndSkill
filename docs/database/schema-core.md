@@ -6,9 +6,13 @@ verified: chua-doi-chieu
 
 # Schema `core` — bảng, cột, index, ràng buộc
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Repo đang ở giai đoạn 1, chưa có `src/`. Toàn bộ file này
-> mô tả schema mà `src/` phải dựng ra, **không** mô tả một database đang chạy. Không có DDL nào
-> dưới đây đã từng được áp lên một Postgres thật.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-19). Đối chiếu diễn ra theo **từng mục** —
+> mục nào bảng dưới không nhắc tới thì vẫn đứng nguyên `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG`.
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | Schema đã có hai hiện thực trên đĩa: script DDL ở `database/scripts/core/` và model EF ở `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/Migrations/CoreDbContextModelSnapshot.cs`. Nhiều file trong `src/BE` trích file này làm chuẩn — đếm bằng `grep -rln schema-core src/BE --include=*.cs` | Từng mục lật sang nhãn đã đối chiếu, **riêng lẻ**, khi có người mở source ra so |
+> | 🛑 **Chưa có DDL nào dưới đây từng được áp lên một Postgres thật.** Nhóm integration test chạy trên Postgres chưa chạy lần nào — luật **T2** ở [`../RULES.md`](../RULES.md) mang `⏸️`: fixture có thật nhưng máy hiện tại không có Docker, và job CI backend chưa chạy | Áp lần đầu theo [`script-runbook.md`](script-runbook.md); tới lúc đó mọi kiểu cột, ràng buộc và index ở đây vẫn là **thiết kế chưa được database nào xác nhận** |
 >
 > **File chủ về schema `core`.** Ai sở hữu migration nào: [`migration-policy.md`](migration-policy.md).
 > Chạy script lên database thế nào: [`script-runbook.md`](script-runbook.md).
@@ -17,7 +21,7 @@ verified: chua-doi-chieu
 
 ## 1. Phạm vi và ranh giới
 
-Một database PostgreSQL, nhiều schema:
+Một database PostgreSQL **15 trở lên**, nhiều schema. Sàn phiên bản do khoá duy nhất `NULLS NOT DISTINCT` của §9.5 đặt ([`../adr/0095-khoa-duy-nhat-cua-core-setting-dung-nulls-not-distinct.md`](../adr/0095-khoa-duy-nhat-cua-core-setting-dung-nulls-not-distinct.md)); chưa ai rà xem phụ thuộc khác có đòi cao hơn không.
 
 | Schema | Ai sở hữu | Chứa gì |
 | --- | --- | --- |
@@ -111,9 +115,19 @@ Luật cột ở §3.7 là `tenant_id NOT NULL`. Đúng **một** bảng đượ
 
 | Bảng | Vì sao miễn trừ |
 | --- | --- |
-| `core.setting` (§9.5) | Bảng này có **phạm vi hệ thống** — một giá trị dùng chung cho mọi đơn vị, do người vận hành đặt lúc cài đặt ([`../wiki-core/be/19-cau-hinh-theo-don-vi.md`](../wiki-core/be/19-cau-hinh-theo-don-vi.md) §2, tầng 3). Dòng phạm vi hệ thống theo định nghĩa **không thuộc đơn vị nào**, nên không có giá trị `tenant_id` nào đúng cho nó. Cột `scope` là thứ nói dòng đang ở phạm vi nào; `tenant_id` rỗng **chỉ** hợp lệ khi `scope = 'system'` |
+| `core.setting` (§9.5) | Bảng này có **phạm vi toàn cục** — một giá trị dùng chung cho mọi đơn vị, do người vận hành đặt lúc cài đặt ([`../wiki-core/be/19-cau-hinh-theo-don-vi.md`](../wiki-core/be/19-cau-hinh-theo-don-vi.md) §2, tầng 3). Dòng phạm vi toàn cục theo định nghĩa **không thuộc đơn vị nào** — kể cả đơn vị hệ thống — nên không có giá trị `tenant_id` nào đúng cho nó. Cột `scope` là thứ nói dòng đang ở phạm vi nào; `tenant_id` rỗng **chỉ** hợp lệ khi `scope = 'global'` |
 
 Miễn trừ này kéo theo một nghĩa vụ: đường đọc cấu hình phải lấy được cả ba phạm vi trong một lần tra, không dựa vào bộ lọc `tenant_id = @tenant` mặc định.
+
+#### Miễn trừ thứ ba — bảng CÓ `tenant_id NOT NULL` nhưng entity KHÔNG khai `ITenantScoped`
+
+Không khai `ITenantScoped` nghĩa là **không có bộ lọc truy vấn toàn cục** và interceptor **không** điền `tenant_id`. Luật M4 đọc cả bảng này.
+
+| Bảng | Vì sao miễn trừ |
+| --- | --- |
+| `core.audit_log` (§9.4) | `tenant_id` của **từng dòng** do người ghi quyết định tường minh, không theo phạm vi đơn vị đang mở: thao tác xuyên đơn vị ghi hai dòng ở hai đơn vị trong **cùng** một lần lưu (§9.4 điểm 4). Khai `ITenantScoped` thì interceptor gán cả hai dòng về đơn vị đang mở. Neo: `src/BE/Core/CoreAndSkill.Core.Domain/Audit/AuditLog.cs` — `public sealed class AuditLog`, không kế thừa gì; factory `Record(` nhận `tenantId` bắt buộc |
+
+Miễn trừ này kéo theo một nghĩa vụ, và nó là thứ duy nhất đứng giữa bảng này với một lần rò dữ liệu: **mọi đường đọc `core.audit_log` tự lọc `tenant_id` tường minh.** Không bộ lọc nào làm hộ. Hôm nay chưa có đường đọc nào; cổng là nợ **B12** ở [`../DEBT.md`](../DEBT.md).
 
 > 🛑 **Danh sách này phải NGẮN.** Thêm một dòng vào bảng trên là một quyết định kiến trúc: nó phải nêu lý do **dữ liệu này có ý nghĩa như nhau với mọi đơn vị**.
 
@@ -262,17 +276,23 @@ CREATE UNIQUE INDEX ux_menu_item_code_active
 Ba hệ quả bắt buộc phải nhớ:
 
 1. **Khoá chính không bao giờ là khoá nghiệp vụ.** `role_permission` có PK đơn `id`; tính duy
-   nhất của cặp `(role_id, permission_id)` hạ xuống thành unique index một phần.
-2. **`ON CONFLICT` phải lặp lại NGUYÊN VĂN vị từ.** Thiếu mệnh đề `WHERE` khớp đúng, câu lệnh **abort**:
+   nhất của bộ ba `(tenant_id, role_id, permission_id)` hạ xuống thành unique index một phần —
+   `ux_role_permission_tenant_role_perm_active`, xem §5.3.
+2. **`ON CONFLICT` phải nêu ĐÚNG cột của index VÀ lặp lại NGUYÊN VĂN vị từ.** Sai một trong hai thì
+   không index nào được suy ra và câu lệnh **abort** với `42P10`; và bỏ sót một cột `NOT NULL` không
+   default — `tenant_id` — thì abort với `23502` trước cả khi tới đó. Bản chạy được:
 
    ```sql
-   INSERT INTO core.role_permission (id, role_id, permission_id, is_deleted, created_at, created_by)
-   SELECT gen_random_uuid(), r.id, p.id, false, now(), 'system'
+   INSERT INTO core.role_permission (id, tenant_id, role_id, permission_id, is_deleted, created_at, created_by)
+   SELECT gen_random_uuid(), r.tenant_id, r.id, p.id, false, now(), 'system'
    FROM   core.app_role r
    CROSS  JOIN core.permission p
    WHERE  r.is_system = true
-   ON CONFLICT (role_id, permission_id) WHERE is_deleted = false DO NOTHING;
+   ON CONFLICT (tenant_id, role_id, permission_id) WHERE is_deleted = false DO NOTHING;
    ```
+
+   `tenant_id` lấy từ chính vai (`r.tenant_id`): `core.app_role` thuộc về một đơn vị, còn
+   `core.permission` là danh mục dùng chung không mang `tenant_id` (§5.2, §5.3).
 3. **Hàm băm phiên bản ma trận không được `IgnoreQueryFilters()`** — token phiên bản ở
    [`../contracts/permissions.md`](../contracts/permissions.md) chỉ tính dòng chưa xoá mềm.
 
@@ -351,6 +371,29 @@ CONSTRAINT fk_menu_item_tenant_id FOREIGN KEY (tenant_id) REFERENCES core.tenant
 > thứ: cột nghiệp vụ, `tenant_id`, và mệnh đề `WHERE is_deleted = false`.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`schema-core.md`](../wiki-core/be/ly-do/schema-core.md) §3.7
+
+### 3.8 Dòng `**Index:**` liệt kê index THIẾT KẾ TAY, không liệt kê index EF tự sinh
+
+> **Dòng `**Index:**` của mỗi bảng dưới đây chỉ liệt kê index do con người chọn đặt và có lý do
+> thiết kế. Index một cột mà EF Core tự sinh cho mỗi cột khoá ngoại **không** được liệt kê.**
+
+Nghĩa là: **dòng `**Index:**` không phải danh sách đầy đủ index của bảng.** Muốn biết bảng thật
+sự có index nào thì đọc DDL, đừng đọc file này:
+
+```bash
+# Toàn bộ index thật của schema core. PASS khi in ra ít nhất một dòng cho mỗi bảng có index.
+grep -rn 'CREATE .*INDEX' database/scripts/core/
+```
+
+Vì sao không liệt kê: danh sách đầy đủ **đếm được bằng lệnh trên**, nên chép tay vào đây là đúng
+thứ [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §6 cấm — nó sẽ mục ruỗng ngay lần thêm
+khoá ngoại tiếp theo, và không có gì báo. Điều file này giữ là thứ lệnh **không** trả lời được:
+*vì sao* một index tồn tại.
+
+🛑 **Cái giá, phải biết trước khi dùng file này:** một index EF tự sinh không bao giờ bị file này
+soi, nên **không ai xét nó có đáng tồn tại hay không**. Ca đang mở: `ix_audit_log_actor_tenant_id`
+(`database/scripts/core/0003__core__add-audit-log.sql:31`) nằm trên một cột mà §9.4 khai là `null`
+ở gần như mọi dòng. Quy ước này làm nó vô hình, không làm nó đúng — xem ADR-0042.
 
 ---
 
@@ -668,9 +711,30 @@ Menu thuộc về đơn vị: `code` duy nhất **trong một đơn vị**; `req
 
 **Ba luật không diễn đạt được bằng constraint** — kiểm ở tầng ứng dụng và phải có test:
 
-1. **Cây đúng một cấp.** Một mục đã có `parent_id` thì không được có con. **Kiểm ở handler**, không trigger.
+1. **Cây đúng một cấp.** Một mục đã có `parent_id` thì không được có con. Kiểm trên **tập** mục trước khi ghi, không trigger — chỗ ép ở đoạn ngay dưới.
 2. **Mục cha có `route = NULL`.** Cha chỉ đóng/mở, không điều hướng.
 3. **`code` không bao giờ đổi sau khi đã dùng.** Route và quyền đổi được; `code` thì không.
+
+✅ CÓ THẬT (đối chiếu 2026-09-24) cho luật 1 và 2: ép ở
+`src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/TenantSeedValidator.cs`
+(chuỗi `cây menu đúng MỘT cấp`), gọi từ **hai** chỗ: lúc khởi động
+(`TenantSeedValidationHostedService.cs`, chuỗi `TenantSeedValidator.Validate(seedSources, catalogSources);`) — nguồn seed
+sai thì tiến trình không mở cổng — và **trước dòng ghi đầu tiên** của `CreateTenantAsync`
+(`TenantProvisioningService.cs`, cùng chuỗi), vì lệnh `core bootstrap` không khởi động hosted service nào.
+Kiểm bằng `Startup_Rejects_MenuItemPointingAtAnItemThatItselfHasAParent` và
+`Startup_Rejects_MenuParentThatAlsoCarriesARoute`
+(`src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Tenants/TenantSeedValidationTests.cs`).
+Chính đường ghi cũng không dựng nổi ba cấp:
+`src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/TenantProvisioningService.cs`
+(chuỗi `không phải một mục CẤP MỘT trong cùng nguồn seed`) chỉ tra cha trong tập mục cấp một.
+
+🛑 **Không dời hai phép kiểm này sang entity.** `MenuItem` nhận `parentId` là một `Guid` nên nó không
+biết cha có cha hay không, cũng không biết chính nó có con hay không — cả hai luật chỉ nhìn thấy được
+trên **tập** mục. Luật 3 thì ngược lại: nó được ép bằng chính việc `MenuItem` không có lối đổi `Code`.
+
+Ở v1 menu là **dữ liệu seed**, không có endpoint quản trị ([`../contracts/meta-menu.md`](../contracts/meta-menu.md) §2),
+nên seed là đường ghi duy nhất. 📐 Ngày có endpoint quản trị, handler của nó **phải ép lại đúng hai luật đó**:
+`ValidateMenuItems` chỉ kiểm một nguồn seed trong bộ nhớ, không kiểm cây đang nằm trong database.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`schema-core.md`](../wiki-core/be/ly-do/schema-core.md) §6.1
 
@@ -807,7 +871,13 @@ này **trong cùng transaction** với thay đổi nghiệp vụ; một hosted s
   CREATE INDEX ix_outbox_message_pending
       ON core.outbox_message (next_attempt_at)
       WHERE status = 'pending';
+
+  CREATE INDEX ix_outbox_message_dead
+      ON core.outbox_message (occurred_at)
+      WHERE status = 'dead';
   ```
+
+  `ix_outbox_message_dead` phục vụ phép kiểm sức khoẻ: `/health/ready` đếm dòng `dead` ở **mỗi** lần gọi, và bảng lớn dần vì dòng `done` chỉ bị dọn sau thời hạn lưu giữ — không có index thì phép đếm quét cả bảng.
 
 `status` là **nguồn duy nhất** của trạng thái dòng: `pending` — chờ phát, `next_attempt_at` chỉ là lịch của lần thử kế; `dead` — chạm ngưỡng thử lại, bộ phát không tự chạm nữa; `done` — đã phát, `processed_at` ghi thời điểm. Ngưỡng và cách phát lại: [`../wiki-core/be/12-notifications.md`](../wiki-core/be/12-notifications.md) §2.5.
 
@@ -936,6 +1006,10 @@ Bốn điểm khác mọi bảng `core` còn lại:
    người vận hành. Dòng ở đơn vị đích: `tenant_id` = đơn vị đích, `actor_tenant_id` = đơn vị hệ
    thống. Hai dòng nối nhau bằng `trace_id`. `actor_user_id` của dòng thứ hai trỏ một người mà bộ
    lọc đơn vị giấu khỏi người đọc ở đơn vị đích — nên `actor_display` là thứ họ đọc được.
+   **Luật cột `actor_tenant_id` áp cho mọi dòng, kể cả dòng `AuditLogInterceptor` tự sinh** (`core.user.*`,
+   `core.role.*` khi tài khoản vận hành thao tác ở đơn vị đích). Đơn vị của người thực hiện lấy từ claim
+   đơn vị của phiếu xác thực, **không** từ phạm vi đơn vị đang mở — phạm vi đó lúc này đã là đơn vị đích.
+   Luật M14.
 
 ---
 
@@ -947,14 +1021,14 @@ Bốn điểm khác mọi bảng `core` còn lại:
 | Cột | Kiểu | Ghi chú |
 | --- | --- | --- |
 | `id` | `uuid` | §3.1 |
-| `tenant_id` | `uuid` **null** | Rỗng ⇒ phạm vi hệ thống. Có giá trị ⇒ phạm vi đơn vị hoặc người dùng. **Miễn trừ có tên của luật `NOT NULL` ở §3.7** — khai ở §1.3 kèm nghĩa vụ đi cùng |
-| `scope` | `text` | `system` · `tenant` · `user` |
+| `tenant_id` | `uuid` **null** | Rỗng ⇒ phạm vi toàn cục. Có giá trị ⇒ phạm vi đơn vị hoặc người dùng. **Miễn trừ có tên của luật `NOT NULL` ở §3.7** — khai ở §1.3 kèm nghĩa vụ đi cùng |
+| `scope` | `text` | `global` · `tenant` · `user`. `global` không phải `system` — [`../adr/0093-pham-vi-cau-hinh-dung-chung-ten-la-global.md`](../adr/0093-pham-vi-cau-hinh-dung-chung-ten-la-global.md) |
 | `scope_id` | `uuid` **null** | Id người dùng khi `scope = user`; rỗng ở hai phạm vi kia |
 | `key` | `text` | Mã khoá do module khai |
 | `value` | `text` | Lưu dạng chuỗi; kiểu thật nằm ở khai báo khoá |
 | Năm cột audit | | §3.2 |
 
-- **Unique:** `(tenant_id, scope, scope_id, key)` — kèm mệnh đề xoá mềm theo §3.3.
+- **Unique:** `(tenant_id, scope, scope_id, key)` **`NULLS NOT DISTINCT`** — kèm mệnh đề xoá mềm theo §3.3. Thiếu `NULLS NOT DISTINCT` thì PostgreSQL coi hai `NULL` là khác nhau, và hai dòng `global` (hoặc hai dòng `tenant`) cùng `key` cùng lọt — [`../adr/0095-khoa-duy-nhat-cua-core-setting-dung-nulls-not-distinct.md`](../adr/0095-khoa-duy-nhat-cua-core-setting-dung-nulls-not-distinct.md). Phép thử T2: hai dòng `global` cùng `key`, chưa xoá → `23505`.
 - **FK:** `tenant_id → core.tenant (id) ON DELETE RESTRICT`.
 
 Không lưu bí mật hạ tầng ở bảng này — lý do ở file cơ chế §5.
@@ -999,7 +1073,7 @@ Bảng chỉ được đọc-ghi bằng **một** câu lệnh cập nhật-và-t
 - **PK:** `pk_file (id)`
 - **FK:** `fk_file_tenant_id → core.tenant (id) ON DELETE RESTRICT`
 - **Index:** `ix_file_owner (tenant_id, owner_table, owner_id)`
-- **Unique:** `uq_file_storage_key (tenant_id, storage_key) WHERE is_deleted = false` — gồm `tenant_id` theo luật M3, mệnh đề xoá mềm theo §3.3
+- **Unique:** `ux_file_tenant_storage_key_active (tenant_id, storage_key) WHERE is_deleted = false` — gồm `tenant_id` theo luật M3, mệnh đề xoá mềm theo §3.3, tên theo §2.2
 
 Quyền đọc tệp là quyền đọc **bản ghi chủ** ([`../contracts/files.md`](../contracts/files.md) §4); bộ lọc đơn vị áp như mọi bảng có `tenant_id`. Mức gắn tệp vào bản ghi chủ: [`../wiki-core/be/14-file-storage.md`](../wiki-core/be/14-file-storage.md) §3.1.
 
@@ -1062,8 +1136,10 @@ SELECT tablename FROM pg_tables WHERE schemaname = 'public';
 
 -- (2) Mọi bảng core kế thừa BaseEntity phải đủ 5 cột audit.
 --     Mong đợi: cột "thieu" đều là {} (mảng rỗng).
---     Danh sách chỉ gồm bảng có từ script schema đầu tiên. Bảng tạo ở pha sau (§7)
---     thêm vào đây CÙNG LƯỢT với script tạo nó — thêm sớm thì câu này đỏ oan.
+--     Danh sách gồm bảng của các script đã có: hai dòng đầu của VALUES từ script schema
+--     đầu tiên, dòng cuối (file, job, notification, notification_recipient) từ script B4
+--     (0005, 0007). Bảng tạo ở pha sau thêm vào đây CÙNG LƯỢT với script tạo nó — thêm
+--     sớm thì câu này đỏ oan. core.outbox_message KHÔNG có ở đây: nó không mang khối audit (§8).
 SELECT t.tbl AS "bang",
        ARRAY(SELECT c FROM unnest(ARRAY['created_at','created_by','updated_at','updated_by','is_deleted']) c
              WHERE NOT EXISTS (SELECT 1 FROM information_schema.columns
@@ -1071,7 +1147,8 @@ SELECT t.tbl AS "bang",
                                  AND table_name  = t.tbl
                                  AND column_name = c)) AS "thieu"
 FROM (VALUES ('permission'), ('permission_resource'), ('role_permission'),
-             ('menu_item'), ('menu_item_role')) AS t(tbl)
+             ('menu_item'), ('menu_item_role'),
+             ('file'), ('job'), ('notification'), ('notification_recipient')) AS t(tbl)
 ORDER BY 1;
 
 -- (3) Mọi unique index trên bảng có is_deleted phải LỌC theo is_deleted.
