@@ -124,7 +124,7 @@ Bo góc `--radius-pill`. Đệm ngang `--sp-4`, khe giữa nhãn và nút gỡ `
 | Nhãn nút gỡ | Phải nói **cả tên điều kiện và giá trị**: "Gỡ lọc Trạng thái: Hoạt động", không phải "Xoá". `Toolbar.md` đã ghi yêu cầu này |
 | Bàn phím | `Tab` tới nút gỡ, `Enter` hoặc `Space` để gỡ. Với `toggle`, cả chip là một điểm dừng |
 | Sau khi gỡ | Focus chuyển sang **chip kế tiếp**; gỡ chip cuối thì focus về nút mở bộ lọc. Để focus rơi về `<body>` là lỗi hay gặp nhất khi gỡ một phần tử đang được focus |
-| Thông báo | Số bản ghi sau khi lọc lại báo qua vùng `aria-live="polite"` **đặt cạnh bảng**, không đặt trong chip |
+| Thông báo | Chip không mang vùng `aria-live` nào; kết quả sau khi gỡ do `DataTable` đọc to — [`DataTable.md`](./DataTable.md) §Accessibility, "Vùng báo kết quả" |
 | Vùng bấm | Nút gỡ ≥ 28×28px, nới bằng `padding` (WCAG 2.2 SC 2.5.8) |
 | `readonly` | `aria-disabled="true"` chứ không phải `disabled` — nó vẫn phải nhận focus để người dùng đọc được lý do |
 | Chữ | Đi qua tầng i18n — [`../../RULES.md`](../../RULES.md) §7 F8 |

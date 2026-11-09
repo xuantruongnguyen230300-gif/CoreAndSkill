@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # ADR-0073 — Token thời lượng nối ở **một khoá semantic** của preset; nhóm hoạt ảnh Angular đi bằng **hằng số có tên** truy ngược được về token; `Dialog` và `Drawer` bỏ bất đối xứng vào/ra
 
-> **Trạng thái:** Đã chấp nhận (2026-09-23) · Sửa một phần bởi [ADR-0075](0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md) (2026-09-23)
+> **Trạng thái:** Đã chấp nhận (2026-09-23) · Sửa một phần bởi [ADR-0075](0075-ba-component-lop-noi-vao-nhom-b-va-bac-thang-chon-theo-vai.md) (2026-09-23) · Sửa một phần bởi [ADR-0123](0123-chuyen-dong-component-primeng-di-bang-token-qua-css-go-hang-ms-f37-het-ap-dung.md) (2026-11-06)
+>
+> ADR-0123: PrimeNG 21 đọc thời lượng từ CSS nên quyết định 3 và 4 (hằng TypeScript, F37) hết hiệu lực; phần còn hiệu lực đọc ở bảng *ADR cũ — phần nào còn hiệu lực* của ADR đó. Quyết định 5 thay bằng dòng 2026-11-06 ở [`nhat-ky-quyet-dinh.md`](nhat-ky-quyet-dinh.md): `Dialog`, `Drawer` khôi phục bất đối xứng đường cong, thời lượng vẫn một cho hai chiều. Dòng đó thi hành quyết định 7 của ADR-0123, nên dòng trạng thái không thêm đoạn nào.
 >
 > Tám quyết định đầu **còn hiệu lực nguyên vẹn**. Quyết định 9 chỉ còn phần phân loại (*"spec thiếu, không phải code lệch"*); phần phương thuốc — để `Menu`/`DatePicker`/`Autocomplete` nhận mặc định thư viện và viết một câu nói rõ `.12s` là trùng số — **hết hiệu lực**: ba component đó nay thuộc nhóm B và nối về vai `--dur-base`. ⚠️ §Hệ quả tiêu cực gạch 2 nêu rủi ro *"giật ở `120ms`"*; lượt rà mà chính nó đặt hàng đã bác rủi ro đó — xem ADR-0075 vế 2. Cả hai chỗ **giữ nguyên văn** theo luật D45.
 

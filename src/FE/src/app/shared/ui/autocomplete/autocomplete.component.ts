@@ -3,10 +3,9 @@ import {
   Component,
   TemplateRef,
   computed,
-  effect,
   input,
+  linkedSignal,
   output,
-  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgTemplateOutlet } from '@angular/common';
@@ -67,7 +66,25 @@ export class AutocompleteComponent {
   readonly search = output<string>();
   readonly valueChange = output<string | readonly string[]>();
 
-  private readonly nhanDaBiet = signal<ReadonlyMap<string, string>>(new Map());
+  /**
+   * Cache khoá → nhãn, gom dần từ mọi `options()` từng thấy. `linkedSignal` vì giá trị phái sinh từ
+   * `options` nhưng còn phải nhớ cả lần trước (`truoc`); `options` rỗng giữ nguyên cache, và khi
+   * không nhãn nào đổi thì trả đúng `Map` cũ để không đánh thức `gtHienTai`.
+   */
+  private readonly nhanDaBiet = linkedSignal<readonly Option[], ReadonlyMap<string, string>>({
+    source: this.options,
+    computation: (opts, truoc) => {
+      const cu = truoc?.value ?? new Map<string, string>();
+      let moi: Map<string, string> | null = null;
+      for (const o of opts) {
+        if ((moi ?? cu).get(o.key) !== o.label) {
+          moi ??= new Map(cu);
+          moi.set(o.key, o.label);
+        }
+      }
+      return moi ?? cu;
+    },
+  });
 
   /** `[suggestions]` của PrimeNG đòi mảng CÓ THỂ SỬA (`any[]`), `options()` là readonly — bản sao rẻ. */
   protected readonly dsGoiY = computed(() => [...this.options()]);
@@ -84,26 +101,6 @@ export class AutocompleteComponent {
     }
     return typeof v === 'string' ? dungOption(v) : null;
   });
-
-  constructor() {
-    effect(() => {
-      const opts = this.options();
-      if (opts.length === 0) {
-        return;
-      }
-      this.nhanDaBiet.update((cu) => {
-        let doi = false;
-        const moi = new Map(cu);
-        for (const o of opts) {
-          if (moi.get(o.key) !== o.label) {
-            moi.set(o.key, o.label);
-            doi = true;
-          }
-        }
-        return doi ? moi : cu;
-      });
-    });
-  }
 
   protected onComplete(evt: AutoCompleteCompleteEvent): void {
     this.search.emit(evt.query);

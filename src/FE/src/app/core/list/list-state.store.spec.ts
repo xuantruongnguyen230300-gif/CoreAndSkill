@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { Observable, Subject, of, throwError } from 'rxjs';
 
+import { ApiFailure, ApiFailureError } from '../http/api-result.model';
 import { PagedList } from '../http/paged.model';
 import { GridQuery } from './grid-query';
 import { ListStateStore } from './list-state.store';
@@ -21,6 +22,22 @@ const QUA_NGUNG_GO_MS = 350;
 
 function cho(ms = 0): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function loiApi(code: string): ApiFailureError {
+  const body: ApiFailure = {
+    success: false,
+    data: null,
+    error: {
+      code,
+      type: 'BusinessRule',
+      message: `msg:${code}`,
+      messageParams: null,
+      fieldErrors: null,
+    },
+    traceId: 't',
+  };
+  return new ApiFailureError(body);
 }
 
 describe('ListStateStore', () => {
@@ -94,6 +111,62 @@ describe('ListStateStore', () => {
     expect(store.state())
       .withContext('state là nguồn duy nhất — DataTable quyết hiện slot lỗi theo nó, bất kể rows')
       .toBe('error');
+  });
+
+  describe('luật 10 — errorCode là mã lỗi của lần tải cuối', () => {
+    it('lỗi mang envelope → errorCode nhận đúng body.error.code', async () => {
+      load.and.returnValue(throwError(() => loiApi('CORE.USER.ROLE_NOT_FOUND')));
+      store.connect(load);
+      await onDinh();
+
+      expect(store.state()).toBe('error');
+      expect(store.errorCode()).toBe('CORE.USER.ROLE_NOT_FOUND');
+    });
+
+    it('ApiFailureError không mang envelope (mất mạng) → errorCode null, dù message có mã phía client', async () => {
+      load.and.returnValue(throwError(() => new ApiFailureError(null, 0)));
+      store.connect(load);
+      await onDinh();
+
+      expect(store.state()).toBe('error');
+      expect(store.errorCode())
+        .withContext(
+          'KHÔNG đọc ApiFailureError.message — với thân không envelope nó là mã phía client ' +
+            '(CORE.CLIENT.NO_CONNECTION), không phải mã máy chủ trả',
+        )
+        .toBeNull();
+    });
+
+    it('lỗi không phải ApiFailureError → errorCode null', async () => {
+      load.and.returnValue(throwError(() => new Error('500')));
+      store.connect(load);
+      await onDinh();
+
+      expect(store.state()).toBe('error');
+      expect(store.errorCode()).toBeNull();
+    });
+
+    it('mỗi lượt tải đặt errorCode về null CÙNG LÚC state sang loading — không đợi lượt kế xong', async () => {
+      load.and.returnValue(throwError(() => loiApi('CORE.USER.ROLE_NOT_FOUND')));
+      store.connect(load);
+      await onDinh();
+      expect(store.errorCode()).toBe('CORE.USER.ROLE_NOT_FOUND');
+
+      const ketQuaKe = new Subject<PagedList<Hang>>();
+      load.and.returnValue(ketQuaKe);
+      store.reload();
+      TestBed.tick();
+
+      expect(store.state()).toBe('loading');
+      expect(store.errorCode())
+        .withContext('đặt null ngay lúc bắt đầu lượt kế, không đợi lượt kế thành công hay hỏng')
+        .toBeNull();
+
+      ketQuaKe.next(trang(1, 3, 3));
+      TestBed.tick();
+      expect(store.state()).toBe('idle');
+      expect(store.errorCode()).toBeNull();
+    });
   });
 
   it('F3 — URL mất searchText (bấm mục menu) rồi gõ lại đúng từ cũ → từ khoá lên URL lại và lưới lọc lại', async () => {

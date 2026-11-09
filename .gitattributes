@@ -1,0 +1,7 @@
+# Script schema: checksum ở khối ghi lịch sử tính trên byte CRLF của tệp (docs/database/script-runbook.md §3.2).
+# Ép CRLF khi checkout trên mọi hệ điều hành để checksum khớp cả trên máy Linux và CI — quyết định Q06, 2026-10-06.
+database/scripts/**/*.sql text eol=crlf
+
+# index.html của FE: Caddyfile ghim hash SHA-256 của script theme nội tuyến trong CSP; hash tính trên byte LF.
+# Ép LF khi checkout để bản build từ máy Windows (autocrlf) không ra hash khác — docs/wiki-core/fe/14-security.md §4.2.
+src/FE/src/index.html text eol=lf

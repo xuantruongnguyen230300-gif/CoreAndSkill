@@ -136,8 +136,9 @@ một lỗi — vì thế đây là một trong số ít chỗ được phép gi
 
 Một đường không có tên trong bảng là một đường không ai nghĩ tới việc kiểm; số dòng của bảng cố ý không
 viết ra thành chữ — đếm bằng lệnh ([`.claude/CLAUDE.md`](../../../../.claude/CLAUDE.md) §6). Mọi đường ở đây dựng
-envelope **bằng tay** hoặc bọc lại envelope, nên luật `HandBuiltErrorEnvelope_AlwaysCarries_ABusinessCode`
-áp thẳng vào từng dòng; ba ràng buộc của `EnvelopeMiddleware` hỏng im lặng nếu bỏ.
+envelope **bằng tay** hoặc bọc lại envelope, nên luật R6 `HandBuiltErrorEnvelope_AlwaysCarries_ABusinessCode`
+(📐 chưa có ArchTest — [`RULES-BE.md`](../../../RULES-BE.md)) áp thẳng vào từng dòng; ba ràng buộc của
+`EnvelopeMiddleware` hỏng im lặng nếu bỏ.
 
 Vì sao ba ràng buộc của `EnvelopeMiddleware`:
 
@@ -167,7 +168,8 @@ ghi envelope vì client đã đi.
 
 Route không dùng token `[controller]` để đổi tên class không làm đổi URL công khai. Một controller kế
 thừa thẳng `ControllerBase` là một controller không có `[Authorize]` mặc định và không đi qua
-`ResultToHttpMapper` — đó là thứ `EveryController_Inherits_ApiControllerBase` canh.
+`ResultToHttpMapper` — đó là thứ luật S3 cấm, qua `EveryController_Inherits_ApiControllerBase` (📐 chưa có
+ArchTest — [`RULES-BE.md`](../../../RULES-BE.md)).
 
 Khối đầy đủ — chuyển từ file luật §3 ngày 2026-09-23; bảng trách nhiệm và luật S3 vẫn ở đó. **Năm** lối dưới **bốn** tên: hai overload `HandleResult`, `HandleCreated`, `HandleExport` ([ADR-0064](../../../adr/0064-nhanh-tra-tep-di-qua-apicontrollerbase.md)), `HandleFile` ([ADR-0068](../../../adr/0068-nhanh-tai-tep-di-qua-handlefile.md)) — và **một** `Failure` dùng chung cho nhánh lỗi của cả bốn:
 
@@ -205,7 +207,9 @@ Cả hai đi tới **một** lớp kết quả, `ExportFileResult` — chỗ duy
 Một `if` trong controller là một luật nghiệp vụ nằm ngoài tầm test của tầng Application. `try/catch` hay
 `StatusCode(500, ...)` trong controller đều tạo nguồn sự thật thứ hai cho ánh xạ `Result` → HTTP.
 
-Khối mẫu đầy đủ — chuyển từ file luật §3.1 ngày 2026-09-22 (`UsersController` thật còn có action `Export`, §7.2 ngoại lệ có tên):
+Khối mẫu — trích từ `UsersController` thật, chỉ giữ ba action (bản thật còn `Export` — §7.2 ngoại lệ có
+tên — và các lệnh ghi khác). ✅ CÓ THẬT (đối chiếu 2026-10-06):
+`src/BE/Core/CoreAndSkill.Core.Web/Controllers/UsersController.cs` (chuỗi `return HandleCreated(result, location);`).
 
 ```csharp
 // Core.Web/Controllers/UsersController.cs
@@ -223,12 +227,24 @@ public sealed class UsersController(ISender mediator) : ApiControllerBase
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
         => HandleResult(await mediator.Send(new GetUserByIdQuery(id), ct));
 
+    // Tạo mới: thân request là DTO riêng, controller dựng command; 201 + Location qua HandleCreated
     [HttpPost]
     [RequirePermission(CorePermissions.UserWrite)]
-    public async Task<IActionResult> Create([FromBody] CreateUserCommand command, CancellationToken ct)
-        => HandleResult(await mediator.Send(command, ct));
+    public async Task<IActionResult> Create([FromBody] CreateUserRequest body, CancellationToken ct)
+    {
+        var command = new CreateUserCommand(body.UserName, body.Email, body.FullName, body.TempPassword, body.RoleIds ?? []);
+        var result = await mediator.Send(command, ct);
+        var location = result.IsSuccess ? $"/{CoreRoutes.Users}/{result.Value.Id}" : string.Empty;
+        return HandleCreated(result, location);
+    }
 }
+
+public sealed record CreateUserRequest(string UserName, string Email, string FullName, string TempPassword, IReadOnlyList<Guid>? RoleIds);
 ```
+
+`result.Value` là `CreatedIdDto` (`src/BE/Core/CoreAndSkill.Core.Application/Common/CreatedIdDto.cs`, chuỗi
+`public sealed record CreatedIdDto(Guid Id);`) — `data` của 201 mang hình dạng `{ "id": "…" }` của
+[`../../../contracts/users.md`](../../../contracts/users.md) §5.
 
 ---
 
@@ -429,7 +445,11 @@ mỗi IP. Hệ quả **ngược hẳn mục tiêu**:
 ("mặc định của limiter là phân vùng theo remote IP"), và code chép y theo nên mang nguyên
 lỗi. Rule sai không nằm yên — nó sinh ra code sai.
 
-Dạng đúng — khối đầy đủ, chuyển từ file luật §6.2 ngày 2026-09-22; con số là mặc định đã chốt ở đó:
+Dạng đúng — khối minh hoạ overload phân vùng, chuyển từ file luật §6.2 ngày 2026-09-22; con số là mặc định
+đã chốt ở đó. Khối **không** đủ để chép: bản thật còn `OnRejected` dựng envelope 429 kèm `Retry-After` và
+policy `client-errors`. ✅ CÓ THẬT (đối chiếu 2026-10-06):
+`src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreWebServiceCollectionExtensions.cs` (chuỗi
+`options.OnRejected = async (context, ct) =>`; chuỗi `options.AddPolicy("client-errors", ctx =>`).
 
 ```csharp
 // ✅ ĐÚNG
@@ -833,17 +853,28 @@ mở cho **mọi** subdomain của tên miền gốc. Trả trong body hẹp hơ
 
 **Bẫy thứ hai — token gắn với danh tính lúc phát hành:** token phát cho người ẩn danh không hợp lệ cho phiên vừa đăng nhập, và token của phiên cũ không hợp lệ sau đăng xuất; FE không gọi lại thì request ghi đầu tiên sau mỗi lần đổi danh tính bị 403 `CSRF_REJECTED` — lỗi "đăng nhập xong bấm gì cũng hỏng một lần". **Bẫy thứ ba — chỉ áp cho method ghi:** áp cho `GET` thì mọi tải trang đầu đều cần token trước khi có token.
 
-Endpoint phát token — request-token đi trong **body**, không set cookie nào cho JS:
+Endpoint phát token — request-token đi trong **body**, không set cookie nào cho JS; thân action đi qua
+`HandleResult` như mọi action khác. ✅ CÓ THẬT (đối chiếu 2026-10-06):
+`src/BE/Core/CoreAndSkill.Core.Web/Controllers/AntiforgeryController.cs` (chuỗi
+`return HandleResult(Result.Success(new AntiforgeryTokenDto(tokens.RequestToken!)));`).
 
 ```csharp
-[HttpGet("token")]
-[AllowAnonymous]
-[DisableRateLimiting]
-public IActionResult GetToken([FromServices] IAntiforgery antiforgery)
+// Core.Web/Controllers/AntiforgeryController.cs
+[ApiController]
+[Route(CoreRoutes.Antiforgery)]
+public sealed class AntiforgeryController(IAntiforgery antiforgery) : ApiControllerBase
 {
-    var tokens = antiforgery.GetAndStoreTokens(HttpContext);   // set cookie-token nội bộ
-    return Ok(Envelope.Success(new { token = tokens.RequestToken }, HttpContext.TraceIdentifier));
+    [HttpGet(CoreRoutes.AntiforgeryToken)]
+    [AllowAnonymous]
+    [DisableRateLimiting]
+    public IActionResult GetToken()
+    {
+        var tokens = antiforgery.GetAndStoreTokens(HttpContext);   // set cookie-token nội bộ
+        return HandleResult(Result.Success(new AntiforgeryTokenDto(tokens.RequestToken!)));
+    }
 }
+
+public sealed record AntiforgeryTokenDto(string Token);
 ```
 
 **Bẫy thứ hai:** `IAntiforgery` gắn request-token với danh tính lúc phát hành, nên token phát lúc **chưa

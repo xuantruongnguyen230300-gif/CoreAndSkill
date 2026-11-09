@@ -1,12 +1,7 @@
 ---
 name: "audit-log"
-description: "Ghi một mục postmortem vào docs/audit/ theo khuôn bốn phần Hiện tượng / Nguyên nhân gốc / Cách vá / Cổng nào lẽ ra phải bắt. Dùng sau khi một sự cố hoặc một lỗi tài liệu vừa được phát hiện và xử lý."
+description: "Ghi một mục postmortem vào docs/audit/ theo khuôn bốn phần Hiện tượng / Nguyên nhân gốc / Cách vá / Cổng nào lẽ ra phải bắt. Dùng khi một sự cố hoặc một lỗi tài liệu vừa được phát hiện và xử lý."
 argument-hint: "<mô tả sự cố ngắn> - vd 'bảng định tuyến trỏ vào file đã đổi tên, agent đọc nhầm'"
-metadata:
-  author: "core-team"
-  source: "custom"
-user-invocable: true
-disable-model-invocation: false
 ---
 
 ## User Input
@@ -19,38 +14,26 @@ Bạn **BẮT BUỘC** phải xem xét user input trước khi tiếp tục (n�
 
 ## Mục tiêu
 
-Biến một sự cố đã xảy ra thành **một cổng mới**, thay vì thành một câu chuyện được kể lại rồi quên.
+Biến một sự cố đã xảy ra thành **thiết kế cổng ở phần 4** — chỉ dựng khi vi phạm lặp lại —, thay vì thành một câu chuyện được kể lại rồi quên.
 
-Bốn phần của khuôn, và phần thứ tư là phần duy nhất tạo ra giá trị lâu dài:
-
-| Phần | Trả lời | Ai dùng |
-| --- | --- | --- |
-| **1. Hiện tượng** | Ai thấy gì, lúc nào, sai ra sao | Người gặp lại triệu chứng giống thế |
-| **2. Nguyên nhân gốc** | Vì sao hệ thống cho phép điều đó xảy ra | Người muốn hiểu, không chỉ muốn vá |
-| **3. Cách vá** | Đã sửa gì | Người kiểm chứng bản vá |
-| **4. Cổng nào lẽ ra phải bắt** | Cơ chế nào đã không có mặt | **Người viết cổng tiếp theo** |
-
-> **Văn hoá không đổ lỗi.** Viết về hệ thống và cơ chế, không viết về người. "Ai làm sai" không dùng được vào việc gì; "cơ chế nào đã không có mặt" thì dùng được ngay. Một postmortem có tên người trong đó sẽ khiến lần sau không ai muốn viết postmortem.
+> 📖 Khuôn bốn phần và vì sao phần 4 có giá trị nhất: đọc `docs/audit/README.md` §3
+> 📖 Văn hoá không đổ lỗi: đọc `docs/audit/README.md` §6
 
 ## Các bước thực hiện
 
 ### 1. Đọc khuôn của khu
 
-Mở [`../../../docs/audit/README.md`](../../../docs/audit/README.md) lấy khuôn, quy tắc đặt tên file và bảng mục lục. **Không chép nội dung khuôn vào file này** — nó có thể đổi.
+Mở [`../../../docs/audit/README.md`](../../../docs/audit/README.md) lấy khuôn, quy tắc đặt tên file và mục lục. **Không chép nội dung khuôn vào file này** — nó có thể đổi.
 
-Hai mục đã có sẵn trong khu, đọc một mục để thấy độ sâu mong đợi:
+Đọc một mục có sẵn trong khu để thấy độ sâu mong đợi — danh sách lấy bằng lệnh:
 
-- [`../../../docs/audit/2026-08-23-cong-khong-ton-tai.md`](../../../docs/audit/2026-08-23-cong-khong-ton-tai.md) — một cổng không tồn tại trên đĩa nhưng tài liệu vẫn ghi bình thường.
-- [`../../../docs/audit/2026-09-05-reflection-envelope.md`](../../../docs/audit/2026-09-05-reflection-envelope.md)
+```bash
+ls docs/audit/2*.md
+```
 
 ### 2. Kiểm tra đây có thuộc khu audit không
 
-| Nội dung | Khu đúng |
-| --- | --- |
-| Một sự cố **đã xảy ra**, có triệu chứng quan sát được | `docs/audit/` — đúng khu, đi tiếp |
-| Một quyết định kiến trúc và lý do chọn | [`../../../docs/adr/README.md`](../../../docs/adr/README.md) — dùng skill `adr-new` |
-| Một luật cần được ép | [`../../../docs/RULES.md`](../../../docs/RULES.md) |
-| Một quy ước thi công | Khu quy ước — xem [`../../../docs/README.md`](../../../docs/README.md) |
+Đối chiếu README §2. Quyết định kiến trúc và lý do chọn → skill `adr-new`.
 
 Sự cố **chưa xảy ra**, mới chỉ là rủi ro dự đoán → không viết audit. Audit là bản ghi thực tế; điền nó bằng giả định làm mất giá trị của cả khu.
 
@@ -60,20 +43,15 @@ Hỏi người dùng cho tới khi trả lời được:
 
 - Triệu chứng **quan sát được** là gì? Không viết "hệ thống bị lỗi" mà viết cái người ta thật sự thấy.
 - Phát hiện ra bằng cách nào — tình cờ, hay có thứ gì báo?
-- Kéo dài bao lâu trước khi bị phát hiện? Con số này quan trọng: nó đo **thời gian mù**, và thời gian mù dài là dấu hiệu thiếu cổng chứ không phải thiếu cẩn thận.
+- Phát hiện ngày nào, và kéo dài bao lâu trước khi bị phát hiện? Con số thứ hai đo **thời gian mù**, và thời gian mù dài là dấu hiệu thiếu cổng chứ không phải thiếu cẩn thận.
 
-Nếu bằng chứng neo được vào file trong repo thì neo bằng đường dẫn. 🛑 Chỉ neo vào `src/` bằng đường-dẫn-kèm-số-dòng khi đã **mở đúng file đó ra đọc** — trích dẫn dựng từ trí nhớ là bịa bằng chứng, và cổng chỉ kiểm được số dòng có nằm trong file, không kiểm được dòng đó nói gì.
+Bằng chứng trong repo thì neo theo [`../../CLAUDE.md`](../../CLAUDE.md) §9, sau khi đã mở đúng tệp đó ra đọc.
 
 ### 4. Đào nguyên nhân gốc — dừng ở cơ chế, không dừng ở hành vi
 
-Hỏi "vì sao" cho tới khi câu trả lời là một **thuộc tính của hệ thống**, không phải một hành động của người.
+Hỏi "vì sao" cho tới khi câu trả lời là một **thuộc tính của hệ thống**, không phải một hành động của người — bẫy của phần 2 ở README §3, phép thử cơ chế ở README §8.
 
-| Câu trả lời | Đủ sâu chưa |
-| --- | --- |
-| "Có người quên cập nhật bảng định tuyến" | ❌ Chưa — đây là hành vi |
-| "Bảng định tuyến và file đích là hai nguồn, không có gì buộc chúng khớp nhau" | ✅ Đây là cơ chế |
-
-Bốn khuôn nguyên nhân đã trả giá thật, nêu ở [`../../README.md`](../../README.md) mục *Vì sao*, phần §3 — đối chiếu xem sự cố này có rơi vào khuôn nào không: hai nguồn thì chúng lệch nhau · bản sao không bao giờ được sửa cùng lúc · agent không thấy conflict mà im lặng dùng bản sao · chép nội dung làm agent cạn context.
+> 📖 Bốn khuôn nguyên nhân đã trả giá thật, để đối chiếu: đọc `.claude/README.md` mục *Vì sao*, phần §3
 
 ### 5. Ghi cách vá
 
@@ -81,28 +59,24 @@ Bốn khuôn nguyên nhân đã trả giá thật, nêu ở [`../../README.md`](
 
 ### 6. Phần 4 — cổng nào lẽ ra phải bắt
 
-Đây là phần có giá trị nhất của cả file. Ba khả năng, không có khả năng thứ tư:
+Ba khả năng, không có khả năng thứ tư:
 
-**(a) Có cổng, nhưng cổng không chạy.** Ghi rõ cổng nào, vì sao không chạy — script không tồn tại, bị prompt của harness chặn, hay bị bỏ qua. Một cổng bị prompt chặn là một cổng, trên thực tế, không ai chạy ([`../../CLAUDE.md`](../../CLAUDE.md) §8).
+**(a) Có cổng, nhưng cổng không chạy.** Ghi rõ cổng nào, vì sao không chạy — script không tồn tại, bị prompt của harness chặn, hay bị bỏ qua. Vì sao cổng bị prompt chặn tính là cổng không chạy: `.claude/README.md` mục *Vì sao*, phần §8.
 
 **(b) Có cổng, cổng chạy, nhưng không phủ ca này.** Ghi rõ ca bị hở, và đề xuất mở rộng cổng.
 
 **(c) Không cổng nào bắt được.** Đây là ca hay gặp nhất, và **không được dừng ở đó**. Phải làm một trong hai:
 
 - Đề xuất một **cổng mới** — mô tả nó kiểm gì, chạy bằng lệnh nào, tiêu chí PASS là gì. Nếu cổng đó khả thi bằng máy, nói rõ nó thuộc `check-docs.sh` hay thuộc một skill.
-- Nếu chưa nghĩ ra cổng khả thi, ghi một dòng vào [`../../../docs/DEBT.md`](../../../docs/DEBT.md), kèm cột "vì sao chưa có cổng" và "ý tưởng cổng tương lai".
+- Nếu chưa nghĩ ra cổng khả thi, ghi rõ luật chỉ review canh — ô trạng thái của dòng luật ở `docs/RULES-*.md` nói điều đó; không mở việc dựng cổng khi chưa có vi phạm lặp lại (ADR-0114).
+
+Đề xuất một dòng luật hay đổi ô trạng thái ở tệp `docs/RULES-*.md` thì giao `architect` ghi, kèm đường dẫn mục audit — `docs/adr/0111-git-danh-sach-cho-phep-cong-docs-chan-mot-lan-architect-truoc-thi-cong-theo-dau-hieu.md` quyết định 1.
 
 🛑 Không được để phần 4 trống, và không được viết "cần cẩn thận hơn". Cẩn thận không phải là cổng.
 
 ### 7. Viết file và cập nhật mục lục
 
-Tên file theo quy tắc ở bước 1: ngày, gạch ngang, slug tiếng Việt không dấu. Ngày lấy bằng lệnh:
-
-```bash
-date +%F
-```
-
-Ba khoá frontmatter theo [`../../CLAUDE.md`](../../CLAUDE.md) §9. Thêm một dòng vào bảng mục lục của khu audit.
+Tên file theo README §4 — ngày trong tên là ngày **phát hiện** sự cố (bước 3), không phải ngày viết; chưa rõ thì hỏi. Ba khoá frontmatter theo [`../../CLAUDE.md`](../../CLAUDE.md) §9. Thêm một dòng vào mục lục ở README §9.
 
 ## Dừng lại và hỏi khi
 
@@ -116,8 +90,8 @@ Ba khoá frontmatter theo [`../../CLAUDE.md`](../../CLAUDE.md) §9. Thêm một 
 ## Đầu ra
 
 - Một file mới `docs/audit/YYYY-MM-DD-<slug>.md` đủ bốn phần, đủ ba khoá frontmatter.
-- Một dòng thêm vào bảng mục lục của khu audit.
-- Nếu phần 4 rơi vào ca (c) không cổng nào bắt được: hoặc một đề xuất cổng cụ thể, hoặc một dòng đề xuất cho sổ nợ.
+- Một dòng thêm vào mục lục của khu audit.
+- Nếu phần 4 rơi vào ca (c): hoặc một đề xuất cổng cụ thể, hoặc ghi rõ luật chỉ review canh ở ô trạng thái — giao `architect`.
 
 Báo cáo trong hội thoại: file đã tạo, kết luận của phần 4, và cổng nào được đề xuất thêm.
 
@@ -125,6 +99,6 @@ Báo cáo trong hội thoại: file đã tạo, kết luận của phần 4, và
 
 1. Bốn phần đều có nội dung; phần 4 không trống và không phải câu "cần cẩn thận hơn".
 2. Không có tên người trong file.
-3. Không có trích dẫn dạng đường-dẫn-kèm-số-dòng trỏ vào `src/`.
-4. Bảng mục lục của khu audit đã cập nhật.
+3. Mọi neo đúng [`../../CLAUDE.md`](../../CLAUDE.md) §9.
+4. Mục lục của khu audit đã cập nhật.
 5. Chạy `bash .claude/check-docs.sh`.

@@ -5,23 +5,32 @@
   [activeRoute]="activeRoute()"
   [state]="menu.state()"
   (retry)="thuLaiTaiMenu()"
-/>
+>
+  <!-- Chân dải (Sidebar.md §Chân dải): Footer ở đáy Sidebar, ngoài <nav>, không ở cuối main. -->
+  <app-footer
+    sidebarFooter
+    variant="sidebar"
+    size="sm"
+    [copyright]="
+      'chung.chanTrang.banQuyen' | translate: { nam: namHienTai, tenHeThong: branding.name }
+    "
+    [version]="maCommit ? ('chung.chanTrang.phienBan' | translate: { ma: maCommit }) : null"
+  />
+</app-sidebar>
 
 <app-topbar
-  [title]="tieuDeTuyen()"
   [user]="nguoiDungTopbar()"
   [tenantName]="nguoiDung()?.tenantName ?? ''"
   [menuItems]="taiKhoanMenuItems()"
+  [theme]="theme()"
+  [scrolled]="daCuon()"
   (menuItemSelected)="khiChonMucTaiKhoan($event)"
+  (themeChangeRequested)="khiDoiTheme($event)"
 />
 
-<main id="noi-dung-chinh" class="noi-dung">
+<!-- Một vùng thông báo dùng chung cho đổi theme (và đổi ngôn ngữ khi dựng) — ẩn thị giác. -->
+<div class="sr-only" role="status" aria-live="polite">{{ thongBaoTheme() }}</div>
+
+<main id="noi-dung-chinh" class="noi-dung" (scroll)="khiCuon($event)">
   <router-outlet></router-outlet>
 </main>
-
-<app-footer
-  variant="full"
-  [copyright]="
-    'chung.chanTrang.banQuyen' | translate: { nam: namHienTai, tenHeThong: branding.name }
-  "
-/>

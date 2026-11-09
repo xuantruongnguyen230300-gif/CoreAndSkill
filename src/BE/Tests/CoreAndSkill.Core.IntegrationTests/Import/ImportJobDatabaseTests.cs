@@ -17,11 +17,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Import;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Nhập dữ liệu từ đầu đến cuối trên PostgreSQL THẬT — docs/wiki-core/be/15-import-export.md §4, §6. Đây là test mà
 // EfImportRowWriterTests và ImportJobExecutorTests (không DB) chỉ chứng minh được PHẦN CƠ CHẾ của: dòng lỗi nằm GIỮA
 // các dòng đúng thật sự KHÔNG có trong bảng. Không có test này thì việc huỷ theo dõi sau mỗi dòng có thể bị gỡ trong

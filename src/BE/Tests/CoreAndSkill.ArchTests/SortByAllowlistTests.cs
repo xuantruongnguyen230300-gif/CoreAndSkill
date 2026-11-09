@@ -9,7 +9,7 @@ using Xunit;
 
 namespace CoreAndSkill.ArchTests;
 
-// Luật B3 — docs/RULES.md §10: mọi record request (kể cả command — ExportUsersCommand) có property `SortBy` phải có một
+// Luật B3 — docs/RULES-BE.md: mọi record request (kể cả command — ExportUsersCommand) có property `SortBy` phải có một
 // validator khai rule kiểm miền giá trị trên chính property đó. Điểm mù của phép dò nằm ở đầu
 // Support/SortByAllowlistScanner.cs.
 public class SortByAllowlistTests

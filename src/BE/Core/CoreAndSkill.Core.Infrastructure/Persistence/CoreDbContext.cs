@@ -47,8 +47,11 @@ public sealed class CoreDbContext(
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.HasDefaultSchema(CoreSchema.Name);
+        modelBuilder.HasCollation(CoreSchema.Name, CoreSchema.ViVnCollation, CoreSchema.ViVnLocale, "icu", deterministic: true);
+        modelBuilder.HasPostgresExtension(CoreSchema.UnaccentExtension); // schema `public` do migration TaoCollationViVnVaExtensionUnaccent chọn
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CoreDbContext).Assembly);
 
         modelBuilder.ApplyCoreQueryFilters(this); // PHẢI chạy SAU dòng trên
+        modelBuilder.ApplyBaseEntityColumnDefaults();
     }
 }

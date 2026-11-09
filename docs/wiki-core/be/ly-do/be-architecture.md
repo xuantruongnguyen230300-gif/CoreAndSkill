@@ -45,7 +45,7 @@ mang đơn vị: job nền, bộ phát outbox, service tạo đơn vị cùng ru
 
 | Luật (tóm tắt) | Vì sao |
 | --- | --- |
-| Allowlist A12 đóng | Mở phạm vi ở chỗ khác là tự chọn đơn vị — đúng lỗ mà luật M2 chặn ở đường vào HTTP. Phép kiểm security stamp chạy **trước** khi `HttpContext.User` được gán nên `ITenantContext` chưa có giá trị; đơn vị nó dùng lấy từ claim của phiếu — đúng nguồn M2 cho phép |
+| Allowlist A12 đóng | Mở phạm vi ở chỗ khác là tự chọn đơn vị — đúng lỗ mà luật M2 chặn ở đường vào HTTP. Phép kiểm security stamp chạy **trước** khi `HttpContext.User` được gán nên `ITenantContext` chưa có giá trị; đơn vị nó dùng lấy từ claim của phiếu — đúng nguồn M2 cho phép. Allowlist khai ngay trong cổng vì thư mục ArchTests thuộc `core-paths`: nới allowlist buộc một lượt `core-reviewer`, kể cả khi nơi gọi mới ở host hay module |
 | `Current` trên seam; hai lớp ở `Core.Web` đọc nó trước `HttpContext` | Giá trị nằm trong `AsyncLocal` của `Core.Infrastructure`; không có `Current` thì `Core.Web` phải biết hiện thực, hoặc giữ một bản đọc thứ hai. Thứ tự *phạm vi trước, `HttpContext` sau* là thứ làm bước đăng nhập và phép kiểm cookie thấy đúng đơn vị khi `HttpContext.User` chưa có |
 | `Dispose` khôi phục phạm vi trước đó | Service tạo đơn vị chạy trong một phạm vi rồi mở phạm vi của đơn vị mới. Đóng mà xoá về rỗng thì phần việc còn lại của phạm vi ngoài chạy không có đơn vị — interceptor từ chối lưu (luật M8) ở một chỗ cách xa nguyên nhân |
 | Đơn vị đi theo việc nền bằng dữ liệu | Nằm ở chỗ gọi thì mỗi nơi enqueue phải nhớ truyền, và nơi nào quên sẽ lặng lẽ ghi dữ liệu không danh tính |
@@ -156,7 +156,7 @@ lộ ra:
 
 ### 3.1 Thứ tự pipeline
 
-Thứ tự pipeline là một quyết định kiến trúc, không phải chi tiết cấu hình. Vì sao bốn chỗ không
+Thứ tự pipeline là một quyết định kiến trúc, không phải chi tiết cấu hình. Vì sao năm chỗ không
 hoán đổi được:
 
 1. **`PasswordChangeRequiredMiddleware` sau `UseAuthorization`** — nó cần biết người gọi là ai, nên trả
@@ -179,6 +179,31 @@ hoán đổi được:
    | --- | --- |
    | Có proxy mà thiếu cấu hình | App tưởng mọi request là HTTP ⇒ không phát cookie mang `Secure` ⇒ endpoint phát token antiforgery lỗi, **không request ghi nào đi qua** — trong khi `/health` vẫn xanh nên triển khai vẫn báo thành công |
    | Tin mọi nguồn gửi header chuyển tiếp | Ai cũng giả được IP để tự chọn phân vùng rate limit — [`be-api-controller.md`](../../../quy-uoc/be-api-controller.md) §6.3 |
+5. **`UseRateLimiter` ngay sau `UseCors`, trước `UseAuthentication`** — người dùng chốt 2026-09-29
+   ([`../../../adr/nhat-ky-quyet-dinh.md`](../../../adr/nhat-ky-quyet-dinh.md), luật B26). Đặt sau ba
+   middleware chặn thì giới hạn nền chỉ đếm request **đã qua** chúng, trong khi hai thứ nó sinh ra để chặn
+   lại nằm đúng ở nhóm bị bỏ sót:
+
+   | Không đếm được khi đứng sau | Vì sao đáng đếm |
+   | --- | --- |
+   | Request không cookie bị 401, request thiếu token bị 403 | Vòng lặp thử lại hỏng ở FE và máy quét dò endpoint sinh đúng loại request này — hàng 2 của bảng hàng rào nói nó chặn chúng |
+   | Request mang cookie phiên, bất kể kết cục | Mỗi lượt đã tốn hai lời gọi xuống DB ở `OnValidatePrincipal` trước khi tới bộ đếm — một cơn lũ request mang cookie cũ đập thẳng vào DB mà bộ đếm không thấy |
+
+   Chỗ đứng ngay sau `UseCors` là chỗ **sớm nhất** còn giữ được ba điều. 429 mang header CORS, nên trình
+   duyệt cho FE đọc thân và hiện số giây chờ, thay vì báo lỗi CORS khó hiểu. Metadata của endpoint vẫn đọc
+   được: `WebApplication` tự chèn định tuyến ở đầu pipeline khi không ai gọi `UseRouting`, nên policy
+   `login` và lối miễn của `/health/*` giữ hiệu lực — lớp `RateLimitPolicyWiringTests` là test canh điều này.
+   Và mọi khoá phân vùng đang đọc địa chỉ kết nối, thứ `UseForwardedHeaders` đã chuẩn hoá từ trước.
+
+   **Cái giá.** Khoá phân vùng không còn đọc được danh tính: hạn mức **theo người dùng** (không theo IP) không
+   đặt được ở `UseRateLimiter` nữa — cần thì phải là một middleware riêng sau `UseAuthentication`, hoặc kiểm
+   trong handler như hàng rào 3. Người chưa đăng nhập vượt ngưỡng nhận 429 thay vì 401; FE xử lý 429 chung một
+   đường nên không đổi gì phía đó. Preflight CORS vẫn **không** bị đếm — `UseCors` trả lời preflight rồi dừng
+   pipeline trước khi tới bộ đếm, ở vị trí cũ lẫn mới.
+
+   **Dấu hiệu quyết định này bắt đầu sai:** có yêu cầu hạn mức theo tài khoản hay theo đơn vị, hoặc log cho thấy
+   phần lớn 429 rơi vào người dùng thật đang bị 401 hàng loạt (phiên hết hạn đồng loạt) chứ không vào vòng lặp
+   hỏng hay máy quét.
 
 **Hai endpoint health.** Orchestrator dùng `/health/live` để quyết định restart; load balancer
 dùng `/health/ready` để quyết định đưa vào luồng. Gộp làm một thì một sự cố DB tạm thời khiến

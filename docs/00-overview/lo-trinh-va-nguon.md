@@ -12,7 +12,7 @@ verified: chua-doi-chieu
 >
 > | Trong file này | Thực tế hiện nay |
 > | --- | --- |
-> | Trạng thái các hạng mục | `docs/RULES.md` §10 cho nợ, `docs/adr/` cho quyết định |
+> | Trạng thái các hạng mục | `docs/RULES.md` §10 cho luật chưa có cổng (dòng 🕳️), `docs/adr/` cho quyết định |
 > | Nhận định về CI | CoreAndSkill **có** CI — xem `docs/adr/0011-ci-github-actions.md` |
 > | Mô hình phục vụ FE↔API | **Hai origin khác nhau** — [`../adr/0015-fe-va-api-khac-nguon.md`](../adr/0015-fe-va-api-khac-nguon.md) |
 > | Lộ trình E0–E6 ở §3, kể cả ghi chú cuối §6 rằng phần còn hiệu lực là *E4 trở đi* | **Không còn hiệu lực** — lộ trình thi công: [`../wiki-core/be/trien-khai/00-lo-trinh-tong-the.md`](../wiki-core/be/trien-khai/00-lo-trinh-tong-the.md) · [`../wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md`](../wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md) |

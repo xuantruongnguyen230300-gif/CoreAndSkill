@@ -24,15 +24,9 @@ File bạn đang đọc giữ phần **nghề viết**: viết thế nào cho AD
 
 > 📖 **Khuôn rỗng để chép: [`../../adr/README.md`](../../adr/README.md) §7.** Mục này không chép lại khuôn — nó nói về **cách viết** từng mục cho khỏi rỗng.
 
-### Ba mục hay bị viết hỏng
+> 📖 **Từng mục hay bị viết hỏng thế nào: cột "Bẫy thường gặp" ở [`../../adr/README.md`](../../adr/README.md) §3.** Mục này không giữ bảng thứ hai.
 
-| Mục | Cách viết hỏng | Cách viết đúng |
-| --- | --- | --- |
-| **Bối cảnh** | Mô tả giải pháp trước khi mô tả vấn đề | Chỉ nêu tình huống và ràng buộc. Người đọc phải tự thấy vì sao cần quyết |
-| **Phương án đã loại** | Dựng bù nhìn — liệt kê phương án hiển nhiên tệ để phương án đã chọn trông hay | Liệt kê phương án **thật sự hấp dẫn**, và nói rõ nó thua ở điểm nào. Không có phương án nào hấp dẫn thì có lẽ không cần ADR |
-| **Hệ quả** | Chỉ ghi cái được | **Bắt buộc ghi cái mất.** Một ADR không có cái mất là một ADR chưa suy nghĩ xong |
-
-Ví dụ về cái mất, viết đúng cách: quyết định *Core sở hữu migration của schema `core`* kéo theo hệ quả **`Core.Infrastructure` từ nay biết provider là PostgreSQL** — một sự đánh mất tính trung lập, có thật, phải ghi thẳng. Xem [`13-core-data-migration.md`](13-core-data-migration.md).
+Ví dụ về cái mất của mục **Hệ quả**, viết đúng cách: quyết định *Core sở hữu migration của schema `core`* kéo theo hệ quả **`Core.Infrastructure` từ nay biết provider là PostgreSQL** — một sự đánh mất tính trung lập, có thật, phải ghi thẳng. Xem [`13-core-data-migration.md`](13-core-data-migration.md).
 
 ### Độ dài
 
@@ -49,7 +43,7 @@ Một ADR đọc hết trong vài phút. Dài hơn nghĩa là đang lẫn **quy�
 | **Không ADR nào có mục "cái mất"** | Dấu hiệu ADR đang được dùng để hợp thức hoá, không phải để quyết định |
 | **ADR không được ai đọc trước khi đề xuất một thay đổi lớn** | ADR chỉ có giá trị khi nó nằm trên đường đi của người sắp lật nó |
 
-Chống sai lầm thứ tư bằng quy trình, không bằng lời nhắc: mọi thay đổi chạm `Core/` đi qua agent `architect`, và bước đầu của nó là đọc [`../../adr/README.md`](../../adr/README.md). Xem [`../../kien-truc-core-module.md`](../../kien-truc-core-module.md) §4.2.
+Chống sai lầm thứ tư bằng quy trình, không bằng lời nhắc: việc mang dấu hiệu cần quyết định — dấu hiệu ở [`../../adr/README.md`](../../adr/README.md) §2 — và việc đưa code mới vào Core đi qua agent `architect` trước khi thi công, và bước đầu của nó là đọc [`../../adr/README.md`](../../adr/README.md). Việc chạm Core nào qua `architect`, việc nào thi công thẳng rồi qua `core-reviewer`: [`../../kien-truc-core-module.md`](../../kien-truc-core-module.md) §4.2.
 
 ---
 
@@ -88,7 +82,7 @@ Gộp hai loại này lại là nguồn của những cuộc tranh luận lặp 
 | `wiki-core/` (khu này) | **Một core tốt gồm gì** | Mô hình phân quyền có những dạng nào |
 | [`../../audit/`](../../audit/) | **Chuyện gì đã hỏng** | Cầu nối dựng bằng reflection và hậu quả |
 
-Một quyết định thường để lại dấu ở **ba** chỗ: ADR ghi lý do, `RULES.md` thêm một dòng luật kèm cột ép bằng gì, `quy-uoc/` mô tả cách làm. Thiếu dòng ở `RULES.md` thì quyết định không có ai canh; thiếu ADR thì luật không có ai bảo vệ khi bị chất vấn.
+Một quyết định thường để lại dấu ở **ba** chỗ: ADR ghi lý do, một tệp `RULES-*.md` thêm một dòng luật kèm cột ép bằng gì, `quy-uoc/` mô tả cách làm. Thiếu dòng ở `RULES-*.md` thì quyết định không có ai canh; thiếu ADR thì luật không có ai bảo vệ khi bị chất vấn.
 
 ---
 
@@ -96,9 +90,9 @@ Một quyết định thường để lại dấu ở **ba** chỗ: ADR ghi lý 
 
 | Hạng mục | Trạng thái |
 | --- | --- |
-| Bộ ADR ban đầu cho các quyết định nền | 📐 xem [`../../adr/README.md`](../../adr/README.md) |
-| Khuôn năm mục | 📐 áp cho mọi ADR mới |
-| Lật bằng ADR mới, không sửa ADR cũ | 📐 luật, không có ngoại lệ |
-| Mọi thay đổi chạm `Core/` phải có ADR | 📐 [`../../kien-truc-core-module.md`](../../kien-truc-core-module.md) §4.2 |
+| Bộ ADR của repo | ✅ CÓ THẬT (đối chiếu 2026-10-05) — mục lục `docs/adr/muc-luc.md:13`; đếm bằng `ls docs/adr/[0-9][0-9][0-9][0-9]-*.md \| wc -l` |
+| Khuôn năm mục, áp cho mọi ADR mới | ✅ CÓ THẬT (đối chiếu 2026-10-05) — luật ở `docs/adr/README.md:56`. Không cổng máy nào kiểm một ADR đủ năm mục; ADR đã có chưa ai đối chiếu với khuôn (khối đầu tệp này) |
+| Lật bằng ADR mới, không sửa ADR cũ | ✅ CÓ THẬT (đối chiếu 2026-10-05) — luật ở `docs/adr/README.md:90`, không có ngoại lệ |
+| Việc nào cần ADR — kể cả việc chạm Core | ✅ CÓ THẬT (đối chiếu 2026-10-05) — cần khi mang ít nhất một dấu hiệu ở `docs/adr/README.md:33`; việc chạm Core không mang dấu hiệu nào thì không cần ADR — `docs/kien-truc-core-module.md:114` |
 
 **Cách kiểm nhanh một ADR có đủ chất lượng chưa:** đưa cho một người không dự cuộc bàn. Họ đọc xong có nói lại được **vì sao phương án B bị loại** không? Không nói lại được thì ADR chưa viết xong.

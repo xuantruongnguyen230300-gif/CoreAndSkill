@@ -13,11 +13,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Permissions;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // PUT /api/v1/core/permissions/matrix qua HTTP tới PostgreSQL thật — docs/contracts/permissions.md §6.
 //
 // Đồng thời: docs/wiki-core/be/06-concurrency-control.md §6.3 luật 3. Hai lượt lưu cùng giữ một `version` — đúng MỘT

@@ -120,6 +120,34 @@ public sealed class BootstrapAccountConfigTests : IDisposable
         harness.UnitOfWork.Commits.ShouldBe(1, "đơn vị hệ thống đã commit ở transaction riêng của nó (ADR-0023 §1)");
     }
 
+    // Luật M16: hai mã đơn vị trùng nhau sau chuẩn hoá thì lệnh dừng ở phép kiểm đầu lệnh — không dòng nào được ghi, kể cả
+    // đơn vị hệ thống (lời gọi 1 sẽ commit nếu phép kiểm đứng muộn hơn).
+    [Fact]
+    public async Task TenantCodesEqualAfterNormalisation_ExitsOne_WritesNothing_NamesBothKeys()
+    {
+        var options = new CoreBootstrapOptions
+        {
+            SystemTenantCode = "HETHONG",
+            SystemTenantName = "Đơn vị hệ thống",
+            FirstTenantCode = " hethong ",
+            FirstTenantName = "Đơn vị đầu tiên",
+            OperatorUserName = "vanhanh",
+            OperatorPassword = OfflineBootstrapHarness.Password,
+            OperatorEmail = OperatorEmail,
+            AdminUserName = "quantri",
+            AdminPassword = OfflineBootstrapHarness.Password,
+            AdminEmail = AdminEmail,
+        };
+        var harness = OfflineBootstrapHarness.Build(new OfflineBootstrapHarness.EmptySeed(), options);
+
+        await CoreCommandRunner.RunBootstrapAsync(harness.Services);
+
+        Environment.ExitCode.ShouldBe(1);
+        _error.ToString().ShouldContain(nameof(CoreBootstrapOptions.SystemTenantCode), Case.Sensitive);
+        _error.ToString().ShouldContain(nameof(CoreBootstrapOptions.FirstTenantCode), Case.Sensitive);
+        harness.ShouldHaveWrittenNothing();
+    }
+
     private async Task ShouldStopBeforeAnyWrite(string key, string? value)
     {
         var options = OfflineBootstrapHarness.ValidOptions(

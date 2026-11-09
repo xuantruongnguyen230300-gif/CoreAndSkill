@@ -1,3 +1,4 @@
+using CoreAndSkill.Core.Application.Common.Logging;
 using CoreAndSkill.Core.Application.Configuration;
 using CoreAndSkill.Core.Application.Diagnostics;
 using CoreAndSkill.Core.Application.Maintenance;
@@ -76,7 +77,9 @@ internal sealed class StaleDataCleanupHostedService(
             // Lọc theo TOKEN, không theo kiểu: TaskCanceledException vì hết thời gian chờ trong lúc tiến trình còn chạy là lỗi
             // của cleaner này. Để nó thoát ra thì BackgroundService hỏng và host (StopHost mặc định) dừng cả tiến trình.
             CoreMetrics.BackgroundJobFailed.Add(1);
-            logger.LogError(ex, "Job nền dọn dữ liệu '{CleanerName}' lỗi — cần người can thiệp.", cleaner.Name);
+            logger.LogError(
+                "Job nền dọn dữ liệu '{CleanerName}' lỗi — cần người can thiệp. {Failure}",
+                cleaner.Name, FailureText.DescribeWithStack(ex));
         }
     }
 }

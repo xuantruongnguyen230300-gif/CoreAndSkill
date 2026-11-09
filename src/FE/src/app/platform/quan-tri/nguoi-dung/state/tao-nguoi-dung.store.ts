@@ -16,6 +16,7 @@ import {
   VaiTroChon,
 } from '../models/nguoi-dung-hop.model';
 import { NguoiDungService } from '../services/nguoi-dung.service';
+import { cauLoiKhongPhaiApi } from '../../../../core/http/dich-loi';
 
 /**
  * Mã gốc hiện dưới ô — Design/Screens/10-nguoi-dung.md, bảng Mã lỗi → chỗ hiện của hộp tạo: card
@@ -50,13 +51,19 @@ export class TaoNguoiDungStore {
   /** Một thể hiện riêng của hộp này — `TraCuuVaiTroStore` không cấp bằng DI (lý do ở đầu tệp đó). */
   readonly timVaiTro = new TraCuuVaiTroStore(this.vaiTroService, this.translate);
 
-  readonly hienThi = signal(false);
-  readonly dangLuu = signal(false);
-  readonly daGui = signal(false);
-  readonly loiChung = signal<string | null>(null);
-  readonly hienThiXacNhanHuy = signal(false);
+  private readonly _hienThi = signal(false);
+  readonly hienThi = this._hienThi.asReadonly();
+  private readonly _dangLuu = signal(false);
+  readonly dangLuu = this._dangLuu.asReadonly();
+  private readonly _daGui = signal(false);
+  readonly daGui = this._daGui.asReadonly();
+  private readonly _loiChung = signal<string | null>(null);
+  readonly loiChung = this._loiChung.asReadonly();
+  private readonly _hienThiXacNhanHuy = signal(false);
+  readonly hienThiXacNhanHuy = this._hienThiXacNhanHuy.asReadonly();
+  private readonly _lanGuiSai = signal(0);
   /** Tăng mỗi lần bấm gửi mà form không hợp lệ — hộp lắng nghe để đưa focus về ô sai đầu tiên. */
-  readonly lanGuiSai = signal(0);
+  readonly lanGuiSai = this._lanGuiSai.asReadonly();
 
   /** Nhịp đổi trạng thái của form (giá trị, chạm, lỗi): control không phải signal, cần nó để `computed` tính lại. */
   private readonly nhipForm = signal(0);
@@ -96,14 +103,14 @@ export class TaoNguoiDungStore {
   moHop(): void {
     this.form.reset({ userName: '', email: '', fullName: '', tempPassword: '', roleIds: [] });
     this.timVaiTro.reset();
-    this.daGui.set(false);
-    this.loiChung.set(null);
-    this.hienThi.set(true);
+    this._daGui.set(false);
+    this._loiChung.set(null);
+    this._hienThi.set(true);
   }
 
   dongHop(): void {
     if (this.dangLuu()) return;
-    this.hienThi.set(false);
+    this._hienThi.set(false);
   }
 
   chonVaiTro(gt: string | readonly string[]): void {
@@ -113,15 +120,15 @@ export class TaoNguoiDungStore {
   // Dialog chỉ phát `dismissAttempted` khi `dirty` đang bật — nó KHÔNG tự đóng. Nối thẳng `dongHop()`
   // vào đó xoá dữ liệu người dùng vừa nhập mà không hỏi gì cả (Dialog.md §API).
   onDismissAttempted(): void {
-    this.hienThiXacNhanHuy.set(true);
+    this._hienThiXacNhanHuy.set(true);
   }
 
   huyXacNhanHuy(): void {
-    this.hienThiXacNhanHuy.set(false);
+    this._hienThiXacNhanHuy.set(false);
   }
 
   xacNhanHuy(): void {
-    this.hienThiXacNhanHuy.set(false);
+    this._hienThiXacNhanHuy.set(false);
     this.dongHop();
   }
 
@@ -129,21 +136,21 @@ export class TaoNguoiDungStore {
   gui(thanhCong: (tenDangNhap: string) => void): void {
     // Chặn gửi hai lần (Enter ngầm, bấm đúp): lần hai sẽ nhận USERNAME_DUPLICATED giả.
     if (this.dangLuu()) return;
-    this.daGui.set(true);
-    this.loiChung.set(null);
+    this._daGui.set(true);
+    this._loiChung.set(null);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.lanGuiSai.update((n) => n + 1);
+      this._lanGuiSai.update((n) => n + 1);
       return;
     }
     const gt = this.form.getRawValue();
-    this.dangLuu.set(true);
+    this._dangLuu.set(true);
     this.service
       .tao(gt)
-      .pipe(finalize(() => this.dangLuu.set(false)))
+      .pipe(finalize(() => this._dangLuu.set(false)))
       .subscribe({
         next: () => {
-          this.hienThi.set(false);
+          this._hienThi.set(false);
           thanhCong(gt.userName);
         },
         error: (err: unknown) => this.xuLyLoi(err),
@@ -152,11 +159,11 @@ export class TaoNguoiDungStore {
 
   private xuLyLoi(err: unknown): void {
     if (!(err instanceof ApiFailureError)) {
-      this.loiChung.set(this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION'));
+      this._loiChung.set(cauLoiKhongPhaiApi(this.translate));
       return;
     }
     // Mọi mã, KHÔNG lọc theo danh sách mã (fe-ui-conventions.md §6.2): hai mã trùng xuống ô của
     // chúng; `fieldErrors` xuống ô, mã chưa hiện ở ô nào lên banner; không mã nào → câu của mã gốc.
-    this.loiChung.set(applyFormFailure(this.form, err, this.translate, MA_GOC_VAO_O));
+    this._loiChung.set(applyFormFailure(this.form, err, this.translate, MA_GOC_VAO_O));
   }
 }

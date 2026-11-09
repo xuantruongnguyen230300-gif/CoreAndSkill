@@ -8,7 +8,7 @@ verified: chua-doi-chieu
 
 > **File chủ về ranh giới:** cái gì thuộc **Core** (mang đi được sang mọi dự án dựng trên nền tảng này), cái gì thuộc **Module** (nghiệp vụ riêng của một dự án).
 >
-> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** `src/BE` và `src/FE` đã có trên đĩa, nhưng **chưa ai đối chiếu từng mục của file này với source** — frontmatter vẫn `verified: chua-doi-chieu`. Đọc layout dưới đây là *thứ `src/` phải trở thành*, không phải xác nhận `src/` đã khớp. Cái gì đã có thật tới đâu: §9.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** **Chưa ai đối chiếu từng mục của file này với source** — frontmatter vẫn `verified: chua-doi-chieu`. Đọc layout dưới đây là *thứ `src/` phải trở thành*, không phải xác nhận `src/` đã khớp. Hiện trạng `src/` và CI: [`README.md`](README.md) mục *Trạng thái repo*.
 
 ---
 
@@ -26,14 +26,14 @@ Một solution, một process, N module. Core là **framework nội bộ**; modu
 
 ## 2. Backend — Năm project Core — định nghĩa gốc
 
-**Nguồn duy nhất** của danh sách project Core và ranh giới từng project; file khác trỏ về đây, không chép lại ([`OWNERSHIP.md`](OWNERSHIP.md) §2).
+**Nguồn duy nhất** của danh sách project Core và ranh giới từng project; file khác trỏ về đây, không chép lại ([`OWNERSHIP.md`](OWNERSHIP.md) §2). Hai danh sách chi tiết hơn bảng này có chủ riêng, bảng chỉ trỏ tới: seam nào, project nào implement — [`quy-uoc/be-architecture.md`](quy-uoc/be-architecture.md) §1.1; thành phần của `Core.Web` — cùng tệp §2.1.
 
 | Project | Chứa | **Cấm** chứa | Tham chiếu được |
 | --- | --- | --- | --- |
 | `Core.Domain` | Entity gốc, Value Object, `Result<T>`, `Error`, `ErrorType`, guard clause, catalog lỗi của invariant Domain, luật nghiệp vụ thuần | **Bất kỳ package nào** (zero package reference) — không EF Core, không MediatR, không FluentValidation, không `Microsoft.Extensions.*` | — (chỉ BCL) |
 | `Core.Application` | `ICommand<T>`/`IQuery<T>`, handler, validator, pipeline behavior, DTO, catalog lỗi cấp use case, **mọi seam ra ngoài** (danh sách đầy đủ: [`quy-uoc/be-architecture.md`](quy-uoc/be-architecture.md) §1.1) | EF Core (`DbContext`, `Include`, `AsQueryable`), ASP.NET Core (`HttpContext`, `IActionResult`), `IConfiguration` trực tiếp, mọi kiểu của Identity, mọi project Infrastructure/Web | `Domain` |
-| `Core.Infrastructure` | `CoreDbContext`, `IUnitOfWork` điều phối mọi `DbContext` trên một kết nối và một transaction, repository, `IEntityTypeConfiguration<T>`, interceptor, **migration schema `core`**, **Identity lõi** (`AddIdentityCore`, store, `UserManager`, chính sách mật khẩu, kiểm security stamp theo `userId`; `AppUser`/`AppRole`), service tạo đơn vị, cache, gửi mail, lưu file, job nền, implementation của mọi seam khai ở Application | Controller, middleware, cookie scheme, **bất cứ thứ gì phụ thuộc `HttpContext`** | `Domain`, `Application` |
-| `Core.Web` | `ApiControllerBase`, `ApiEnvelope` (`Core.Web/Http/ApiEnvelope.cs`), middleware, `IExceptionHandler` của Core, `HttpContextCurrentUser`, `ModelBindingProblemFactory`, ánh xạ `Result` → HTTP, ba attribute phân quyền endpoint cùng filter, **cookie scheme, cookie events, `HttpContext.SignInAsync` / `SignOutAsync`**, **runner lệnh vận hành `RunCoreCommandAsync`** (nhận dòng lệnh của host, chạy lệnh rồi thoát, không mở cổng — vai dòng lệnh duy nhất của project này), controller Core, `AddCore()` / `UseCoreAsync()` | Nghiệp vụ của bất kỳ dự án nào; `DbContext` gọi thẳng | `Domain`, `Application`, `Infrastructure` |
+| `Core.Infrastructure` | `CoreDbContext`, repository, `IEntityTypeConfiguration<T>`, interceptor, **migration schema `core`**, **Identity lõi** (`AddIdentityCore`, store, `UserManager`, chính sách mật khẩu, kiểm security stamp theo `userId`; `AppUser`/`AppRole`), và implementation của những seam mà bảng seam ở [`quy-uoc/be-architecture.md`](quy-uoc/be-architecture.md) §1.1 giao cho `Core.Infrastructure` — seam nào, ai implement, seam nào chưa thi công: chỉ đọc ở bảng đó | Controller, middleware, cookie scheme, **bất cứ thứ gì phụ thuộc `HttpContext`** | `Domain`, `Application` |
+| `Core.Web` | Đường vào HTTP của Core và runner lệnh vận hành — danh sách thành phần và vai từng thành phần: [`quy-uoc/be-architecture.md`](quy-uoc/be-architecture.md) §2.1 | Nghiệp vụ của bất kỳ dự án nào; `DbContext` gọi thẳng | `Domain`, `Application`, `Infrastructure` |
 | `Core.Contracts` | Integration event, DTO mà **Core phát ra** cho module. Hợp đồng giữa hai module **không** ở đây — §7 | Kiểu của đường vào HTTP (envelope nằm ở `Core.Web`); bất cứ thứ gì phụ thuộc project Core khác — nó phải tự đứng một mình | — (chỉ BCL) |
 
 Host là `CoreAndSkill.Api`; module là `CoreAndSkill.Modules.<X>.*`. Sơ đồ chiều phụ thuộc và
@@ -47,7 +47,7 @@ Thư mục trên đĩa: project Core ở `src/BE/Core/CoreAndSkill.Core.<Tầng>
 `src/BE/Modules/<X>/CoreAndSkill.Modules.<X>.<Tầng>/` kèm test ở `src/BE/Modules/<X>/Tests/`. Vùng sở hữu tệp:
 [`quy-uoc/repo-artifact.md`](quy-uoc/repo-artifact.md) §15.5.
 
-ADR của hai ranh giới trong bảng: Identity lõi ↔ cookie — [`adr/0026-ranh-gioi-identity-va-cookie.md`](adr/0026-ranh-gioi-identity-va-cookie.md); service tạo đơn vị và runner lệnh — [`adr/0023-dich-vu-tao-don-vi-dung-chung.md`](adr/0023-dich-vu-tao-don-vi-dung-chung.md).
+ADR của hai ranh giới giữa `Core.Infrastructure` và `Core.Web`: Identity lõi ↔ cookie — [`adr/0026-ranh-gioi-identity-va-cookie.md`](adr/0026-ranh-gioi-identity-va-cookie.md); service tạo đơn vị ↔ runner lệnh — [`adr/0023-dich-vu-tao-don-vi-dung-chung.md`](adr/0023-dich-vu-tao-don-vi-dung-chung.md).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`kien-truc-core-module.md`](wiki-core/be/ly-do/kien-truc-core-module.md) §2
 
@@ -75,13 +75,15 @@ Host (`Api`) thuộc **vùng dự án** ([`adr/0100-host-thuoc-vung-du-an-ba-vun
 
 ## 3. Ba luật ranh giới — ép bằng test, không bằng niềm tin
 
-| # | Luật | Ép bằng |
-| --- | --- | --- |
-| **R1** | Core **không bao giờ** tham chiếu Module | Không có ProjectReference + ArchTest A3 |
-| **R2** | Module A **không bao giờ** tham chiếu project của Module B, trừ `Modules.<B>.Contracts` (§7); qua đó chỉ **đọc**, ghi sang B chỉ bằng sự kiện | ArchTest A4 📐 **chưa thi công** — trạng thái và tên ArchTest thật: [`RULES.md`](RULES.md) §3; vế ghi: nợ A21 |
-| **R3** | Tầng trong không biết tầng ngoài: Domain ⊄ Application ⊄ Infrastructure/Web | Đồ thị ProjectReference + ArchTest A1, A2 |
+Bảng không đánh mã riêng: mỗi luật mang mã của luật ép nó ở cột phải. Tên test và trạng thái từng mã: [`RULES-BE.md`](RULES-BE.md) §3.
 
-**R1 có một dạng vi phạm tinh vi hơn ProjectReference:** Core biết *tên* của nghiệp vụ. Một chuỗi `"DonHang"` nằm trong `Core.Application` là vi phạm R1 kể cả khi không có tham chiếu assembly nào. Luật A5 bắt dạng này; detector của nó **ưu tiên phân tích AST** — nếu quét văn bản thì phải có test chứng minh nó bỏ qua comment và định danh (luật T1).
+| Luật | Ép bằng |
+| --- | --- |
+| Core **không bao giờ** tham chiếu Module | Không có ProjectReference + ArchTest A3 |
+| Module A **không bao giờ** tham chiếu project của Module B, trừ `Modules.<B>.Contracts` (§7); qua đó chỉ **đọc**, ghi sang B chỉ bằng sự kiện | ArchTest A4; vế ghi: luật A21 — review canh, chưa có cổng |
+| Tầng trong không biết tầng ngoài: Domain ⊄ Application ⊄ Infrastructure/Web | ArchTest A23 — đồ thị ProjectReference của năm project Core, khớp cột *Tham chiếu được* ở §2; A1, A2 — package và assembly |
+
+**Luật đầu bảng có một dạng vi phạm tinh vi hơn ProjectReference:** Core biết *tên* của nghiệp vụ. Một chuỗi `"DonHang"` nằm trong `Core.Application` là vi phạm luật đó kể cả khi không có tham chiếu assembly nào. Luật A5 bắt dạng này; detector của nó **ưu tiên phân tích AST** — nếu quét văn bản thì phải có test chứng minh nó bỏ qua comment và định danh (luật T1).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`kien-truc-core-module.md`](wiki-core/be/ly-do/kien-truc-core-module.md) §3
 
@@ -109,7 +111,7 @@ Host (`Api`) thuộc **vùng dự án** ([`adr/0100-host-thuoc-vung-du-an-ba-vun
 
 Một module cần thì để ở module đó. Module thứ hai cần thì mới nâng lên Core — và lúc nâng, phải gỡ sạch mọi dấu vết của module đầu tiên khỏi thiết kế.
 
-**Cơ chế chống:** mọi thay đổi chạm Core — tập đường dẫn ở §10 — phải qua agent `architect` và phải có ADR. Xem [`.claude/agents/architect.md`](../.claude/agents/architect.md).
+**Cơ chế chống:** việc đưa code mới vào Core — tập đường dẫn ở §10 — qua agent `architect` **trước** khi thi công, để xét ngưỡng trên. Việc chạm Core khác chỉ phải qua `architect` trước khi thi công khi việc đó mang ít nhất một dấu hiệu ở [`adr/README.md`](adr/README.md) §2; còn lại thi công thẳng rồi qua `core-reviewer` — hook ép bước đó. Việc chạm Core không phải chọn gì thì không cần ADR hay dòng nhật ký; trong lúc làm mà phải chọn giữa hai cách hay chốt một giá trị thì ghi một dòng ở [`adr/nhat-ky-quyet-dinh.md`](adr/nhat-ky-quyet-dinh.md) ([ADR-0111](adr/0111-git-danh-sach-cho-phep-cong-docs-chan-mot-lan-architect-truoc-thi-cong-theo-dau-hieu.md) quyết định 2, [ADR-0112](adr/0112-so-no-them-nhan-cho-quyet-dinh-kem-lenh-dem-thu-ba-cham-core-khong-quyet-dinh-khong-ghi-nhat-ky.md) quyết định 2). Xem [`.claude/agents/architect.md`](../.claude/agents/architect.md).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`kien-truc-core-module.md`](wiki-core/be/ly-do/kien-truc-core-module.md) §4.2
 
@@ -201,21 +203,7 @@ Hai con số này **có thể khác nhau**; luật A6 ở [`RULES.md`](RULES.md)
 
 ## 9. Bảng chuyển trạng thái
 
-> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (lật 2026-09-16). Tám điều kiện chuyển giai đoạn ở
-> [`adr/0030-dieu-kien-chuyen-giai-doan-2.md`](adr/0030-dieu-kien-chuyen-giai-doan-2.md) đã đạt —
-> điều kiện 3 hoãn hợp lệ theo
-> [`adr/0035-hoan-dieu-kien-3-den-pr-cham-core-dau-tien.md`](adr/0035-hoan-dieu-kien-3-den-pr-cham-core-dau-tien.md).
-> `src/` **đã** tồn tại trên đĩa (đối chiếu 2026-09-19) nhưng **chưa vào git**; bảng dưới là
-> *"có thật hôm nay → sẽ thành"* theo [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) §4, không phải
-> xác nhận từng mục của file này đã khớp source — việc đó làm riêng từng mục.
-
-| Có thật hôm nay | Sẽ thành |
-| --- | --- |
-| `src/BE` có trên đĩa: project Core ở §2, host `CoreAndSkill.Api`, các project Tests — đều khai ở `src/BE/CoreAndSkill.slnx`. `src/FE` có `core/`, `platform/`, `shared/` | `src/FE` thêm `modules/` khi module đầu tiên về |
-| `src/` chưa vào git, nên hai job cổng BE/FE của CI **chưa chạy lần nào** | Vào git ở lần commit đầu → job tự bật theo điều kiện có `src/BE` / `src/FE` |
-| Cổng BE chạy được tại chỗ: `dotnet test` trên `src/BE/Tests/CoreAndSkill.ArchTests` xanh (2026-09-19). `scripts/fe-gate.sh` tồn tại — lượt này **không chạy** nó, nên không khai kết quả | `dotnet test` toàn solution + `fe-gate.sh` + bộ lệnh `ng` chạy trong CI mỗi PR |
-| Mọi luật `📐` ở [`RULES.md`](RULES.md) | Chuyển dần sang `✅` khi cổng tương ứng được viết — từng luật, không hàng loạt |
-| Lớp 3 chặn Core (hook `Stop`) chưa thử bằng payload thật | Chứng minh sống ở PR đầu tiên chạm một đường dẫn `core-paths` ([`adr/0035-hoan-dieu-kien-3-den-pr-cham-core-dau-tien.md`](adr/0035-hoan-dieu-kien-3-den-pr-cham-core-dau-tien.md)) |
+> 📖 Hiện trạng `src/`, job CI nào đã chạy, điều kiện chuyển giai đoạn đã đạt tới đâu: [`README.md`](README.md) mục *Trạng thái repo*.
 
 ---
 
@@ -230,13 +218,14 @@ Luật định dạng: khối nằm giữa hai dòng chú thích HTML đánh d�
 
 <!-- core-paths:begin -->
 ```
-# Backend — project Core, ArchTests. Host cố ý nằm ngoài khối — ADR-0100
+# Backend — project Core và mọi test BE: test là cổng của luật, sửa test là nới luật.
+# Ngưỡng coverage T3 nằm trong csproj của UnitTests, dưới thư mục này. Host cố ý nằm ngoài khối — ADR-0100
 src/BE/Core/
-src/BE/Tests/CoreAndSkill.ArchTests/
+src/BE/Tests/
 
-# Ngưỡng của cổng test BE — nới một ngưỡng là tắt một luật (T3, T4)
-src/BE/Tests/CoreAndSkill.Core.UnitTests/CoreAndSkill.Core.UnitTests.csproj
+# Mức cảnh báo của build BE — hạ một mức là tắt luật T4
 src/BE/Directory.Build.props
+src/BE/.editorconfig
 
 # Frontend — ba tầng dùng chung và hàng rào ranh giới
 src/FE/src/app/core/
@@ -246,13 +235,21 @@ src/FE/eslint.config.js
 src/FE/eslint.boundaries.cjs
 src/FE/public/i18n/
 src/FE/src/index.html
+src/FE/src/styles/
 
 # Cổng FE và canary của chính nó — nới một mẫu dò là tắt một luật Core
 scripts/fe-gate.sh
 scripts/tests/
 
+# Lưới giao diện FE — nới một phép đo hay gỡ một ca là tắt một cổng của Core (ADR-0117)
+src/FE/e2e/
+src/FE/playwright.config.ts
+
 # Script DDL của schema core — đổi tệp ở đây là đổi tập khoá quyền của Core
 database/scripts/core/
+
+# Script bù dữ liệu — ghi thẳng vào bảng của schema core như script DDL, chỉ không qua vòng áp schema
+database/bu-du-lieu/
 
 # Tệp chứa chính khối này — thu hẹp khối là tắt hàng rào, nên sửa tệp này cũng đòi review
 docs/kien-truc-core-module.md
@@ -264,13 +261,16 @@ Nguồn của từng nhóm — và là chỗ phải sửa khối này **cùng l�
 | Nhóm | Đọc từ |
 | --- | --- |
 | Project Core | §2 |
-| ArchTests | [`quy-uoc/be-architecture.md`](quy-uoc/be-architecture.md) §9.1 |
-| `CoreAndSkill.Core.UnitTests.csproj`, `Directory.Build.props` | Ngưỡng của T3, T4 — [`RULES.md`](RULES.md) §8 |
+| `src/BE/Tests/` | Layout test BE — [`quy-uoc/be-architecture.md`](quy-uoc/be-architecture.md) §9.1; vùng Core — [`quy-uoc/repo-artifact.md`](quy-uoc/repo-artifact.md) §15.5 |
+| `Directory.Build.props`, `src/BE/.editorconfig` | Mức cảnh báo của T4 — [`RULES-BE.md`](RULES-BE.md) §8 |
 | `core/`, `shared/`, `platform/`, `eslint.config.js` | [`quy-uoc/fe-architecture.md`](quy-uoc/fe-architecture.md) §1–§2, §4 |
 | `eslint.boundaries.cjs` | Tệp khai ranh giới mà `eslint.config.js` nạp vào — [`wiki-core/fe/trien-khai/05-gate.md`](wiki-core/fe/trien-khai/05-gate.md) |
+| `src/FE/e2e/`, `src/FE/playwright.config.ts` | Layout lưới giao diện và quyết định 7 — [ADR-0117](adr/0117-luoi-giao-dien-playwright-do-dom-theo-spec-design-axe-aa-api-gia-anh-chi-tham-khao.md) |
 | `database/scripts/core/` | [`database/script-runbook.md`](database/script-runbook.md) §1–§2 — khuôn tên và thứ tự script của schema `core` |
+| `database/bu-du-lieu/` | [`database/script-runbook.md`](database/script-runbook.md) §1, §11 — chỗ của thư mục, khác script schema ở đâu, cách chạy; tính chất bắt buộc của tệp — [ADR-0122](adr/0122-don-vi-he-thong-duoc-seed-mot-muc-menu-toi-he-thong-don-vi-moi-tai-khoan-cua-no-mang-co-van-hanh.md) điểm 5 |
 | `src/FE/public/i18n/` | Bảng dịch **tầng Core**; dự án ghi đè ở `public/i18n-app/` — [`quy-uoc/fe-architecture.md`](quy-uoc/fe-architecture.md) §1.1 |
 | `src/FE/src/index.html` | Trang chủ của bundle: script áp theme trước khung hình đầu — [`quy-uoc/fe-ui-conventions.md`](quy-uoc/fe-ui-conventions.md) §3.5 |
+| `src/FE/src/styles/` | Style toàn cục mà component Core dựa vào — token, override thư viện, khối giảm chuyển động; cả bảng màu thuộc vùng Core — [ADR-0125](adr/0125-ca-thu-muc-styles-fe-vao-core-paths-bang-mau-du-an-cho-co-che-rieng.md); layout thư mục — [`quy-uoc/fe-ui-conventions.md`](quy-uoc/fe-ui-conventions.md) §4.1 |
 | `scripts/fe-gate.sh`, `scripts/tests/` | Cổng script FE và canary của nó — [`wiki-core/fe/trien-khai/05-gate.md`](wiki-core/fe/trien-khai/05-gate.md) §3.1, §5 |
 
 Khối là **định nghĩa**, không phải bản kê những đường sửa đang thật sự bị canh. Hook `PostToolUse` là bên **tiêu thụ**: nó có thể phủ hẹp hơn khối, và nơi chứng minh nó phủ tới đâu là bộ test hook [`run-tests.sh`](../.claude/hooks/tests/run-tests.sh) — không phải file này. Cổng [`check-docs.sh`](../.claude/check-docs.sh) §26 chỉ canh việc khối còn **đọc được**. Nên đừng đọc sự có mặt của một đường dẫn ở đây như lời khai rằng mọi công cụ sửa nó đều đang bị canh: muốn biết thì chạy bộ test hook.

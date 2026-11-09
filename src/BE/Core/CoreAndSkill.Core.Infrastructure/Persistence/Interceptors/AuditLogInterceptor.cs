@@ -203,23 +203,24 @@ public sealed class AuditLogInterceptor(
             case EntityState.Modified when ValueChanged(entry, nameof(RolePermission.IsDeleted)):
                 return entry.Entity.IsDeleted
                     ? CellChange.Revoked
-                    : throw ForbiddenCellTransition(entry.Entity, "khôi phục một ô đã xoá mềm (is_deleted true → false)");
+                    : throw new InvalidOperationException(
+                        $"Luật S18 (docs/adr/0054-o-ma-tran-chi-doi-bang-them-dong-va-xoa-mem.md): ô ma trận chỉ đổi bằng thêm dòng " +
+                        $"(cấp) và xoá mềm (thu) — lượt lưu bị từ chối vì khôi phục một ô đã xoá mềm (is_deleted true → false). " +
+                        $"Vai trò {entry.Entity.RoleId}, quyền {entry.Entity.PermissionId}, dòng {entry.Entity.Id}.");
 
             case EntityState.Deleted when rolesDeletedInThisSave.Contains(entry.Entity.RoleId):
                 return CellChange.None; // cascade của lần xoá vai trò — dòng core.role.delete đóng chuỗi nhật ký của vai trò
 
             case EntityState.Deleted:
-                throw ForbiddenCellTransition(entry.Entity, "xoá cứng một ô qua ChangeTracker");
+                throw new InvalidOperationException(
+                    $"Luật S18 (docs/adr/0054-o-ma-tran-chi-doi-bang-them-dong-va-xoa-mem.md): ô ma trận chỉ đổi bằng thêm dòng " +
+                    $"(cấp) và xoá mềm (thu) — lượt lưu bị từ chối vì xoá cứng một ô qua ChangeTracker. " +
+                    $"Vai trò {entry.Entity.RoleId}, quyền {entry.Entity.PermissionId}, dòng {entry.Entity.Id}.");
 
             default:
                 return CellChange.None;
         }
     }
-
-    private static InvalidOperationException ForbiddenCellTransition(RolePermission cell, string transition)
-        => new($"Luật S18 (docs/adr/0054-o-ma-tran-chi-doi-bang-them-dong-va-xoa-mem.md): ô ma trận chỉ đổi bằng thêm dòng " +
-               $"(cấp) và xoá mềm (thu) — lượt lưu bị từ chối vì {transition}. Vai trò {cell.RoleId}, quyền {cell.PermissionId}, " +
-               $"dòng {cell.Id}.");
 
     // Mã khoá, sắp theo thứ tự chữ (ordinal — mã quyền là ASCII, docs/database/schema-core.md §5.2), không lặp.
     private static List<string> CodesOf(

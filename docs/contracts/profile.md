@@ -127,7 +127,7 @@ trước lần lưu kế tiếp.
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 | `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` | Đang ở trạng thái bắt buộc đổi mật khẩu ([`auth.md`](auth.md) §1.2) |
-| `CORE.CONCURRENCY.CONFLICT` | `version` thiếu, hoặc lệch với bản ghi tài khoản trong database — một thao tác khác đã ghi xong sau khi FE đọc, ví dụ quản trị vừa đặt lại mật khẩu hoặc khoá tài khoản ([`users.md`](users.md) §8, §9). Không ghi gì |
+| `CORE.CONCURRENCY.CONFLICT` | `version` thiếu, hoặc lệch với bản ghi tài khoản trong database — một thao tác khác đã ghi xong sau khi FE đọc, ví dụ quản trị sửa thông tin người này ([`users.md`](users.md) §6) hoặc gán vai trò cho họ (§7 cùng file), hay chính người dùng vừa lưu ở một tab khác. Không ghi gì. Quản trị khoá hoặc đặt lại mật khẩu tài khoản này ([`users.md`](users.md) §8, §9) thì **không** ra mã này: hai thao tác đó đổi security stamp, nên request gửi sau đó nhận `CORE.AUTH.NOT_AUTHENTICATED` |
 
 ### Ghi chú
 
@@ -177,7 +177,7 @@ Từ lúc này tài khoản chỉ còn quyền đến từ vai trò của nó. F
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 | `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` | Đang ở trạng thái bắt buộc đổi mật khẩu ([`auth.md`](auth.md) §1.2) |
-| `CORE.CONCURRENCY.CONFLICT` | Bản ghi tài khoản bị một thao tác khác ghi xong trước khi request này ghi — ví dụ quản trị vừa đặt lại mật khẩu hoặc khoá tài khoản ([`users.md`](users.md) §8, §9) |
+| `CORE.CONCURRENCY.CONFLICT` | Bản ghi tài khoản bị một thao tác khác ghi xong giữa lúc request này đọc và ghi — ví dụ quản trị sửa thông tin người này ([`users.md`](users.md) §6) hoặc gán vai trò cho họ (§7 cùng file), hay chính người dùng lưu hồ sơ ở một tab khác (§2). Quản trị khoá hoặc đặt lại mật khẩu ([`users.md`](users.md) §8, §9) chấm dứt phiên: request gửi sau đó nhận `CORE.AUTH.NOT_AUTHENTICATED`, không phải mã này |
 
 ### Ghi chú
 

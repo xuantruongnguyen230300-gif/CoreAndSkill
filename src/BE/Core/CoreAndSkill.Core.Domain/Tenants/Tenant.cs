@@ -46,8 +46,13 @@ public sealed class Tenant : IAuditableEntity
         return Result.Success();
     }
 
+    // Đối xứng với Deactivate: đơn vị hệ thống không có trạng thái để đổi, nên bật lại cũng bị chặn —
+    // lời gọi không đổi gì thì không được ghi nhật ký "bật lại" cho một việc không xảy ra.
     public Result Activate()
     {
+        if (IsSystem)
+            return Result.Failure(TenantErrors.SystemImmutable);
+
         IsActive = true;
         return Result.Success();
     }

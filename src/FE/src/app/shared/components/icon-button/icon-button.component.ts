@@ -20,6 +20,10 @@ export class IconButtonComponent {
   readonly disabled = input(false);
   readonly loading = input(false);
   readonly pressed = input<boolean | null>(null);
+  /** Nút mở lớp nổi: `'menu'` sinh `aria-haspopup="menu"`; `null` không sinh (IconButton.md §API). */
+  readonly haspopup = input<'menu' | null>(null);
+  /** Chỉ có nghĩa khi `haspopup` khác `null`; `null` không sinh `aria-expanded`. */
+  readonly expanded = input<boolean | null>(null);
 
   readonly clicked = output<void>();
 

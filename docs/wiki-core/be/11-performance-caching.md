@@ -71,7 +71,7 @@ Dòng đầu là dòng đắt nhất, vì hậu quả của nó rơi lên **ngư
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
 | Truy vấn đọc không theo dõi thay đổi, chỉ lấy cột cần | ✅ sẽ có | Quy ước ở [`../../quy-uoc/be-performance.md`](../../quy-uoc/be-performance.md) |
-| Test đếm số câu lệnh cho endpoint danh sách | ✅ sẽ có | Biến N+1 thành lỗi hỏng build |
+| **Test đếm số câu lệnh cho endpoint danh sách** | ❌ chưa | Biến N+1 thành lỗi hỏng build. Kỹ thuật đếm đã dùng cho một seam tra theo tập: `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Permissions/PermissionSetQueryCountTests.cs`, chuỗi `FindExistingRoleIds_IssuesOneQuery_WhateverTheNumberOfIds`. Kích hoạt: một endpoint danh sách phát số câu lệnh tăng theo số dòng trên trang — thấy qua log SQL ở Development, cách 1 của [`../../quy-uoc/be-performance.md`](../../quy-uoc/be-performance.md) §4.3 |
 | Chỉ mục cho cột tham chiếu bằng định danh | ✅ sẽ có | PostgreSQL không tự tạo |
 | Chỉ mục một phần cho bảng có xoá mềm | ✅ sẽ có | Xem [`10-data-retention.md`](10-data-retention.md) |
 | Phân trang offset cho lưới quản trị | ✅ sẽ có | Đủ dùng, đơn giản hơn |

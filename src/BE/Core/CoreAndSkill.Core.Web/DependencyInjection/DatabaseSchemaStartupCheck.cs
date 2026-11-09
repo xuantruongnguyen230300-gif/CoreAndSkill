@@ -1,4 +1,5 @@
 using System.Text;
+using CoreAndSkill.Core.Application.Common.Logging;
 using CoreAndSkill.Core.Application.Configuration;
 using CoreAndSkill.Core.Infrastructure.Persistence;
 using Microsoft.Extensions.Logging;
@@ -96,31 +97,31 @@ internal sealed class DatabaseSchemaStartupCheck(
                 if (!npgsql.IsTransient)
                 {
                     logger.LogError(
-                        ex,
-                        "Lan thu {Attempt}: khong ket noi duoc database de kiem migration (E8) — loi khong tam thoi. Tu choi khoi dong.",
-                        attempt);
-                    throw CannotReachDatabase(attempt, elapsed, "loi khong tam thoi — cho them khong doi duoc ket qua", ex);
+                        "Lan thu {Attempt}: khong ket noi duoc database de kiem migration (E8) — loi khong tam thoi. " +
+                        "Tu choi khoi dong. {Failure}",
+                        attempt, FailureText.DescribeWithStack(ex));
+                    throw CannotReachDatabase(attempt, elapsed, "loi khong tam thoi — cho them khong doi duoc ket qua");
                 }
 
                 if (remaining <= TimeSpan.Zero)
                 {
                     logger.LogError(
-                        ex,
                         "Lan thu {Attempt}: khong ket noi duoc database de kiem migration (E8) — het {WaitSeconds} giay cho. " +
-                        "Tu choi khoi dong.",
+                        "Tu choi khoi dong. {Failure}",
                         attempt,
-                        settings.ConnectWaitSeconds);
-                    throw CannotReachDatabase(attempt, elapsed, $"het {settings.ConnectWaitSeconds} giay cho", ex);
+                        settings.ConnectWaitSeconds,
+                        FailureText.DescribeWithStack(ex));
+                    throw CannotReachDatabase(attempt, elapsed, $"het {settings.ConnectWaitSeconds} giay cho");
                 }
 
                 var wait = remaining < interval ? remaining : interval;
                 logger.LogWarning(
-                    ex,
                     "Lan thu {Attempt}: khong ket noi duoc database de kiem migration (E8). Thu lai sau {WaitSeconds} giay; " +
-                    "con cho toi da {RemainingSeconds} giay truoc khi tu choi khoi dong.",
+                    "con cho toi da {RemainingSeconds} giay truoc khi tu choi khoi dong. {Failure}",
                     attempt,
                     wait.TotalSeconds,
-                    remaining.TotalSeconds);
+                    remaining.TotalSeconds,
+                    FailureText.DescribeWithStack(ex));
 
                 await Task.Delay(wait, timeProvider, ct);
             }
@@ -140,8 +141,9 @@ internal sealed class DatabaseSchemaStartupCheck(
         return null;
     }
 
-    // Không đưa chuỗi kết nối vào thông điệp — nó chứa mật khẩu.
-    private static InvalidOperationException CannotReachDatabase(int attempts, TimeSpan elapsed, string reason, Exception inner)
+    // Không đưa chuỗi kết nối vào thông điệp — nó chứa mật khẩu. Cũng KHÔNG gắn ngoại lệ gốc làm InnerException: ngoại lệ này
+    // thoát khỏi Program.cs không ai bắt nên runtime in ToString() chưa lọc ra stderr; chẩn đoán đã nằm ở dòng LogError trước đó.
+    private static InvalidOperationException CannotReachDatabase(int attempts, TimeSpan elapsed, string reason)
         => new(
             new StringBuilder()
                 .AppendLine(
@@ -153,6 +155,5 @@ internal sealed class DatabaseSchemaStartupCheck(
                     $"{CoreSchemaCheckOptions.SectionName}:{nameof(CoreSchemaCheckOptions.ConnectWaitSeconds)}, " +
                     $"{CoreSchemaCheckOptions.SectionName}:{nameof(CoreSchemaCheckOptions.ConnectRetryIntervalSeconds)}.")
                 .AppendLine("Tien trinh dung lai de bo dieu phoi khoi dong lai.")
-                .ToString(),
-            inner);
+                .ToString());
 }

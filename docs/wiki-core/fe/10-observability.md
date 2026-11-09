@@ -1,14 +1,16 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-06
 ---
 
 # 10. Quan sát được — lỗi runtime và số đo phía FE
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
+> ✅ **CÓ THẬT** (đối chiếu cả tệp 2026-11-06). Hàng đã có code mang neo ngay ở §10; khẳng định hiện trạng ở §3, §4, §5 mang neo tại chỗ. Một hạng mục v1 còn thiếu và **chưa chốt**: lỗi runtime hiện gì cho người dùng, kèm `traceId` (§5.1) — `docs/Design/` chưa có spec cho nó; hàng thứ ba của §10.
 >
-> Phía BE: [`../be/07-observability.md`](../be/07-observability.md). Hai phía nối với nhau bằng `traceId` — §5 là mục quan trọng nhất của file này.
+> Đích nhận lỗi phía BE có code nhưng card [`../../contracts/client-errors.md`](../../contracts/client-errors.md) còn `DRAFT`: chưa ai gọi thử thật giữa FE và BE.
+>
+> Hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Phía BE: [`../be/07-observability.md`](../be/07-observability.md). Hai phía nối với nhau bằng `traceId` — §5 là mục quan trọng nhất của file này.
 
 ---
 
@@ -41,28 +43,45 @@ Ba loại này khác nhau ở chỗ **lỗi HTTP đã được xử lý ở nơi
 ## 3. Bắt lỗi runtime
 
 ```typescript
-// core/observability/global-error-handler.ts
+// core/observability/global-error-handler.ts — rút gọn
 @Injectable()
 export class GlobalErrorHandler implements ErrorHandler {
   private readonly reporter = inject(ClientErrorReporter);
 
-  handleError(error: unknown): void {
-    // Lỗi HTTP đã đi qua interceptor rồi — không đếm hai lần.
-    if (error instanceof HttpErrorResponse) return;
-
-    this.reporter.capture(error);
-    console.error(error);   // vẫn giữ, để môi trường phát triển không mất thông tin
+  handleError(loi: unknown): void {
+    try {
+      // Lỗi HTTP interceptor đã xử lý — HttpErrorResponse, hay ApiFailureError dịch ra từ nó — không đếm hai lần.
+      if (!(loi instanceof HttpErrorResponse || loi instanceof ApiFailureError)) {
+        this.reporter.capture(loi);
+      }
+      console.error(loi);   // MỌI lỗi, kể cả lỗi HTTP
+    } catch {
+      // Bọc kín (§4.1): ném từ ErrorHandler là vòng lặp.
+    }
   }
 }
 ```
 
-**Ba nguồn lỗi mà `ErrorHandler` của Angular KHÔNG bắt**, phải nối riêng nếu muốn phủ hết:
+| Luật của bộ xử lý | Vì sao |
+| --- | --- |
+| Lỗi HTTP — `HttpErrorResponse`, và `ApiFailureError` mà `errorInterceptor` dịch ra từ nó — **không** vào bộ thu lỗi | Interceptor đã xử lý chúng: toast, lỗi ô, hết phiên. Đếm thêm ở đây là đếm hai lần (§2, §7) |
+| **Mọi** lỗi, kể cả lỗi HTTP, vẫn `console.error` | Bộ xử lý này thay bản mặc định của Angular — bản chỉ làm đúng một việc là in ra `console` — và bộ nghe cửa sổ của Angular gọi `preventDefault()` nên trình duyệt không tự in nữa. Bỏ dòng này là lỗi biến mất khỏi `console` lúc phát triển (§8) |
+
+✅ **CÓ THẬT** (đối chiếu 2026-11-06): `src/FE/src/app/core/observability/global-error-handler.ts`, chuỗi `return loi instanceof HttpErrorResponse || loi instanceof ApiFailureError;`; ca kiểm `src/FE/src/app/core/observability/global-error-handler.spec.ts`, chuỗi `lỗi HTTP đã qua interceptor → KHÔNG đếm hai lần (ApiFailureError)`.
+
+**Ba nguồn lỗi nằm ngoài đường Angular tự gọi `ErrorHandler`** — Angular tự gọi nó cho lỗi trong template, handler gắn qua template, vòng đời component. Mỗi nguồn nối một cách:
 
 | Nguồn | Nối bằng |
 | --- | --- |
-| Promise bị từ chối mà không ai bắt | Sự kiện `unhandledrejection` của cửa sổ |
-| Lỗi ngoài vùng Angular (thư viện bên thứ ba, callback thuần) | Sự kiện `error` của cửa sổ |
-| Tài nguyên tải hỏng (ảnh, script) | Sự kiện `error` ở giai đoạn capture |
+| Promise bị từ chối mà không ai bắt | Sự kiện `unhandledrejection` của cửa sổ — `provideBrowserGlobalErrorListeners()` của Angular đưa nó vào `ErrorHandler` |
+| Lỗi ngoài vùng Angular (thư viện bên thứ ba, callback thuần) | Sự kiện `error` của cửa sổ — cùng hàm trên |
+| Tài nguyên tải hỏng (ảnh, script, stylesheet) | Bộ nghe `error` riêng ở **giai đoạn capture**, chỉ nhận sự kiện có đích là phần tử |
+
+Hai nguồn đầu đi qua hàm của Angular, **không** tự nghe lại `error` hay `unhandledrejection`: nghe hai lần là mỗi lỗi vào `ErrorHandler` hai lần. Nguồn thứ ba phải nghe riêng: sự kiện `error` của phần tử không nổi bọt, và bộ nghe của Angular gắn trên cửa sổ ở giai đoạn nổi bọt nên không thấy nó (đối chiếu `@angular/core` 21.2, hàm `provideBrowserGlobalErrorListeners`, 2026-11-06). Bộ nghe capture bỏ qua sự kiện có đích không phải phần tử — lỗi script thường đã tới bằng đường của Angular.
+
+Composition root gọi một hàm, `provideCoreObservability()`, nối `ErrorHandler` cùng cả ba nguồn.
+
+✅ **CÓ THẬT** (đối chiếu 2026-11-06): `src/FE/src/app/core/observability/provide-core-observability.ts`, chuỗi `provideBrowserGlobalErrorListeners(),` và chuỗi `provideEnvironmentInitializer(nghePhanTuTaiHong),`; `src/FE/src/app/core/observability/resource-error-listener.ts`, chuỗi `cuaSo.addEventListener('error', nghe, true);`; `src/FE/src/app/app.config.ts`, chuỗi `provideCoreObservability(),`. Ca kiểm đi hết đường tới đầu ra: `src/FE/src/app/core/observability/provide-core-observability.spec.ts`, chuỗi `promise bị từ chối mà không ai bắt (sự kiện unhandledrejection) → tới đầu ra`.
 
 Nguồn thứ nhất là nguồn hay bị bỏ sót nhất, và nó chính là nơi mọi lỗi `async/await` không bắt rơi vào.
 
@@ -78,6 +97,10 @@ Nguồn thứ nhất là nguồn hay bị bỏ sót nhất, và nó chính là n
 
 **Quyết định cho v1 (chốt 2026-09-10): gửi về BE của chính mình.** `ClientErrorReporter` giữ đầu ra cắm được — môi trường phát triển ra `console`, môi trường thật ra endpoint khai ở [`../../contracts/client-errors.md`](../../contracts/client-errors.md).
 
+**Bản dựng `production` gửi về BE, bản dựng `development` giữ `console`** — người dùng chốt 2026-11-06, không chờ có môi trường staging (dòng 2026-11-06 ở [`../../adr/nhat-ky-quyet-dinh.md`](../../adr/nhat-ky-quyet-dinh.md)). Chọn theo cờ `production` của tệp môi trường; bản dựng `e2e` của lưới giao diện mang cờ đó nên cũng cắm đầu ra HTTP, tới API giả.
+
+✅ **CÓ THẬT** (đối chiếu 2026-11-06): `src/FE/src/app/app.config.ts`, chuỗi `return production ? [provideClientErrorOutput(HttpClientErrorOutput)] : [];` và chuỗi `...provideDauRaLoiTheoMoiTruong(environment.production),`; đầu ra mặc định khi không cắm gì: `src/FE/src/app/core/observability/client-error-output.ts`, chuỗi `factory: () => new ConsoleClientErrorOutput(),`; ca kiểm hai nhánh: `src/FE/src/app/app.config.spec.ts`, chuỗi `production: đầu ra là HttpClientErrorOutput`.
+
 Không dùng dịch vụ thu lỗi bên ngoài: dữ liệu của cơ quan không rời hệ thống, và lỗi FE nối được với log BE qua `traceId` (§5) chỉ khi hai bên ở cùng một chỗ.
 
 Vì sao vẫn giữ lớp trừu tượng thay vì gọi thẳng endpoint: chi phí của nó gần bằng 0 (một interface và một hiện thực tầm thường), còn gọi thẳng thì môi trường phát triển cũng bắn báo cáo về server, và đổi đích sau này thành một đợt sửa rải khắp nơi.
@@ -88,9 +111,34 @@ Hợp đồng của endpoint: [`../../contracts/client-errors.md`](../../contrac
 
 | Ràng buộc | Vì sao |
 | --- | --- |
-| **Không gửi dữ liệu cá nhân hay nội dung form** | Một báo cáo lỗi kèm nội dung ô nhập có thể chứa mật khẩu người dùng gõ nhầm ô. Chỉ gửi loại lỗi, vị trí, `traceId` |
-| **Có giới hạn tần suất** | Một lỗi trong vòng lặp vẽ lại có thể sinh hàng nghìn báo cáo mỗi phút và tự làm sập chính hệ thống thu |
+| **Không gửi dữ liệu cá nhân hay nội dung form.** Báo cáo mang đúng sáu field của [hợp đồng](../../contracts/client-errors.md) §1, không hơn. `message` và `stack` chỉ lấy văn bản **nằm sẵn** trong giá trị bị ném — `Error.message`, `Error.stack`, chuỗi bị ném, trường `message` kiểu chuỗi của object; **không** `String()` hay `JSON.stringify` một object, **không** đọc `cause`, `error`, `body`. URL trong `message`, `stack` và đường dẫn màn bỏ query, fragment | Một báo cáo lỗi kèm nội dung ô nhập có thể chứa mật khẩu người dùng gõ nhầm ô; một object bị ném có thể chính là gói dữ liệu form. BE lọc lần hai bằng `SensitiveTextRedactor` — lớp thứ hai, không thay lớp này |
+| **Có giới hạn tần suất.** Mỗi tab tối đa **5 báo cáo trong mọi khoảng 60 giây**; cùng một lỗi — cùng loại, cùng câu, cùng đầu `stack` — lặp lại trong 60 giây chỉ báo một lần và không tính vào hạn mức (`architect` duyệt 2026-11-06, dòng cùng ngày ở [nhật ký](../../adr/nhat-ky-quyet-dinh.md)). Hạn mức mỗi tab phải nhỏ hơn hạn mức BE cho mỗi IP — mặc định đọc ở `CoreRateLimitOptions` | Một lỗi trong vòng lặp vẽ lại có thể sinh hàng nghìn báo cáo mỗi phút và tự làm sập chính hệ thống thu. Thấp hơn BE để vài tab sau cùng một IP không tự chặn nhau |
 | **Thất bại của việc gửi không được làm hỏng app** | Bọc kín, không để một lỗi trong bộ thu lỗi lại sinh thêm lỗi — đây là vòng lặp cổ điển |
+
+Hệ quả chấp nhận của ràng buộc thứ nhất: code tự ghép giá trị người dùng nhập vào câu của một `Error` thì giá trị đó đi lên cùng `message` — đừng ghép. Bộ lọc phía BE nhận ra theo tên trường, không nhận ra một giá trị trần. Của ràng buộc thứ hai: người dùng sau cùng một IP — NAT của cơ quan — chia chung hạn mức BE; vượt thì BE trả 429 và đầu ra HTTP ngừng gửi tới hết `Retry-After` (§4.2), báo cáo trong lúc đó bị bỏ.
+
+✅ **CÓ THẬT** (đối chiếu 2026-11-06), cả ba ràng buộc thi hành trong `ClientErrorReporter`, **trước** khi báo cáo tới đầu ra, nên áp cho mọi đầu ra:
+
+| Ràng buộc | Code | Ca kiểm |
+| --- | --- | --- |
+| Không dữ liệu cá nhân | `src/FE/src/app/core/observability/client-error-report.ts`, chuỗi `if (laObject(loi) && typeof loi['message'] === 'string') {` | `client-error-report.spec.ts`, chuỗi `Error kèm cause và thuộc tính phụ mang nội dung form → không field nào mang theo` |
+| Giới hạn tần suất | `src/FE/src/app/core/observability/client-error-reporter.ts`, chuỗi `const TOI_DA_BAO_CAO_MOI_CUA_SO = 5;` và chuỗi `const CUA_SO_GIOI_HAN_MS = 60_000;` | `client-error-reporter.spec.ts`, chuỗi `lỗi nghìn lần KHÔNG tốn thêm hạn mức` |
+| Bọc kín | `src/FE/src/app/core/observability/client-error-reporter.ts`, chuỗi `if (this.dangBao) {` | `client-error-reporter.spec.ts`, chuỗi `việc báo lỗi tự sinh lỗi rồi quay lại capture → lần vào lại bị bỏ, không vòng lặp` |
+
+### 4.2 Đầu ra HTTP
+
+`HttpClientErrorOutput` gửi `POST` tới đích của hợp đồng và làm đúng bốn điều, vì endpoint là best-effort:
+
+| Điều | Vì sao |
+| --- | --- |
+| **Đi vòng chuỗi interceptor** — `HttpClient` dựng từ `HttpBackend` — và tự ghép `API_BASE_URL`, tự gắn `withCredentials: true` cùng `X-XSRF-TOKEN`. Đây là ngoại lệ có tên của luật F59 ([`../../RULES-FE.md`](../../RULES-FE.md)) | Lỗi của chính việc gửi không được đi qua `errorInterceptor` — không toast, không xử lý hết phiên, không lấy token rồi gửi lại — và không quay về `ErrorHandler`. Đi qua chuỗi thì mỗi lần gửi hỏng có thể sinh một báo cáo mới |
+| **Chưa có token CSRF thì bỏ báo cáo**, không xin token | Hợp đồng cấm xin token chỉ để báo lỗi ([`../../contracts/client-errors.md`](../../contracts/client-errors.md), *Ghi chú*) |
+| **Không thử lại**; mọi thất bại nuốt bằng một hàm xử lý lỗi tường minh | Không có hàm đó thì RxJS chuyển thất bại thành lỗi chưa bắt — quay lại `ErrorHandler` |
+| **429 thì ngừng gửi** tới hết `Retry-After`, có trần; đọc không được thì nghỉ một cửa sổ | Thử lại ngay biến hạn mức thành vòng lặp |
+
+Hệ quả của điều thứ hai: lỗi xảy ra trước khi lần lấy token lúc khởi động về thì không tới BE, chỉ còn `console`. Lỗi nạp tệp dịch lúc khởi động ([`08-i18n.md`](08-i18n.md) §2.3) rơi vào ca này mỗi khi tệp dịch hỏng về trước token — hai việc chạy song song, chưa đo bên nào thường về trước.
+
+✅ **CÓ THẬT** (đối chiếu 2026-11-06): `src/FE/src/app/core/observability/http-client-error-output.ts`, chuỗi `private readonly http = new HttpClient(inject(HttpBackend));` và chuỗi `headers: { 'X-XSRF-TOKEN': token },`; ca kiểm `src/FE/src/app/core/observability/http-client-error-output.spec.ts`, chuỗi `request không qua interceptor nào của app` và chuỗi `chưa có token CSRF → bỏ báo cáo, KHÔNG xin token và không gửi`.
 
 ---
 
@@ -110,13 +158,24 @@ Cách hiển thị: một dòng nhỏ, chữ nhạt, ở cuối thông báo lỗ
 
 ### 5.2 Giữ `traceId` gần nhất
 
-`ClientErrorReporter` giữ `traceId` của **request cuối cùng** (và một số ít request trước đó). Khi một lỗi runtime xảy ra, gần như luôn có một request vừa hoàn tất liên quan tới nó.
+`ClientErrorReporter` giữ `traceId` của **request hoàn tất cuối cùng** và một số ít request trước đó — phản hồi thành công lẫn thất bại; `errorInterceptor` đưa thân phản hồi cho nó. Khi một lỗi runtime xảy ra, gần như luôn có một request vừa hoàn tất liên quan tới nó.
 
-Đây là suy luận xác suất, không phải quan hệ nhân quả chắc chắn — và phải ghi rõ như vậy trong báo cáo, để người đọc log không kết luận sai. Nhưng nó rẻ và trong thực tế đúng phần lớn thời gian.
+Đây là suy luận xác suất, không phải quan hệ nhân quả chắc chắn — người đọc log phải biết vậy để không kết luận sai. Nhưng nó rẻ và trong thực tế đúng phần lớn thời gian. Hai đầu ra nói điều đó theo hai cách:
+
+| Đầu ra | Mang gì | Chỗ nói rõ đó là suy luận |
+| --- | --- | --- |
+| BE | **Đúng một** `traceId` — của request hoàn tất cuối cùng — ở field `traceId` của hợp đồng | Nghĩa của field ở [`../../contracts/client-errors.md`](../../contracts/client-errors.md) §1. BE ghi nó dưới tên riêng `ClientTraceId`, không lẫn với `TraceId` của chính lần gửi báo cáo |
+| `console` | `traceId` cuối cùng trong báo cáo, cộng các `traceId` trước đó in kèm | Câu in cùng các `traceId` trước: chỉ là suy luận, không chắc là nguyên nhân |
+
+Các `traceId` trước **không** lên BE: hợp đồng có một field, thêm field là đổi hợp đồng API — một ADR ([`../../adr/README.md`](../../adr/README.md) §2) — cho một nhu cầu chưa ai có.
+
+✅ **CÓ THẬT** (đối chiếu 2026-11-06): `src/FE/src/app/core/observability/client-error-reporter.ts`, chuỗi `traceId: this.cacTraceId.at(-1) ?? null,`; `src/FE/src/app/core/interceptors/error.interceptor.ts`, chuỗi `boThuLoi.ghiNhanTuPhanHoi(`; `src/FE/src/app/core/observability/client-error-output.ts`, chuỗi `chỉ là suy luận từ các request hoàn tất`; `src/BE/Core/CoreAndSkill.Core.Application/ClientErrors/ReportClientErrorCommandHandler.cs`, chuỗi `trace {ClientTraceId}`. Ca kiểm: `src/FE/src/app/core/observability/client-error-reporter.spec.ts`, chuỗi `báo cáo mang traceId của phản hồi cuối cùng; các traceId trước đi riêng`.
 
 ### 5.3 Điều kiện phía BE
 
 `traceId` chỉ có giá trị nếu BE **thật sự ghi nó vào log** cho mọi request, kể cả request thành công. Nếu BE chỉ ghi `traceId` ở nhánh lỗi thì một nửa công dụng biến mất. Xem [`../be/07-observability.md`](../be/07-observability.md).
+
+✅ **CÓ THẬT** (đối chiếu 2026-11-06): mỗi request trừ đường health check có một dòng log mang `traceId` — `src/BE/Core/CoreAndSkill.Core.Web/Middleware/RequestLogMiddleware.cs`, chuỗi `responded {StatusCode} in {ElapsedMs} ms (trace {TraceId})`.
 
 ---
 
@@ -170,21 +229,7 @@ Dòng thứ hai đáng dừng lại: **403 lặp lại nhiều lần ở cùng m
 
 ---
 
-## 8. Ba việc còn nợ, ghi ra để nhìn thấy được
-
-> Theo [`../../DEBT.md`](../../DEBT.md), nợ phải nhìn thấy được chứ không được hợp thức hoá bằng im lặng.
-
-| Nợ | Vì sao chưa làm | Điều kiện làm |
-| --- | --- | --- |
-| Đích nhận báo cáo lỗi | Chưa có môi trường thật, chưa có hợp đồng endpoint | Có môi trường staging dùng thật |
-| Đo Web Vitals trên máy người dùng | Chưa có nơi nhận số và chưa có ngưỡng | Cùng lúc với dòng trên — chung hạ tầng |
-| Nối `traceId` FE ↔ log BE thành một truy vấn | Cần cả hai phía có `src/` và một nơi tập trung log | Khi BE có đường log tập trung |
-
-Cả ba đều **không** phải điều kiện để đóng pha F0–F3. Chúng là việc của giai đoạn vận hành, và chúng nằm ở đây để không ai tưởng chúng đã có.
-
----
-
-## 9. Log ở FE — nói ngắn về thứ dễ lạm dụng
+## 8. Log ở FE — nói ngắn về thứ dễ lạm dụng
 
 | Quy tắc | Vì sao |
 | --- | --- |
@@ -194,7 +239,7 @@ Cả ba đều **không** phải điều kiện để đóng pha F0–F3. Chúng
 
 ---
 
-## 10. Kiểm chứng
+## 9. Kiểm chứng
 
 - [ ] Một lỗi runtime cố ý → được `ErrorHandler` bắt, không chỉ dừng ở log trình duyệt
 - [ ] Một promise bị từ chối không ai bắt → cũng được ghi nhận
@@ -207,28 +252,28 @@ Cả ba đều **không** phải điều kiện để đóng pha F0–F3. Chúng
 
 ---
 
-## 11. §Áp dụng — Core này có gì, cố ý thiếu gì
+## 10. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Đối chiếu `src/` ngày 2026-11-06: hàng `✅ CÓ THẬT` mang neo ngay trong ô; hàng còn `✅ sẽ có` chưa có code. Ý nghĩa các ký hiệu: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| `ErrorHandler` tùy biến + ba nguồn lỗi ngoài Angular | ✅ sẽ có | §3 |
-| `ClientErrorReporter` có đầu ra cắm được | ✅ sẽ có | Đầu ra mặc định là console — §4 |
-| Hiển thị `traceId` ở màn lỗi người dùng đọc được | ✅ sẽ có | §5.1 |
-| Giới hạn tần suất và bọc kín bộ thu lỗi | ✅ sẽ có | §4.1 |
-| Đích nhận báo cáo lỗi | ❌ chưa | Điều kiện: có môi trường staging dùng thật. Cần hợp đồng endpoint trước nếu chọn gửi về BE (§4) |
+| `ErrorHandler` tùy biến + ba nguồn lỗi ngoài Angular | ✅ CÓ THẬT (đối chiếu 2026-11-06) — `src/FE/src/app/core/observability/provide-core-observability.ts`, chuỗi `{ provide: ErrorHandler, useClass: GlobalErrorHandler },`; neo từng nguồn ở §3 | §3 |
+| `ClientErrorReporter` có đầu ra cắm được | ✅ CÓ THẬT (đối chiếu 2026-11-06) — `src/FE/src/app/core/observability/client-error-output.ts`, chuỗi `export function provideClientErrorOutput(`; ca kiểm `src/FE/src/app/core/observability/provide-core-observability.spec.ts`, chuỗi `provideClientErrorOutput thay được đầu ra` | Đầu ra mặc định là `console` — §4 |
+| Hiển thị `traceId` ở màn lỗi người dùng đọc được | ✅ CÓ THẬT (đối chiếu 2026-11-05) cho lỗi HTTP — toast hiện nó: `src/FE/src/app/shared/ui/toast/toast.component.ts`, chuỗi `detail: message.traceId ?`; interceptor truyền: `src/FE/src/app/core/interceptors/error.interceptor.ts`, chuỗi `body?.traceId ?? null`. ✅ sẽ có cho lỗi runtime — `GlobalErrorHandler` chỉ báo và in ra `console`, không hiện gì; **chưa chốt** lỗi runtime hiện gì cho người dùng: `docs/Design/` chưa có spec | §5.1 |
+| Giới hạn tần suất và bọc kín bộ thu lỗi | ✅ CÓ THẬT (đối chiếu 2026-11-06) — neo ở §4.1 | §4.1 |
+| Đích nhận báo cáo lỗi | ✅ CÓ THẬT (đối chiếu 2026-11-06) — bản `production` gửi về BE, bản `development` giữ `console` (người dùng chốt 2026-11-06): `src/FE/src/app/app.config.ts`, chuỗi `...provideDauRaLoiTheoMoiTruong(environment.production),`; đầu ra HTTP: `src/FE/src/app/core/observability/http-client-error-output.ts`, chuỗi `const DUONG_DAN_BAO_LOI = '/core/client-errors';`. Card hợp đồng còn `DRAFT`, chưa gọi thử thật | §4, §4.2 |
 | Đo Web Vitals trên máy người dùng thật | ❌ chưa | Điều kiện: có nơi nhận số và có ngưỡng để so (§6.2, §6.3). Trước đó đo tay bằng công cụ trình duyệt |
 | Nối `traceId` FE ↔ log BE thành một truy vấn | ❌ chưa | Điều kiện: BE có đường log tập trung — [`../be/07-observability.md`](../be/07-observability.md) |
 | Ghi lại phiên thao tác của người dùng | ❌ chưa | Điều kiện: có loại lỗi không tái hiện được bằng mô tả; kèm bài toán che dữ liệu nhạy cảm |
 | Gửi nội dung form trong báo cáo lỗi | ❌ loại, không hoãn `K30` | §4.1 — có thể chứa mật khẩu người dùng gõ nhầm ô |
-| Tầng logger có mức độ riêng ở FE | ❌ loại, không hoãn `K31` | §9 — gần như luôn thành lớp bọc quanh console |
+| Tầng logger có mức độ riêng ở FE | ❌ loại, không hoãn `K31` | §8 — gần như luôn thành lớp bọc quanh console |
 
 > Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
 ---
 
-## 12. Đọc tiếp
+## 11. Đọc tiếp
 
 | Câu hỏi | File |
 | --- | --- |
@@ -237,3 +282,4 @@ Cả ba đều **không** phải điều kiện để đóng pha F0–F3. Chúng
 | Ngân sách bundle và số đo | [`13-performance.md`](13-performance.md) §4 |
 | Không rò rỉ dữ liệu nhạy cảm | [`14-security.md`](14-security.md) |
 | Nợ hợp đồng cho endpoint nhận lỗi | [`../../contracts/README.md`](../../contracts/README.md) |
+| Request API nào được đi vòng chuỗi interceptor | Hàng F59 ở [`../../RULES-FE.md`](../../RULES-FE.md) |

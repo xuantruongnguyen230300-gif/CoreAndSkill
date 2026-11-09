@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import {
   TranslateLoader,
@@ -46,7 +45,6 @@ describe('DanhSachVaiTroPage — menu hàng: openChange(false) muộn của hàn
       imports: [DanhSachVaiTroPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         {
           provide: VaiTroService,
@@ -110,7 +108,6 @@ describe('DanhSachVaiTroPage — lỗi 422 của hộp tạo vai trò không g�
       imports: [DanhSachVaiTroPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: VaiTroService, useValue: service },
         { provide: AuthService, useValue: { coQuyen: () => true } },
@@ -201,7 +198,6 @@ describe('DanhSachVaiTroPage — đổi tên vai trò mang token đồng thời'
       imports: [DanhSachVaiTroPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: VaiTroService, useValue: service },
         { provide: AuthService, useValue: { coQuyen: () => true, nguoiDung: () => null } },
@@ -402,7 +398,6 @@ describe('DanhSachVaiTroPage — câu của banner lỗi trong hộp xoá (fe-ui
       imports: [DanhSachVaiTroPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: VaiTroService, useValue: service },
         { provide: AuthService, useValue: { coQuyen: () => true, nguoiDung: () => null } },
@@ -493,7 +488,6 @@ describe('DanhSachVaiTroPage — seam CORE_SCREEN_EXT khoá "roles"', () => {
       imports: [DanhSachVaiTroPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: VaiTroService, useValue: service },
         { provide: AuthService, useValue: { nguoiDung: () => null, coQuyen: () => true } },
@@ -521,16 +515,17 @@ describe('DanhSachVaiTroPage — seam CORE_SCREEN_EXT khoá "roles"', () => {
     expect(el.querySelector('tbody')?.textContent).toContain('EXT-r1');
   });
 
-  // V-03 — fe-architecture.md §2.7 luật 6 (ADR-0084). Tập khoá lấy từ chính bảng đã dựng (kể cả cột
-  // hành động nối sau cột dự án), không chép tay: Core thêm cột mà quên đưa vào phép kiểm thì đỏ.
-  it('V-03: cột dự án trùng BẤT KỲ khoá cột Core nào đang vẽ (kể cả "hanhDong") → dựng màn ném Error nêu "roles" và khoá', async () => {
+  // V-03 — fe-architecture.md §2.7 luật 6 (ADR-0084). Tập khoá lấy từ chính bảng đã dựng (cột hành động
+  // không nằm trong `columns`), không chép tay: Core thêm cột mà quên đưa vào phép kiểm thì đỏ.
+  it('V-03: cột dự án trùng BẤT KỲ khoá cột Core nào đang vẽ → dựng màn ném Error nêu "roles" và khoá', async () => {
     await cauHinh([]);
     const goc = TestBed.createComponent(DanhSachVaiTroPage);
     goc.detectChanges();
     const cacKhoa = (goc.componentInstance as unknown as { columns(): readonly { key: string }[] })
       .columns()
       .map((c) => c.key);
-    expect(cacKhoa).toContain('hanhDong');
+    // Cột hành động là `rowActionsTemplate` của DataTable, không phải một khoá trong `columns`.
+    expect(cacKhoa).not.toContain('hanhDong');
 
     for (const khoa of cacKhoa) {
       TestBed.resetTestingModule();

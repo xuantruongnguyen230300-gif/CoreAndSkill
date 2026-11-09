@@ -15,11 +15,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Identity;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // docs/adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md trên PostgreSQL THẬT — mặt mà AppUserUniqueViolationTests
 // (không database) không chứng minh được: 23505 thật của Npgsql, qua lớp cha UserStore của bản Identity đang dùng, tới được
 // AppUserStore và ra đúng hình dạng lỗi; lượt thua không để lại dòng nào. ADR-0089 "Tiêu cực": nâng bản Identity mà lớp cha
@@ -143,7 +138,7 @@ public sealed class AppUserUniqueViolationDatabaseTests(PostgresFixture db) : IA
         var request = ProvisioningInTransaction.RunAsync(scope.ServiceProvider, (provisioning, ct) =>
             provisioning.CreateAdditionalAdminAsync(tenant.Id, "quantri2", "quantri2@vd.vn", "Quản trị 2", B4DockerHost.Password, ct));
 
-        await WaitUntilSomeSessionWaitsOnALockAsync(request);
+        await LockContention.WaitUntilSomeSessionWaitsOnALockAsync(db, request);
         await other.CommitAsync();
         var result = await request;
 
@@ -181,26 +176,6 @@ public sealed class AppUserUniqueViolationDatabaseTests(PostgresFixture db) : IA
             "SELECT count(*) FROM core.audit_log WHERE tenant_id = @t AND action_code = 'core.user.create'",
             new NpgsqlParameter("t", tenantId));
 
-    // Như LockContention.WaitUntilSomeSessionWaitsOnALockAsync, cho một lời gọi service thay vì một request HTTP.
-    private async Task WaitUntilSomeSessionWaitsOnALockAsync(Task operation)
-    {
-        var deadline = DateTime.UtcNow + LockContention.ProbeLimit;
-        while (DateTime.UtcNow < deadline)
-        {
-            if (operation.IsCompleted)
-                throw new ShouldAssertException("chống test rỗng: lời gọi xong trước khi chờ khoá.");
-
-            var waiting = await db.CountAsync(
-                "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'");
-            if (waiting > 0)
-                return;
-
-            await Task.Delay(TimeSpan.FromMilliseconds(50));
-        }
-
-        throw new ShouldAssertException($"chống test rỗng: sau {LockContention.ProbeLimit.TotalSeconds} giây không phiên nào chờ khoá.");
-    }
-
     private static async Task<Guid> CreateUserAsync(HttpClient client)
     {
         var response = await client.PostAsJsonAsync(UsersUrl, new
@@ -212,7 +187,7 @@ public sealed class AppUserUniqueViolationDatabaseTests(PostgresFixture db) : IA
             roleIds = Array.Empty<Guid>(),
         });
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
-        return (await ReadEnvelope(response)).Data.GetGuid();
+        return (await ReadEnvelope(response)).Data.GetProperty("id").GetGuid();
     }
 
     private static async Task<string> GetVersionAsync(HttpClient client, Guid userId)

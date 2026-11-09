@@ -1,12 +1,12 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-05
 ---
 
 # 07. Xác thực và danh tính phía FE
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Đây là luồng phải dựng ở pha F2.
+> ✅ **CÓ THẬT** (đối chiếu 2026-11-05) — mọi hàng `✅` ở §10, neo vào `src/FE` ngay trong ô; các hàng `❌` cũng đã đối chiếu là chưa có trong code; thân bài §1–§8 đối chiếu cùng ngày. Hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
 >
 > Hợp đồng endpoint: [`../../contracts/auth.md`](../../contracts/auth.md). Cơ chế phía BE: [`../be/02-identity-auth.md`](../be/02-identity-auth.md). Quy ước guard và route: [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md).
 
@@ -81,7 +81,7 @@ Vì sao cơ chế này chặn được CSRF: một trang của kẻ tấn công 
 
 | Việc | Bẫy nếu làm sai |
 | --- | --- |
-| Chỉ gắn header cho phương thức làm thay đổi dữ liệu | Gắn cho cả `GET` là thừa; và một `GET` làm thay đổi dữ liệu là một lỗi thiết kế cần sửa ở BE |
+| Chỉ gắn header cho lệnh ghi — ngoại lệ có tên duy nhất: `GET` mang dấu `CO_TAC_DUNG_PHU` (tải tệp xuất, BE ghi nhật ký kiểm toán nên kiểm token như lệnh ghi — [`../../adr/0062-endpoint-xuat-kiem-token-chong-gia-mao-nhu-lenh-ghi.md`](../../adr/0062-endpoint-xuat-kiem-token-chong-gia-mao-nhu-lenh-ghi.md)) | Gắn cho mọi `GET` là thừa; một `GET` khác làm thay đổi dữ liệu là lỗi thiết kế cần sửa ở BE |
 | Chỉ gắn cho request đi tới **API của mình** | Gửi token của mình sang miền thứ ba là rò rỉ token |
 | Lấy lại token sau khi đăng nhập và sau khi đăng xuất | Token gắn với danh tính lúc phát; token cũ làm thao tác ghi đầu tiên sau đổi danh tính bị từ chối |
 
@@ -154,7 +154,7 @@ Ba nơi dùng:
 | Nơi | Cách |
 | --- | --- |
 | Template | Directive `*appHasPermission` — [`05-component-library.md`](05-component-library.md) §4 |
-| Route | Guard permission, nhận mã từ `data` của route |
+| Route | Guard permission dạng factory, mã truyền làm đối số: `permissionGuard('core.user.read')` ([`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §3.3) |
 | Menu | Server đã lọc sẵn — xem §6 |
 
 ### 5.3 Ranh giới phải nhắc lại
@@ -163,13 +163,19 @@ Ba nơi dùng:
 >
 > Câu hỏi để tự kiểm: *"nếu ai đó xoá đoạn kiểm tra này khỏi FE thì họ làm được gì thêm?"* — trả lời "không gì cả" thì đúng; trả lời "họ xoá được bản ghi" thì BE đang thiếu kiểm tra.
 
-### 5.4 Tập quyền đổi giữa phiên — gặp 403 thì làm mới
+### 5.4 Tập quyền đổi giữa phiên — làm mới khi gặp 403, khi tab hiện lại, sau khi lưu ma trận
 
-Đổi vai trò của một người, hay đổi ma trận quyền, có hiệu lực ở BE **từ request kế tiếp** của người đó ([`../../contracts/users.md`](../../contracts/users.md) §7). Tập quyền FE nạp lúc khởi động (§2.1) thì không tự biết: nút vẫn hiện, bấm vào nhận 403.
+Đổi vai trò của một người, hay đổi ma trận quyền, có hiệu lực ở BE **từ request kế tiếp** của người đó ([`../../contracts/users.md`](../../contracts/users.md) §7). Tập quyền FE nạp lúc khởi động (§2.1) thì không tự biết: nút vẫn hiện, bấm vào nhận 403 — còn quyền vừa **được cấp thêm** thì không có 403 nào báo, nút của nó chỉ hiện khi tập quyền được nạp lại.
 
-FE học được thay đổi đúng lúc đó — **gặp 403 `CORE.AUTH.FORBIDDEN` thì làm mới tập quyền và nạp lại menu trong cùng bước**, không nạp lại theo lịch và không nạp lại mỗi lần đổi route. Directive và guard hỏi cùng `AuthService` nên tự đổi theo; menu do server lọc (§6) nên phải nạp lại mới khớp; người dùng ở lại màn đang làm. 403 mang mã nghiệp vụ không kéo theo việc làm mới — nó nói về dữ liệu của thao tác, không nói tập quyền đã cũ.
+FE làm mới tập quyền và nạp lại menu trong cùng bước ở ba lúc (người dùng chốt 2026-10-06):
 
-> 📖 Hiện thực — nhánh 403 của `errorInterceptor`: [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §2.2; `AuthService.lamMoiQuyen()` và `lamMoiPhien()` (gọi lại `me`; ba nơi gọi khai ở đó): [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §3.3. Tầng nào xử lý 401/403: [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §8.
+- **Gặp 403 `CORE.AUTH.FORBIDDEN`** — quyền vừa bị thu. 403 mang mã nghiệp vụ không kéo theo việc làm mới — nó nói về dữ liệu của thao tác, không nói tập quyền đã cũ.
+- **Tab hiện lại** — người dùng quay về tab sau khi làm việc khác, thường là lúc quyền vừa được cấp ở phiên của quản trị viên. Chặn dồn để chuyển tab liên tục không thành chuỗi lời gọi `me`.
+- **Màn ma trận phân quyền lưu thành công** — người lưu có thể vừa đổi quyền của chính mình.
+
+Không nạp lại theo lịch, không nạp lại mỗi lần đổi route. Directive và guard hỏi cùng `AuthService` nên tự đổi theo; menu do server lọc (§6) nên phải nạp lại mới khớp; người dùng ở lại màn đang làm.
+
+> 📖 Hiện thực — nhánh 403 của `errorInterceptor`: [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §2.2; ba lúc làm mới, khoảng chặn dồn, `AuthService.lamMoiQuyen()` và `lamMoiPhien()` (gọi lại `me`; nơi gọi khai ở đó): [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §3.3. Tầng nào xử lý 401/403: [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §8.
 
 ---
 
@@ -231,7 +237,7 @@ Khoá tài khoản và đặt lại mật khẩu hộ đều đổi security sta
 
 ---
 
-## 8. CORS — chỉ là bài toán của môi trường phát triển
+## 8. CORS — FE và API khác nguồn ở mọi môi trường
 
 FE và API ở **hai origin khác nhau** ở mọi môi trường ([`17-phuc-vu-va-trien-khai.md`](17-phuc-vu-va-trien-khai.md) §4). Nghĩa là CORS và cookie chéo nguồn là chuyện của **cả dev lẫn thật**, không phải chuyện riêng của một môi trường.
 
@@ -241,25 +247,58 @@ FE và API ở **hai origin khác nhau** ở mọi môi trường ([`17-phuc-vu-
 
 ---
 
-## 9. Kiểm chứng ở pha F2
+## 9. Kiểm chứng
 
-> 📖 Danh sách nghiệm thu F2: đọc [`trien-khai/03-f2-auth-routing.md`](trien-khai/03-f2-auth-routing.md) §7.
+Đi **bằng tay** trên ứng dụng chạy thật — phần lớn mục dưới không test tự động nào bắt.
+
+- [ ] Gọi API cần đăng nhập khi chưa đăng nhập → điều hướng kèm đường dẫn quay lại, không phải màn trắng hay lỗi trong console
+- [ ] Đăng nhập xong quay **đúng** về đường dẫn đó, không phải luôn về trang đích
+- [ ] Đường dẫn quay lại trỏ ra miền ngoài → **bị từ chối**
+- [ ] Tài khoản buộc đổi mật khẩu: gõ URL bất kỳ đều bị đưa về màn đổi mật khẩu; riêng màn đó **không lặp**
+- [ ] Đổi mật khẩu xong đi thẳng vào app — **không** bắt đăng nhập lại
+- [ ] Thao tác ghi **ngay sau** đăng nhập thành công chạy được (§3.2)
+- [ ] Đăng xuất → gọi lại API cần auth → chặn ngay, không cần tải lại trang
+- [ ] Bốn request song song cùng nhận 401 → **một** lần điều hướng, **một** thông báo
+- [ ] Nhập sai mật khẩu → thấy thông báo sai mật khẩu, không bị coi là hết phiên
+- [ ] Mở app khi chưa đăng nhập → vào màn đăng nhập, **không** có thông báo hết phiên
+- [ ] Tài khoản mang `has_permission_bypass` → mọi chức năng theo quyền hiện ra, không qua nhánh FE riêng nào
+- [ ] Form đăng nhập không có ô ghi nhớ đăng nhập
+- [ ] Màn hồ sơ cá nhân đọc và lưu được qua HTTP thật
+- [ ] Lưu hồ sơ với họ tên mới → Topbar hiện tên mới ngay, không tải lại trang
+- [ ] Chọn một ngôn ngữ khác ở màn đổi mật khẩu bắt buộc → đổi xong, giao diện giữ ngôn ngữ đó và hồ sơ mang ngôn ngữ đó ([`08-i18n.md`](08-i18n.md) §7) — chỉ khi `CORE_I18N.languages` có từ hai mục; v1 bỏ qua
+- [ ] Thu một quyền của tài khoản đang mở app → thao tác kế tiếp nhận 403 → nút **và** mục menu của quyền đó biến mất, người dùng ở lại màn
+- [ ] Cấp thêm một quyền cho tài khoản đang mở app ở tab khác → chuyển sang tab đó → nút **và** mục menu của quyền mới hiện ra, không tải lại trang
+- [ ] Đã đăng nhập, gõ URL không tồn tại → trang 404 **trong** khung app; chưa đăng nhập → về màn đăng nhập kèm đường dẫn quay lại
+- [ ] Một request chạm hạn mức ở màn không tắt toast → toast hiện số giây chờ khớp header `Retry-After` của chính response đó
+- [ ] Mở hồ sơ ở hai tab, lưu ở tab thứ nhất rồi lưu ở tab thứ hai → tab thứ hai nhận 409 kèm cảnh báo xung đột (toast theo mặc định của interceptor, hoặc cách hiển thị khác nếu màn tự tắt toast — [`../../Design/Screens/03-ho-so-ca-nhan.md`](../../Design/Screens/03-ho-so-ca-nhan.md) dùng `NoticeBanner` cho cả ba endpoint hồ sơ), dữ liệu vừa nhập còn nguyên trên form, tab Network **không** có request gửi lại tự động ([`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §2.2)
+- [ ] Đăng xuất ở một tab → tab khác tự dọn
+- [ ] Tài khoản thiếu permission gõ thẳng URL → bị chặn, **không** thấy nội dung màn dù chỉ chớp nhoáng
+- [ ] Menu chỉ hiện mục mà tài khoản có quyền; ẩn mục **không** thay được guard
+- [ ] Đổi ngôn ngữ → menu đổi theo (cache menu có khoá gồm cả người dùng lẫn ngôn ngữ) — chỉ khi `CORE_I18N.languages` có từ hai mục; v1 bỏ qua
+- [ ] Không tệp `.html` nào chứa chữ tiếng Việt (luật F8)
+- [ ] Không hằng số vai trò nào trong `core/`
+- [ ] Xem tab Network: cookie thật sự được gửi kèm request
+- [ ] Rời màn hồ sơ khi còn thay đổi chưa lưu → hỏi đúng câu "Rời trang?" của `unsavedChangesGuard` ([`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §4.1)
+- [ ] Chọn "Rời đi" → mất thay đổi, điều hướng tiếp; chọn "Ở lại" → đóng hộp, không gửi request, thay đổi giữ nguyên
+- [ ] Lưu thành công → cờ thay đổi bị xoá; rời trang ngay sau đó không bị hỏi lại
+- [ ] Đăng xuất hoặc đổi ngôn ngữ ở khung ứng dụng khi màn con còn thay đổi chưa lưu → cùng đi qua đúng một hộp, không hỏi hai lần
+- [ ] Đóng tab/tải lại trang khi còn thay đổi chưa lưu → trình duyệt cảnh báo (đường `beforeunload`, không chỉ đường điều hướng trong app)
 
 ---
 
 ## 10. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Đối chiếu `src/FE` ngày 2026-11-05: hàng `✅ CÓ THẬT` mang neo ngay trong ô; hàng `❌` chưa có trong code. Ý nghĩa các ký hiệu: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| Phiên bằng cookie `HttpOnly` | ✅ sẽ có | §1 — [`../../adr/0004-giu-aspnet-identity.md`](../../adr/0004-giu-aspnet-identity.md) |
-| XSRF token gửi lại qua header | ✅ sẽ có | §3 |
-| Nạp "tôi là ai" một lần lúc khởi động | ✅ sẽ có | §2.1 |
-| Ba guard đúng thứ tự | ✅ sẽ có | §4.3 |
-| Làm mới tập quyền và menu khi gặp 403 thiếu quyền | ✅ sẽ có | §5.4 |
-| Menu do server lọc theo quyền | ✅ sẽ có | §6 — [`../../contracts/meta-menu.md`](../../contracts/meta-menu.md) |
-| Đồng bộ đăng xuất giữa các tab | ✅ sẽ có | §7.3 — ngoại lệ có lý do của [`03-state-management.md`](03-state-management.md) §7 |
+| Phiên bằng cookie `HttpOnly` | ✅ CÓ THẬT (đối chiếu 2026-11-05) — `src/FE/src/app/core/interceptors/auth.interceptor.ts`, chuỗi `withCredentials: true` | §1 — [`../../adr/0004-giu-aspnet-identity.md`](../../adr/0004-giu-aspnet-identity.md) |
+| XSRF token gửi lại qua header | ✅ CÓ THẬT (đối chiếu 2026-11-05) — token ở bộ nhớ: `src/FE/src/app/core/auth/xsrf-token.store.ts`, chuỗi `readonly token = this._token.asReadonly();`; gắn header: `auth.interceptor.ts` cùng chỗ trên, chuỗi `'X-XSRF-TOKEN': token`; lấy lại sau đăng nhập: `src/FE/src/app/core/auth/auth.service.ts`, chuỗi `switchMap(() => this.xsrf.lamMoi({ boQuaToastLoi: true }))` | §3 |
+| Nạp "tôi là ai" một lần lúc khởi động | ✅ CÓ THẬT (đối chiếu 2026-11-05) — `src/FE/src/app/app.config.ts`, chuỗi `auth.napPhienKhoiDong().pipe(catchError(() => of(null)))`; guard chỉ đọc signal: `src/FE/src/app/core/guards/auth.guard.ts`, chuỗi `if (auth.daDangNhap()) {` | §2.1 |
+| Ba guard đúng thứ tự | ✅ CÓ THẬT (đối chiếu 2026-11-05) — `src/FE/src/app/app.routes.ts`, chuỗi `canActivate: [authGuard, mustChangePasswordGuard]`; `permissionGuard` ở route con, ví dụ `src/FE/src/app/platform/quan-tri/nguoi-dung/nguoi-dung.routes.ts`, chuỗi `canActivate: [permissionGuard('core.user.read')]` | §4.3 |
+| Làm mới tập quyền và menu khi gặp 403 thiếu quyền, khi tab hiện lại, sau khi lưu ma trận quyền | ✅ CÓ THẬT (đối chiếu 2026-11-05) — 403: `src/FE/src/app/core/interceptors/error.interceptor.ts`, chuỗi `auth.lamMoiQuyen();`; tab hiện lại: `src/FE/src/app/core/auth/auth.service.ts`, chuỗi `const KHOANG_CHAN_LAM_MOI_MS = 30_000;`; ma trận: `src/FE/src/app/platform/quan-tri/phan-quyen/pages/ma-tran/ma-tran-phan-quyen.page.ts`, chuỗi `void this.auth.lamMoiPhien({ napLaiMenu: true });` | §5.4 |
+| Menu do server lọc theo quyền | ✅ CÓ THẬT (đối chiếu 2026-11-05) — `src/FE/src/app/core/menu/menu.service.ts`, chuỗi `'/core/meta/menu'`; khoá cache gồm người dùng và ngôn ngữ: `src/FE/src/app/core/menu/menu.store.ts`, chuỗi `private khoaCache(userId: string): string {` | §6 — [`../../contracts/meta-menu.md`](../../contracts/meta-menu.md) |
+| Đồng bộ đăng xuất giữa các tab | ✅ CÓ THẬT (đối chiếu 2026-11-05) — ghi dấu: `src/FE/src/app/core/auth/tab-session-broadcast.service.ts`, chuỗi `localStorage.setItem(KHOA_BAO_TAB_PHIEN_KET_THUC, String(Date.now()));`; tab khác nghe: `src/FE/src/app/core/auth/session-expiry.handler.ts`, chuỗi `window.addEventListener('storage', nghe);` | §7.3 — ngoại lệ có lý do của [`03-state-management.md`](03-state-management.md) §7 |
 | Ghi nhớ đăng nhập / phiên dài | ❌ chưa | Điều kiện: có yêu cầu thật và BE hỗ trợ trước. Ở v1 mọi phiên cùng một thời hạn không thao tác ([`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §7); form đăng nhập không có ô ghi nhớ |
 | Đăng nhập một lần (SSO) | ❌ chưa | Điều kiện: tổ chức có nhà cung cấp danh tính dùng chung |
 | Xác thực hai yếu tố phía giao diện | ❌ chưa | Điều kiện: BE hỗ trợ trước; FE chỉ là màn nhập mã |

@@ -5,10 +5,10 @@ using Xunit;
 
 namespace CoreAndSkill.ArchTests;
 
-// R3 — docs/kien-truc-core-module.md §3: "Tầng trong không biết tầng ngoài: Domain ⊄ Application ⊄
-// Infrastructure/Web — Ép bằng: Đồ thị ProjectReference + ArchTest A1, A2". Đây là nửa "đồ thị
-// ProjectReference": so trực tiếp .csproj với sơ đồ chiều phụ thuộc định nghĩa gốc ở
-// docs/quy-uoc/be-architecture.md §1.2 — canary chính cho "thêm một ProjectReference sai chiều".
+// A23 — docs/RULES-BE.md, docs/kien-truc-core-module.md §3: "Tầng trong không biết tầng ngoài: Domain ⊄ Application ⊄
+// Infrastructure/Web — Ép bằng: ArchTest A23 — đồ thị ProjectReference của năm project Core, khớp cột *Tham chiếu
+// được* ở §2; A1, A2 — package và assembly". Test này là A23: so trực tiếp .csproj với sơ đồ chiều phụ thuộc định
+// nghĩa gốc ở docs/quy-uoc/be-architecture.md §1.2 — canary chính cho "thêm một ProjectReference sai chiều".
 public class ProjectGraphTests
 {
     private static readonly IReadOnlyDictionary<string, string[]> ExpectedReferences = new Dictionary<string, string[]>

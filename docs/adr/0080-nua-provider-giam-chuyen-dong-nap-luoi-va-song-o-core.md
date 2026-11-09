@@ -6,7 +6,9 @@ verified: chua-doi-chieu
 
 # ADR-0080 — Nửa provider của giảm chuyển động dùng `provideAnimationsAsync('noop')`, chọn một lần lúc khởi động, và hàm chọn sống ở `core/` chứ không ở composition root
 
-> **Trạng thái:** Đã chấp nhận (2026-09-24)
+> **Trạng thái:** Đã thay thế bởi [ADR-0124](0124-go-nua-provider-hoat-anh-giam-chuyen-dong-dua-vao-css-toan-cuc-va-safe-f39-het-ap-dung.md) (2026-11-06)
+>
+> Thay thế bởi [`0124-go-nua-provider-hoat-anh-giam-chuyen-dong-dua-vao-css-toan-cuc-va-safe-f39-het-ap-dung.md`](0124-go-nua-provider-hoat-anh-giam-chuyen-dong-dua-vao-css-toan-cuc-va-safe-f39-het-ap-dung.md).
 
 ## Bối cảnh
 

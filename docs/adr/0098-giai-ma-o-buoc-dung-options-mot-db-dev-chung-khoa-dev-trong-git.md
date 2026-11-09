@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0098 — Giải mã ở bước dựng `CoreConnectionOptions`; cả nhóm dùng một database dev chung; khoá mang mã `dev` nằm trong git, nên mã hoá chỉ còn là che mắt
 
-> **Trạng thái:** Đã chấp nhận (2026-09-25)
+> **Trạng thái:** Đã chấp nhận (2026-09-25) · Sửa một phần bởi [ADR-0110](0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md) (2026-09-28) · Tạm hoãn một phần bởi [ADR-0110](0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md) (2026-09-28)
 
 ## Bối cảnh
 

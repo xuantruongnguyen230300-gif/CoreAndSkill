@@ -1,0 +1,10 @@
+// Design/Components/Toast.md — lớp `--z-toast`, cao nhất hệ. Tắt `autoZIndex` của thư viện (nó
+// ghi z-index inline theo thang riêng) rồi để token quyết định.
+p-toast {
+  z-index: var(--z-toast);
+}
+
+// Nút hành động trong thân thông báo (Toast.md §Accessibility): cách chữ một khe, không tô nền riêng.
+.toast-hanh-dong {
+  margin-top: var(--sp-4);
+}

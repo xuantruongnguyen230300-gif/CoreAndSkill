@@ -65,3 +65,64 @@ describe('ConfirmDialogComponent — icon theo mức', () => {
     });
   }
 });
+
+/**
+ * Ô "tôi đã hiểu" (`requireAcknowledge`) là trạng thái của MỘT lần mở: lần mở sau phải bắt đầu từ chưa
+ * đánh dấu, nếu không nút xác nhận mở sẵn cho một hành động nguy hiểm mà người dùng chưa đọc lại.
+ */
+describe('ConfirmDialogComponent — ô xác nhận đã hiểu', () => {
+  let fixture: ComponentFixture<ConfirmDialogComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ConfirmDialogComponent],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideTranslateService({
+          lang: 'vi',
+          fallbackLang: 'vi',
+          loader: provideTranslateLoader(FakeTranslateLoader),
+        }),
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(ConfirmDialogComponent);
+    fixture.componentRef.setInput('title', 'Tiêu đề');
+    fixture.componentRef.setInput('message', 'Nội dung');
+    fixture.componentRef.setInput('confirmLabel', 'Đồng ý');
+    fixture.componentRef.setInput('requireAcknowledge', 'Tôi đã hiểu');
+  });
+
+  async function datOpen(mo: boolean): Promise<void> {
+    fixture.componentRef.setInput('open', mo);
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
+
+  const oXacNhan = (): HTMLInputElement =>
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
+      '.confirm-dialog__xac-nhan input',
+    )!;
+  const nutDongY = (): HTMLButtonElement =>
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      '.confirm-dialog__hanh-dong app-button:last-child button',
+    )!;
+
+  it('mở: ô chưa đánh dấu và nút xác nhận khoá', async () => {
+    await datOpen(true);
+    expect(oXacNhan().checked).toBeFalse();
+    expect(nutDongY().disabled).toBeTrue();
+  });
+
+  it('đánh dấu thì mở khoá nút; đóng rồi mở lại thì về chưa đánh dấu và khoá lại', async () => {
+    await datOpen(true);
+    oXacNhan().click();
+    fixture.detectChanges();
+    expect(oXacNhan().checked).toBeTrue();
+    expect(nutDongY().disabled).toBeFalse();
+
+    await datOpen(false);
+    await datOpen(true);
+    expect(oXacNhan().checked).toBeFalse();
+    expect(nutDongY().disabled).toBeTrue();
+  });
+});

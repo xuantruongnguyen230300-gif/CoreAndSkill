@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0109 — Agent đọc checklist luôn đọc cộng luật theo chủ đề; model ghim theo vai; review giới hạn phần đổi và hai vòng; docs chỉ ghi khi được giao
 
-> **Trạng thái:** Đã chấp nhận (2026-09-27)
+> **Trạng thái:** Đã chấp nhận (2026-09-27) · Bổ sung bởi [ADR-0111](0111-git-danh-sach-cho-phep-cong-docs-chan-mot-lan-architect-truoc-thi-cong-theo-dau-hieu.md) (2026-09-29)
 
 ## Bối cảnh
 

@@ -14,6 +14,9 @@
 #
 # Thoát 0 = mọi ca đúng kỳ vọng · 1 = có ca sai kỳ vọng · 2 = không chạy được (thiếu script).
 
+# T12:cap-xanh-do — mọi ca xanh đi kèm một ca đỏ dùng chung cơ chế dò (RULES-CHUNG.md T12);
+# cặp nào nằm ở đâu thì chú thích 'Cặp đỏ:' ngay trên ca xanh nói ra, hoặc ca đỏ cùng fixture đứng sát đó.
+
 set -uo pipefail
 
 T="$(cd "$(dirname "$0")" && pwd)"
@@ -97,11 +100,19 @@ void this.router.navigateByUrl(this.router.url, { onSameUrlNavigation: 'reload' 
 void this.router.navigate([], { queryParams: q });"
 check "đường dẫn đến từ seam / URL hiện tại / mảng rỗng -> PASS" xanh
 
+# Cặp đỏ: ca ngay dưới — cùng nội dung, cùng cơ chế dò, chỉ chuyển từ platform/ vào core/.
 make_fixture; tep "$G" "export const x = 1;"; tep "platform/a/a.page.ts" "void this.router.navigate(['/nguoi-dung']);"
 check "platform/ điều hướng cứng không thuộc phạm vi F21 -> PASS" xanh
 
+make_fixture; tep "$G" "export const x = 1;"; tep "core/guards/y.guard.ts" "void this.router.navigate(['/nguoi-dung']);"
+check "cùng nội dung ấy nhưng nằm trong core/ -> FAIL (cặp đỏ của ca platform/)" do
+
+# Cặp đỏ: ca ngay dưới — cùng nội dung, cùng thư mục, chỉ bỏ đuôi .spec.
 make_fixture; tep "$G" "export const x = 1;"; tep "core/guards/x.guard.spec.ts" "expect(router.navigateByUrl('/dang-nhap'));"
 check "*.spec.ts trong core/ không bị tính -> PASS" xanh
+
+make_fixture; tep "$G" "export const x = 1;"; tep "core/guards/y.guard.ts" "expect(router.navigateByUrl('/dang-nhap'));"
+check "cùng nội dung ấy ở tệp không phải .spec -> FAIL (cặp đỏ của ca spec)" do
 
 make_fixture; find "$DIR/src/app/core" -name '*.ts' -delete
 check "core/ không còn tệp *.ts nào -> FAIL (không xanh rỗng)" do

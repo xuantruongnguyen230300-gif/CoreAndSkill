@@ -12,7 +12,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { finalize } from 'rxjs';
 
 import { ApiFailureError } from '../../../../../core/http/api-result.model';
-import { dichLoiChoMan } from '../../../../../core/http/dich-loi';
+import { dichLoiBatKy } from '../../../../../core/http/dich-loi';
 import { ListStateStore } from '../../../../../core/list/list-state.store';
 import { ToastService } from '../../../../../core/toast/toast.service';
 import { BadgeComponent } from '../../../../../shared/components/badge/badge.component';
@@ -39,7 +39,7 @@ import { TaoDonViStore } from '../../state/tao-don-vi.store';
 import { DonVi } from '../../models/don-vi.model';
 
 /** Khoá cột Core của màn — tập đưa vào phép kiểm khoá trùng (fe-architecture.md §2.7 luật 6). */
-const KHOA_COT_CORE = ['code', 'name', 'trangThai', 'createdAt', 'hanhDong'] as const;
+const KHOA_COT_CORE = ['code', 'name', 'trangThai', 'createdAt'] as const;
 type KhoaCotCore = (typeof KHOA_COT_CORE)[number];
 
 /**
@@ -76,6 +76,7 @@ type KhoaCotCore = (typeof KHOA_COT_CORE)[number];
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ListStateStore, TaoDonViStore, KhoiPhucTaoQuanTriStore],
   templateUrl: './danh-sach-don-vi.page.html',
+  styleUrl: './danh-sach-don-vi.page.scss',
 })
 export class DanhSachDonViPage {
   private readonly service = inject(DonViService);
@@ -115,7 +116,7 @@ export class DanhSachDonViPage {
         // Không nêu gì về tài khoản đích — phản hồi không mang dữ liệu đó (ADR-0029).
         this.toast.thanhCong(this.translate.instant('donVi.thongBao.khoiPhucThanhCong'));
       },
-      () => this.list.reload(), // CORE.TENANT.NOT_FOUND — đơn vị đã bị xoá, bỏ hàng cũ khỏi lưới
+      () => this.list.reload(), // CORE.TENANT.NOT_FOUND — id không tồn tại hoặc là đơn vị hệ thống; bỏ hàng cũ khỏi lưới
     );
   }
 
@@ -126,7 +127,7 @@ export class DanhSachDonViPage {
           this.translate.instant('donVi.thongBao.taoQuanTriThanhCong', { tenDangNhap }),
         );
       },
-      () => this.list.reload(), // CORE.TENANT.NOT_FOUND — đơn vị đã bị xoá, bỏ hàng cũ khỏi lưới
+      () => this.list.reload(), // CORE.TENANT.NOT_FOUND — id không tồn tại hoặc là đơn vị hệ thống; bỏ hàng cũ khỏi lưới
     );
   }
 
@@ -136,8 +137,6 @@ export class DanhSachDonViPage {
   private readonly colTrangThai =
     viewChild.required<TemplateRef<{ $implicit: DonVi }>>('colTrangThai');
   private readonly colNgayTao = viewChild.required<TemplateRef<{ $implicit: DonVi }>>('colNgayTao');
-  private readonly colHanhDong =
-    viewChild.required<TemplateRef<{ $implicit: DonVi }>>('colHanhDong');
 
   protected readonly columns = computed<DataColumnDef<DonVi>[]>(() => {
     const cotDuLieu: CotCore<DonVi, KhoaCotCore>[] = [
@@ -167,17 +166,9 @@ export class DanhSachDonViPage {
         cell: this.colNgayTao(),
       },
     ];
-    const cotHanhDong: CotCore<DonVi, KhoaCotCore> = {
-      key: 'hanhDong',
-      header: this.translate.instant('donVi.cot.hanhDong'),
-      cell: this.colHanhDong(),
-    };
-    // Cột của dự án nối sau cột dữ liệu của Core; cột hành động vẫn đứng cuối (DataTable.md).
-    return [
-      ...cotDuLieu,
-      ...sangCotDataTable(this.cotMoRong, (k) => this.translate.instant(k)),
-      cotHanhDong,
-    ];
+    // Cột của dự án nối sau cột dữ liệu của Core. Cột hành động KHÔNG nằm trong `columns`: nó là
+    // `rowActionsTemplate` của DataTable, luôn đứng cuối (DataTable.md §"Cột hành động").
+    return [...cotDuLieu, ...sangCotDataTable(this.cotMoRong, (k) => this.translate.instant(k))];
   });
 
   // ---- Menu hành động theo hàng ----
@@ -305,7 +296,7 @@ export class DanhSachDonViPage {
             return;
           }
           this.loiXacNhanNgung.set(cauBannerHopNgung(err, this.translate));
-          // NOT_FOUND: đơn vị đã bị người khác xoá — banner trong hộp VÀ bỏ hàng cũ khỏi lưới.
+          // NOT_FOUND: id không còn tồn tại — banner trong hộp VÀ bỏ hàng cũ khỏi lưới.
           if (laKhongTimThay(err)) this.list.reload();
         },
       });
@@ -321,9 +312,7 @@ function laKhongTimThay(err: unknown): boolean {
  * interceptor đã toast nó kèm `traceId`.
  */
 function dichLoiHoacMatKetNoi(err: unknown, translate: TranslateService): string | null {
-  return err instanceof ApiFailureError
-    ? dichLoiChoMan(translate, err)
-    : translate.instant('loi.CORE.CLIENT.NO_CONNECTION');
+  return dichLoiBatKy(translate, err);
 }
 
 /**
@@ -331,7 +320,5 @@ function dichLoiHoacMatKetNoi(err: unknown, translate: TranslateService): string
  * fe-ui-conventions.md §6.2 quyết qua `fieldErrorsText`: mã con thắng mã gốc.
  */
 function cauBannerHopNgung(err: unknown, translate: TranslateService): string | null {
-  return err instanceof ApiFailureError
-    ? fieldErrorsText(translate, err)
-    : translate.instant('loi.CORE.CLIENT.NO_CONNECTION');
+  return dichLoiBatKy(translate, err, (l) => fieldErrorsText(translate, l));
 }

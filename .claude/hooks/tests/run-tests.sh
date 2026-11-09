@@ -5,7 +5,7 @@
 #     bash .claude/hooks/tests/run-tests.sh        # in ca SAI + tổng
 #     bash .claude/hooks/tests/run-tests.sh -v     # in mọi ca
 #
-# Thoát 0 = mọi ca OK · 1 = có ca SAI · 2 = không chạy được (thiếu node/git).
+# Thoát 0 = mọi ca OK · 1 = có ca SAI · 2 = không chạy được (thiếu node/git/timeout).
 #
 # Mỗi nhóm dựng một repo giả trong thư mục tạm của hệ thống (mktemp -d), chép
 # hook vào đó rồi gọi hook bằng payload JSON giống harness gửi. KHÔNG chạm repo
@@ -16,8 +16,9 @@
 #     HOOKS_UNDER_TEST=<thư-mục-chứa-*.sh> bash .claude/hooks/tests/run-tests.sh
 #
 # Nguồn cấu hình trong repo giả:
-#   - on-pretool đọc danh sách cấm từ `permissions.deny` của settings.json THẬT
-#     (ca "phải chặn" kiểm chính cấu hình đang dùng, không kiểm một bản chép);
+#   - on-pretool đọc danh sách cấm từ `permissions.deny` và danh sách cho phép git
+#     từ các mục `Bash(git …)` của `permissions.allow` — của settings.json THẬT
+#     (ca "phải chặn" / "cho qua" kiểm chính cấu hình đang dùng, không kiểm bản chép);
 #   - on-stop cần hai dạng: "chưa gắn SubagentStop" và "đã gắn" — dựng từ
 #     settings.json thật bằng cách gỡ / thêm hai khối PreToolUse, SubagentStop;
 #   - nhóm settings.json chạy NGUYÊN chuỗi lệnh hook của settings.json thật;
@@ -38,8 +39,8 @@ REPO="$(cd "$T/../../.." && pwd)"
 HOOKS="${HOOKS_UNDER_TEST:-$REPO/.claude/hooks}"
 REALSET="$REPO/.claude/settings.json"
 
-for need in node git; do
-  command -v "$need" >/dev/null 2>&1 || { echo "ABORT — thiếu '$need' trên PATH; bộ test cần nó để dựng payload JSON / repo giả." >&2; exit 2; }
+for need in node git timeout; do
+  command -v "$need" >/dev/null 2>&1 || { echo "ABORT — thiếu '$need' trên PATH; bộ test cần nó để dựng payload JSON / repo giả / chạy hook dưới giới hạn giờ như harness." >&2; exit 2; }
 done
 for f in lib.sh core-paths.sh on-edit.sh on-stop.sh on-subagent-stop.sh on-pretool.sh; do
   [ -f "$HOOKS/$f" ] || { echo "ABORT — không thấy $HOOKS/$f" >&2; exit 2; }
@@ -140,16 +141,20 @@ mkrepo() { # $1 tên; in đường dẫn repo giả
   cp "$SOFTSET" "$R/.claude/settings.json"
   fixture_gitignore > "$R/.gitignore"
   # Cổng giả: mã thoát đọc từ .claude/.state/stub-rc (mặc định 0), mỗi lần chạy
-  # ghi một dòng vào .claude/.state/stub-ran. Cả hai nằm trong thư mục trạng
-  # thái — ngoài tầm quét "có gì mới hơn lần xanh", nên chính việc đếm không làm
-  # cổng chạy lại.
+  # ghi một dòng vào .claude/.state/stub-ran. Mã 1 in nguyên văn
+  # .claude/.state/stub-fail nếu có (ca test tự chọn TẬP LỖI), không thì một dòng
+  # FAIL mặc định. Cả ba nằm trong thư mục trạng thái — ngoài tầm quét "có gì mới
+  # hơn lần xanh", nên chính việc đếm hay đổi tập lỗi không làm cổng chạy lại.
   cat > "$R/.claude/check-docs.sh" <<'EOF'
 #!/usr/bin/env bash
 cd "$(dirname "$0")/.." || exit 2
 mkdir -p .claude/.state
 echo x >> .claude/.state/stub-ran
 rc=$(cat .claude/.state/stub-rc 2>/dev/null || echo 0)
-[ "$rc" = 1 ] && echo "  FAIL  docs/x.md:1 — vi phạm giả \"có nháy\""
+if [ "$rc" = 1 ]; then
+  if [ -f .claude/.state/stub-fail ]; then cat .claude/.state/stub-fail
+  else echo "  FAIL  [§3] docs/x.md:1 — vi phạm giả \"có nháy\""; fi
+fi
 [ "$rc" = 2 ] && echo "ABORT — giả lập"
 exit "$rc"
 EOF
@@ -160,10 +165,15 @@ EOF
 
 # payload JSON dựng bằng node — đúng cách harness tuần tự hoá, kể cả gạch chéo ngược.
 # pj <event> <tool> <key> <file-chứa-giá-trị> [tool_response-file]
-# session_id lấy từ biến PJ_SID (mặc định s1).
+# session_id lấy từ biến PJ_SID (mặc định s1). PJ_DUR khác rỗng: payload PostToolUse /
+# PostToolUseFailure mang thêm tool_use_id và duration_ms (mili giây) — hình payload thật
+# đo trên Claude Code 2.1.282 và 2.1.283 (2026-09-30): PostToolUse xếp tool_input,
+# tool_response, tool_use_id, duration_ms; PostToolUseFailure (lệnh thoát khác 0) không
+# có tool_response mà có tool_use_id, error, is_interrupt, duration_ms.
 PJ_SID=s1
+PJ_DUR=""
 pj() {
-  PJSID="$PJ_SID" node -e '
+  PJSID="$PJ_SID" PJDUR="$PJ_DUR" node -e '
     const fs = require("fs");
     const [ev, tool, key, vf, rf] = process.argv.slice(1);
     const o = { session_id: process.env.PJSID, transcript_path: "C:\\Users\\x\\t.jsonl", cwd: "D:\\Repo",
@@ -171,6 +181,12 @@ pj() {
     o.tool_input[key] = fs.readFileSync(vf, "utf8");
     if (key === "command") o.tool_input.description = "mô tả \"command\": \"git push\"";
     if (rf) o.tool_response = { stdout: fs.readFileSync(rf, "utf8") };
+    if (ev === "PostToolUse" || ev === "PostToolUseFailure") {
+      if (ev === "PostToolUseFailure") delete o.tool_response;
+      o.tool_use_id = "toolu_01Test";
+      if (ev === "PostToolUseFailure") { o.error = "Exit code 1\nbuild failed"; o.is_interrupt = false; }
+      if (process.env.PJDUR !== "") o.duration_ms = Number(process.env.PJDUR);
+    }
     process.stdout.write(JSON.stringify(o));
   ' "$@"
 }
@@ -254,15 +270,9 @@ edt() { # tên, tool, key, giá trị, kỳ vọng [tool_response]
   local rc=$?
   row on-edit "$1" "$5 rc=0" "$(st) rc=$rc"
 }
-# Giai đoạn 1: chưa có src/ thì không có gì để canh — kể cả tài liệu. Cổng tài liệu
-# không cần dấu nào từ hook này: hook Stop tự hỏi hệ thống tệp.
-edt "không src — Edit docs/: không dấu nào" Edit file_path "$RB\\docs\\x.md" "src=0 core=0 co=0"
-edt "không src — Edit tài liệu chủ khối: không dấu nào" Edit file_path "$RB\\docs\\kien-truc-core-module.md" "src=0 core=0 co=0"
-edt "không src — PowerShell command" PowerShell command "Get-ChildItem" "src=0 core=0 co=0"
-row on-edit "không src — không tạo thư mục phiên" "không" "$([ -d "$PS" ] && echo có || echo không)"
 reset_state
 printf '{"session_id":"s1","tool_name":"Read","tool_input":{"pattern":"x"}}' | bash "$R/.claude/hooks/on-edit.sh" 2>/dev/null; rc=$?
-row on-edit "không src — payload không file_path, không command" "src=0 core=0 co=0 rc=0" "$(st) rc=$rc"
+row on-edit "payload không file_path, không command — không dấu nào" "src=0 core=0 co=0 rc=0" "$(st) rc=$rc"
 
 mkdir -p "$R/src/BE/Core/Core.Domain" "$R/src/BE/Core/obj" "$R/src/BE/Modules/A" "$R/src/FE/src/app/core" "$R/src/FE/node_modules/pkg" "$R/docs/quy-uoc" "$R/database/scripts/core" "$R/scripts/tests"
 printf 'g' > "$R/scripts/fe-gate.sh"
@@ -349,6 +359,8 @@ pje Write "$RB\\src\\FE\\src\\app\\core\\a.ts" "$(valf "$EMO_DOC")" | bash "$R/.
 row on-edit "có src — Write, content chứa emoji 4 byte: core-touched đúng đường dẫn" "src/FE/src/app/core/a.ts rc=0" "$(ctouched) rc=$rc"
 
 # ---- nhánh lệnh shell
+# Payload shell mang duration_ms như payload thật; ca "không có duration_ms" ở dưới.
+PJ_DUR=1500
 reset_state; lamcu
 printf 'a' > "$R/src/FE/src/app/core/a.ts"
 printf 'b' > "$R/src/BE/Core/obj/gen.json"
@@ -356,7 +368,6 @@ printf 'c' > "$R/src/FE/node_modules/pkg/i.js"
 pj PostToolUse Bash command "$(valf 'echo x > src/FE/src/app/core/a.ts')" | bash "$R/.claude/hooks/on-edit.sh" 2>/dev/null; rc=$?
 row on-edit "shell — vừa sửa Core FE + file gitignore" "src=1 core=1 co=1 rc=0" "$(st) rc=$rc"
 row on-edit "shell — core-touched chỉ có file không bị gitignore" "src/FE/src/app/core/a.ts" "$(tr '\n' ' ' < "$S/core-touched" 2>/dev/null | sed 's/ $//')"
-row on-edit "shell — đặt mốc quét của phiên" "có" "$([ -e "$PS/scan-stamp" ] && echo có || echo không)"
 
 reset_state; lamcu
 pj PostToolUse Bash command "$(valf 'git status')" | bash "$R/.claude/hooks/on-edit.sh" 2>/dev/null; rc=$?
@@ -398,18 +409,116 @@ row on-edit "shell — mục thiếu trên đĩa KHÔNG ghi dấu lỗi (đúng 
 mv "$WORK/database.bak" "$R/database"
 rm -f "$R/src/BE/Core/Core.Domain/Z.cs"
 
-# Mốc lần quét trước, không phải cửa sổ 90 giây: một lệnh chạy lâu (build, format cả
-# solution) sửa file ở ĐẦU lệnh thì lúc hook chạy file đó đã quá 90 giây. Bản cũ
-# dùng `-newermt '-90 seconds'` nên bỏ sót ở ca này.
+# ---- cửa sổ quét = khoảng của CHÍNH lời gọi, không phải "từ lần quét trước của phiên"
+# Lỗi cũ: nhánh shell quét mọi tệp mới hơn mốc lần quét trước của phiên, nên thay đổi
+# của phiên khác, của IDE, của người dùng giữa hai lời gọi đều bị tính cho phiên đang
+# chạy lệnh — phiên chỉ chạy `ls` cũng mang cờ touched-core và bị hook Stop chặn.
+# Giả lập "lời gọi trước xảy ra từ lâu" bằng cách lùi mtime MỌI thứ trong thư mục trạng
+# thái phiên — kiểu mốc nào (scan-stamp của bản cũ hay mốc khác) cũng lùi theo, nên ca
+# kiểm hành vi, không kiểm tên tệp mốc.
+lui() { local s=$1; shift; touch -d "@$(( $(date +%s) - s ))" "$@"; }   # <giây> <tệp>...: mtime về <giây> trước
+lui_phien() { [ -d "$S/phien" ] && find "$S/phien" -exec touch -d "@$(( $(date +%s) - $1 ))" {} + 2>/dev/null; return 0; }
+shpost() { # <session_id> <duration_ms, rỗng = không khoá> <lệnh> [sự kiện]
+  local PJ_SID=$1 PJ_DUR=$2
+  pj "${4:-PostToolUse}" Bash command "$(valf "$3")" | bash "$R/.claude/hooks/on-edit.sh" 2>/dev/null
+}
+co_phien() { [ -e "$S/phien/$1/touched-core" ] && echo 1 || echo 0; }
+trong_nk() { grep -qxF "$1" "$S/core-touched" 2>/dev/null && echo có || echo không; }
+
+# Tái hiện ca 1 của lượt soát: s1 sửa Core, s2 chỉ chạy `ls`.
 reset_state; lamcu
-pj PostToolUse Bash command "$(valf 'ls')" | bash "$R/.claude/hooks/on-edit.sh" 2>/dev/null
-touch -d '10 minutes ago' "$PS/scan-stamp"
-printf 'z' > "$R/src/BE/Core/Core.Domain/Lau.cs"; touch -d '5 minutes ago' "$R/src/BE/Core/Core.Domain/Lau.cs"
-pj PostToolUse Bash command "$(valf 'dotnet format')" | bash "$R/.claude/hooks/on-edit.sh" 2>/dev/null; rc=$?
-row on-edit "shell — file sửa 5 phút trước, sau mốc quét trước (lệnh chạy lâu)" "src=1 core=1 co=1 rc=0" "$(st) rc=$rc"
-pj PostToolUse Bash command "$(valf 'ls')" | bash "$R/.claude/hooks/on-edit.sh" 2>/dev/null
-row on-edit "shell — quét lại ngay sau đó không ghi trùng dòng" "1" "$(grep -c 'Lau.cs' "$S/core-touched" 2>/dev/null)"
+shpost s2 300 'ls'
+lui_phien 120
+printf 'k' > "$R/src/BE/Core/Core.Domain/PhienKhac.cs"; lui 40 "$R/src/BE/Core/Core.Domain/PhienKhac.cs"
+shpost s1 45000 'dotnet format'
+shpost s2 300 'ls'
+row on-edit "cửa sổ — phiên s1 sửa Core, phiên s2 chỉ chạy ls: cờ ở s1, s2 không mang cờ" "s1=1 s2=0 nhật ký có" \
+  "s1=$(co_phien s1) s2=$(co_phien s2) nhật ký $(trong_nk src/BE/Core/Core.Domain/PhienKhac.cs)"
+
+# Tái hiện ca 2: người dùng sửa Core trong IDE giữa hai lời gọi, phiên chạy `git status`.
+reset_state; lamcu
+shpost s1 300 'ls'
+lui_phien 120
+printf 'u' > "$R/src/FE/src/app/core/ide.ts"; lui 60 "$R/src/FE/src/app/core/ide.ts"
+shpost s1 400 'git status'
+row on-edit "cửa sổ — tệp Core đổi GIỮA hai lời gọi (IDE, người dùng): không tính cho phiên" "src=0 core=0 co=0" "$(st)"
+
+reset_state; lamcu
+printf 't' > "$R/src/BE/Core/Core.Domain/Truoc.cs"; lui 60 "$R/src/BE/Core/Core.Domain/Truoc.cs"
+shpost s1 30000 'dotnet build'
+row on-edit "cửa sổ — tệp đổi 60 s trước, lời gọi chỉ dài 30 s: không tính" "src=0 core=0 co=0" "$(st)"
+
+reset_state; lamcu
+printf 'c' > "$R/src/BE/Core/Core.Domain/ChinhMinh.cs"; lui 2 "$R/src/BE/Core/Core.Domain/ChinhMinh.cs"
+shpost s1 3000 'sed -i s/a/b/ src/BE/Core/Core.Domain/ChinhMinh.cs'
+row on-edit "cửa sổ — lệnh shell của chính phiên ghi tệp Core: có cờ" "src=1 core=1 co=1" "$(st)"
+
+# Hai đầu của độ trễ cho phép (DO_TRE): hook chạy 2 s sau khi lệnh 3 s xong, tệp ghi ở
+# giây đầu của lệnh — vẫn phải tính; tệp đổi 20 s trước một lời gọi 0,4 s — không tính.
+reset_state; lamcu
+printf 'd' > "$R/src/BE/Core/Core.Domain/DauLenh.cs"; lui 5 "$R/src/BE/Core/Core.Domain/DauLenh.cs"
+shpost s1 3000 'sed -i s/a/b/ src/BE/Core/Core.Domain/DauLenh.cs && sleep 3'
+row on-edit "cửa sổ — hook trễ 2 s sau lệnh, tệp ghi ở đầu lệnh: vẫn tính" "src=1 core=1 co=1" "$(st)"
+reset_state; lamcu
+printf 'e' > "$R/src/BE/Core/Core.Domain/HaiMuoiGiay.cs"; lui 20 "$R/src/BE/Core/Core.Domain/HaiMuoiGiay.cs"
+shpost s1 400 'ls'
+row on-edit "cửa sổ — tệp đổi 20 s trước lời gọi 0,4 s: không tính (độ trễ cho phép chỉ vài giây)" "src=0 core=0 co=0" "$(st)"
+
+# Lệnh chạy lâu (build, format cả solution) sửa tệp ở ĐẦU lệnh: lúc hook chạy tệp đó đã
+# cũ hơn mọi cửa sổ cố định. Lời gọi đầu tiên của phiên — bản cũ không có mốc, lùi về 90 s.
+reset_state; lamcu
+printf 'z' > "$R/src/BE/Core/Core.Domain/Lau.cs"; lui 300 "$R/src/BE/Core/Core.Domain/Lau.cs"
+shpost s1 360000 'dotnet format'
+row on-edit "cửa sổ — lệnh dài 6 phút, sửa tệp Core ở phút đầu: có cờ" "src=1 core=1 co=1" "$(st)"
+shpost s1 300 'ls'
+row on-edit "cửa sổ — lời gọi sau không ghi lại tệp cũ hơn khoảng của nó" "1" "$(grep -c 'Lau.cs' "$S/core-touched" 2>/dev/null)"
 rm -f "$R/src/BE/Core/Core.Domain/Lau.cs"
+
+# Nhiều subagent của cùng phiên chạy song song, cùng session_id: mỗi lời gọi phải thấy
+# tệp chính nó ghi, dù lời gọi kia kết thúc trước. Một mốc chung theo phiên bị lời gọi
+# khác ghi đè thì A mất tệp ghi ở đầu lời gọi.
+reset_state; lamcu
+printf 'a' > "$R/src/BE/Core/Core.Domain/SongSongA.cs"; lui 25 "$R/src/BE/Core/Core.Domain/SongSongA.cs"
+printf 'b' > "$R/src/FE/src/app/core/song-song-b.ts"; lui 2 "$R/src/FE/src/app/core/song-song-b.ts"
+shpost s1 5000 'npx prettier --write src/FE/src/app/core/song-song-b.ts'
+shpost s1 30000 'dotnet format src/BE/Core'
+row on-edit "song song — hai lời gọi cùng phiên, mỗi lời gọi ghi một tệp Core: cả hai vào nhật ký" "A có / B có / cờ 1" \
+  "A $(trong_nk src/BE/Core/Core.Domain/SongSongA.cs) / B $(trong_nk src/FE/src/app/core/song-song-b.ts) / cờ $(co_phien s1)"
+
+# duration_ms lấy ở TẦNG NGOÀI của payload. Khoá "duration_ms" giả nằm trong chuỗi (lệnh,
+# stdout) và trong object lồng, đứng cả TRƯỚC lẫn SAU khoá thật: bộ trích lấy lần xuất
+# hiện đầu hay cuối đều nhận 999999 ms (16 phút) và tính tệp 60 s trước.
+reset_state; lamcu
+printf 's' > "$R/src/BE/Core/Core.Domain/Gia.cs"; lui 60 "$R/src/BE/Core/Core.Domain/Gia.cs"
+node -e '
+  const o = { session_id: "s1", hook_event_name: "PostToolUse", tool_name: "Bash",
+              tool_input: { command: "echo \"\\\"duration_ms\\\":999999\"", description: "x" },
+              tool_response: { stdout: "{\"duration_ms\": 999999}", meta: { duration_ms: 999999 } },
+              tool_use_id: "toolu_01Test", duration_ms: 2000, extra: [{ duration_ms: 999999 }] };
+  process.stdout.write(JSON.stringify(o));
+' | bash "$R/.claude/hooks/on-edit.sh" 2>/dev/null
+row on-edit "cửa sổ — khoá \"duration_ms\" giả trong chuỗi và object lồng: dùng khoá tầng ngoài" "src=0 core=0 co=0" "$(st)"
+
+# Lệnh thoát khác 0 bắn PostToolUseFailure, KHÔNG bắn PostToolUse (đo thật). Payload
+# không có tool_response, có error / is_interrupt / duration_ms — hook quét như thường.
+reset_state; lamcu
+printf 'f' > "$R/src/BE/Core/Core.Domain/Loi.cs"; lui 3 "$R/src/BE/Core/Core.Domain/Loi.cs"
+shpost s1 4000 'sed -i s/a/b/ src/BE/Core/Core.Domain/Loi.cs && dotnet build' PostToolUseFailure
+row on-edit "cửa sổ — payload PostToolUseFailure (lệnh thoát khác 0): quét như PostToolUse" "src=1 core=1 co=1" "$(st)"
+
+# Payload không có duration_ms (harness khác): lùi về cửa sổ 90 giây.
+reset_state; lamcu
+printf 'n' > "$R/src/BE/Core/Core.Domain/Gan.cs"; lui 30 "$R/src/BE/Core/Core.Domain/Gan.cs"
+printf 'o' > "$R/src/BE/Core/Core.Domain/Xa.cs"; lui 150 "$R/src/BE/Core/Core.Domain/Xa.cs"
+shpost s1 '' 'ls'
+row on-edit "cửa sổ — không có duration_ms: lùi về 90 s (30 s trước có, 150 s trước không)" "có / không" \
+  "$(trong_nk src/BE/Core/Core.Domain/Gan.cs) / $(trong_nk src/BE/Core/Core.Domain/Xa.cs)"
+rm -f "$R/src/BE/Core/Core.Domain/Gan.cs" "$R/src/BE/Core/Core.Domain/Xa.cs"
+
+# Không mốc nào tích tụ trong thư mục phiên: chỉ còn dấu touched-core / src-touched.
+shpost s1 300 'git status'; shpost s2 300 'ls'; shpost s2 800 'dotnet build' PostToolUseFailure
+row on-edit "cửa sổ — sau nhiều lời gọi của hai phiên, thư mục phiên không còn tệp mốc nào" "không" \
+  "$(find "$S/phien" -type f ! -name touched-core ! -name src-touched 2>/dev/null | grep -q . && echo có || echo không)"
 
 reset_state
 cp "$R/docs/kien-truc-core-module.md" "$WORK/doc.bak"
@@ -420,11 +529,11 @@ cp "$WORK/doc.bak" "$R/docs/kien-truc-core-module.md"
 edt "có src — khối sửa lại: dấu lỗi bị xoá" Edit file_path "$RB\\src\\BE\\Core\\Core.Domain\\X.cs" "src=1 core=1 co=1"
 row on-edit "có src — khối sửa lại: không còn core-paths-error" "không" "$([ -e "$S/core-paths-error" ] && echo có || echo không)"
 
-rm -rf "$R/src"
-reset_state
+reset_state; lamcu
 printf 'x' > "$R/docs/quy-uoc/be-y.md"
 pj PostToolUse Bash command "$(valf 'ls')" | bash "$R/.claude/hooks/on-edit.sh" 2>/dev/null; rc=$?
-row on-edit "không src — Bash vừa sửa docs/quy-uoc/: không dấu nào" "src=0 core=0 co=0 rc=0" "$(st) rc=$rc"
+row on-edit "shell — vừa sửa docs/quy-uoc/ (ngoài khối Core, ngoài src/): không dấu nào" "src=0 core=0 co=0 rc=0" "$(st) rc=$rc"
+PJ_DUR=""
 
 ###############################################################################
 header on-stop.sh
@@ -454,6 +563,11 @@ clean() { rm -rf "$S"; mkdir -p "$S"; }
 lamcu() { find "$R" \( -path "$R/.git" -o -path "$S" \) -prune -o -exec touch -d '1 hour ago' {} + 2>/dev/null; }
 xanh() { lamcu; : > "$S/gate-green"; rm -f "$S/stub-ran"; }   # cổng vừa xanh, không gì mới hơn
 co() { mkdir -p "$PS"; : > "$PS/touched-core"; }               # phiên s đã chạm Core
+# Cổng đỏ chặn MỘT lần mỗi tập lỗi mỗi phiên (ADR-0111 quyết định 5). Ca nào dùng
+# "block" làm dấu hiệu "cổng đã chạy và không bị hoãn" thì cần một tập lỗi CHƯA gặp:
+# mỗi lần gọi, cổng giả in một dòng FAIL khác. Kiểm hành vi, không kiểm tên tệp dấu.
+LOI_N=0
+moi_loi() { LOI_N=$((LOI_N+1)); mkdir -p "$S"; printf '  FAIL  [§3] docs/x.md:%s — vi phạm giả mới "có nháy"\n' "$LOI_N" > "$S/stub-fail"; }
 BG_RUN='[{"id":"a1","type":"subagent","status":"running","description":"Sửa [Core] {x} \"nháy\"","agent_type":"backend-expert"}]'
 BG_SHELL='[{"id":"b1","type":"shell","status":"running","description":"sleep","command":"sleep 30"}]'
 BG_DONE='[{"id":"a1","type":"subagent","status":"completed","description":"x","agent_type":"backend-expert"}]'
@@ -467,8 +581,52 @@ runstop 0; row on-stop "không gì mới hơn lần xanh — không chạy cổn
 xanh; stub 1; printf 'x' > "$R/docs/moi.md"
 runstop 0; rc=$?; row on-stop "tài liệu mới hơn lần xanh, cổng đỏ" "block rc=0" "$(kind) rc=$rc"
 row on-stop "cổng đỏ — không dời mốc xanh" "mốc cũ hơn tệp" "$([ "$R/docs/moi.md" -nt "$S/gate-green" ] && echo 'mốc cũ hơn tệp' || echo 'mốc đã dời')"
-runstop 1; row on-stop "cổng đỏ, stop_hook_active — vẫn chặn" "block" "$(kind)"
+runstop 1; row on-stop "cổng đỏ, dừng lần hai cùng tập lỗi (stop_hook_active) — không chặn, báo người dùng" "systemMessage" "$(kind)"
 stub 0; runstop 0; row on-stop "sửa xong, cổng xanh — thả, dời mốc" "im lặng / mốc mới hơn tệp" "$(kind) / $([ "$S/gate-green" -nt "$R/docs/moi.md" ] && echo 'mốc mới hơn tệp' || echo 'mốc cũ')"
+
+# ---- cổng đỏ vì tệp của phiên khác / người dùng: mỗi tập lỗi chặn MỘT lần mỗi phiên
+# ADR-0111 quyết định 5. Lỗi cũ: phiên s2 không sửa gì vẫn bị chặn mỗi lần dừng,
+# kể cả khi stop_hook_active=true — vòng chặn không đáy.
+soft; clean; xanh; stub 1
+printf 'n' > "$R/docs/nguoi-khac.md"
+runstop 0 "" s2; row on-stop "tập lỗi — s2 không sửa gì, cổng đỏ: chặn lần đầu" "block / có" "$(kind) / $(has 'docs/x.md:1')"
+runstop 1 "" s2; row on-stop "tập lỗi — s2 dừng lại, cùng tập, stop_hook_active: không chặn, báo người dùng kèm lỗi" "systemMessage / có" "$(kind) / $(has 'docs/x.md:1')"
+runstop 0 "" s2; row on-stop "tập lỗi — lượt sau của s2, vẫn cùng tập: không chặn, vẫn báo" "systemMessage" "$(kind)"
+runstop 0 "" s3; row on-stop "tập lỗi — phiên s3 gặp cùng tập lần đầu: chặn (dấu theo phiên)" "block" "$(kind)"
+moi_loi
+runstop 1 "" s2; row on-stop "tập lỗi — tập đổi (lỗi mới), kể cả stop_hook_active: chặn lại" "block" "$(kind)"
+runstop 1 "" s2; row on-stop "tập lỗi — tập mới đã chặn một lần: không chặn" "systemMessage" "$(kind)"
+printf '  FAIL  [§3] docs/x.md:%s — vi phạm giả mới "có nháy"\n  FAIL  [§12] docs/them.md — thiếu khoá: kind\n' "$LOI_N" > "$S/stub-fail"
+runstop 1 "" s2; row on-stop "tập lỗi — tập cũ cộng thêm một lỗi: chặn lại" "block" "$(kind)"
+stub 0
+runstop 0 "" s2; row on-stop "tập lỗi — cổng xanh: không chặn, không báo" "im lặng" "$(kind)"
+stub 1; printf 'm' > "$R/docs/nguoi-khac.md"
+runstop 0 "" s2; row on-stop "tập lỗi — cùng tập quay lại sau một lần xanh: chặn lại" "block" "$(kind)"
+# Lần xanh do PHIÊN KHÁC chạy (s3), rồi tập cũ quay lại: dấu của s2 có từ trước lần
+# xanh đó, không được dùng để thả s2.
+stub 0; printf 'g' > "$R/docs/nguoi-khac.md"; runstop 0 "" s3
+stub 1; printf 'k' > "$R/docs/nguoi-khac.md"
+runstop 0 "" s2; row on-stop "tập lỗi — xanh do phiên khác chạy, tập cũ quay lại: chặn lại" "block" "$(kind)"
+# Tập đã chặn một lần + phiên vừa sửa src/: MỘT systemMessage mang cả lời báo cổng đỏ
+# lẫn lời nhắc build/test — không lời nào nuốt lời kia.
+mkdir -p "$S/phien/s2"; : > "$S/phien/s2/src-touched"
+runstop 0 "" s2; row on-stop "tập lỗi đã chặn + sửa src/ — một systemMessage gồm báo cổng đỏ và nhắc build/test" "systemMessage / có / có" \
+  "$(kind) / $(has 'docs/x.md:1') / $(has 'Hook KHÔNG chạy cổng build/test')"
+stub 0; rm -f "$S/stub-fail"
+
+# ---- đầu ra lỗi cổng: dòng FAIL nguyên vẹn, 20 dòng đầu, báo số còn lại
+clean; xanh; stub 1
+{ printf '  NOTE  dòng NOTE có chữ FAIL không phải lỗi\n'
+  for i in $(seq 1 25); do printf '  FAIL  [§3] docs/nhieu.md:%s — link chết\n' "$i"; done; } > "$S/stub-fail"
+printf 'n' > "$R/docs/nhieu.md"
+runstop 0; row on-stop "hơn 20 lỗi — in 20 dòng đầu, báo số còn lại" "block / có / không / có" "$(kind) / $(has 'nhieu.md:20 ') / $(has 'nhieu.md:21 ') / $(has '(+5 lỗi nữa)')"
+row on-stop "dòng NOTE chứa chữ FAIL không bị tính là lỗi" "không" "$(has 'dòng NOTE có chữ FAIL')"
+# Ký tự điều khiển THÔ (ESC lẻ không thành mã màu, 0x01, 0x1F) trong dòng lỗi: JSON phải hợp lệ.
+clean; xanh; stub 1
+printf '  FAIL  [§3] docs/dk.md:1 — ESC lẻ \033 và \001 và \037 cuối\n' > "$S/stub-fail"
+printf 'n' > "$R/docs/dk.md"
+runstop 0; row on-stop "ký tự điều khiển thô trong dòng lỗi cổng — JSON hợp lệ" "block" "$(kind)"
+stub 0; rm -f "$S/stub-fail"
 
 xanh; stub 2; printf 'y' > "$R/docs/moi2.md"
 runstop 0; row on-stop "cổng không chạy được (rc=2)" "block" "$(kind)"
@@ -492,19 +650,18 @@ runstop 0 "$BG_RUN"; row on-stop "agent nền đang chạy — không chạy c�
 runstop 0 "$BG_MIX"; row on-stop "agent nền đứng sau việc shell, mô tả có ngoặc và nháy — vẫn hoãn" "im lặng" "$(kind)"
 stoppl '{"session_id":"86a5182e-27be-4a95-bb48-9f8fafb6c46a","transcript_path":"C:\\Users\\x\\86a5.jsonl","cwd":"C:\\Users\\x\\probe-stop","prompt_id":"9991045a","permission_mode":"default","hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"launched","background_tasks":[{"id":"a5d062c89d6777f71","type":"subagent","status":"running","description":"Sleep 30 seconds and reply","agent_type":"general-purpose"}],"session_crons":[]}'
 row on-stop "payload thật 2.1.282 có agent nền đang chạy — hoãn" "im lặng" "$(kind)"
-runstop 0 "$BG_SHELL"; row on-stop "chỉ việc shell chạy nền — không hoãn" "block" "$(kind)"
-runstop 0 "$BG_DONE"; row on-stop "agent nền đã xong — không hoãn" "block" "$(kind)"
-runstop 0 "[]"; row on-stop "mảng rỗng — không hoãn" "block" "$(kind)"
+moi_loi; runstop 0 "$BG_SHELL"; row on-stop "chỉ việc shell chạy nền — không hoãn" "block" "$(kind)"
+moi_loi; runstop 0 "$BG_DONE"; row on-stop "agent nền đã xong — không hoãn" "block" "$(kind)"
+moi_loi; runstop 0 "[]"; row on-stop "mảng rỗng — không hoãn" "block" "$(kind)"
+moi_loi
 stoppl '{"session_id":"s","hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"{\"type\":\"subagent\",\"status\":\"running\"}","background_tasks":[]}'
 row on-stop "chuỗi agent nền giả trong last_assistant_message — không hoãn" "block" "$(kind)"
+moi_loi
 stoppl '{"session_id":"s","hook_event_name":"Stop","background_tasks":[{"type":"subagent","status":"run'
 row on-stop "payload cụt — không hoãn (hỏng theo hướng chặn)" "block" "$(kind)"
-stub 0
+stub 0; rm -f "$S/stub-fail"
 
 # ---- chạm Core
-hard; clean; co; printf 'docs/x.md\n' > "$S/core-touched"
-runstop 0; row on-stop "không src, có nhật ký và cờ — không nhắc, dọn cả hai" "im lặng / mất / mất" "$(kind) / $(coma "$S/core-touched") / $(coma "$PS/touched-core")"
-
 mkdir -p "$R/src/BE/Core"; printf 'x' > "$R/src/BE/Core/A.cs"
 soft; clean; co; printf 'src/BE/Core/A.cs\n' > "$S/core-touched"
 runstop 0; row on-stop "có src, CHƯA gắn SubagentStop — nhắc một lần" "block" "$(kind)"
@@ -512,17 +669,42 @@ row on-stop "nhắc một lần — nêu core-reviewer, không mời 'nói lý d
 row on-stop "nhắc một lần — dọn nhật ký và cờ" "mất/mất" "$(coma "$S/core-touched")/$(coma "$PS/touched-core")"
 runstop 1; row on-stop "nhắc một lần — lần Stop sau thả" "im lặng" "$(kind)"
 
+# Chặn cứng theo TẬP tệp Core chưa review (ADR-0114 quyết định 6, 13): mỗi tập chặn
+# MỘT lần mỗi phiên; dừng lại với đúng tập đó thì chỉ báo người dùng, không đòi vòng
+# review vượt giới hạn hai vòng. Lỗi cũ: chặn mỗi lần dừng tới khi có dấu review, kể
+# cả sau vòng 2 — lối thoát duy nhất là người dùng xoá nhật ký. Kiểm hành vi, không
+# kiểm tên tệp dấu.
 hard; clean; co; printf 'src/BE/Core/A.cs\n' > "$S/core-touched"
-runstop 0; row on-stop "ĐÃ gắn SubagentStop, chưa có dấu review — chặn" "block" "$(kind)"
+runstop 0; row on-stop "ĐÃ gắn SubagentStop, chưa có dấu review — chặn lần đầu" "block" "$(kind)"
 row on-stop "chặn cứng — nêu lối thoát của người dùng" "có" "$(has 'người dùng tự xoá .claude/.state/core-touched')"
 row on-stop "chặn cứng — dặn gọi reviewer chạy nền" "có" "$(has 'chạy nền')"
-runstop 1; row on-stop "chặn cứng, stop_hook_active — vẫn chặn" "block" "$(kind)"
-row on-stop "chặn cứng — giữ nhật ký và cờ" "còn/còn" "$(coma "$S/core-touched")/$(coma "$PS/touched-core")"
-runstop 0 "$BG_RUN"; row on-stop "chặn cứng, agent nền đang chạy — hoãn, giữ dấu" "im lặng / còn / còn" "$(kind) / $(coma "$S/core-touched") / $(coma "$PS/touched-core")"
-runstop 0 "$BG_SHELL"; row on-stop "chặn cứng, chỉ việc shell chạy nền — chặn" "block" "$(kind)"
-touch -d '1 minute ago' "$R/src/BE/Core/A.cs"; : > "$S/core-reviewed"
+row on-stop "chặn cứng — trỏ /core-review, khuôn ba trường, đủ hai vòng thì không gọi vòng ba" "có / có / có" \
+  "$(has '/core-review') / $(has 'Phạm vi: BE|FE, phần đổi|toàn bộ. Vòng: n/2.') / $(has 'KHÔNG gọi vòng ba')"
+runstop 1; row on-stop "tập Core — dừng lại cùng tập (stop_hook_active): không chặn, báo người dùng kèm tệp" "systemMessage / có" "$(kind) / $(has 'A.cs')"
+runstop 0; row on-stop "tập Core — lượt sau, vẫn cùng tập: không chặn, vẫn báo" "systemMessage" "$(kind)"
+row on-stop "tập Core đã chặn — giữ nhật ký và cờ" "còn/còn" "$(coma "$S/core-touched")/$(coma "$PS/touched-core")"
+runstop 0 "$BG_RUN"; row on-stop "tập Core đã chặn, agent nền đang chạy — hoãn, giữ dấu" "im lặng / còn / còn" "$(kind) / $(coma "$S/core-touched") / $(coma "$PS/touched-core")"
+runstop 0 "$BG_SHELL"; row on-stop "tập Core đã chặn, chỉ việc shell chạy nền — không hoãn, báo" "systemMessage" "$(kind)"
+printf 'a2' > "$R/src/BE/Core/A.cs"; printf 'src/BE/Core/A.cs\n' >> "$S/core-touched"
+runstop 1; row on-stop "tập Core — sửa thêm tệp ĐÃ có trong tập: không chặn lại" "systemMessage" "$(kind)"
+printf 'b' > "$R/src/BE/Core/B.cs"; printf 'src/BE/Core/B.cs\n' >> "$S/core-touched"
+runstop 1; row on-stop "tập Core — thêm một tệp Core mới, kể cả stop_hook_active: chặn lại" "block / B có / A có" "$(kind) / B $(has 'B.cs') / A $(has 'A.cs')"
+runstop 1; row on-stop "tập Core — tập mới đã chặn một lần: không chặn" "systemMessage" "$(kind)"
+mkdir -p "$S/phien/s3"; : > "$S/phien/s3/touched-core"
+runstop 0 "" s3; row on-stop "tập Core — phiên s3 mang cờ, gặp cùng tập lần đầu: chặn (dấu theo phiên)" "block" "$(kind)"
+touch -d '1 minute ago' "$R/src/BE/Core/A.cs" "$R/src/BE/Core/B.cs"; : > "$S/core-reviewed"
 runstop 1; row on-stop "dấu review mới hơn file — thả" "im lặng" "$(kind)"
 row on-stop "dấu review mới hơn — dọn nhật ký và cờ" "mất/mất" "$(coma "$S/core-touched")/$(coma "$PS/touched-core")"
+
+# Một lượt review mới — vòng nào cũng vậy — làm dấu vân tay cũ hết giá trị: sau đó sửa
+# lại ĐÚNG tập đã chặn thì chặn lại, để hook đòi vòng kế mà CLAUDE.md §11 đòi.
+hard; clean; co; printf 'r1' > "$R/src/BE/Core/A.cs"; printf 'src/BE/Core/A.cs\n' > "$S/core-touched"
+runstop 0; row on-stop "review mới — lần chặn đầu cho tập {A}" "block" "$(kind)"
+runstop 1; row on-stop "review mới — dừng lại cùng tập: không chặn" "systemMessage" "$(kind)"
+: > "$S/core-reviewed"
+printf 'r2' > "$R/src/BE/Core/A.cs"; printf 'src/BE/Core/A.cs\n' >> "$S/core-touched"
+runstop 1; row on-stop "review mới hơn lần chặn, rồi sửa lại đúng tập đó — chặn lại" "block / có" "$(kind) / $(has 'A.cs')"
+runstop 1; row on-stop "review mới — sau lần chặn lại, dừng cùng tập: không chặn" "systemMessage" "$(kind)"
 
 # Nhật ký chung, cờ theo phiên: phiên không chạm Core không bị việc của phiên khác giữ lại.
 hard; clean; printf 'src/BE/Core/A.cs\n' > "$S/core-touched"
@@ -532,6 +714,10 @@ runstop 0 "" s2; row on-stop "phiên s2 mang cờ — chặn s2" "block" "$(kind
 runstop 0; row on-stop "cùng lúc đó phiên s không mang cờ — vẫn thả" "im lặng" "$(kind)"
 rm -f "$S/core-touched"
 runstop 0 "" s2; row on-stop "người dùng xoá nhật ký — phiên mang cờ được thả, gỡ cờ" "im lặng / mất" "$(kind) / $(coma "$S/phien/s2/touched-core")"
+# Tập đã chặn đi theo nhật ký: s2 chạm lại đúng tệp đó sau khi người dùng xoá nhật ký
+# là việc mới — chặn lần đầu, không coi là "đã chặn".
+: > "$S/phien/s2/touched-core"; printf 'src/BE/Core/A.cs\n' > "$S/core-touched"
+runstop 0 "" s2; row on-stop "người dùng đã xoá nhật ký, s2 chạm lại đúng tập cũ — chặn lần đầu" "block" "$(kind)"
 
 clean; co; : > "$S/core-reviewed"; printf 'y' > "$R/src/BE/Core/A.cs"
 printf 'src/BE/Core/A.cs\n' > "$S/core-touched"
@@ -550,9 +736,10 @@ printf 'src/BE/Core/DaXoa.cs\n' > "$S/core-touched"
 touch -d '5 minutes ago' "$R/src/BE/Core/DaXoa.cs" "$R/src/BE/Core" "$S/core-touched"
 : > "$S/core-reviewed"; sleep 1
 rm -f "$R/src/BE/Core/DaXoa.cs"
-runstop 0; row on-stop "file Core xoá SAU dấu review (không dòng nào ghi thêm) — chặn" "block / có" "$(kind) / $(has 'DaXoa.cs')"
 printf 'loi\n' > "$S/subagent-stop-error.log"
-runstop 1; row on-stop "chặn cứng kèm log SubagentStop — trỏ tới log" "có" "$(has 'subagent-stop-error.log')"
+runstop 0; row on-stop "file Core xoá SAU dấu review (không dòng nào ghi thêm) — chặn" "block / có" "$(kind) / $(has 'DaXoa.cs')"
+row on-stop "chặn cứng kèm log SubagentStop — trỏ tới log" "có" "$(has 'subagent-stop-error.log')"
+runstop 1; row on-stop "cùng tập đã chặn, có log SubagentStop — lời báo người dùng trỏ tới log" "systemMessage / có" "$(kind) / $(has 'subagent-stop-error.log')"
 
 clean; co; mkdir -p "$R/src/BE/Core/Sub"; printf 'd' > "$R/src/BE/Core/Sub/X.cs"
 printf 'src/BE/Core/Sub/X.cs\n' > "$S/core-touched"
@@ -595,13 +782,28 @@ runstop 0 "" s2; row on-stop "khối core-paths lỗi — phiên khác vẫn đ�
 clean; printf 'core-paths: x\n' > "$S/core-paths-error"
 runstop 1; row on-stop "khối core-paths lỗi, stop_hook_active — không chặn" "im lặng" "$(kind)"
 
-rm -rf "$R/src"; hard; clean; co; printf 'src/BE/Core/A.cs\n' > "$S/core-touched"; printf 'e\n' > "$S/core-paths-error"
-runstop 0; row on-stop "KHÔNG có src/, đã gắn SubagentStop — lớp 3 không bật" "im lặng" "$(kind)"
-
 # JSON thật với lý do nhiều dòng, nháy, gạch chéo ngược, tab, CRLF
-mkdir -p "$R/src/BE/Core"; soft; clean; co
+soft; clean; co
 printf 'src/BE/Core/"nhay"\\x\tTab.cs\r\n' > "$S/core-touched"
 runstop 0; row on-stop "ký tự khó trong lý do (nháy, \\\\, tab, CR)" "block" "$(kind)"
+# Ký tự điều khiển THÔ khác tab/CR/LF — 0x01, ESC, BEL, 0x0B, 0x0C, 0x1F: JSON hỏng thì
+# harness bỏ quyết định chặn, tức lượt kết thúc trong im lặng.
+clean; co
+printf 'src/BE/Core/\001Ctl\033[0\007\013\014\037.cs\n' > "$S/core-touched"
+runstop 0; row on-stop "ký tự điều khiển thô (0x01, ESC, BEL, VT, FF, 0x1F) trong lý do" "block" "$(kind)"
+
+# Tập lỗi cổng đã chặn một lần thì cổng thôi chặn — lớp core-reviewer vẫn xét riêng:
+# phiên đã chạm Core vẫn bị chặn lần đầu cho tập tệp Core, và người dùng vẫn được báo
+# cổng còn đỏ. Cả hai tập đã chặn một lần: một systemMessage mang cả hai lời báo.
+hard; clean; printf 'q' > "$R/src/BE/Core/A.cs"; xanh; stub 1
+printf 'r' > "$R/docs/do.md"
+runstop 0; row on-stop "cổng đỏ + chạm Core — lần đầu chặn vì cổng" "block / có" "$(kind) / $(has 'docs/x.md:1')"
+co; printf 'src/BE/Core/A.cs\n' > "$S/core-touched"
+runstop 1; row on-stop "tập lỗi đã chặn một lần, phiên chạm Core chưa review — vẫn chặn vì core-reviewer, vẫn báo cổng đỏ" "block / có / có" \
+  "$(kind) / $(has 'core-reviewer') / $(jfield "$WORK/stop.out" systemMessage | grep -q 'docs/x.md:1' && echo có || echo không)"
+runstop 1; row on-stop "cả tập lỗi cổng lẫn tập Core đã chặn một lần — không chặn, một systemMessage mang cả hai" "systemMessage / có / có" \
+  "$(kind) / $(jfield "$WORK/stop.out" systemMessage | grep -q 'docs/x.md:1' && echo có || echo không) / $(jfield "$WORK/stop.out" systemMessage | grep -q 'src/BE/Core/A.cs' && echo có || echo không)"
+stub 0; soft
 
 # ---- thư viện mất, dọn thư mục phiên cũ
 mv "$R/.claude/hooks/lib.sh" "$WORK/lib.bak"; clean
@@ -683,7 +885,6 @@ pt 'git --no-pager log --oneline | head' Bash 'git --no-pager log --oneline | he
 pt 'printf "%s" "$(git status)"' Bash 'printf "%s" "$(git status)"' PASS
 pt 'heredoc có dòng git push trong thân' Bash "cat <<'EOF' > f.md${nl}git push${nl}git reset --hard${nl}EOF${nl}ls" PASS 0
 pt 'heredoc <<- thụt tab' Bash "cat <<-EOF > f.md${nl}	git push${nl}	EOF${nl}ls" PASS 0
-pt 'git checkout-index (không phải git checkout)' Bash 'git checkout-index -a' PASS
 pt 'git log --grep="push"' Bash 'git log --grep="push"' PASS
 pt 'find -exec grep (không phải lệnh cấm)' Bash 'find . -name "*.md" -exec grep -l git {} \;' PASS
 pt 'bash .claude/check-docs.sh' Bash 'bash .claude/check-docs.sh' PASS
@@ -739,6 +940,351 @@ pt 'dotnet nuget push x.nupkg' Bash 'dotnet nuget push x.nupkg' BLOCK
 pt 'docker push img' Bash 'docker push img' BLOCK
 pt 'git stash list (khớp deny git stash)' Bash 'git stash list' BLOCK
 pt 'heredoc rồi git push sau thân' Bash "cat <<EOF > f${nl}x${nl}EOF${nl}git push" BLOCK
+# --- danh sách cho phép git (ADR-0111 quyết định 4): lệnh git không khớp mục
+# Bash(git …) nào của permissions.allow bị chặn, kể cả khi deny không liệt kê nó.
+# Bốn lệnh ghi đã tái hiện lọt qua danh sách cấm cũ, qua ba đường:
+pt 'git update-ref refs/heads/main HEAD~1' Bash 'git update-ref refs/heads/main HEAD~1' BLOCK
+pt 'git symbolic-ref HEAD refs/heads/x' Bash 'git symbolic-ref HEAD refs/heads/x' BLOCK
+pt 'git gc --prune=now' Bash 'git gc --prune=now' BLOCK
+pt 'git notes add -m x' Bash 'git notes add -m x' BLOCK
+pt 'rtk git update-ref refs/heads/main HEAD~1' Bash 'rtk git update-ref refs/heads/main HEAD~1' BLOCK
+pt 'cd a && git symbolic-ref HEAD refs/heads/x' Bash 'cd a && git symbolic-ref HEAD refs/heads/x' BLOCK
+pt 'PowerShell: git gc --prune=now' PowerShell 'git gc --prune=now' BLOCK
+pt 'PowerShell: & git notes add -m x' PowerShell '& git notes add -m x' BLOCK
+# dạng gạch nối (tệp git-<lệnh> trong libexec/git-core) là cùng lệnh con
+pt 'git-update-ref (dạng gạch nối)' Bash 'git-update-ref refs/heads/main HEAD~1' BLOCK
+pt '/mingw64/libexec/git-core/git-gc.exe --prune=now' Bash '/mingw64/libexec/git-core/git-gc.exe --prune=now' BLOCK
+# tên không có trong danh sách: alias, chữ hoa, lệnh ghi deny không liệt kê, lệnh
+# đọc chưa có tên (giá ADR-0111 đã nêu), dạng ghi của remote
+pt 'git st (alias)' Bash 'git st' BLOCK
+pt 'git PUSH (chữ hoa — danh sách cấm cũ lọt)' Bash 'git PUSH' BLOCK
+pt 'git checkout-index -a (ghi working tree)' Bash 'git checkout-index -a' BLOCK
+pt 'git merge-base a b (lệnh đọc chưa có tên)' Bash 'git merge-base a b' BLOCK
+pt 'git reflog (lệnh đọc chưa có tên)' Bash 'git reflog' BLOCK
+pt 'git remote get-url origin (chưa có tên)' Bash 'git remote get-url origin' BLOCK
+pt 'git remote -v add o u (-v đứng trước lệnh con của remote)' Bash 'git remote -v add o u' BLOCK
+pt 'git remote rename a b' Bash 'git remote rename a b' BLOCK
+# git trần và tuỳ chọn thông tin: chỉ in rồi thoát. help / --help mở trình xem ngoài
+# (man, trình duyệt — chọn theo cấu hình git), version không có trong danh sách.
+pt 'git (trần — in cách dùng)' Bash 'git' PASS 0
+pt 'git --version' Bash 'git --version' PASS 0
+pt 'git --version push (tuỳ chọn thông tin không đứng cuối)' Bash 'git --version push' BLOCK
+pt 'git version' Bash 'git version' BLOCK
+pt 'git help log' Bash 'git help log' BLOCK
+pt 'git --help' Bash 'git --help' BLOCK
+pt 'git log --help (git đổi thành git help log)' Bash 'git log --help' BLOCK
+# từng lệnh được phép, dạng thường, qua ba đường
+for c in 'status --short' 'diff --stat HEAD' 'log --oneline -5' 'show HEAD:README.md' \
+         'blame -L 1,5 README.md' 'ls-files docs' 'rev-parse --show-toplevel' 'check-ignore -v bin/x' \
+         'cat-file -p HEAD' 'ls-tree -r HEAD' 'grep -n TODO' 'describe --tags --always' \
+         'shortlog -sn HEAD' 'remote -v' 'remote' 'remote show origin'; do
+  pt "git $c" Bash "git $c" PASS
+  pt "rtk git $c" Bash "rtk git $c" PASS
+  pt "PowerShell: git $c" PowerShell "git $c" PASS
+done
+# chuyển hướng: số fd và tệp đích không phải đối số — mục khớp nguyên lệnh
+# (Bash(git remote -v)) vẫn khớp, và lệnh đứng SAU chuyển hướng vẫn được xét.
+pt 'git remote -v 2>&1' Bash 'git remote -v 2>&1' PASS 0
+pt 'git remote -v > remotes.txt' Bash 'git remote -v > remotes.txt' PASS
+pt 'PowerShell: git remote -v 2>$null' PowerShell 'git remote -v 2>$null' PASS
+pt 'git log --oneline >> log.txt' Bash 'git log --oneline >> log.txt' PASS
+pt '>out.txt git push (chuyển hướng đứng trước lệnh)' Bash '>out.txt git push' BLOCK
+pt '2>/dev/null git push' Bash '2>/dev/null git push' BLOCK
+pt 'echo x >&2; git gc' Bash 'echo x >&2; git gc' BLOCK
+pt 'cat <(git show HEAD:a) — thay thế tiến trình' Bash 'cat <(git show HEAD:a)' PASS 0
+pt 'cat <(git gc) — thay thế tiến trình' Bash 'cat <(git gc)' BLOCK
+# tuỳ chọn ghi tệp / chạy lệnh của lệnh được phép
+pt 'git diff --output=x.txt' Bash 'git diff --output=x.txt' BLOCK
+pt 'git diff --output x.txt' Bash 'git diff --output x.txt' BLOCK
+pt 'git diff --outp=x.txt (viết tắt)' Bash 'git diff --outp=x.txt' BLOCK
+pt 'git log -p --output=x.txt' Bash 'git log -p --output=x.txt' BLOCK
+pt 'git show --output=x.txt HEAD' Bash 'git show --output=x.txt HEAD' BLOCK
+pt 'git shortlog --output=x.txt HEAD' Bash 'git shortlog --output=x.txt HEAD' BLOCK
+pt 'rtk git diff --output=x.txt' Bash 'rtk git diff --output=x.txt' BLOCK
+pt 'PowerShell: git log --output=x.txt' PowerShell 'git log --output=x.txt' BLOCK
+pt 'git diff --output-indicator-new=+ (không phải --output)' Bash 'git diff --output-indicator-new=+' PASS
+pt 'git diff -Oordfile (orderfile của diff, chỉ đọc)' Bash 'git diff -Oordfile' PASS
+pt 'git grep -Ovim foo' Bash 'git grep -Ovim foo' BLOCK
+pt 'git grep -O foo' Bash 'git grep -O foo' BLOCK
+pt 'git grep -nOvim foo (cụm cờ ngắn)' Bash 'git grep -nOvim foo' BLOCK
+pt 'git grep --open-files-in-pager=vim foo' Bash 'git grep --open-files-in-pager=vim foo' BLOCK
+pt 'git grep --open foo (viết tắt)' Bash 'git grep --open foo' BLOCK
+pt 'PowerShell: git grep -Onotepad foo' PowerShell 'git grep -Onotepad foo' BLOCK
+pt 'git grep -eOops (O thuộc mẫu của -e)' Bash 'git grep -eOops' PASS
+pt 'git grep -n -e Owner' Bash 'git grep -n -e Owner' PASS
+# tuỳ chọn toàn cục đổi cấu hình hoặc trỏ sang repo khác
+pt 'git -c core.pager=evil log' Bash 'git -c core.pager=evil log' BLOCK
+pt 'git -c core.fsmonitor=evil status' Bash 'git -c core.fsmonitor=evil status' BLOCK
+pt 'git -c alias.x=!sh log' Bash 'git -c alias.x=!sh log' BLOCK
+pt 'git --config-env=core.pager=EVIL log' Bash 'git --config-env=core.pager=EVIL log' BLOCK
+pt 'PowerShell: git -c core.pager=evil log' PowerShell 'git -c core.pager=evil log' BLOCK
+pt 'git -C ../other status' Bash 'git -C ../other status' BLOCK
+pt 'git -C /tmp/other log' Bash 'git -C /tmp/other log' BLOCK
+pt 'git --git-dir=../o/.git log' Bash 'git --git-dir=../o/.git log' BLOCK
+pt 'git --git-dir ../o/.git log' Bash 'git --git-dir ../o/.git log' BLOCK
+pt 'git --work-tree=../o status' Bash 'git --work-tree=../o status' BLOCK
+pt 'git --exec-path=/tmp/evil status' Bash 'git --exec-path=/tmp/evil status' BLOCK
+pt 'git --bare log' Bash 'git --bare log' BLOCK
+RU=$(cd "$R" && pwd)
+if RW=$(cd "$R" && pwd -W 2>/dev/null) && [ -n "$RW" ]; then :; else RW="$RU"; fi
+pt 'git -C <gốc repo, POSIX> status' Bash "git -C $RU status" PASS
+pt 'git -C <gốc repo>/ status' Bash "git -C $RU/ status" PASS
+bs='\'; RWB=${RW//\//$bs}
+pt 'PowerShell: git -C "<gốc repo, gạch chéo ngược>" status' PowerShell "git -C \"$RWB\" status" PASS
+pt 'git -C <gốc repo>/src status (thư mục con — có thể là repo khác)' Bash "git -C $RU/src status" BLOCK
+# biến môi trường đặt ngay trước git: cùng kênh với -c / --git-dir
+pt 'GIT_DIR=../o/.git git log' Bash 'GIT_DIR=../o/.git git log' BLOCK
+pt 'env GIT_PAGER=evil git log' Bash 'env GIT_PAGER=evil git log' BLOCK
+pt 'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.pager GIT_CONFIG_VALUE_0=evil git log' Bash 'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.pager GIT_CONFIG_VALUE_0=evil git log' BLOCK
+pt 'HOME=/tmp/x git status' Bash 'HOME=/tmp/x git status' BLOCK
+pt 'LC_ALL=C git log (mọi phép gán trước git)' Bash 'LC_ALL=C git log' BLOCK
+pt 'LC_ALL=C sort (gán trước lệnh khác)' Bash 'LC_ALL=C sort x' PASS
+# --- `<<` KHÔNG phải heredoc: here-string `<<<` và phép dịch bit trong số học.
+# Lỗi cũ: `<<<` chỉ bị loại ở dấu `<` đầu, cặp `<<` còn lại thành heredoc; `<<` trong
+# $((…)), ((…)), $[…] cũng vậy. Heredoc giả không bao giờ gặp dòng kết thúc nên mọi
+# dòng sau bị bỏ như thân — lệnh cấm ở dòng sau lọt. Mỗi ca chặn có ca cho qua cùng
+# cơ chế; ca cho qua đòi log=0 (bản cũ ghi "heredoc không có thân").
+tab=$'\t'
+pt 'here-string <<< rồi dòng sau vô hại — cho qua, không log' Bash "grep x <<< \"\$list\"${nl}ls" PASS 0
+pt 'here-string <<< rồi git push dòng sau' Bash "grep x <<< \"\$list\"${nl}git push" BLOCK
+pt 'done <<< "$v" rồi git reset --hard dòng sau' Bash "while read -r l; do echo \"\$l\"; done <<< \"\$v\"${nl}git reset --hard" BLOCK
+pt 'here-string dính liền <<<"$v" rồi dòng sau vô hại' Bash "cat <<<\"\$v\"${nl}ls" PASS 0
+pt 'here-string dính liền <<<"$v" rồi git push dòng sau' Bash "cat <<<\"\$v\"${nl}git push" BLOCK
+pt 'here-string mang $(git status) — cho qua' Bash 'cat <<< "$(git status)"' PASS 0
+pt 'here-string mang $(git push) — chặn' Bash 'cat <<< "$(git push)"' BLOCK
+pt '$((1<<2)) rồi dòng sau vô hại — cho qua, không log' Bash "x=\$((1<<2))${nl}echo \$x" PASS 0
+pt '$((1<<2)) rồi git push dòng sau' Bash "x=\$((1<<2))${nl}git push" BLOCK
+pt '"$((1<<2))" trong nháy kép rồi dòng sau vô hại' Bash "echo \"\$((1<<2))\"${nl}ls" PASS 0
+pt '"$((1<<2))" trong nháy kép rồi git push dòng sau' Bash "echo \"\$((1<<2))\"${nl}git push" BLOCK
+pt '$(( (1<<2) + (3) )) lồng ngoặc rồi dòng sau vô hại' Bash "echo \$(( (1<<2) + (3) ))${nl}ls" PASS 0
+pt '$(( (1<<2) + (3) )) lồng ngoặc rồi git push dòng sau' Bash "echo \$(( (1<<2) + (3) ))${nl}git push" BLOCK
+pt '$(( $(git status) << 1 )) — lệnh con trong số học, cho qua' Bash 'echo $(( $(git status) << 1 ))' PASS 0
+pt '$(( $(git push) << 1 )) — lệnh con trong số học, chặn' Bash 'echo $(( $(git push) << 1 ))' BLOCK
+pt '((y = 1<<4)) rồi dòng sau vô hại' Bash "((y = 1<<4))${nl}echo \$y" PASS 0
+pt '((y = 1<<4)) rồi git push dòng sau' Bash "((y = 1<<4))${nl}git push" BLOCK
+pt 'for ((i=1; i<64; i<<=1)) … echo' Bash "for ((i=1; i<64; i<<=1)); do echo \$i; done${nl}ls" PASS 0
+pt 'for ((i=1; i<64; i<<=1)) … git push' Bash "for ((i=1; i<64; i<<=1)); do echo \$i; done${nl}git push" BLOCK
+pt '$[1<<3] rồi dòng sau vô hại' Bash "x=\$[1<<3]${nl}echo \$x" PASS 0
+pt '$[1<<3] rồi git push dòng sau' Bash "x=\$[1<<3]${nl}git push" BLOCK
+# bash đọc `$((…) )` / `((…) )` không đóng bằng `))` là lệnh con / subshell lồng.
+pt '"$((git status) )" là lệnh con, không phải số học — cho qua' Bash 'echo "$((git status) )"' PASS 0
+pt '"$((git push) )" là lệnh con, không phải số học — chặn' Bash 'echo "$((git push) )"' BLOCK
+pt '((git status) ) là subshell lồng — cho qua' Bash '((git status) )' PASS 0
+pt '((git push) ) là subshell lồng — chặn' Bash '((git push) )' BLOCK
+# heredoc thật: giữ nguyên hành vi — thân bỏ qua, sau dấu kết thì đọc tiếp.
+pt "heredoc <<'EOF' rồi git push sau dấu kết" Bash "cat <<'EOF' > f${nl}git push${nl}EOF${nl}git push" BLOCK
+pt 'heredoc << "EOF" (cách, nháy kép) có git push trong thân' Bash "cat << \"EOF\" > f${nl}git push${nl}EOF${nl}ls" PASS 0
+pt 'heredoc << "EOF" (cách, nháy kép) rồi git push sau dấu kết' Bash "cat << \"EOF\" > f${nl}x${nl}EOF${nl}git push" BLOCK
+pt 'heredoc <<-EOF rồi git push sau dấu kết thụt tab' Bash "cat <<-EOF > f${nl}${tab}x${nl}${tab}EOF${nl}git push" BLOCK
+pt 'heredoc + here-string cùng dòng, git push trong thân' Bash "cat <<EOF; grep x <<< \"\$v\"${nl}git push${nl}EOF${nl}ls" PASS 0
+pt 'heredoc + here-string cùng dòng, git push sau dấu kết' Bash "cat <<EOF; grep x <<< \"\$v\"${nl}x${nl}EOF${nl}git push" BLOCK
+pt 'heredoc + $((1<<2)) cùng dòng, git push trong thân' Bash "cat <<EOF; echo \$((1<<2))${nl}git push${nl}EOF${nl}ls" PASS 0
+pt 'heredoc + $((1<<2)) cùng dòng, git push sau dấu kết' Bash "cat <<EOF; echo \$((1<<2))${nl}x${nl}EOF${nl}git push" BLOCK
+pt 'hai heredoc một dòng, git push chỉ trong hai thân' Bash "cat <<A <<B${nl}git push${nl}A${nl}git push${nl}B${nl}ls" PASS 0
+pt 'hai heredoc một dòng, git push sau dấu kết thứ hai' Bash "cat <<A <<B${nl}git push${nl}A${nl}git push${nl}B${nl}git push" BLOCK
+
+# === lượt soát 2026-09-29: đường vòng lớp hook. Mỗi ca BLOCK kèm ca PASS sinh đôi
+#     cùng hình dạng (lệnh vô hại), chứng minh quy tắc không chặn thừa.
+# --- 1. tên lệnh động dẫn tới lệnh cấm
+pt '1: g=git; $g push — biến giải ra git' Bash 'g=git; $g push' BLOCK
+pt '1: g=ls; $g -la — biến giải ra lệnh vô hại (PASS)' Bash 'g=ls; $g -la' PASS 0
+pt '1: $(echo git) push — thay thế lệnh giải ra git' Bash '$(echo git) push' BLOCK
+pt '1: $(echo ls) -la — thay thế lệnh vô hại (PASS)' Bash '$(echo ls) -la' PASS 0
+pt '1: `echo git` push — backtick giải ra git' Bash '`echo git` push' BLOCK
+pt '1: `echo ls` -la — backtick vô hại (PASS)' Bash '`echo ls` -la' PASS 0
+pt '1: PowerShell $g="git"; & $g push' PowerShell '$g="git"; & $g push' BLOCK
+pt '1: PowerShell $g="ls"; & $g Get-ChildItem (PASS)' PowerShell '$g="ls"; & $g Get-ChildItem' PASS 0
+pt '1: PowerShell & (Get-Command git) push' PowerShell '& (Get-Command git) push' BLOCK
+pt '1: PowerShell & (Get-Command ls) (PASS)' PowerShell '& (Get-Command ls)' PASS 0
+pt '1: git${IFS}push — IFS làm dấu tách' Bash 'git${IFS}push' BLOCK
+pt '1: echo${IFS}hi — IFS vô hại (PASS)' Bash 'echo${IFS}hi' PASS 0
+pt '1: git {push,} — mở rộng ngoặc' Bash 'git {push,}' BLOCK
+pt '1: mkdir -p a/{b,c} — mở rộng ngoặc vô hại (PASS)' Bash 'mkdir -p a/{b,c}' PASS 0
+pt '1: cp file{,.bak} — mở rộng ngoặc trên đối số (PASS)' Bash 'cp file{,.bak}' PASS 0
+pt '1: git diff HEAD{,~1} — ngoặc trên đối số lệnh được phép (PASS)' Bash 'git diff HEAD{,~1}' PASS
+pt '1: { git push; } — nhóm lệnh vẫn chặn' Bash '{ git push; }' BLOCK
+pt '1: { ls; } — nhóm lệnh vô hại (PASS)' Bash '{ ls; }' PASS 0
+# --- 2. chạy chuỗi như lệnh
+pt '2: iex "git push" (PowerShell)' PowerShell 'iex "git push"' BLOCK
+pt '2: iex "ls" (PASS)' PowerShell 'iex "ls"' PASS 0
+pt '2: Invoke-Expression "git push"' PowerShell 'Invoke-Expression "git push"' BLOCK
+pt '2: Invoke-Expression "Get-ChildItem" (PASS)' PowerShell 'Invoke-Expression "Get-ChildItem"' PASS 0
+pt '2: echo "git push" | bash' Bash 'echo "git push" | bash' BLOCK
+pt '2: echo "ls" | bash (PASS)' Bash 'echo "ls" | bash' PASS 0
+pt '2: bash <<< "git push"' Bash 'bash <<< "git push"' BLOCK
+pt '2: bash <<< "ls" (PASS)' Bash 'bash <<< "ls"' PASS 0
+pt '2: grep x <<< "$v" — here-string cho lệnh không phải trình thông dịch (PASS)' Bash 'grep x <<< "$v"' PASS 0
+pt '2: sh -s <<EOF git push EOF' Bash "sh -s <<EOF${nl}git push${nl}EOF" BLOCK
+pt '2: sh -s <<EOF ls EOF (PASS)' Bash "sh -s <<EOF${nl}ls${nl}EOF" PASS 0
+pt '2: cat <<EOF git push EOF — cat đọc heredoc, không chạy (PASS)' Bash "cat <<EOF${nl}git push${nl}EOF" PASS 0
+pt '2: bash -c -- "git push"' Bash 'bash -c -- "git push"' BLOCK
+pt '2: bash -c -- "ls" (PASS)' Bash 'bash -c -- "ls"' PASS 0
+pt '2: exec -a x git push' Bash 'exec -a x git push' BLOCK
+pt '2: exec -a x ls (PASS)' Bash 'exec -a x ls' PASS 0
+# --- 3. lệnh bọc chưa được bóc
+pt '3: setsid git push' Bash 'setsid git push' BLOCK
+pt '3: setsid ls (PASS)' Bash 'setsid ls' PASS 0
+pt '3: stdbuf -o0 git push' Bash 'stdbuf -o0 git push' BLOCK
+pt '3: stdbuf -o0 ls (PASS)' Bash 'stdbuf -o0 ls' PASS 0
+pt '3: winpty git push' Bash 'winpty git push' BLOCK
+pt '3: winpty ls (PASS)' Bash 'winpty ls' PASS 0
+pt '3: watch -n 1 git push' Bash 'watch -n 1 git push' BLOCK
+pt '3: watch -n 1 ls (PASS)' Bash 'watch -n 1 ls' PASS 0
+pt '3: flock /tmp/l git push' Bash 'flock /tmp/l git push' BLOCK
+pt '3: flock /tmp/l ls (PASS)' Bash 'flock /tmp/l ls' PASS 0
+pt '3: flock -c "git push" /tmp/l' Bash 'flock /tmp/l -c "git push"' BLOCK
+pt '3: flock /tmp/l -c "ls" (PASS)' Bash 'flock /tmp/l -c "ls"' PASS 0
+# --- 4. chạy lệnh từ trong công cụ khác
+pt '4: sed -n "1e git push" f' Bash "sed -n '1e git push' README.md" BLOCK
+pt '4: sed -n "1,5p" f (PASS)' Bash "sed -n '1,5p' README.md" PASS 0
+pt '4: sed "1e git push" f' Bash "sed '1e git push' f" BLOCK
+pt '4: sed -i "s/a/b/" f (PASS)' Bash "sed -i 's/a/b/' f" PASS 0
+pt '4: sed "s/x/foo bar/" f — thay thế thường (PASS)' Bash "sed 's/x/foo bar/' f" PASS 0
+pt '4: awk BEGIN system git push' Bash 'awk "BEGIN{system(\"git push\")}"' BLOCK
+pt '4: awk END print | git push' Bash 'awk "END{print | \"git push\"}"' BLOCK
+pt '4: awk {print} (PASS)' Bash 'awk "{print}"' PASS 0
+pt '4: awk END{print} (PASS)' Bash 'awk "END{print}"' PASS 0
+pt '4: awk -F, {print $2} (PASS)' Bash 'awk -F, "{print \$2}"' PASS 0
+pt '4: ls | xargs git rm (git ngoài danh sách)' Bash 'ls | xargs git rm' BLOCK
+pt '4: ls | xargs git (không có lệnh con, đối số từ stdin)' Bash 'ls | xargs git' BLOCK
+pt '4: ls | xargs -n1 git status (git đọc, đối số phụ ở cuối) (PASS)' Bash 'ls | xargs -n1 git status' PASS
+pt '4: ls | xargs grep foo (không phải git) (PASS)' Bash 'ls | xargs grep foo' PASS
+# --- 5. biến môi trường git ở câu lệnh trước
+pt '5: export GIT_DIR=/x' Bash 'export GIT_DIR=/tmp/x' BLOCK
+pt '5: export FOO=1 (PASS)' Bash 'export FOO=1' PASS
+pt '5: export PATH=$PATH:/x (PASS)' Bash 'export PATH=$PATH:/x' PASS
+pt '5: export GIT_CONFIG_GLOBAL=/c' Bash 'export GIT_CONFIG_GLOBAL=/tmp/c' BLOCK
+pt '5: declare -x GIT_DIR=/x' Bash 'declare -x GIT_DIR=/tmp/x' BLOCK
+pt '5: PowerShell $env:GIT_DIR="/x"' PowerShell '$env:GIT_DIR="/tmp/x"' BLOCK
+pt '5: PowerShell $env:GIT_DIR = "/x" (dấu cách)' PowerShell '$env:GIT_DIR = "/tmp/x"' BLOCK
+pt '5: PowerShell $env:FOO="1" (PASS)' PowerShell '$env:FOO="1"' PASS
+# --- 6. ghi vào thư mục được bảo vệ (.claude/.state, .git)
+pt '6: touch .claude/.state/core-reviewed' Bash 'touch .claude/.state/core-reviewed' BLOCK
+pt '6: touch src/x.cs (PASS)' Bash 'touch src/x.cs' PASS
+pt '6: rm -f .claude/.state/core-touched' Bash 'rm -f .claude/.state/core-touched' BLOCK
+pt '6: rm -rf node_modules (PASS)' Bash 'rm -rf node_modules' PASS
+pt '6: echo > .claude/.state/gate-green (chuyển hướng ghi)' Bash 'echo x > .claude/.state/gate-green' BLOCK
+pt '6: echo x > build/out.txt (chuyển hướng vô hại) (PASS)' Bash 'echo x > build/out.txt' PASS
+pt '6: mv y .claude/.state/z' Bash 'mv y .claude/.state/z' BLOCK
+pt '6: cp y .claude/.state/z' Bash 'cp y .claude/.state/z' BLOCK
+pt '6: sed -i s/a/b/ .claude/.state/x' Bash 'sed -i s/a/b/ .claude/.state/x' BLOCK
+pt '6: echo x > .git/config (.git)' Bash 'echo x > .git/config' BLOCK
+pt '6: rm -f .git/index.lock (.git)' Bash 'rm -f .git/index.lock' BLOCK
+pt '6: find .claude/.state -delete' Bash 'find .claude/.state -delete' BLOCK
+pt '6: find .claude/.state -type f (đọc) (PASS)' Bash 'find .claude/.state -type f' PASS
+pt '6: cat .claude/.state/core-touched (đọc) (PASS)' Bash 'cat .claude/.state/core-touched' PASS
+pt '6: grep x .claude/.state/log (đọc) (PASS)' Bash 'grep x .claude/.state/log' PASS
+pt '6: ls .claude/.state/ (đọc) (PASS)' Bash 'ls .claude/.state/' PASS
+pt '6: .gitignore không phải .git (PASS)' Bash 'echo x > .gitignore' PASS
+pt '6: .github/x không phải .git (PASS)' Bash 'echo x > .github/x.yml' PASS
+pt '6: PowerShell New-Item .claude/.state/x' PowerShell 'New-Item .claude/.state/core-reviewed' BLOCK
+pt '6: PowerShell Remove-Item .claude/.state/x' PowerShell 'Remove-Item .claude/.state/core-touched' BLOCK
+pt '6: PowerShell Set-Content .claude/.state/x' PowerShell 'Set-Content .claude/.state/x "y"' BLOCK
+pt '6: PowerShell Out-File > .claude/.state/x' PowerShell 'Get-Date | Out-File .claude/.state/x' BLOCK
+pt '6: PowerShell Get-Content .claude/.state/x (đọc) (PASS)' PowerShell 'Get-Content .claude/.state/x' PASS
+pt '6: PowerShell New-Item build/x (PASS)' PowerShell 'New-Item build/x.txt' PASS
+# --- 6. công cụ Edit/Write/NotebookEdit ghi vào thư mục bảo vệ (matcher riêng)
+pte() { # tên, tool, key, giá trị, PASS|BLOCK
+  node -e '
+    const [tool, key, val] = process.argv.slice(1);
+    const o = { session_id:"s", hook_event_name:"PreToolUse", tool_name:tool, tool_input:{} };
+    o.tool_input[key] = val;
+    process.stdout.write(JSON.stringify(o));
+  ' "$2" "$3" "$4" | bash "$R/.claude/hooks/on-pretool.sh" > "$WORK/pt.out" 2> "$WORK/pt.err"
+  local rc=$? res
+  case "$rc" in 0) res=PASS ;; 2) res=BLOCK ;; *) res="rc=$rc" ;; esac
+  row on-pretool "$1" "$5" "$res"
+}
+pte '6E: Edit .claude/.state/x (tuyệt đối \\)' Edit file_path "$RWB\\.claude\\.state\\core-reviewed" BLOCK
+pte '6E: Edit .claude/.state/x (tương đối /)' Edit file_path ".claude/.state/core-reviewed" BLOCK
+pte '6E: Write .git/config' Write file_path "$RWB\\.git\\config" BLOCK
+pte '6E: NotebookEdit .claude/.state/x.ipynb' NotebookEdit notebook_path ".claude/.state/x.ipynb" BLOCK
+pte '6E: Edit docs/x.md (PASS)' Edit file_path "$RWB\\docs\\x.md" PASS
+pte '6E: Write src/x.cs (PASS)' Write file_path "src/BE/Core/x.cs" PASS
+pte '6E: Edit .gitignore (không phải .git) (PASS)' Edit file_path ".gitignore" PASS
+pte '6E: Edit .github/workflows/x.yml (PASS)' Edit file_path ".github/workflows/x.yml" PASS
+
+# --- 7. tệp cấu hình git TOÀN CỤC (~/.gitconfig, ~/.config/git/, $XDG_CONFIG_HOME/git/)
+#     và biến môi trường quyết định tệp đó (HOME / XDG_CONFIG_HOME / USERPROFILE).
+#     Lỗ 2026-09-30: sửa các tệp này thì một lệnh git ĐƯỢC PHÉP (status, diff) chạy
+#     chương trình ngoài; đổi HOME đổi luôn tệp git đọc. Mỗi ca BLOCK có ca PASS
+#     sinh đôi cùng hình dạng (đọc, hoặc ghi vào anh em không phải cấu hình git).
+# 7a. ghi tệp cấu hình git qua lệnh shell — mọi dạng neo thư mục nhà.
+pt '7a: echo x > ~/.gitconfig' Bash 'echo x > ~/.gitconfig' BLOCK
+pt '7a: echo x > ~/notes.txt (nhà, không phải cấu hình) (PASS)' Bash 'echo x > ~/notes.txt' PASS
+pt '7a: echo x > $HOME/.gitconfig' Bash 'echo x > $HOME/.gitconfig' BLOCK
+pt '7a: echo x > $HOME/.bashrc (PASS)' Bash 'echo x > $HOME/.bashrc' PASS
+pt '7a: cp evil ~/.config/git/config' Bash 'cp evil ~/.config/git/config' BLOCK
+pt '7a: cp x ~/.config/nvim/init.vim (.config không phải git) (PASS)' Bash 'cp x ~/.config/nvim/init.vim' PASS
+pt '7a: tee ~/.config/git/attributes (đối số dưới thư mục git)' Bash 'tee ~/.config/git/attributes' BLOCK
+pt '7a: echo x > $XDG_CONFIG_HOME/git/config' Bash 'echo x > $XDG_CONFIG_HOME/git/config' BLOCK
+pt '7a: echo x > $XDG_CONFIG_HOME/nvim/init.vim (PASS)' Bash 'echo x > $XDG_CONFIG_HOME/nvim/init.vim' PASS
+pt '7a: touch /c/Users/me/.gitconfig (POSIX Windows)' Bash 'touch /c/Users/me/.gitconfig' BLOCK
+pt '7a: touch /c/Users/me/project.txt (PASS)' Bash 'touch /c/Users/me/project.txt' PASS
+pt '7a: rm -f ~/.gitconfig (xoá)' Bash 'rm -f ~/.gitconfig' BLOCK
+pt '7a: cp evil "C:\Users\me\.gitconfig" (backslash trong nháy kép)' Bash 'cp evil "C:\Users\me\.gitconfig"' BLOCK
+pt '7a: echo x >> $USERPROFILE/.gitconfig (biến Windows trong Git Bash)' Bash 'echo x >> $USERPROFILE/.gitconfig' BLOCK
+pt '7a: echo x >> $USERPROFILE/notes.txt (PASS)' Bash 'echo x >> $USERPROFILE/notes.txt' PASS
+pt '7a: echo x >> /home/u/.config/git/config (nhà Linux)' Bash 'echo x >> /home/u/.config/git/config' BLOCK
+pt '7a: echo x >> /home/u/notes.txt (PASS)' Bash 'echo x >> /home/u/notes.txt' PASS
+pt '7a: cat ~/.gitconfig (đọc) (PASS)' Bash 'cat ~/.gitconfig' PASS 0
+pt '7a: ls ~/.config/git/ (đọc) (PASS)' Bash 'ls ~/.config/git/' PASS
+pt '7a: grep x ~/.gitconfig (đọc) (PASS)' Bash 'grep x ~/.gitconfig' PASS
+# 7b. ghi tệp cấu hình git qua cmdlet PowerShell.
+pt '7b: Set-Content C:\Users\me\.gitconfig' PowerShell 'Set-Content C:\Users\me\.gitconfig "x"' BLOCK
+pt '7b: Set-Content C:\Users\me\notes.txt (PASS)' PowerShell 'Set-Content C:\Users\me\notes.txt "x"' PASS
+pt '7b: Out-File $env:USERPROFILE\.gitconfig' PowerShell 'Get-Date | Out-File $env:USERPROFILE\.gitconfig' BLOCK
+pt '7b: Remove-Item $HOME\.gitconfig' PowerShell 'Remove-Item $HOME\.gitconfig' BLOCK
+pt '7b: Set-Content $env:USERPROFILE\.config\git\config' PowerShell 'Set-Content $env:USERPROFILE\.config\git\config "x"' BLOCK
+pt '7b: Get-Content C:\Users\me\.gitconfig (đọc) (PASS)' PowerShell 'Get-Content C:\Users\me\.gitconfig' PASS
+# bí danh PowerShell của Copy-Item / Move-Item / Rename-Item — áp cho MỌI vùng bảo vệ.
+pt '7b: copy evil $env:USERPROFILE\.gitconfig (bí danh Copy-Item)' PowerShell 'copy evil $env:USERPROFILE\.gitconfig' BLOCK
+pt '7b: copy a.txt b.txt (PASS)' PowerShell 'copy a.txt b.txt' PASS
+pt '7b: move evil .claude/.state/core-reviewed (bí danh Move-Item)' PowerShell 'move evil .claude/.state/core-reviewed' BLOCK
+pt '7b: move a.txt b.txt (PASS)' PowerShell 'move a.txt b.txt' PASS
+pt '7b: ren .git\HEAD x (bí danh Rename-Item)' PowerShell 'ren .git\HEAD x' BLOCK
+pt '7b: ren a.txt b.txt (PASS)' PowerShell 'ren a.txt b.txt' PASS
+# 7c. công cụ Edit/Write/NotebookEdit ghi tệp cấu hình git.
+pte '7c: Edit ~/.gitconfig' Edit file_path "~/.gitconfig" BLOCK
+pte '7c: Write ~/.config/git/config' Write file_path "~/.config/git/config" BLOCK
+pte '7c: Edit $XDG_CONFIG_HOME/git/config' Edit file_path "\$XDG_CONFIG_HOME/git/config" BLOCK
+pte '7c: Write C:\Users\me\.gitconfig' Write file_path "C:\\Users\\me\\.gitconfig" BLOCK
+pte '7c: NotebookEdit ~/.config/git/x.ipynb' NotebookEdit notebook_path "~/.config/git/x.ipynb" BLOCK
+pte '7c: Edit ~/.config/nvim/init.vim (PASS)' Edit file_path "~/.config/nvim/init.vim" PASS
+pte '7c: Edit ~/.bashrc (PASS)' Edit file_path "~/.bashrc" PASS
+pte '7c: Write C:\Users\me\notes.txt (PASS)' Write file_path "C:\\Users\\me\\notes.txt" PASS
+# 7d. đổi biến môi trường quyết định tệp cấu hình git đọc.
+pt '7d: export HOME=/tmp/x' Bash 'export HOME=/tmp/x' BLOCK
+pt '7d: export XDG_CONFIG_HOME=/tmp/c' Bash 'export XDG_CONFIG_HOME=/tmp/c' BLOCK
+pt '7d: declare -x HOME=/tmp/x' Bash 'declare -x HOME=/tmp/x' BLOCK
+pt '7d: readonly HOME=/tmp/x' Bash 'readonly HOME=/tmp/x' BLOCK
+pt '7d: HOME=/tmp/x (câu riêng)' Bash 'HOME=/tmp/x' BLOCK
+pt '7d: XDG_CONFIG_HOME=/tmp/c (câu riêng)' Bash 'XDG_CONFIG_HOME=/tmp/c' BLOCK
+pt '7d: HOME=/tmp/x; git status (đổi HOME rồi git)' Bash 'HOME=/tmp/x; git status' BLOCK
+pt '7d: export HOMEDIR=/tmp (tên khác, PASS)' Bash 'export HOMEDIR=/tmp' PASS
+pt '7d: export XDG_DATA_HOME=/tmp (không phải CONFIG, PASS)' Bash 'export XDG_DATA_HOME=/tmp' PASS
+pt '7d: HOMEDIR=/tmp (câu riêng, tên khác, PASS)' Bash 'HOMEDIR=/tmp' PASS
+pt '7d: HOME=/tmp/x npm install (gán trước lệnh không phải git — phạm vi gói, PASS)' Bash 'HOME=/tmp/x npm install' PASS
+pt '7d: PowerShell $env:HOME="/tmp"' PowerShell '$env:HOME="/tmp"' BLOCK
+pt '7d: PowerShell $env:USERPROFILE="C:\tmp"' PowerShell '$env:USERPROFILE="C:\tmp"' BLOCK
+pt '7d: PowerShell $env:XDG_CONFIG_HOME="/tmp"' PowerShell '$env:XDG_CONFIG_HOME="/tmp"' BLOCK
+pt '7d: PowerShell $env:HOME = "/tmp" (dấu cách)' PowerShell '$env:HOME = "/tmp"' BLOCK
+# Git for Windows dựng HOME từ HOMEDRIVE+HOMEPATH (rồi USERPROFILE) khi HOME không
+# đặt — trường hợp thường gặp trong PowerShell.
+pt '7d: PowerShell $env:HOMEDRIVE="D:"' PowerShell '$env:HOMEDRIVE="D:"' BLOCK
+pt '7d: PowerShell $env:homepath="\x" (chữ thường)' PowerShell '$env:homepath="\x"' BLOCK
+pt '7d: PowerShell $env:MYHOME="C:\x" (tên khác, PASS)' PowerShell '$env:MYHOME="C:\x"' PASS
+pt '7d: GIT_DIR=/tmp/x (câu riêng)' Bash 'GIT_DIR=/tmp/x' BLOCK
+pt '7d: MY_DIR=/tmp/x (câu riêng, PASS)' Bash 'MY_DIR=/tmp/x' PASS
+pt '7d: home=/tmp/x (bash phân biệt hoa thường — biến khác, PASS)' Bash 'home=/tmp/x' PASS
+pt '7d: setx HOME C:/x (biến người dùng lưu bền)' Bash 'setx HOME C:/x' BLOCK
+pt '7d: setx FOO 1 (PASS)' Bash 'setx FOO 1' PASS
+pt '7d: PowerShell setx xdg_config_home C:\x' PowerShell 'setx xdg_config_home C:\x' BLOCK
+pt '7d: PowerShell Set-Item Env:HOME C:\x' PowerShell 'Set-Item Env:HOME C:\x' BLOCK
+pt '7d: PowerShell Set-Item Env:FOO 1 (PASS)' PowerShell 'Set-Item Env:FOO 1' PASS
+pt '7d: PowerShell New-Item -Path Env: -Name USERPROFILE -Value x' PowerShell 'New-Item -Path Env: -Name USERPROFILE -Value x' BLOCK
+pt '7d: PowerShell Get-Item Env:HOME (đọc) (PASS)' PowerShell 'Get-Item Env:HOME' PASS
+
 # --- lỗi phân tích
 pt 'nháy chưa đóng, không khớp — cho qua, ghi log' Bash 'echo "chua dong' PASS 1
 pt 'đoạn đầu khớp, nháy sau chưa đóng — chặn, ghi log' Bash 'git push; echo "chua dong' BLOCK 1
@@ -758,15 +1304,61 @@ mv "$R/.claude/settings.json" "$WORK/set.bak"
 rm -f "$S/pretool-error.log"
 pj PreToolUse Bash command "$(valf 'git push')" | bash "$R/.claude/hooks/on-pretool.sh" 2>/dev/null; rc=$?
 row on-pretool "không có settings.json — cho qua, ghi log" "rc=0 log=1" "rc=$rc log=$([ -s "$S/pretool-error.log" ] && echo 1 || echo 0)"
-printf '{"permissions":{"deny":["Edit(/x/**)"],"allow":["Bash(git push:*)"]}}' > "$R/.claude/settings.json"
-rm -f "$S/pretool-error.log"
-pj PreToolUse Bash command "$(valf 'git push')" | bash "$R/.claude/hooks/on-pretool.sh" 2>/dev/null; rc=$?
-row on-pretool "deny không có Bash(...) (allow có git push) — cho qua, ghi log" "rc=0 log=1" "rc=$rc log=$([ -s "$S/pretool-error.log" ] && echo 1 || echo 0)"
+# Hình settings.json lạ. Danh sách cho phép git là mặc định-chặn: đọc được settings.json
+# mà không có mục Bash(git …) nào thì mọi lệnh git bị chặn, không phải mọi lệnh cho qua.
+printf '{"permissions":{"deny":["Edit(/x/**)"],"allow":["Bash(git status:*)"]}}' > "$R/.claude/settings.json"
+pt 'deny không có Bash(...) — git ngoài allow vẫn chặn, ghi log' Bash 'git push' BLOCK 1
+pt 'deny không có Bash(...) — git status có trong allow, cho qua' Bash 'git status' PASS 1
+printf '{"permissions":{"deny":["Bash(npm publish:*)"],"allow":["Bash(ls:*)"]}}' > "$R/.claude/settings.json"
+pt 'allow không có mục Bash(git …) — git status bị chặn, ghi log' Bash 'git status' BLOCK 1
+pt 'allow không có mục Bash(git …) — lệnh không phải git cho qua' Bash 'ls -la' PASS 1
+printf '{"permissions":{"deny":["Bash(git push:*)"],"allow":["Bash(git push:*)","Bash(git status:*)"]}}' > "$R/.claude/settings.json"
+pt 'git push có ở cả deny lẫn allow — deny thắng' Bash 'git push' BLOCK
+printf '{"permissions":{"deny":["Bash(npm publish:*)"],"allow":["Bash(git:*)","Bash(git status:*)"]}}' > "$R/.claude/settings.json"
+pt 'allow có Bash(git:*) — không nhận mục không có lệnh con, chặn, ghi log' Bash 'git push' BLOCK 1
 mv "$WORK/set.bak" "$R/.claude/settings.json"
 
-# lý do chặn là tiếng Việt, nêu mục cấm
+# lý do chặn là tiếng Việt, nêu đúng nguồn chặn
 pj PreToolUse Bash command "$(valf 'cd x && git -C . push origin')" | bash "$R/.claude/hooks/on-pretool.sh" > /dev/null 2> "$WORK/pt.err"
 row on-pretool "lý do chặn nêu mục cấm Bash(git push:*)" "có" "$(grep -q 'Bash(git push:\*)' "$WORK/pt.err" && echo có || echo không)"
+pj PreToolUse Bash command "$(valf 'git gc --prune=now')" | bash "$R/.claude/hooks/on-pretool.sh" > /dev/null 2> "$WORK/pt.err"
+row on-pretool "lý do chặn lệnh ngoài danh sách nêu permissions.allow và CLAUDE.md §1" "có" "$(grep -q 'permissions.allow' "$WORK/pt.err" && grep -q 'CLAUDE.md §1' "$WORK/pt.err" && echo có || echo không)"
+pj PreToolUse Bash command "$(valf 'git diff --output=x.txt')" | bash "$R/.claude/hooks/on-pretool.sh" > /dev/null 2> "$WORK/pt.err"
+row on-pretool "lý do chặn tuỳ chọn nêu chính tuỳ chọn --output=x.txt" "có" "$(grep -q -- '--output=x.txt' "$WORK/pt.err" && echo có || echo không)"
+
+# --- lệnh lớn: thời gian phải tuyến tính theo độ dài lệnh.
+# Harness giết hook quá `timeout` của khối hooks (10 s) rồi cho lệnh đi tiếp, nên hook
+# chậm theo bậc hai = lệnh cấm đứng sau một heredoc lớn lọt lớp hai. Bản cũ chép đuôi
+# chuỗi trong vòng lặp (giải mã JSON, bỏ thân heredoc): ~300 KB mất ~17 s trên Git Bash.
+# Hook chạy dưới `timeout 10` như harness; trần thời gian là trần rộng, không phải số đo.
+mkbig() { # tệp, KB, heredoc|nhay-don, đuôi lệnh
+  node -e '
+    const [f, kb, kind, tail] = process.argv.slice(1);
+    let body = "", i = 0;
+    while (Buffer.byteLength(body) < kb * 1024) body += "dòng " + (i++) + " có \"nháy\" và `code` \\ git push \u{1F4D0}\n";
+    const cmd = kind === "heredoc" ? "cat <<EOF > big.md\n" + body + "EOF\n" + tail
+                                   : "node -e \x27" + body + "\x27\n" + tail;
+    require("fs").writeFileSync(f, JSON.stringify({ session_id: "s", hook_event_name: "PreToolUse",
+      tool_name: "Bash", tool_input: { command: cmd, description: "lệnh lớn" } }));
+  ' "$@"
+}
+ptbig() { # tên, tệp payload, PASS|BLOCK, trần ms
+  local s0 s1 rc res ms
+  s0=$(date +%s%N)
+  timeout 10 bash "$R/.claude/hooks/on-pretool.sh" < "$2" > /dev/null 2>&1; rc=$?
+  s1=$(date +%s%N)
+  case "$rc" in 0) res=PASS ;; 2) res=BLOCK ;; 124) res="HẾT GIỜ — harness cho lọt" ;; *) res="rc=$rc" ;; esac
+  ms=$(( (s1 - s0) / 1000000 ))
+  row on-pretool "$1" "$3 / dưới $4 ms" "$res / $([ "$ms" -lt "$4" ] && echo "dưới $4 ms" || echo "$ms ms")"
+}
+mkbig "$WORK/big300-push.json" 300 heredoc 'git push'
+mkbig "$WORK/big300-ls.json" 300 heredoc 'ls'
+mkbig "$WORK/big600-push.json" 600 heredoc 'git push'
+mkbig "$WORK/sq300-push.json" 300 nhay-don 'git push'
+ptbig 'heredoc ~300 KB rồi ls — cho qua, kịp giờ' "$WORK/big300-ls.json" PASS 3000
+ptbig 'heredoc ~300 KB rồi git push — chặn, kịp giờ' "$WORK/big300-push.json" BLOCK 3000
+ptbig 'heredoc ~600 KB rồi git push — chặn, kịp giờ' "$WORK/big600-push.json" BLOCK 6000
+ptbig "node -e '…~300 KB…' rồi git push — chặn, kịp giờ" "$WORK/sq300-push.json" BLOCK 3000
 
 # thời gian một lần gọi — chỉ in, không chấm
 big=$(printf 'cat <<EOF > big.md\n'; for i in $(seq 1 1500); do printf 'dòng %s có "nháy" và git push trong thân heredoc\n' "$i"; done; printf 'EOF\n')

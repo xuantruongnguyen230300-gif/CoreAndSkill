@@ -7,7 +7,7 @@ status: template — not built
 
 # `<Tên feature>` — luật nghiệp vụ
 
-> **Khuôn.** Sao chép cả thư mục `_template/` rồi điền. Xoá mọi dòng hướng dẫn (in nghiêng) sau khi điền xong.
+> **Khuôn.** Chép tệp này sang `spec/<ten-feature>/` rồi điền. Xoá dòng `status:` ở frontmatter khi chép. Xoá mọi dòng hướng dẫn (in nghiêng) sau khi điền xong.
 >
 > Điền bằng `/ba-story` hoặc tự viết. Trước khi bắt đầu, đọc [`../README.md`](../README.md).
 
@@ -73,7 +73,7 @@ status: template — not built
 
 ## 6. Quyền
 
-*Ai được làm gì. Dùng permission, KHÔNG dùng tên role — xem [`../../docs/adr/0005-permission-based.md`](../../docs/adr/0005-permission-based.md).*
+*Ai được làm gì — nguồn duy nhất của ánh xạ hành động → permission cho feature này, kể cả quyền vào từng màn. `ui-spec.md` và spec màn gọi hành động bằng đúng tên ở bảng này, không chép tên permission. Dùng permission, KHÔNG dùng tên role — xem [`../../docs/adr/0005-permission-based.md`](../../docs/adr/0005-permission-based.md).*
 
 | Hành động | Permission |
 | --- | --- |
@@ -89,11 +89,11 @@ status: template — not built
 
 ## 8. Thông báo cho người dùng
 
-*Câu nào người dùng sẽ đọc khi thành công, khi lỗi. Chỉ ghi Ý NGHĨA — câu chữ thật thuộc i18n, mã lỗi thuộc catalog. Xem [`../../docs/wiki-core/be/16-i18n-va-ma-loi.md`](../../docs/wiki-core/be/16-i18n-va-ma-loi.md).*
+*Câu nào người dùng sẽ đọc khi thành công, khi lỗi. Chỉ ghi Ý NGHĨA — câu chữ thật và khoá dịch do `design-expert` khai ở spec màn, mỗi câu trỏ mã `TB-NN` ở đây; mã lỗi thuộc catalog. Mã `TB` đã cấp không dùng lại cho thông báo khác. Xem [`../../docs/wiki-core/be/16-i18n-va-ma-loi.md`](../../docs/wiki-core/be/16-i18n-va-ma-loi.md).*
 
-| Tình huống | Người dùng cần hiểu điều gì |
-| --- | --- |
-| | |
+| # | Tình huống | Người dùng cần hiểu điều gì |
+| --- | --- | --- |
+| TB-01 | | |
 
 ## 9. Câu hỏi còn mở
 

@@ -3,6 +3,7 @@ using CoreAndSkill.Core.Application.Notifications;
 using CoreAndSkill.Core.Application.Outbox;
 using CoreAndSkill.Core.Domain.Common;
 using CoreAndSkill.Core.Domain.Jobs;
+using Microsoft.Extensions.Logging;
 
 namespace CoreAndSkill.Core.Application.Jobs;
 
@@ -10,7 +11,10 @@ namespace CoreAndSkill.Core.Application.Jobs;
 // handler khởi tạo việc KHÔNG gọi IBackgroundJobScheduler (be-cqrs-handler.md §10.3 ràng buộc 3). Hàng
 // đợi nằm trong bộ nhớ nên lời đẩy này KHÔNG bền qua khởi động lại; JobRecoveryHostedService lo phần
 // việc dở dang.
-internal sealed class JobQueuedOutboxHandler(IBackgroundJobScheduler scheduler) : IOutboxEventHandler
+// Dòng log duy nhất nối hai mã: {JobId} luôn là core.job.id, {QueueItemId} là mã hàng đợi do scheduler trả
+// — một tên trường mang một nghĩa (luật người dùng chốt 2026-10-04).
+internal sealed class JobQueuedOutboxHandler(IBackgroundJobScheduler scheduler, ILogger<JobQueuedOutboxHandler> logger)
+    : IOutboxEventHandler
 {
     public string EventType => JobQueuedEvent.TypeKey;
 
@@ -22,7 +26,8 @@ internal sealed class JobQueuedOutboxHandler(IBackgroundJobScheduler scheduler) 
 
         var jobId = payload.JobId;
         var input = payload.Input;
-        await scheduler.EnqueueAsync<JobRunner>((runner, token) => runner.RunAsync(jobId, input, token), ct);
+        var queueItemId = await scheduler.EnqueueAsync<JobRunner>((runner, token) => runner.RunAsync(jobId, input, token), ct);
+        logger.LogInformation("Việc {JobId} đã được đẩy vào hàng đợi nền với mã {QueueItemId}.", jobId, queueItemId);
 
         return Result.Success();
     }

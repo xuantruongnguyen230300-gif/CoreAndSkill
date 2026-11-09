@@ -42,7 +42,7 @@ export class EmptyStateComponent {
   readonly icon = input<string | null>(null);
   readonly actionLabel = input<string | null>(null);
   readonly actionRoute = input<string | null>(null);
-  readonly headingLevel = input<2 | 3 | 4>(3);
+  readonly headingLevel = input<1 | 2 | 3 | 4>(3);
 
   readonly actionClicked = output<void>();
 

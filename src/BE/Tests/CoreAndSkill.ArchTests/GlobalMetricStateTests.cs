@@ -4,7 +4,7 @@ using Xunit;
 
 namespace CoreAndSkill.ArchTests;
 
-// Cổng cho một luật CHƯA có số hiệu trong docs/RULES.md §8: mọi lớp test ghi
+// Cổng cho một luật T10, docs/RULES-BE.md: mọi lớp test ghi
 // `CoreMetrics.SetOutboxSnapshot` phải khai `[Collection(OutboxSnapshotCollection.Name)]`.
 //
 // Vì sao cần cổng chứ không phải một dòng chú thích: ảnh chụp outbox là biến TĨNH toàn tiến trình và

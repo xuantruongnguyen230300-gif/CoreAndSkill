@@ -9,6 +9,9 @@
   </div>
 
   @switch (headingLevel()) {
+    @case (1) {
+      <h1 class="empty-state__tieu-de">{{ title() }}</h1>
+    }
     @case (2) {
       <h2 class="empty-state__tieu-de">{{ title() }}</h2>
     }
@@ -26,9 +29,7 @@
 
   @if (actionLabel()) {
     @if (actionRoute()) {
-      <a class="empty-state__hanh-dong-lien-ket" [routerLink]="actionRoute()">{{
-        actionLabel()
-      }}</a>
+      <a app-button [variant]="bienTheNut()" [routerLink]="actionRoute()">{{ actionLabel() }}</a>
     } @else {
       <app-button [variant]="bienTheNut()" (clicked)="onAction()">{{ actionLabel() }}</app-button>
     }

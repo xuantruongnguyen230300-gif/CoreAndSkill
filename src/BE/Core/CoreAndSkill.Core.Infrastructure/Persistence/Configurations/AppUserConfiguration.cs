@@ -15,7 +15,7 @@ internal sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.ToTable("app_user");
 
         builder.Property(x => x.TenantId).IsRequired();
-        builder.Property(x => x.FullName).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.FullName).HasMaxLength(200).IsRequired().UseCollation(CoreSchema.QualifiedViVnCollation);
         builder.Property(x => x.PreferredLanguage).HasMaxLength(10);
         // Nới kiểu so với cột gốc của Identity — trần 20 ký tự là luật nghiệp vụ (contracts/profile.md §2).
         builder.Property(x => x.PhoneNumber).HasMaxLength(20);

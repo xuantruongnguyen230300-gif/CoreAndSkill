@@ -1,7 +1,6 @@
 import localeVi from '@angular/common/locales/vi';
 import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import {
   TranslateLoader,
   TranslateService,
@@ -42,12 +41,16 @@ function cauHinh(ngonNguMacDinh: string, loader: new () => TranslateLoader): voi
   TestBed.configureTestingModule({
     providers: [
       provideZonelessChangeDetection(),
-      provideNoopAnimations(),
       providePrimeNG(),
       provideCoreI18n({
         languages: [
-          { code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi },
-          { code: 'xx', nativeName: 'XX', localeData: localeVi },
+          {
+            code: 'vi',
+            nativeName: 'Tiếng Việt',
+            dateTimeFormat: 'HH:mm dd/MM/y',
+            localeData: localeVi,
+          },
+          { code: 'xx', nativeName: 'XX', dateTimeFormat: 'HH:mm dd/MM/y', localeData: localeVi },
         ],
         defaultLanguage: ngonNguMacDinh,
         sources: ['/i18n/'],

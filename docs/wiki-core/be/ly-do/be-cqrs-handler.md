@@ -9,7 +9,9 @@ verified: chua-doi-chieu
 > File này giữ **lý do, bẫy, ví dụ dài** của [`../../../quy-uoc/be-cqrs-handler.md`](../../../quy-uoc/be-cqrs-handler.md);
 > luật ở đó. Số mục ở đây **trùng số §** của file luật; mục không có gì dời thì ghi "—".
 >
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi khối code là khuôn cho `src/BE` sẽ xây ở giai đoạn 2.
+> Nhãn trạng thái đặt **tại từng khối**, không cho cả tệp: khối nào chỉ là khuôn minh hoạ thì nói ngay ở
+> khối đó; khối còn lại tả mã trong `src/BE` nhưng chưa đối chiếu từng khối (`verified: chua-doi-chieu`) —
+> so với tệp nguồn trước khi dựa vào.
 
 ---
 
@@ -55,7 +57,7 @@ So sánh hai cách viết cùng một use case:
 
 ```csharp
 // ❌ Lồng if — mỗi bước thêm một mức thụt lề
-var itemResult = MenuItem.Create(cmd.Code, cmd.LabelKey, cmd.ParentId);
+var itemResult = MenuItem.Create(/* … các trường của cmd */);
 if (itemResult.IsFailure) return Result.Failure<Guid>(itemResult.Error!);
 
 var attached = await EnsureParentAttachableAsync(itemResult.Value, ct);   // Result<MenuItem>
@@ -71,17 +73,20 @@ Bản `Bind` tương đương:
 
 ```csharp
 // ✅ Bind — nhánh lỗi tự truyền, chỉ còn nhánh thành công phải đọc
-return await MenuItem.Create(cmd.Code, cmd.LabelKey, cmd.ParentId)
+return await MenuItem.Create(/* … các trường của cmd */)
     .BindAsync(item => EnsureParentAttachableAsync(item, ct))
     .BindAsync(item => AddWhenCodeIsFreeAsync(item, ct))
     .MapAsync(item => item.Id);
 ```
 
-> ⚠️ Ví dụ minh hoạ — `MenuItem`, `EnsureParentAttachableAsync` và `AddWhenCodeIsFreeAsync` chưa có
-> thật trong `src/BE` (đối chiếu 2026-09-27); dùng để dạy khuôn `Bind`, không phải mã đang chạy.
-> `EnsureParentAttachableAsync` kiểm luật "cây menu đúng một cấp", `AddWhenCodeIsFreeAsync` kiểm mã
-trùng trong đơn vị rồi thêm vào repository — luật của bảng ở
-[`schema-core.md`](../../../database/schema-core.md) §6.1.
+> ⚠️ Ví dụ minh hoạ — dùng để dạy khuôn `Bind`, không phải mã đang chạy.
+> ✅ CÓ THẬT (đối chiếu 2026-10-06): `MenuItem` có trong `src/BE/Core/CoreAndSkill.Core.Domain/Menu/MenuItem.cs`
+> (chuỗi `public static Result<MenuItem> Create(`), nhưng không lệnh nào tạo nó qua handler — menu ở v1 là dữ
+> liệu seed, luật "cây một cấp" kiểm trên tập mục ở `TenantSeedValidator.ValidateMenuItems`. Hai hàm phụ
+> `EnsureParentAttachableAsync` và `AddWhenCodeIsFreeAsync` không có trong `src/BE`.
+> Trong ví dụ, `EnsureParentAttachableAsync` kiểm luật "cây menu đúng một cấp", `AddWhenCodeIsFreeAsync` kiểm
+> mã trùng trong đơn vị rồi thêm vào repository — luật của bảng ở
+> [`schema-core.md`](../../../database/schema-core.md) §6.1.
 
 Vì sao có ngưỡng "từ ba bước trở lên": để chuỗi không trở thành thứ khó đọc hơn cái nó thay thế. Khi
 một bước cần thêm dữ liệu từ hai bước trước đó, chuỗi phải bọc tuple và tuple làm mất luôn cái lợi.
@@ -126,68 +131,97 @@ Ba lý do, lý do thứ ba là lý do thật:
 Mọi `DbContext` của một request dùng chung một `DbConnection`, nên outbox và nhật ký ở schema `core`
 commit cùng dữ liệu của module, hoặc cùng rollback.
 
-Khối `UnitOfWork` đầy đủ — thứ tự các bước là luật ở [`be-cqrs-handler.md`](../../../quy-uoc/be-cqrs-handler.md) §4:
+Khối `UnitOfWork` chép từ mã thật, rút gọn chú thích — thứ tự các bước là luật ở
+[`be-cqrs-handler.md`](../../../quy-uoc/be-cqrs-handler.md) §4. ✅ CÓ THẬT (đối chiếu 2026-10-06):
+`src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/UnitOfWork.cs` (chuỗi
+`public sealed class UnitOfWork(DbConnection connection, IEnumerable<DbContext> contexts, ILogger<UnitOfWork> logger)`).
 
 ```csharp
 // Core.Infrastructure/Persistence/UnitOfWork.cs
-internal sealed class UnitOfWork(
-    DbConnection connection,
-    IEnumerable<DbContext> contexts) : IUnitOfWork
+public sealed class UnitOfWork(DbConnection connection, IEnumerable<DbContext> contexts, ILogger<UnitOfWork> logger) : IUnitOfWork
 {
+    private readonly IReadOnlyList<DbContext> _contexts = contexts.ToList();
+
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
-        var written = 0;
-        foreach (var db in contexts)
-            written += await db.SaveChangesAsync(ct);
-        return written;
+        var total = 0;
+        foreach (var context in _contexts)
+            total += await context.SaveChangesAsync(ct);
+
+        return total;
     }
 
     public async Task<T> ExecuteInTransactionAsync<T>(
         Func<CancellationToken, Task<TransactionOutcome<T>>> operation,
         CancellationToken ct = default)
     {
-        var all = contexts.ToList();
-        var strategy = all[0].Database.CreateExecutionStrategy();   // chung kết nối ⇒ chung provider
+        // Mọi context trỏ vào cùng một kết nối ⇒ chung provider ⇒ chung chiến lược thử lại.
+        var strategy = _contexts[0].Database.CreateExecutionStrategy();
 
-        return await strategy.ExecuteAsync(async innerCt =>
+        return await strategy.ExecuteAsync(async () =>
         {
             // Mỗi lần thử lại phải bắt đầu từ dữ liệu SẠCH: giữ lại instance đã sửa dở của
             // lần trước sẽ hoặc ghi đè bằng dữ liệu cũ, hoặc vấp lỗi concurrency khó hiểu.
-            foreach (var db in all)
-                db.ChangeTracker.Clear();
+            foreach (var context in _contexts)
+                context.ChangeTracker.Clear();
 
-            if (connection.State != ConnectionState.Open)
-                await connection.OpenAsync(innerCt);
+            // Kết nối do UoW mở, không phải EF — lượt thử lại sau khi kết nối đứt phải tự mở lại. Kết nối đứt
+            // có thể ở trạng thái Broken: Close trước (no-op khi đã Closed) rồi mới Open.
+            if (connection.State != System.Data.ConnectionState.Open)
+            {
+                await connection.CloseAsync();
+                await connection.OpenAsync(ct);
+            }
 
-            await using var tx = await connection.BeginTransactionAsync(innerCt);
-            foreach (var db in all)
-                await db.Database.UseTransactionAsync(tx, innerCt);
+            await using var transaction = await connection.BeginTransactionAsync(ct);
+
+            foreach (var context in _contexts)
+                await context.Database.UseTransactionAsync(transaction, ct);
 
             try
             {
-                var outcome = await operation(innerCt);
+                var outcome = await operation(ct);
 
                 if (outcome.ShouldCommit)
                 {
-                    foreach (var db in all)
-                        await db.SaveChangesAsync(innerCt);
-                    // Lỗi đường truyền lúc commit KHÔNG được thử lại: CommitAsync bọc mọi lỗi không phải
-                    // PostgresException thành ngoại lệ không tạm thời — luật 2 ở be-cqrs-handler.md §4.
-                    await CommitAsync(tx, innerCt);
+                    foreach (var context in _contexts)
+                        await context.SaveChangesAsync(ct);
+
+                    await CommitAsync(transaction);
                 }
                 else
                 {
-                    await tx.RollbackAsync(innerCt);
+                    await transaction.RollbackAsync(ct);
                 }
 
                 return outcome.Value;
             }
             finally
             {
-                foreach (var db in all)
-                    await db.Database.UseTransactionAsync(null, innerCt);
+                foreach (var context in _contexts)
+                    await context.Database.UseTransactionAsync(null, ct);
             }
-        }, ct);
+        });
+    }
+
+    // Luật E12 — be-cqrs-handler.md §4 luật 2: lỗi ném từ commit mà KHÔNG phải PostgresException là lỗi đường
+    // truyền, không biết máy chủ đã commit hay chưa — bọc thành ngoại lệ KHÔNG tạm thời để execution strategy
+    // không chạy lại. Luật E14 — ADR-0055: commit nhận CancellationToken.None, KHÔNG nhận token của request.
+    private async Task CommitAsync(DbTransaction transaction)
+    {
+        try
+        {
+            await transaction.CommitAsync(CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is not PostgresException)
+        {
+            var traceId = Activity.Current?.TraceId.ToHexString();
+            logger.LogError(
+                "Commit không rõ kết quả (traceId {TraceId}) — dữ liệu có thể đã được ghi; KHÔNG chạy lại đơn vị công việc. " +
+                "Cần người đối soát. {Failure}",
+                traceId, FailureText.DescribeWithStack(ex));
+            throw new CommitOutcomeUnknownException(traceId, ex);
+        }
     }
 }
 ```
@@ -214,7 +248,8 @@ cờ này thì request đi thẳng vào handler với dữ liệu chưa kiểm �
 nghĩa là input sai bị chặn lại **trước khi** một transaction được mở. Đảo lại thì mọi request hỏng đều
 mở rồi rollback một transaction — tốn một round-trip tới DB cho một lỗi đáng lẽ tính được từ payload.
 
-Luật `EveryPipelineBehavior_IsRegistered_ExactlyOnce` canh: đăng ký hai lần khiến mỗi request chạy
+Luật A10 (`EveryPipelineBehavior_IsRegistered_ExactlyOnce` — 📐 chưa có ArchTest,
+[`RULES-BE.md`](../../../RULES-BE.md)) đòi đúng một lần đăng ký: đăng ký hai lần khiến mỗi request chạy
 behavior hai lượt. Đây là lý do **module không được tự đăng ký behavior** — behavior là open-generic, tự
 áp cho mọi request bất kể handler nằm ở assembly nào.
 
@@ -369,7 +404,7 @@ chung được giữa nhiều lượt chạy.** Cùng lý do khiến `Error` tro
 
 ## 7. `ErrorDescriptor`, catalog lỗi, và khuôn mã
 
-Tên ArchTest giữ từ `ErrorDescriptor` vì nó là định danh đã khai trong `RULES.md`; tên kiểu C# là
+Tên ArchTest giữ từ `ErrorDescriptor` vì nó là định danh đã khai trong `RULES-BE.md`; tên kiểu C# là
 `Error` vì ngắn hơn và đọc xuôi hơn tại chỗ dùng (`Result.Failure(UserErrors.NotFound)`).
 
 ### 7.1 Catalog tập trung — mã không được dựng từ chuỗi literal
@@ -422,18 +457,67 @@ public static class UserErrors
 
 Hợp đồng phía dây của các mã này: [`../contracts/users.md`](../../../contracts/users.md) §2.
 
-### 7.2 Ranh giới của luật R8 — chuỗi tiếng Việt được phép ở ĐÚNG một chỗ
+### 7.2 Ranh giới của luật R8 — tiếng Việt chỉ ở tám hình dạng cú pháp
 
 Luật R8 và catalog chỉ cùng đúng khi ranh giới được khai ra — nếu không, detector viết theo đúng tên
 luật sẽ báo đỏ chính hình dạng mà catalog bắt buộc, và một mục cổng hay báo sai là một mục sẽ bị tắt đi.
 
-**Vì sao ranh giới nằm đúng ở đó:** câu ở catalog là thứ duy nhất trong BE gắn **một–một** với một mã.
-Mọi chuỗi khác không có mã đi kèm, nên FE không thể thay nó bằng bản dịch — và đó chính xác là thứ R8
-tồn tại để ngăn.
+**Vì sao câu luật nói về câu hiển thị cho người dùng, không về mọi chuỗi tiếng Việt.** Code Core mang tiếng
+Việt ở template log, mô tả chỉ số, mô tả health check, thông điệp lỗi lập trình, đầu ra dòng lệnh: không chỗ
+nào tới mắt người dùng ứng dụng. Cấm mọi chuỗi tiếng Việt ngoài catalog thì phải dịch hết những chuỗi đó sang
+tiếng Anh cho một luật không bảo vệ thêm được gì. Hai phương án người dùng loại (2026-09-29): giữ câu cấm mọi
+chuỗi rồi dịch code; chỉ sửa câu luật và hoãn bộ dò.
 
-**Hệ quả cho người viết detector:** cho phép chuỗi tiếng Việt ở tham số thứ hai của một `new Error(...)`
-nằm trong file catalog; cấm ở mọi vị trí còn lại. Đừng viết detector quét toàn bộ chuỗi tiếng Việt rồi
-thêm danh sách miễn trừ theo tên file — danh sách đó sẽ mục ruỗng ngay từ file catalog thứ hai.
+**Vì sao danh sách cho phép, đóng mặc định — không danh sách cấm.** Tập chỗ *được* mang tiếng Việt nhỏ và
+liệt kê hết được; tập chỗ *có thể* đưa câu tới người dùng thì không. Danh sách cấm im lặng với mọi đường
+chưa ai nghĩ tới — đúng loại đường mà một luật về rò câu chữ cần bắt. Đóng mặc định đổi chiều hỏng: hình
+dạng mới làm cổng đỏ, và người viết phải trả lời *"cái này có tới người dùng không"* thành lời, trước khi
+bảng có thêm một dòng.
+
+**Vì sao theo hình dạng cú pháp, không theo tên tệp.** Miễn trừ theo tệp mục ruỗng từ tệp catalog thứ hai,
+và một tệp được miễn thì mọi chuỗi trong nó được miễn — kể cả câu trả thẳng về client viết thêm ba tháng
+sau. Hình dạng gắn quyền được mang tiếng Việt vào **đúng chỗ đứng** của chuỗi.
+
+**Vì sao cần cây cú pháp.** Template log thường xuống dòng giữa lời gọi, nối `+` qua hai dòng; một chuỗi nội
+suy có thể chứa `?:` bên trong. Grep theo dòng thấy một literal lẻ loi ở dòng tiếp theo mà không biết nó
+thuộc lời gọi nào, và đọc cả chú thích — code Core chú thích bằng tiếng Việt khắp nơi. Kết cục là hoặc báo sai
+hàng loạt, hoặc phải miễn trừ, và cả hai đều giết cổng.
+
+**Ví dụ đỏ hay gặp** — không hình dạng nào nhận: `WithMessage("…")` của validator, vì validator gắn **mã** vào
+`fieldErrors`; chuỗi trả thẳng từ controller, handler, middleware; câu gán vào biến, hằng hay trường để dùng
+về sau, kể cả hằng đem làm đối số attribute và câu gom vào danh sách rồi mới trao cho `ValidateOptionsResult.Fail`;
+thân của hàm phụ dựng ngoại lệ, vì nó nằm ngoài `throw`; nhãn truyền vào hàm phụ ghi log hay ghi dòng lệnh
+(`GuardedAsync("…")`); giá trị — không phải template — của lời gọi log (`stack ?? "(không có stack)"`).
+
+**Vì sao bốn nhóm ngoài bảng chia ba cách** (người dùng chốt 2026-09-30). Thông điệp kiểm cấu hình lúc khởi
+động có vài hình dạng cố định của framework, nên thêm **hình dạng 8** hẹp đúng các hình dạng đó; nhận cả danh
+sách lỗi hay hằng thì phải nhận mọi chuỗi gán vào biến — lại đúng lỗ mà danh sách cho phép tồn tại để bịt.
+Ngoại lệ dựng qua hàm phụ hay hàm dựng lớp cơ sở thì **mở rộng hình dạng 3**, vì điều kiện an toàn của nó —
+thông điệp ngoại lệ không lên dây — không phụ thuộc chuỗi đi qua bao nhiêu lời gọi trước khi thành ngoại lệ.
+Nhãn truyền vào hàm phụ và giá trị log **viết lại code**: hình dạng cho chúng là *"đối số chuỗi của một hàm
+tự viết"* — không nhận ra bằng cú pháp nếu không miễn trừ theo tên hàm. Phương án bị loại: chỉ thêm hình
+dạng 8 và viết lại ba nhóm kia; thêm hình dạng cho cả bốn nhóm.
+
+**Vì sao mỗi hình dạng an toàn:**
+
+| # | Lý do |
+| --- | --- |
+| 1 | Câu ở catalog là thứ duy nhất trong BE gắn **một–một** với một mã; FE thay nó bằng bản dịch theo mã. Giới hạn trong lớp `static …Errors` để một `new Error(…)` rải trong handler — thứ R2 cấm — không mượn được quyền này |
+| 2 | Log là kênh của người vận hành |
+| 3 | An toàn **chỉ vì** không đường nào đưa thông điệp ngoại lệ ra dây. Điều kiện đó cần một test chứ không cần niềm tin: A15 khẳng định thân 500 không lộ kiểu và ngăn xếp, và phải khẳng định thêm không lộ thông điệp. Nhận mọi chuỗi bên trong biểu thức `throw` vì mọi thứ ở đó dựng ra ngoại lệ sắp ném; nhận đối số `base(…)` của lớp ngoại lệ vì nó thành thông điệp của chính ngoại lệ. Thân hàm phụ dựng ngoại lệ vẫn đỏ — hàm đó gọi được ở chỗ khác ngoài `throw`, như một chuỗi thường —, nên câu cố định đặt ở lời gọi trong `throw` hay ở hàm dựng của lớp ngoại lệ riêng. **Cái giá của mở rộng:** hàm phụ gọi trong `throw` mà dùng chuỗi vào việc khác ngoài dựng ngoại lệ — ghi ra phản hồi chẳng hạn — thì lọt bộ dò; review canh |
+| 4 | Attribute là siêu dữ liệu biên dịch; không đường nào của Core trả đối số attribute ra dây |
+| 5, 6 | Đích là công cụ thu chỉ số và log; `/health/*` chỉ ghi trạng thái |
+| 7 | Người đọc là người vận hành chạy lệnh `core …` trên máy chủ. Giới hạn trong thư mục lệnh để một `Console.WriteLine` lạc vào controller vẫn đỏ |
+| 8 | Thông điệp đi vào ngoại lệ kiểm cấu hình, làm app từ chối khởi động — người đọc là người vận hành. Cùng kiểu dùng cho kiểm model của MVC thì thông điệp dừng ở `ModelState`, và bộ dựng phản hồi lỗi binding chỉ ghi mã. Chỉ nhận chuỗi viết thẳng ở chỗ trao cho framework: chuỗi đi qua biến hay danh sách trước đó không phân biệt được với câu dùng vào việc khác |
+
+**Hai điểm mù, và vì sao chấp nhận:** chuỗi tiếng Việt viết không dấu, và câu hiển thị viết bằng tiếng Anh.
+Bắt được chúng đòi hiểu nghĩa câu, không còn là phép thử cú pháp. Review là lớp bắt; dấu hiệu cần quay lại
+là thấy chuỗi không dấu xuất hiện ở chỗ bảng không nhận — lúc đó người viết đang né cổng, không phải tuân luật.
+
+**Cái giá.** Mỗi kiểu thông điệp nội bộ mới — một hàm phụ ghi log nhận nhãn, một bộ kiểm cấu hình gom lỗi vào
+danh sách — làm cổng đỏ cho tới khi code viết lại vào một hình dạng có sẵn hoặc người dùng thêm hình dạng.
+Lượt viết lại 2026-10-01 đã trả cái giá đó một lần — bộ kiểm cấu hình nay báo lỗi đầu tiên rồi dừng, không gom cả danh sách. **Dấu hiệu quyết định này bắt đầu sai:** bảng phải
+thêm hình dạng nhiều lần trong một quý, hoặc người viết bắt đầu chuyển chuỗi nội bộ sang không dấu cho cổng xanh.
 
 ### 7.3 Khuôn mã lỗi
 
@@ -447,7 +531,7 @@ thêm danh sách miễn trừ theo tên file — danh sách đó sẽ mục ru�
 trong toàn hệ**. Cách rẻ nhất để một mã phía client không bao giờ trùng mã BE là **tách không gian tên**:
 tài nguyên `CLIENT` chỉ dùng cho bảng §7.4, và không catalog BE nào khai mã mang nó. Đặt hằng số cho
 những mã đó trong catalog BE sẽ để BE mang những mã nó không bao giờ phát; phép dò *"mã trong catalog
-có lên dây không"* của nợ **F16** ([`DEBT.md`](../../../DEBT.md)) lại phải miễn trừ chúng.
+có lên dây không"* của luật **F16** ([`RULES-FE.md`](../../../RULES-FE.md)) lại phải miễn trừ chúng.
 
 Bảng nằm cạnh khuôn mã ở §7.3 vì đó là chỗ người thêm mã mới — ở bất kỳ phía nào — đã phải mở ra.
 FE tra bảng dịch theo mã; mã phía client chưa có dòng ở bảng thì chưa được dùng.

@@ -1,0 +1,16 @@
+// Design/Components/Drawer.md §Kích thước. Bề rộng theo cỡ, bo góc, đổ bóng và khối chuyển động
+// nằm ở src/styles/_thu-vien.scss (chạm DOM do PrimeNG dựng, ngoài encapsulation của component này).
+
+.app-drawer__tieu-de {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.app-drawer__than {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}

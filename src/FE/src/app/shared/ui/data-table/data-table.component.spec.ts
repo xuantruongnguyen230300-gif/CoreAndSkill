@@ -6,14 +6,14 @@ import {
   viewChild,
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import {
   TranslateLoader,
+  TranslateService,
   TranslationObject,
   provideTranslateLoader,
   provideTranslateService,
 } from '@ngx-translate/core';
-import { Observable, of } from 'rxjs';
+import { Observable, firstValueFrom, from, of } from 'rxjs';
 
 import { DataColumnDef, DataTableComponent, DataTableViewState } from './data-table.component';
 
@@ -137,7 +137,14 @@ function trang1(): readonly Hang[] {
 describe('DataTableComponent — track dòng theo `rowKey`', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection(), provideNoopAnimations()],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideTranslateService({
+          lang: 'vi',
+          fallbackLang: 'vi',
+          loader: provideTranslateLoader(FakeTranslateLoader),
+        }),
+      ],
     });
   });
 
@@ -218,7 +225,14 @@ describe('DataTableComponent — track dòng theo `rowKey`', () => {
 describe('DataTableComponent — cột `value` (fe-ui-conventions.md §9)', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection(), provideNoopAnimations()],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideTranslateService({
+          lang: 'vi',
+          fallbackLang: 'vi',
+          loader: provideTranslateLoader(FakeTranslateLoader),
+        }),
+      ],
     });
   });
 
@@ -289,7 +303,6 @@ describe('DataTableComponent', () => {
       imports: [HostComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideTranslateService({
           lang: 'vi',
           fallbackLang: 'vi',
@@ -396,5 +409,109 @@ describe('DataTableComponent', () => {
         .withContext('<caption> chỉ hợp lệ khi là con trực tiếp của <table>')
         .toBe('TABLE');
     }
+  });
+});
+
+/** Nạp ĐÚNG `public/i18n/vi.json` — khoá thiếu trong tệp thật thì vùng đọc ra chuỗi khoá thô. */
+class ViJsonThatLoader extends TranslateLoader {
+  getTranslation(): Observable<TranslationObject> {
+    return from(fetch('/i18n/vi.json').then((r) => r.json() as Promise<TranslationObject>));
+  }
+}
+
+/** DataTable.md §Accessibility › "Vùng báo kết quả — định nghĩa gốc". */
+describe('DataTableComponent — vùng báo kết quả', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideTranslateService({
+          lang: 'vi',
+          fallbackLang: 'vi',
+          loader: provideTranslateLoader(ViJsonThatLoader),
+        }),
+      ],
+    });
+  });
+
+  async function dung(state: DataTableViewState, tong: number, page = 1) {
+    await firstValueFrom(TestBed.inject(TranslateService).use('vi'));
+    const fixture = TestBed.createComponent(HostComponent);
+    const host = fixture.componentInstance;
+    host.state.set(state);
+    host.totalRecords.set(tong);
+    host.page.set(page);
+    const lai = async (): Promise<void> => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+    await lai();
+    const vung = (): HTMLElement =>
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[role="status"]')!;
+    return { host, lai, vung, el: fixture.nativeElement as HTMLElement };
+  }
+
+  it('có mặt từ lần vẽ đầu, ẩn thị giác, kể cả khi tổng bằng 0', async () => {
+    const { vung } = await dung('empty', 0);
+    expect(vung()).not.toBeNull();
+    expect(vung().classList.contains('sr-only')).toBe(true);
+  });
+
+  it("'idle' → câu có kết quả với tu/den/tong tính từ page, pageSize, totalRecords", async () => {
+    const { vung } = await dung('idle', 45, 3);
+    expect(vung().textContent?.trim()).toBe('Đang hiện 41 đến 45 trên tổng 45');
+  });
+
+  it("'empty' và 'empty-filtered' → \"Không có kết quả\"", async () => {
+    for (const state of ['empty', 'empty-filtered'] as const) {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          provideTranslateService({
+            lang: 'vi',
+            fallbackLang: 'vi',
+            loader: provideTranslateLoader(ViJsonThatLoader),
+          }),
+        ],
+      });
+      const { vung } = await dung(state, 0);
+      expect(vung().textContent?.trim()).toBe('Không có kết quả');
+    }
+  });
+
+  it("'error' → câu lỗi tải chung", async () => {
+    const { vung } = await dung('error', 0);
+    expect(vung().textContent?.trim()).toBe('Không tải được danh sách.');
+  });
+
+  it("đang 'loading' giữ câu cũ; rời 'loading' mới đổi câu", async () => {
+    const { host, lai, vung } = await dung('idle', 45, 1);
+    const cu = vung().textContent?.trim();
+    expect(cu).toBe('Đang hiện 1 đến 20 trên tổng 45');
+
+    host.state.set('loading');
+    host.page.set(2);
+    await lai();
+    expect(vung().textContent?.trim()).toBe(cu);
+
+    host.state.set('idle');
+    await lai();
+    expect(vung().textContent?.trim()).toBe('Đang hiện 21 đến 40 trên tổng 45');
+
+    host.state.set('loading');
+    await lai();
+    host.totalRecords.set(0);
+    host.state.set('empty-filtered');
+    await lai();
+    expect(vung().textContent?.trim()).toBe('Không có kết quả');
+  });
+
+  it('dải Pagination bên trong không còn aria-live', async () => {
+    const { el } = await dung('idle', 45);
+    expect(el.querySelector('.pagination__khoang')).not.toBeNull();
+    expect(el.querySelector('app-pagination [aria-live]')).toBeNull();
+    expect(el.querySelectorAll('[role="status"], [aria-live]').length).toBe(1);
   });
 });

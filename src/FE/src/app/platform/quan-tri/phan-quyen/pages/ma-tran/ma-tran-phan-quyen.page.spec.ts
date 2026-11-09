@@ -21,6 +21,11 @@ class FakeTranslateLoader extends TranslateLoader {
   }
 }
 
+const authGia = {
+  coQuyen: () => true,
+  lamMoiPhien: jasmine.createSpy('lamMoiPhien').and.resolveTo(),
+};
+
 const MA_TRAN: MaTranPhanQuyen = {
   roles: [{ id: 'r1', name: 'Kế toán', isSystem: false }],
   rows: [
@@ -55,7 +60,7 @@ describe('MaTranPhanQuyenPage — huỷ request khi rời màn', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: PhanQuyenService, useValue: service },
-        { provide: AuthService, useValue: { coQuyen: () => true } },
+        { provide: AuthService, useValue: authGia },
         provideTranslateService({
           lang: 'vi',
           fallbackLang: 'vi',
@@ -168,7 +173,7 @@ describe('MaTranPhanQuyenPage — câu của banner lỗi lưu (fe-ui-convention
       providers: [
         provideZonelessChangeDetection(),
         { provide: PhanQuyenService, useValue: service },
-        { provide: AuthService, useValue: { coQuyen: () => true } },
+        { provide: AuthService, useValue: authGia },
         provideTranslateService({
           lang: 'vi',
           fallbackLang: 'vi',
@@ -251,7 +256,7 @@ describe('MaTranPhanQuyenPage — tải ma trận hỏng', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: PhanQuyenService, useValue: service },
-        { provide: AuthService, useValue: { coQuyen: () => true } },
+        { provide: AuthService, useValue: authGia },
         provideTranslateService({
           lang: 'vi',
           fallbackLang: 'vi',
@@ -319,7 +324,7 @@ async function dungMaTran(
     providers: [
       provideZonelessChangeDetection(),
       { provide: PhanQuyenService, useValue: service },
-      { provide: AuthService, useValue: { coQuyen: () => true } },
+      { provide: AuthService, useValue: authGia },
       provideTranslateService({
         lang: 'vi',
         fallbackLang: 'vi',
@@ -418,6 +423,18 @@ describe('MaTranPhanQuyenPage — PUT 200 rồi GET tải lại sau lưu hỏng'
       'msg:CORE.RATE_LIMIT.EXCEEDED',
     ],
   ];
+
+  it('lưu thành công → làm mới quyền và menu của chính người lưu', async () => {
+    authGia.lamMoiPhien.calls.reset();
+    page.toggleO('p1', 'r1', HANG);
+    service.luuMaTran.and.returnValue(of('v2'));
+    service.layMaTran.and.returnValue(of(MA_TRAN));
+
+    page.bamLuu();
+    await veLai();
+
+    expect(authGia.lamMoiPhien).toHaveBeenCalledOnceWith({ napLaiMenu: true });
+  });
 
   for (const [ten, loi, cau] of LOI_GET_SAU_LUU) {
     it(`GET sau lưu hỏng (${ten}) → cờ thay đổi về false, Lưu/Huỷ khoá, guard không hỏi; lỗi hiện ĐÚNG MỘT chỗ ở hàng lỗi của Table`, async () => {

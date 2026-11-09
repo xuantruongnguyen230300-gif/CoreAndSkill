@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import {
   TranslateLoader,
@@ -93,7 +92,6 @@ describe('DanhSachDonViPage — CORE.TENANT.NOT_FOUND tải lại danh sách (Sc
       imports: [DanhSachDonViPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: DonViService, useValue: service },
         provideTranslateService({
@@ -202,7 +200,7 @@ describe('DanhSachDonViPage — CORE.TENANT.NOT_FOUND tải lại danh sách (Sc
 describe('DanhSachDonViPage — câu của banner lỗi trong hộp ngưng hoạt động (fe-ui-conventions.md §6.2)', () => {
   const CAU_GOC_VALIDATION = 'Kiểm tra lại các trường được đánh dấu.';
   const CAU_REQUIRED = 'Trường này là bắt buộc.';
-  const CAU_SYSTEM_IMMUTABLE = 'Không thể ngưng hoạt động đơn vị hệ thống.';
+  const CAU_SYSTEM_IMMUTABLE = 'Không được thay đổi trạng thái hoạt động của đơn vị hệ thống.';
 
   class CauLoiLoader extends TranslateLoader {
     getTranslation(): Observable<TranslationObject> {
@@ -236,7 +234,6 @@ describe('DanhSachDonViPage — câu của banner lỗi trong hộp ngưng hoạ
       imports: [DanhSachDonViPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: DonViService, useValue: service },
         provideTranslateService({
@@ -302,7 +299,6 @@ describe('DanhSachDonViPage — nối store với component hộp (component dum
       imports: [DanhSachDonViPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: DonViService, useValue: service },
         provideTranslateService({
@@ -383,7 +379,6 @@ describe('DanhSachDonViPage — menu hàng: openChange(false) muộn của hàng
       imports: [DanhSachDonViPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: DonViService, useValue: service },
         provideTranslateService({
@@ -435,7 +430,6 @@ describe('DanhSachDonViPage — seam CORE_SCREEN_EXT khoá "tenants"', () => {
       imports: [DanhSachDonViPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: DonViService, useValue: service },
         provideTranslateService({
@@ -462,16 +456,17 @@ describe('DanhSachDonViPage — seam CORE_SCREEN_EXT khoá "tenants"', () => {
     expect(el.querySelector('tbody')?.textContent).toContain('EXT-dv-1');
   });
 
-  // V-03 — fe-architecture.md §2.7 luật 6 (ADR-0084). Tập khoá lấy từ chính bảng đã dựng (kể cả cột
-  // hành động nối sau cột dự án), không chép tay: Core thêm cột mà quên đưa vào phép kiểm thì đỏ.
-  it('V-03: cột dự án trùng BẤT KỲ khoá cột Core nào đang vẽ (kể cả "hanhDong") → dựng màn ném Error nêu "tenants" và khoá', async () => {
+  // V-03 — fe-architecture.md §2.7 luật 6 (ADR-0084). Tập khoá lấy từ chính bảng đã dựng (cột hành động
+  // không nằm trong `columns`), không chép tay: Core thêm cột mà quên đưa vào phép kiểm thì đỏ.
+  it('V-03: cột dự án trùng BẤT KỲ khoá cột Core nào đang vẽ → dựng màn ném Error nêu "tenants" và khoá', async () => {
     await cauHinh([]);
     const goc = TestBed.createComponent(DanhSachDonViPage);
     goc.detectChanges();
     const cacKhoa = (goc.componentInstance as unknown as { columns(): readonly { key: string }[] })
       .columns()
       .map((c) => c.key);
-    expect(cacKhoa).toContain('hanhDong');
+    // Cột hành động là `rowActionsTemplate` của DataTable, không phải một khoá trong `columns`.
+    expect(cacKhoa).not.toContain('hanhDong');
 
     for (const khoa of cacKhoa) {
       TestBed.resetTestingModule();

@@ -4,7 +4,7 @@ using MediatR;
 
 namespace CoreAndSkill.ArchTests.Support;
 
-// Luật B3 — docs/RULES.md §10: `SortBy` chỉ nhận giá trị thuộc allowlist của từng endpoint. Allowlist là DỮ LIỆU nằm trong
+// Luật B3 — docs/RULES-BE.md: `SortBy` chỉ nhận giá trị thuộc allowlist của từng endpoint. Allowlist là DỮ LIỆU nằm trong
 // validator của từng request, không có hình dạng chung để quét; thiếu nó thì tốt nhất là lỗi lúc chạy (tên cột không tồn
 // tại), tệ nhất là một chuỗi do client gửi đi thẳng vào câu sắp xếp.
 //

@@ -6,20 +6,25 @@ verified: chua-doi-chieu
 
 # Quy ước giao diện — Angular, PrimeNG, token, i18n, form
 
-> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §5.5, §6.1, §6.2, §6.4, §6.5**; riêng §5.5 đối chiếu lại 2026-09-23 sau khi ADR-0063 thi công xong, và §6.1 đối chiếu lại 2026-09-24 sau khi ADR-0078 thi công xong). Mọi mục còn lại **chưa đối chiếu với `src/FE`**, kể cả mục đã có code.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §5.5, §6.1, §6.2, §6.4, §6.5**; riêng §5.5 đối chiếu lại 2026-09-23 sau khi ADR-0063 thi công xong khuôn ngày giờ chốt 2026-11-06 đối chiếu 2026-11-09 sau khi thi công xong, và §6.1 đối chiếu lại 2026-09-24 sau khi ADR-0078 thi công xong; 2026-10-08 thêm đoạn `ViewEncapsulation.None` của §4.2, đoạn *Ô tự đặt focus lúc mở* của §6.5, §7, §7.1 và kiểu `FilterField` của §9). Mọi mục còn lại **chưa đối chiếu với `src/FE`**, kể cả mục đã có code.
 >
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
-> | §5.5 **đã khớp** ([ADR-0063](../adr/0063-locale-id-den-tu-seam-core-i18n.md) thi công xong, đối chiếu 2026-09-23): `src/FE/src/app/core/config/core-i18n.ts` có `registerLocaleData(ngonNgu.localeData, ngonNgu.code);` và `{ provide: LOCALE_ID, useValue: i18n.defaultLanguage },`; `src/FE/src/app/app.config.ts` chỉ còn truyền `localeData: localeVi` **vào** `provideCoreI18n({`; `app.config.spec.ts` có ca `KHÔNG cấp LOCALE_ID trực tiếp — giá trị đó đến từ provideCoreI18n`. Việc **vắng mặt** hai chuỗi đó ngoài seam do cổng F36 canh chứ không do câu này — [`../RULES.md`](../RULES.md) §7 | — |
+> | §5.5 phần `LOCALE_ID` và dữ liệu locale **đã khớp** ([ADR-0063](../adr/0063-locale-id-den-tu-seam-core-i18n.md) thi công xong, đối chiếu 2026-09-23): `src/FE/src/app/core/config/core-i18n.ts` có `registerLocaleData(ngonNgu.localeData, ngonNgu.code);` và `{ provide: LOCALE_ID, useValue: i18n.defaultLanguage },`; `src/FE/src/app/app.config.ts` chỉ còn truyền `localeData: localeVi` **vào** `provideCoreI18n({`; `app.config.spec.ts` có ca `KHÔNG cấp LOCALE_ID trực tiếp — giá trị đó đến từ provideCoreI18n`. Việc **vắng mặt** hai chuỗi đó ngoài seam do cổng F36 canh chứ không do câu này — [`../RULES.md`](../RULES.md) §7 | — |
+> | §5.5 khuôn ngày giờ — ✅ **CÓ THẬT** (đối chiếu 2026-11-09): `src/FE/src/app/core/config/core-i18n.ts`, chuỗi `{ provide: DATE_PIPE_DEFAULT_OPTIONS, useValue: { dateFormat: macDinh.dateTimeFormat } },`; `src/FE/src/app/app.config.ts`, chuỗi `dateTimeFormat: 'HH:mm dd/MM/y',`; `src/FE/src/app/platform/he-thong/don-vi/pages/danh-sach/danh-sach-don-vi.page.html`, chuỗi `(dv.createdAt \| date)`; hai lệnh tự rà ở §5.5 không in dòng nào | — |
 > | §6.2 **đã khớp** (đối chiếu 2026-09-24; chữ ký nhận `ApiFailureError` và đoạn *Toast và banner* 2026-09-25): `src/FE/src/app/shared/forms/apply-form-failure.ts` có `export function applyFormFailure(`, `if (laLoiXuyenSuot(loi.status, loi.body))` và trả `cauTungMa(`; `field-errors-text.ts` cùng thư mục cũng chặn bằng `laLoiXuyenSuot(`; màn đăng nhập gọi `dichLoiChoMan(this.translate, err)`; `src/FE/src/app/shared/forms/field-errors-text.ts` có `.join('\n')`; `src/FE/src/app/shared/forms/focus-o-sai-dau-tien.ts` có `export function focusOSaiKhiGuiSai(` và `export function focusOSaiDauTien(`. Trạng thái tải hỏng (đối chiếu 2026-09-26): khung luôn có tiêu đề, thân `dichLoiChoMan` — `ho-so.page.ts` `loiTaiHoSo`, `chi-tiet-nguoi-dung.page.html` `#khoiLoiTai`, `ma-tran-phan-quyen.page.html` `[errorHeading]`; `tra-cuu-vai-tro.store.ts` `cauLoi(` | — |
 > | §6.5: `src/FE/src/app/shared/forms/field-error-text.ts` có `export function fieldErrorText(` | — |
-> | Khu đơn vị khớp §6.2 về vai: `src/FE/src/app/platform/he-thong/don-vi/state/tao-don-vi.store.ts` có `readonly lanGuiSai = signal(0)`; `src/FE/src/app/platform/he-thong/don-vi/components/hop-tao-don-vi/hop-tao-don-vi.component.ts` có `focusOSaiKhiGuiSai(this.lanGuiSai` (component nhận qua `input()`) | — |
-> | §6.2 mã gốc → ô **đã khớp** (đối chiếu 2026-09-24): `src/FE/src/app/shared/forms/apply-form-failure.ts` có `maGocVaoO: BangMaGocVaoO<F> = {},` và `return oMaGoc ? null : dichLoi(translate, body);`; dưới `src/FE/src/app/platform/`, `tao-don-vi.store.ts`, `tao-nguoi-dung.store.ts`, `hop-vai-tro.store.ts` có `const MA_GOC_VAO_O:`, `hop-chi-tiet-nguoi-dung.store.ts` có `const MA_GOC_VAO_O_SUA:` | — |
+> | Khu đơn vị khớp §6.2 về vai: `src/FE/src/app/platform/he-thong/don-vi/state/tao-don-vi.store.ts` có `private readonly _lanGuiSai = signal(0);`; `src/FE/src/app/platform/he-thong/don-vi/components/hop-tao-don-vi/hop-tao-don-vi.component.ts` có `focusOSaiKhiGuiSai(this.lanGuiSai` (component nhận qua `input()`) | — |
+> | §6.2 mã gốc → ô **đã khớp** (đối chiếu 2026-09-24): `src/FE/src/app/shared/forms/apply-form-failure.ts` có `maGocVaoO: BangMaGocVaoO<F> = {},` và `return oMaGoc ? null : dichLoi(translate, body, loi.status);`; dưới `src/FE/src/app/platform/`, `tao-don-vi.store.ts`, `tao-nguoi-dung.store.ts`, `hop-vai-tro.store.ts` có `const MA_GOC_VAO_O:`, `hop-chi-tiet-nguoi-dung.store.ts` có `const MA_GOC_VAO_O_SUA:` | — |
 > | §6.4 dưới `src/FE/src/app/platform/`: `hop-tao-don-vi.component.html` có `controlId="dv-tao-ma"` và `'dv-tao-ma-error' : 'dv-tao-ma-hint'`, khớp `FormRow`/`Input`. **Lệch ở mọi `.html` có cả `<app-dialog` lẫn `<form`:** banner lỗi đứng trước `<form>`; nút gửi `(clicked)` ở `slot="footer"`, không `type="submit"` | Chưa quyết: sửa mẫu hay ghi ngoại lệ cho form trong Dialog |
 > | §6.1 CVA: `src/FE/src/app/shared/components/input/input.component.ts` có `this.ngControl.valueAccessor = this` — cách đăng ký khớp. **Hết ca lệch chỗ đặt** (đối chiếu 2026-09-24): [ADR-0078](../adr/0078-cot-nen-giu-quyen-quyet-thu-muc-button-va-input-doi-sang-shared-components.md) quyết định 2 đã thi công xong — `Button` và `Input` nay ở `shared/components/`, và `src/FE/src/app/shared/components/button/button.component.ts` mang chú thích `Tự dựng, không bọc PrimeNG (§Nền)`, khớp cột `Nền` ([`../Design/COMPONENTS.md`](../Design/COMPONENTS.md) §3 — bảng mục lục là chỗ **khai** giá trị; §4 là quy tắc **chọn** giá trị). `Check` **chưa bao giờ** là ca lệch — nó khai `bọc PrimeNG` và `src/FE/src/app/shared/ui/check/check.component.ts` có `import { CheckboxModule } from 'primeng/checkbox';`, tức đúng chỗ; `app-date-picker` chưa có trong `src/FE/src/app/shared/` | — |
 > | Khu người dùng gọi hàm §6.2 (đối chiếu 2026-09-24): `src/FE/src/app/platform/quan-tri/nguoi-dung/state/tao-nguoi-dung.store.ts` có `applyFormFailure(`; `hop-chi-tiet-nguoi-dung.store.ts` cùng thư mục có `applyFormFailure(` và `fieldErrorsText(` | — |
 > | §6.3 hàm nhập lại (đối chiếu 2026-09-25): `src/FE/src/app/shared/forms/nhap-lai-phai-khop.ts` có `export function nhapLaiPhaiKhop(`; `ho-so.page.ts`, `doi-mat-khau-bat-buoc.page.ts` gọi nó | — |
-> | **Chưa đối chiếu:** §1–§4, §5.1–§5.4, phần còn lại của §6.3, §7–§10; mẫu `FormNguoiDungPage` ở §6.1; các lệnh cổng F5–F9, F23 chưa chạy trên `src/FE` | Đối chiếu từng mục rồi mới lật `verified:` |
+> | §6.2 ngoại lệ có tên của màn đăng nhập **đã khớp** (đối chiếu 2026-10-06): `src/FE/src/app/platform/xac-thuc/pages/dang-nhap/dang-nhap.page.ts` có `this.translate.instant('xacThuc.dangNhap.loiSaiThongTinVanHanh')` trong nhánh `ma === 'CORE.AUTH.INVALID_CREDENTIALS' && vanHanh`, và `private cauLoiCauHinh(` cho nhánh khoá `TenantCode` ở chế độ thường; mọi mã khác rơi về `dichLoiChoMan(this.translate, err)` | — |
+> | §4.2 đoạn `ViewEncapsulation.None` **đã khớp** (đối chiếu 2026-10-08, chạy ba lệnh dò của §4.2 trên `src/FE`): `src/FE/src/app/shared/components/auth-card/auth-card.component.ts` có `encapsulation: ViewEncapsulation.None`, `styleUrl: './auth-card.component.scss'` và chú thích chuỗi `theo fe-ui-conventions.md §4.2 luật 4 (luật F55)`; dòng cấp cao nhất duy nhất của `auth-card.component.scss` ngoài `@use` là `app-auth-card {`. `src/FE/src/app/shared/components/auth-page/auth-page.component.ts` có `styleUrl: './auth-page.component.scss'`, không còn `encapsulation:`; `auth-page.component.scss` mở đầu bằng `:host {`. Lệnh dò style nội tuyến không in gì | — |
+> | §7, §7.1 điểm ngắt **đã khớp** (đối chiếu 2026-10-08): `src/FE/src/styles/_spacing.scss` có `@mixin duoi-man-hinh($nguong) {` và `@media (max-width: $nguong - 0.02px) {`; `src/FE/src/app/core/theme/diem-ngat.ts` có `export const TRUY_VAN_DUOI_BP_XS = '(max-width: 479.98px)';`, mỗi hằng có khối chú thích liền trên nêu `$bp-*`; `src/FE/src/app/shared/ui/data-table/data-table.component.ts`, `src/FE/src/app/shared/ui/drawer/drawer.component.ts` và `src/FE/src/app/shared/components/topbar/topbar.component.ts` có `from '../../../core/theme/diem-ngat';`; `src/FE/src/app/shared/components/toolbar/toolbar.component.scss` có `@include s.duoi-man-hinh(s.$bp-xs) {`. Việc **vắng mặt** `@media` độ rộng ngoài `_spacing.scss` và hằng điểm ngắt ngoài tệp phản chiếu do cổng F58 canh chứ không do câu này — trạng thái cổng: dòng F58 ở [`../RULES-FE.md`](../RULES-FE.md) | — |
+> | Ba khối lệnh cổng của tệp này chạy tay nguyên văn trên `src/FE` (2026-10-06): F9 ở §1.4, F7 ở §3.2, F8 ở §5.2 — không khối nào in dòng nào; mỗi khối đỏ đúng trên một tệp vi phạm giả đặt ngoài repo. Trạng thái cổng của từng luật: [`../RULES-FE.md`](../RULES-FE.md) | — |
+> | **Chưa đối chiếu:** §1–§4 (trừ đoạn `ViewEncapsulation.None` của §4.2), §5.1–§5.4, phần còn lại của §6.3, §8–§10 (trừ kiểu `FilterField` của §9); mẫu `FormNguoiDungPage` ở §6.1; F23 chưa có section ([`../wiki-core/fe/trien-khai/05-gate.md`](../wiki-core/fe/trien-khai/05-gate.md) §3.1) | Đối chiếu từng mục rồi mới lật `verified:` |
 >
 > **Nguồn giao diện duy nhất là [`../Design/`](../Design/)**; khi hai bên lệch, `Design/` thắng.
 
@@ -44,13 +49,13 @@ Stack: **Angular standalone + signals**, **PrimeNG**, **ngx-translate**. Phiên 
 ```typescript
 // components/the-nguoi-dung/the-nguoi-dung.component.ts
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { NguoiDung } from '../../models/nguoi-dung.model';
 
 @Component({
   selector: 'app-the-nguoi-dung',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './the-nguoi-dung.component.html',
   styleUrl: './the-nguoi-dung.component.scss',
@@ -314,11 +319,26 @@ Ngưỡng dòng cho từng file: [`fe-architecture.md`](fe-architecture.md) §5.
 
 ### 4.2 Style của component
 
-Style nằm trong `styleUrl` của chính component. Ba luật:
+Style nằm trong `styleUrl` của chính component — không khai `styles` nội tuyến trong `@Component`. Style chạm phần tử chủ thì dùng `:host`. Bốn luật:
 
 1. **Không `::ng-deep`.** Cần chạm vào bên trong component thư viện → dùng file override (§4.4).
 2. **Không `!important`** trừ khi kèm chú thích nói rõ đè cái gì và vì sao không đè được bằng độ ưu tiên chọn lọc; thiếu chú thích là finding trong review.
 3. **Không selector theo thẻ trần** (`div`, `span`) ở cấp cao. Đặt lớp có tên.
+4. **`ViewEncapsulation.None` chỉ khi component phải đặt style lên nội dung chiếu qua `<ng-content>`** — phần tử đó mang thuộc tính đóng gói của trang chiếu nó, nên style đóng gói của component không chạm tới, còn `::ng-deep` bị luật 1 cấm. Style chỉ chạm phần tử chủ thì không cần `None`. Component tắt đóng gói phải đủ ba điều kiện (luật F55):
+   - Mọi selector cấp cao nhất trong SCSS của nó mở đầu bằng **selector phần tử của chính component** — tức style chỉ có hiệu lực trong cây DOM của component. Cách viết: bọc cả tệp trong một khối `app-<tên> { … }`.
+   - Chú thích ở `@Component` nói style chạm phần tử chiếu nào, và vì sao.
+   - Style vẫn nằm trong `styleUrl`.
+
+```bash
+# Component tắt đóng gói style — mỗi tệp in ra phải đủ ba điều kiện của luật 4
+grep -rln 'ViewEncapsulation.None' src/FE/src/app --include='*.ts' --exclude='*.spec.ts'
+# Selector cấp cao nhất của một tệp SCSS — PASS khi mọi dòng in ra mở đầu bằng selector phần tử của component
+grep -nE '^[^[:space:]/@}$]' <tệp>.component.scss
+# Style nội tuyến — PASS khi không in gì
+grep -rnE '^[[:space:]]*styles:' src/FE/src/app --include='*.ts' --exclude='*.spec.ts'
+```
+
+Lệnh thứ hai chỉ thấy dòng bắt đầu ở cột đầu: một khối `@media` hay `@supports` đặt ở cấp cao nhất thì selector bên trong nó thụt lề và lọt — đọc tay các khối `@` của tệp đó.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §4.2
 
@@ -365,10 +385,12 @@ Gom vào `_thu-vien.scss`; mỗi khối override bắt buộc có chú thích tr
 
 ```bash
 # Luật F8 — PASS khi không in ra dòng nào.
+# Ép LC_ALL=C.UTF-8: ở locale C (Git Bash, CI), grep so lớp ký tự theo BYTE và bắt nhầm ký tự
+# UTF-8 khác có chung byte với một chữ có dấu.
 [ -d src/FE/src/app ] || { echo "F8: không có src/FE/src/app để quét"; exit 1; }
 find src/FE/src/app -name '*.html' | while IFS= read -r f; do
   perl -0777 -pe 's{<!--.*?-->}{ "\n" x (() = ($& =~ /\n/g)) }gse' "$f" \
-    | grep -nE '[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]' \
+    | LC_ALL=C.UTF-8 grep -nE '[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]' \
     | sed "s|^|$f:|"
 done
 ```
@@ -429,11 +451,23 @@ Khoá phẳng theo miền, phân cấp bằng dấu chấm, camelCase ở mỗi 
 Định dạng bằng pipe chuẩn của Angular, locale theo ngôn ngữ hiện tại — **không** tự ghép chuỗi ngày, không tự chèn dấu phân cách hàng nghìn.
 
 ```html
-{{ nguoiDung().createdAt | date: 'short' }}
+{{ nguoiDung().createdAt | date }}
 {{ tongTien() | number: '1.0-0' }}
 ```
 
-**`LOCALE_ID` và dữ liệu locale đến từ seam `CORE_I18N`** — luật F36, [ADR-0063](../adr/0063-locale-id-den-tu-seam-core-i18n.md): `provideCoreI18n` cấp `LOCALE_ID` từ `defaultLanguage` và đăng ký locale của mọi ngôn ngữ khai; `app.config.ts` không cấp `LOCALE_ID` riêng, không gọi `registerLocaleData` ngoài seam. Đã thi công — bảng đầu file, và cổng F36 canh.
+**Pipe `date` không nhận đối số định dạng ở template** — không tên khuôn như `'short'`, không chuỗi khuôn như `'dd/MM/y'`. Khuôn đến từ seam `CORE_I18N`: mỗi mục ngôn ngữ khai trường bắt buộc `dateTimeFormat` — khuôn ngày giờ —, và `provideCoreI18n` cấp khuôn của mục `defaultLanguage` vào `DATE_PIPE_DEFAULT_OPTIONS`; chữ ký ở [`fe-architecture.md`](fe-architecture.md) §2.5. Giá trị là của app, khai ở `app.config.ts`: `vi` là `HH:mm dd/MM/y` — hiện `03:12 10/09/2026` (người dùng chốt 2026-11-06, dòng cùng ngày ở [`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md)). Seam hôm nay cấp đúng một khuôn, khuôn ngày giờ; màn đầu tiên cần hiện chỉ ngày thì dừng lại hỏi `architect` để thêm một trường vào mục ngôn ngữ — không viết khuôn ở template. Đã thi công — bảng đầu file.
+
+**`LOCALE_ID`, dữ liệu locale và `DATE_PIPE_DEFAULT_OPTIONS` đến từ seam `CORE_I18N`** — luật F36, [ADR-0063](../adr/0063-locale-id-den-tu-seam-core-i18n.md): `provideCoreI18n` cấp `LOCALE_ID` từ `defaultLanguage` và đăng ký locale của mọi ngôn ngữ khai; `app.config.ts` không cấp `LOCALE_ID`, `DATE_PIPE_DEFAULT_OPTIONS` riêng, không gọi `registerLocaleData` ngoài seam. Phần `LOCALE_ID` và dữ liệu locale đã thi công — bảng đầu file, và cổng F36 canh.
+
+Vế khuôn ngày giờ chưa có cổng; tự rà — chạy ở gốc repo:
+
+```bash
+grep -rnE '\|[[:space:]]*date[[:space:]]*:' src/FE/src/app --include=*.html
+grep -rnE 'DATE_PIPE_DEFAULT_OPTIONS|formatDate\(|toLocale(Date|Time)?String\(|Intl\.DateTimeFormat' src/FE/src/app --include=*.ts \
+  | grep -v '\.spec\.ts:' | grep -v '^src/FE/src/app/core/config/core-i18n\.ts:'
+```
+
+**PASS:** không lệnh nào in dòng nào. Điểm mù: đối số của pipe viết xuống dòng, và template nội tuyến trong `.ts`.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §5.5
 
@@ -443,7 +477,7 @@ Khoá phẳng theo miền, phân cấp bằng dấu chấm, camelCase ở mỗi 
 
 ### 6.1 Khuôn
 
-Chỉ dùng **reactive form có kiểu**. Không template-driven form (`ngModel`) cho form nghiệp vụ.
+Chỉ dùng **reactive form có kiểu**. Không template-driven form (`ngModel`) cho form nghiệp vụ — tức mọi template ngoài `shared/ui/`. Lớp bọc ở `shared/ui/` được nối giá trị của chính nó vào control PrimeNG bên trong bằng `[ngModel]` + `(ngModelChange)`: đó không phải form, và form nghiệp vụ chỉ thấy bề mặt ngoài của lớp bọc — CVA hoặc `input()`/`output()`. Ví dụ, đối chiếu 2026-11-06: `src/FE/src/app/shared/ui/check/check.component.html`, chuỗi `[ngModel]="giaTriCVA()"`.
 
 > 📖 Khuôn ví dụ đầy đủ (class minh hoạ, chưa khớp tên file/class thật nào trong `src/FE` hôm nay — thực tế dùng khuôn "hộp thoại" như `hop-tao-nguoi-dung.component.ts`): [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §6.1.
 
@@ -470,7 +504,7 @@ API chi tiết ở spec component: [`../Design/Components/Input.md`](../Design/C
 
 ### 6.2 Gắn lỗi từ `fieldErrors` của BE
 
-Page (hoặc store của nó) **không** tự viết vòng lặp gắn lỗi và **không** tự chọn câu cho khu lỗi chung; gọi `applyFormFailure` ở `shared/forms/` — nhánh `error` của khuôn §6.1 là dạng gọi chuẩn.
+Page (hoặc store của nó) **không** tự viết vòng lặp gắn lỗi và **không** tự chọn câu cho khu lỗi chung; gọi `applyFormFailure` ở `shared/forms/` — nhánh `error` của khuôn §6.1 là dạng gọi chuẩn. Ngoại lệ chỉ có ở đoạn *Ngoại lệ có tên — màn đăng nhập* dưới đây; màn không có tên ở đó thì không tự chọn câu.
 
 **Hàm gắn lỗi của phản hồi thất bại vào form — định nghĩa gốc:** `shared/forms/apply-form-failure.ts` — `applyFormFailure<F extends FormGroup>(form: F, loi: ApiFailureError, translate: TranslateService, maGocVaoO: BangMaGocVaoO<F> = {}): string | null`. Nó bọc `applyFieldErrors` ([`../wiki-core/fe/09-forms-validation.md`](../wiki-core/fe/09-forms-validation.md) §4 — chữ ký, khoá lồng nhau, khoá không khớp) để **một** luật quyết việc lỗi không được biến mất, không lặp ở từng hộp:
 
@@ -481,19 +515,30 @@ Page (hoặc store của nó) **không** tự viết vòng lặp gắn lỗi và
 
 **Mã gốc vào ô** ([ADR-0086](../adr/0086-ma-goc-vao-o-qua-bang-cua-applyformfailure.md)): `BangMaGocVaoO<F>` là `Readonly<Record<string, Extract<keyof F['controls'], string>>>` — mã gốc → tên control **cấp một**, gõ sai tên là lỗi biên dịch. Mã gốc vào ô khi đủ ba điều kiện: `loi.body` khác `null`, bảng có mã đó, `form.get(ô)` khác `null`. Khi đó `server` của ô là câu `dichLoi` của mã gốc rồi tới câu các mã con cùng ô; lỗi server lần trước bị thay, lỗi validator client giữ nguyên, ô được `markAsTouched`; mã gốc **không bao giờ** lên khu chung. Thiếu một điều kiện → như không có bảng. Store khai bảng `MA_GOC_VAO_O` theo bảng *Mã lỗi → chỗ hiện* của screen spec, và đưa mọi `ApiFailureError` vào hàm, không lọc theo danh sách mã — trừ `CORE.CONCURRENCY.CONFLICT` ở màn có nhánh tải lại.
 
-🛑 **Mã gốc không nói thay mã con.** Câu của mã gốc chỉ dùng ở đường lùi hoặc dưới ô của bảng trên — mã nào cũng vậy, kể cả `CORE.TENANT.ADMIN_CREATE_FAILED`. Ca đắt nhất là `CORE.VALIDATION.FAILED`: câu của nó (*"kiểm tra lại các trường được đánh dấu"*) sai khi không ô nào được đánh dấu. Screen spec quyết **chỗ hiện** (bảng *Mã lỗi → chỗ hiện*); **câu nào** thì chỉ mục này quyết. Chốt 2026-09-24.
+🛑 **Mã gốc không nói thay mã con.** Câu của mã gốc chỉ dùng ở đường lùi hoặc dưới ô của bảng trên — mã nào cũng vậy, kể cả `CORE.TENANT.ADMIN_CREATE_FAILED` và `CORE.VALIDATION.FAILED`. Screen spec quyết **chỗ hiện** (bảng *Mã lỗi → chỗ hiện*); **câu nào** thì chỉ mục này quyết. Chốt 2026-09-24.
 
-**Ngoại lệ có tên — màn đăng nhập:** mọi mã ngoài `CORE.VALIDATION.FAILED` đi qua `dichLoiChoMan` ([`fe-api-client.md`](fe-api-client.md) §2.2) vào khu lỗi, không qua `applyFormFailure`, không vào ô nào — một câu, không chỉ ra ô nào sai ([`../Design/Screens/01-dang-nhap.md`](../Design/Screens/01-dang-nhap.md), chống dò tài khoản). Bảo đảm thật ở BE: bốn ca một mã, không `fieldErrors` ([`../contracts/auth.md`](../contracts/auth.md) §3).
+**Ngoại lệ có tên — màn đăng nhập** ([ADR-0116](../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md); [`../Design/Screens/01-dang-nhap.md`](../Design/Screens/01-dang-nhap.md) mục *Câu chữ* và mục *Trạng thái*, nhánh *lỗi*, *kiểm tra dữ liệu*). Màn này có hai chế độ — thường hai ô, vận hành ba ô — nên câu của mã không đúng cho cả hai. Đây là màn **duy nhất** tự chọn câu cho khu lỗi, và chỉ ở hai ca, mỗi ca một khoá riêng của màn:
+
+| Ca | Câu ở khu lỗi |
+| --- | --- |
+| `CORE.AUTH.INVALID_CREDENTIALS`, chế độ vận hành | `xacThuc.dangNhap.loiSaiThongTinVanHanh` |
+| `CORE.VALIDATION.FAILED` mang khoá `TenantCode`, chế độ thường | `xacThuc.dangNhap.loiCauHinhMaDonVi`; câu các khoá khác — nếu có — nối sau, lấy từ `applyFormFailure`, và các khoá đó vẫn vào ô |
+
+Ngoài hai ca đó, màn đăng nhập theo luật chung: `CORE.VALIDATION.FAILED` đi qua `applyFormFailure`; mọi mã khác đi qua `dichLoiChoMan` ([`fe-api-client.md`](fe-api-client.md) §2.2) vào khu lỗi, không vào ô nào — một câu, không chỉ ra phần nào sai (chống dò tài khoản). Bảo đảm thật ở BE: bốn ca một mã, không `fieldErrors` ([`../contracts/auth.md`](../contracts/auth.md) §3). Màn khác cần câu riêng cho khu lỗi thì thêm hàng vào bảng trên kèm căn cứ đã được duyệt, không tự chọn câu trong code.
 
 **Toast và banner không đi cùng nhau.** Form dùng `applyFormFailure` tự hiện lỗi của mình, nên lời gọi ghi của nó mang `BO_QUA_TOAST_LOI` — thiếu thì lỗi hiện hai lần. Cờ chỉ tắt toast cho lỗi **của màn**: lớp lỗi xuyên suốt ([`fe-api-client.md`](fe-api-client.md) §2.2) luôn toast, và khu lỗi của màn **bỏ qua** lớp đó — `applyFormFailure`, `fieldErrorsText`, `dichLoiChoMan` trả `null`. Lỗi kèm `fieldErrors` thì interceptor không toast, có cờ hay không.
 
-**Hàm đưa focus về ô sai khi gửi sai — định nghĩa gốc:** `shared/forms/focus-o-sai-dau-tien.ts` — `focusOSaiKhiGuiSai(lanGuiSai, goc)` gọi trong constructor của component (cần injection context), và `focusOSaiDauTien(goc)` là phần thuần bên dưới nó. Lớp logic tăng `lanGuiSai` (một `signal<number>`, khởi tạo `0`) ở nhánh "bấm gửi nhưng form không hợp lệ"; component đọc nó, và **sau lần render kế tiếp** mới đặt focus về ô sai đầu tiên trong `goc` — vì dấu nhận diện `aria-invalid="true"` (do `app-input` đặt khi `invalid && touched`) chỉ có trên DOM sau khi lỗi được vẽ. Luật hiển thị ở [`../wiki-core/fe/09-forms-validation.md`](../wiki-core/fe/09-forms-validation.md) §5. Hộp thoại có hai form thì `goc` chọn form của hộp đang mở. Store giữ `lanGuiSai`, component hộp nhận nó qua `input()` — component không biết store ([`fe-architecture.md`](fe-architecture.md) §3.1).
+**Hàm đưa focus về ô sai khi gửi sai — định nghĩa gốc:** `shared/forms/focus-o-sai-dau-tien.ts` — `focusOSaiKhiGuiSai(lanGuiSai, goc)` gọi trong constructor của component (cần injection context), và `focusOSaiDauTien(goc)` là phần thuần bên dưới nó. Lớp logic tăng `lanGuiSai` (một `signal<number>`, khởi tạo `0`) ở nhánh "bấm gửi nhưng form không hợp lệ"; component đọc nó, và **sau lần render kế tiếp** mới đặt focus về ô sai đầu tiên trong `goc` — ô sai nhận ra bằng `aria-invalid="true"`, do `app-input` đặt khi `invalid && touched`. Luật hiển thị ở [`../wiki-core/fe/09-forms-validation.md`](../wiki-core/fe/09-forms-validation.md) §5. Hộp thoại có hai form thì `goc` chọn form của hộp đang mở. Store giữ `lanGuiSai`, component hộp nhận nó qua `input()` — component không biết store ([`fe-architecture.md`](fe-architecture.md) §3.1).
 
 Ba điểm khi gọi:
 
 1. **Khoá của `fieldErrors` là tên property gốc phía BE** (PascalCase) — chuyển về tên control nằm **trong** hàm dùng chung, không lặp ở page ([`fe-api-client.md`](fe-api-client.md) §1.3).
 2. **Giá trị là danh sách mã lỗi, không phải danh sách câu.** Hàm dùng chung dịch từng mã.
 3. **Lỗi từ server bị xoá ngay khi người dùng sửa ô đó.**
+
+**Mã con chưa có khoá dịch hiện câu dự phòng chung, không bao giờ hiện chuỗi khoá thô** (người dùng chốt 2026-10-06). Câu dự phòng là khoá `loi.CORE.VALIDATION.INVALID` — bậc 3 của [`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §5.4; mã con không mang câu BE nào nên không có bậc 2. Áp cho mọi chỗ hiện mã con: dưới ô và ở khu lỗi chung. Một hàm dịch một mã con — `cauMaCon` ở `shared/forms/field-errors-text.ts`; nơi khác không tự gọi `translate.instant` cho mã con. Thêm khoá cho mã mới vẫn là việc của F16 ([`../RULES-FE.md`](../RULES-FE.md)): câu dự phòng giữ màn không lộ tên kỹ thuật, không nói được lý do thật.
+
+> ✅ **CÓ THẬT** (đối chiếu 2026-10-06): `src/FE/src/app/shared/forms/field-errors-text.ts` — câu dự phòng ở chuỗi `const KHOA_CAU_DU_PHONG = 'loi.CORE.VALIDATION.INVALID';`; dưới ô, `applyFieldErrors` dịch qua `cauMaCon`; khu lỗi chung, `cauTungMa` (gọi từ `applyFormFailure` và `fieldErrorsText`) dịch từng mã ở chuỗi `loi.map((l) => cauMaCon(translate, l))`. Ca mã thiếu bản dịch: `field-errors-text.spec.ts`, `apply-form-failure.spec.ts`.
 
 **Ngoại lệ — màn trong `AuthCard`:** `fieldErrors` không khớp ô nào đưa vào khu lỗi của `AuthCard` qua input `errorMessage` ([`../Design/Components/AuthCard.md`](../Design/Components/AuthCard.md) mục *API dự kiến*), **không** toast.
 
@@ -564,16 +609,30 @@ Hàm ở `shared/forms/field-error-text.ts`, cạnh `applyFieldErrors`; page g�
 
 Hiện thực: `src/FE/src/app/shared/forms/field-error-text.ts` — `export function fieldErrorText(`, nhận `control`, `formSubmitted`, `translate`, trả `string | null`. Lỗi client dịch bằng khoá `loi.CORE.CLIENT.VALIDATION_<KHOÁ VIẾT HOA>`, tham số dịch là object lỗi của validator.
 
-| Luật | Vì sao |
-| --- | --- |
-| Control không có lỗi → `null` | `FormRow` coi `null` là không lỗi |
-| Control chưa `touched` **và** `formSubmitted` là `false` → `null` | Người dùng đang gõ lần đầu, chưa rời ô — mục Trạng thái của [`../Design/Components/FormRow.md`](../Design/Components/FormRow.md) |
-| Control đã `touched`, hoặc form đã gửi → trả câu lỗi, tính lại mỗi lần giá trị đổi | Ba nhánh còn lại của cùng bảng: rời ô, bấm gửi, đang sửa một ô đã báo lỗi |
-| Trả **một** câu đã dịch | `error` của `FormRow` là một chuỗi. Câu đến từ lỗi `server` (đã dịch sẵn ở [`../wiki-core/fe/09-forms-validation.md`](../wiki-core/fe/09-forms-validation.md) §4.1) hoặc từ mã validator phía client |
-| Ô mang **nhiều** lỗi cùng lúc → trả câu của lỗi **đầu tiên**: lỗi server theo thứ tự BE trả, lỗi client theo thứ tự validator khai ở control. Sửa xong lỗi đó, hoặc gửi lại, thì lỗi kế hiện ra | `error` của `FormRow` là một chuỗi, và hiện hết mọi lỗi làm form nhảy ([`../Design/Components/FormRow.md`](../Design/Components/FormRow.md)). Lỗi client tính lại theo giá trị, nên sửa xong lỗi đầu là lỗi kế hiện ngay; lỗi server bị gỡ cả nhóm khi giá trị đổi ([`../wiki-core/fe/09-forms-validation.md`](../wiki-core/fe/09-forms-validation.md) §4.2), nên mã server kế hiện ra ở lần gửi lại nếu giá trị mới vẫn vi phạm nó |
-| Control mang **cả** lỗi `server` lẫn lỗi validator client → trả câu của `server`, cho tới khi giá trị ô đổi | Lỗi server là câu trả lời về **chính giá trị đang nằm trong ô**. Giá trị đổi thì khoá `server` bị gỡ ([`../wiki-core/fe/09-forms-validation.md`](../wiki-core/fe/09-forms-validation.md) §4.2) và lỗi client, nếu còn, hiện ra |
+Luật — lý do từng dòng ở tệp `ly-do` cùng mục; luật hiển thị gốc ở mục Trạng thái của [`../Design/Components/FormRow.md`](../Design/Components/FormRow.md), bảng *Lỗi hiện khi nào*:
+
+1. Control không có lỗi → `null`.
+2. Control chưa `touched` **và** `formSubmitted` là `false` → `null`.
+3. **Ô tự đặt focus lúc mở**, chưa `dirty`, `formSubmitted` là `false` → `null`, vì rời ô đó — kể cả khi chuyển sang cửa sổ khác — **không** làm control `touched`, nên dòng 2 áp. Ô được sửa, hoặc form gửi, thì theo các dòng còn lại. Chặn ở chỗ đánh dấu `touched`, không ở `fieldErrorText`: đoạn *Ô tự đặt focus lúc mở* ngay dưới.
+4. Control đã `touched`, hoặc form đã gửi → trả câu lỗi, tính lại mỗi lần giá trị đổi.
+5. Trả **một** câu đã dịch: câu của lỗi `server` (đã dịch sẵn ở [`../wiki-core/fe/09-forms-validation.md`](../wiki-core/fe/09-forms-validation.md) §4.1) hoặc của mã validator phía client.
+6. Ô mang **nhiều** lỗi cùng lúc → câu của lỗi **đầu tiên**: lỗi server theo thứ tự BE trả, lỗi client theo thứ tự validator khai ở control. Sửa xong lỗi đó, hoặc gửi lại, thì lỗi kế hiện ra.
+7. Control mang **cả** lỗi `server` lẫn lỗi validator client → câu của `server`, cho tới khi giá trị ô đổi.
 
 `formSubmitted` là signal "đã gửi" của page — `daGui()` ở §6.1.
+
+**Ô tự đặt focus lúc mở — định nghĩa gốc.** Ô tự đặt focus lúc mở là ô mà màn, `Dialog` hay `Drawer` `edit` đặt focus vào khi mở, không do người dùng chọn. Code nhận ra nó bằng **cờ trên phần tử**: thuộc tính `data-focus-luc-mo`, do đúng một hàm gắn — `shared/forms/focus-luc-mo.ts`:
+
+- `datFocusLucMo(phanTu: HTMLElement, tuyChon?: FocusOptions): void` — gắn cờ rồi mới đặt focus. Mọi lần đặt focus lúc mở đi qua hàm này, không gọi thẳng `focus()`. Mỗi chỗ có đúng một hàm chọn phần tử rồi gọi nó: `Drawer` — `khiHien`; `Dialog` — hàm chạy khi hộp hiện, của chính lớp bọc, không giao việc đặt focus lúc mở cho `focusOnShow` của PrimeNG; màn xác thực — `AuthField.focus()`, lối đặt focus ban đầu mà trang gọi.
+- `roiOLaCham(phanTu: EventTarget | null, control: AbstractControl | null): boolean` — `false` khi phần tử vừa mất focus mang cờ **và** control chưa `dirty`; còn lại `true`. CVA gọi `onTouched` lúc rời ô (§6.1) chỉ khi hàm này trả `true`. Lần gọi `onTouched` đi cùng `onChange` thì không qua hàm: control đã `dirty`.
+
+`fieldErrorText` không đổi. Cờ không bao giờ gỡ: ô chưa sửa vẫn là ô chưa sửa dù người dùng tự bấm vào lại; gửi form thì `markAllAsTouched` mở mọi ô. Focus đặt vì lý do khác không cần cờ: về ô sai sau khi gửi (§6.2) — form đã gửi, có cờ hay không cũng như nhau; về ô sau khi tải lại bản mới vì xung đột — theo luật thường, không gắn.
+
+> ✅ **CÓ THẬT** (đối chiếu 2026-10-08) — dòng 3 và đoạn *Ô tự đặt focus lúc mở* (chốt 2026-10-08, dòng cùng ngày ở [`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md)):
+>
+> - Tệp `src/FE/src/app/shared/forms/focus-luc-mo.ts` có `export function datFocusLucMo(phanTu: HTMLElement, tuyChon?: FocusOptions): void {` — gắn `setAttribute(CO_FOCUS_LUC_MO, '')` trước `phanTu.focus(tuyChon)` — và `export function roiOLaCham(phanTu: EventTarget | null, control: AbstractControl | null): boolean {`. Spec cạnh nó, `focus-luc-mo.spec.ts`, có các ca `có cờ, control chưa sửa → false`, `có cờ, control đã sửa (dirty) → true`, `không cờ → true, dù control chưa sửa`, `gắn cờ TRƯỚC khi phần tử nhận focus`.
+> - CVA: `src/FE/src/app/shared/components/auth-field/auth-field.component.ts` và `src/FE/src/app/shared/components/input/input.component.ts` có `if (roiOLaCham(event.target, this.ngControl?.control ?? null)) {` bọc `this.onTouched();` trong `chamVao`; template của cả hai gọi `(blur)="chamVao($event)"`. `src/FE/src/app/shared/forms/field-error-text.ts` giữ `(!control.touched && !formSubmitted)`.
+> - Ba chỗ đặt focus lúc mở đi qua `datFocusLucMo`: `src/FE/src/app/shared/ui/drawer/drawer.component.ts` — `if (dich) datFocusLucMo(dich, { preventScroll: true });` trong `khiHien`; `src/FE/src/app/shared/ui/dialog/dialog.component.ts` — `datFocusLucMo(dich);` trong `khiHien`, và `dialog.component.html` có `[focusOnShow]="false"`; `auth-field.component.ts` — `if (o) datFocusLucMo(o);` trong `focus()`. Cùng tệp đó, `focusLai()` gọi `focus()` thường — trả focus vì lý do khác, không gắn cờ, đúng đoạn trên.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §6.5
 
@@ -581,7 +640,7 @@ Hiện thực: `src/FE/src/app/shared/forms/field-error-text.ts` — `export fun
 
 ## 7. Responsive
 
-Điểm ngắt là **biến SCSS** `$bp-*`, giá trị quyết ở [`../Design/DESIGN.md`](../Design/DESIGN.md) §6.3 và áp ở `_spacing.scss`; component dùng qua mixin — không gõ số pixel rải rác. Không khai điểm ngắt thành CSS custom property.
+Điểm ngắt là **biến SCSS** `$bp-*`, giá trị quyết ở [`../Design/DESIGN.md`](../Design/DESIGN.md) §6.3 và áp ở `_spacing.scss`; component dùng qua mixin — không gõ số pixel rải rác. Không khai điểm ngắt thành CSS custom property. SCSS viết truy vấn theo độ rộng **chỉ qua hai mixin dưới đây**: ngoài `_spacing.scss`, không tệp SCSS nào viết `@media` theo độ rộng (luật F58).
 
 ```scss
 // src/styles/_spacing.scss — phần điểm ngắt. Mixin nhận một biến $bp-*, không nhận số.
@@ -590,16 +649,48 @@ Hiện thực: `src/FE/src/app/shared/forms/field-error-text.ts` — `export fun
     @content;
   }
 }
+
+// Phép trừ biên duy nhất của SCSS — §7.1.
+@mixin duoi-man-hinh($nguong) {
+  @media (max-width: $nguong - 0.02px) {
+    @content;
+  }
+}
 ```
 
-Component `@use 'spacing' as s;` rồi `@include s.tu-man-hinh(s.$bp-md) { … }`.
+Component `@use 'spacing' as s;` rồi `@include s.tu-man-hinh(s.$bp-md) { … }`. Cần gỡ một hành vi chỉ có ở màn rộng thì `@include s.duoi-man-hinh(s.$bp-md) { … }` — mobile-first vẫn là mặc định (luật đầu bảng dưới).
 
 | Luật | Vì sao |
 | --- | --- |
 | Thiết kế từ màn hình nhỏ trở lên (`min-width`), không ngược lại | Quy tắc cộng dồn dễ đọc hơn quy tắc trừ bớt |
 | Không ẩn nội dung ở màn hình nhỏ để "cho gọn" | Nội dung bị ẩn là nội dung người dùng di động không bao giờ có |
 | Bảng dữ liệu rộng: cuộn ngang **trong khung của nó**, không để cả trang cuộn ngang | Trang cuộn ngang làm mất luôn thanh điều hướng |
-| Giá trị breakpoint chỉ khai ở `_spacing.scss` | Ba màn hình dùng ba ngưỡng khác nhau là lỗi không ai báo |
+| Giá trị breakpoint chỉ khai ở `_spacing.scss` — ngoại lệ có tên duy nhất: tệp phản chiếu cho TypeScript ở §7.1 | Ba màn hình dùng ba ngưỡng khác nhau là lỗi không ai báo |
+
+### 7.1 Dưới điểm ngắt, và điểm ngắt trong TypeScript — định nghĩa gốc
+
+> ✅ **CÓ THẬT** (đối chiếu 2026-10-08): `src/FE/src/app/core/theme/diem-ngat.ts` có `export const TRUY_VAN_DUOI_BP_SM = '(max-width: 639.98px)';` — neo đầy đủ ở bảng đầu tệp, hàng §7.
+
+**Dưới điểm ngắt** là `max-width` bằng giá trị của biến `$bp-*` **trừ `0.02px`** — một phép trừ cho cả SCSS lẫn TypeScript. Không trừ `1px`, không viết số nguyên.
+
+**Ngoại lệ có tên** của luật *giá trị breakpoint chỉ khai ở `_spacing.scss`*: `matchMedia` cần điểm ngắt mà điều kiện `@media` của SCSS không đọc được từ TypeScript, nên giá trị có bản thứ hai — ở **đúng một tệp**, `src/FE/src/app/core/theme/diem-ngat.ts`. Luật F58.
+
+| Ràng buộc | Nội dung |
+| --- | --- |
+| Dạng hằng | Chuỗi media query dựng sẵn, truyền thẳng vào `matchMedia`. Không xuất số px, không xuất hàm dựng truy vấn |
+| Tên | `TRUY_VAN_DUOI_BP_<X>` cho `(max-width: …)`, `TRUY_VAN_TU_BP_<X>` cho `(min-width: …)`; `<X>` là hậu tố của `$bp-<x>` viết HOA |
+| Giá trị | `DUOI`: giá trị `$bp-<x>` trừ `0.02px`. `TU`: đúng giá trị `$bp-<x>` |
+| Chú thích | Khối `/** … */` liền trên mỗi hằng nêu đích danh **một** biến `$bp-<x>`, khớp hậu tố tên |
+| Khai khi nào | Khi có nơi dùng — không phản chiếu sẵn cả thang |
+| Ngoài tệp này | Không `.ts` nào viết `(max-width:` / `(min-width:` hay khai hằng điểm ngắt dạng số; component import hằng từ tệp này |
+
+```typescript
+// src/FE/src/app/core/theme/diem-ngat.ts — HÌNH DẠNG. Số thật tính từ _spacing.scss, không chép vào tài liệu.
+/** Phản chiếu `$bp-xs` — dưới điểm ngắt. */
+export const TRUY_VAN_DUOI_BP_XS = '(max-width: <giá trị $bp-xs trừ 0.02>px)';
+```
+
+Đổi một `$bp-*` thì đổi hằng cùng hậu tố ở tệp này; cổng F58 so từng hằng với `_spacing.scss` và nêu hằng lệch. Phép dò: [`../wiki-core/fe/trien-khai/05-gate.md`](../wiki-core/fe/trien-khai/05-gate.md) §8.16.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §7
 
@@ -664,33 +755,40 @@ export interface UiTreeNode {
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §9
 
-### Họ kiểu CỘT — một gốc, hai mở rộng
+### Họ kiểu CỘT — mỗi component bảng tự khai kiểu cột
 
-Ba component hiển thị dữ liệu dạng cột dùng chung một gốc:
+Mỗi component hiển thị dữ liệu dạng cột khai kiểu cột của riêng nó, trong chính tệp component; **không có kiểu gốc chung**. Chép theo code, đối chiếu 2026-10-06:
 
 ```typescript
-/** Gốc chung. Table dùng thẳng kiểu này. */
-export interface ColumnDef<T = unknown> {
-  key: string;
-  header: string;
-  width?: string;
-  align?: 'start' | 'end';
-  hideBelow?: 'xs' | 'sm' | 'md' | 'lg';   // điểm ngắt mà cột bị ẩn
-  cell?: TemplateRef<{ $implicit: T }>;
-  value?: (row: T) => string;              // ĐÚNG MỘT trong cell/value; value vẽ thành chữ — cột của seam CORE_SCREEN_EXT
+/** Table — khai ở shared/components/table/table.component.ts. `cell` BẮT BUỘC: không có bộ vẽ mặc định theo chuỗi. */
+export interface TableColumnDef<T = unknown> {
+  readonly key: string;
+  readonly header: string;
+  readonly align?: 'start' | 'end';
+  readonly width?: string;
+  readonly cell: TemplateRef<{ $implicit: T; column: TableColumnDef<T> }>;
 }
 
-/** DataTable thêm ba khả năng của một lưới đọc. */
-export interface DataColumnDef<T = unknown> extends ColumnDef<T> {
-  sortable?: boolean;
-  priority?: 'high' | 'low';               // 'low' bị ẩn trước khi thu hẹp
-  frozen?: boolean;
+/** DataTable — khai ở shared/ui/data-table/data-table.component.ts, re-export ở shared/ui/types.ts. */
+export interface DataColumnDef<T = unknown> {
+  readonly key: string;
+  readonly header: string;
+  readonly width?: string;
+  readonly align?: 'start' | 'end';
+  readonly hideBelow?: 'xs' | 'sm' | 'md' | 'lg';   // điểm ngắt mà cột bị ẩn
+  readonly sortable?: boolean;
+  readonly priority?: 'high' | 'low';               // 'low' bị ẩn trước khi thu hẹp
+  readonly cell?: TemplateRef<{ $implicit: T }>;
+  readonly value?: (row: T) => string;              // ĐÚNG MỘT trong cell/value; value vẽ thành chữ — cột của seam CORE_SCREEN_EXT
+  // 📐 frozen?: boolean — chưa thi công: DataTable hôm nay chưa dựng công tắc ghim cột
 }
 ```
 
 > 📐 `EditableColumnDef`, `DataTableSwitches`, `SummaryRow` (dùng cho `EditableGrid`/`DataTable`) chưa có tệp thật trong `src/FE` hôm nay — chữ ký chuyển sang [`fe-ui-conventions-chua-thi-cong.md`](fe-ui-conventions-chua-thi-cong.md).
 
-**Một cột có đúng một trong `cell` và `value`**; thiếu cả hai thì component ném lỗi lúc dựng cột. `value` dành cho cột thêm qua seam ([`fe-architecture.md`](fe-architecture.md) §2.7).
+**Một cột `DataColumnDef` có đúng một trong `cell` và `value`**; thiếu cả hai hay có cả hai thì component ném lỗi lúc dựng cột. `value` dành cho cột thêm qua seam ([`fe-architecture.md`](fe-architecture.md) §2.7). Cột `Table` luôn có `cell`.
+
+**Trường cùng nghĩa mang cùng tên và cùng kiểu ở mọi kiểu cột.** Kiểu cột mới, hay trường mới ở một kiểu đã có, chép đúng tên và kiểu của trường cùng nghĩa ở kiểu kia. Không có cổng nào kiểm điều này; người review kiểm.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §9
 
@@ -701,18 +799,24 @@ Bảy component nhận mảng lựa chọn; **không** gộp thành một kiểu
 ```typescript
 export interface Option { key: string; label: string; hint?: string }          // Autocomplete
 export interface SegmentOption { value: string; label: string; icon?: string; disabled?: boolean }
-export type { LanguageOption } from '../../core/config/core-i18n';           // khai ở core (fe-architecture.md §2.5) — cùng kiểu với CORE_I18N.languages
+                                            // 📐 icon?, disabled? chưa thi công — kiểu thật ở input.component.ts chỉ có value, label
+// LanguageOption khai ở core/config/core-i18n.ts (fe-architecture.md §2.5), không tệp nào re-export — cùng kiểu với CORE_I18N.languages
 export interface FooterLink { label: string; href: string; external?: boolean }
 
-/** Một trường trong FilterPanel. Seam CORE_SCREEN_EXT chưa nhận trường lọc — hoãn tới khi có FilterPanel (ADR-0057). */
+/** Một trường trong FilterPanel. Seam CORE_SCREEN_EXT chưa nhận trường lọc — lý do hoãn: fe-architecture.md §2.7.
+ *  ✅ CÓ THẬT (đối chiếu 2026-10-08): src/FE/src/app/shared/components/filter-panel/filter-panel.component.ts,
+ *  chuỗi `export interface FilterField {` — cùng tên trường, cùng tập `kind`; code khai mọi trường `readonly`. */
 export interface FilterField {
   key: string;
   label: string;
-  kind: 'text' | 'number' | 'date' | 'daterange' | 'select' | 'multiselect' | 'tree' | 'check';
+  kind: 'text' | 'number' | 'date' | 'daterange' | 'select' | 'multiselect' | 'tree' | 'check'
+      | 'autocomplete';
                                             // 'date' → DatePicker mode='single'; 'daterange' → mode='range'
+                                            // 'autocomplete' → Autocomplete variant='single', tìm qua máy chủ; giá trị là
+                                            //   khoá của mục đã chọn. Kết quả tìm và nhãn vào qua input của FilterPanel, không qua đây
   options?: ReadonlyArray<SegmentOption>;   // cho 'select' / 'multiselect'
   nodes?: ReadonlyArray<UiTreeNode>;        // cho 'tree'
-  placeholder?: string;
+  placeholder?: string;                     // bắt buộc với 'autocomplete' — input bắt buộc của Autocomplete
   group?: string;                           // trường cùng group xếp chung <fieldset>
 }
 ```
@@ -750,5 +854,6 @@ Ba luật đi kèm:
 | F9 | Không còn cú pháp Angular cũ | §1.4 |
 | F13 | Mọi `@for` có `track` — `ng build` ép | §1.2 |
 | F23 | Mọi file ngôn ngữ có cùng tập khoá | §5.3 |
+| F58 | Truy vấn độ rộng chỉ qua hai mixin của `_spacing.scss` và tệp phản chiếu điểm ngắt cho TypeScript | §7, §7.1 |
 
 Bảng đầy đủ: [`../RULES.md`](../RULES.md) §7. Nền lý thuyết: [`../wiki-core/fe/04-design-token-system.md`](../wiki-core/fe/04-design-token-system.md) · [`../wiki-core/fe/05-component-library.md`](../wiki-core/fe/05-component-library.md) · [`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md).

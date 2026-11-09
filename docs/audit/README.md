@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # `audit/` — postmortem sự cố và kết quả audit
 
-> **Khu này giữ bài học.** Không phải để tưởng niệm, mà vì mỗi mục ở đây **sinh ra một mục cổng mới**.
+> **Khu này giữ bài học.** Không phải để tưởng niệm, mà vì mỗi mục ở đây **thiết kế cổng lẽ ra phải bắt sự cố** — phần 4 của khuôn ở §3. Cổng chỉ dựng khi vi phạm lặp lại ([ADR-0114](../adr/0114-bo-so-no-luat-ve-rules-viec-ton-sang-issues-review-khong-sinh-viec-stop-chan-review-mot-lan-go-nhanh-chua-co-src.md)).
 >
 > Một sự cố không có bản ghi sẽ lặp lại. Một bản ghi không nói được *cổng nào lẽ ra phải bắt* thì chỉ là chuyện kể.
 
@@ -26,9 +26,9 @@ Khu này là chỗ đó. Nó chỉ có giá trị nếu được viết đều: 
 
 | Thuộc `audit/` | Thuộc chỗ khác |
 | --- | --- |
-| Sự cố đã xảy ra trên môi trường thật | Rủi ro dự đoán, chưa xảy ra → viết ở [`../RULES.md`](../RULES.md) hoặc `quy-uoc/` |
+| Sự cố đã xảy ra trên môi trường thật | Rủi ro dự đoán, chưa xảy ra → dòng luật ở tệp `RULES-*.md` theo phạm vi, chưa có cổng thì mang `🕳️` (mục lục: [`../RULES.md`](../RULES.md)); hoặc `quy-uoc/` |
 | Kết quả rà soát toàn cục có phát hiện cụ thể | Ghi chú review của một PR đơn lẻ |
-| Một cổng phát hiện đang không hoạt động | Đề xuất thêm cổng mới → [`../RULES.md`](../RULES.md) |
+| Một cổng phát hiện đang không hoạt động | Đề xuất thêm cổng mới → tệp `RULES-*.md` theo phạm vi (mục lục: [`../RULES.md`](../RULES.md)) |
 | Một quyết định cũ đã gây hậu quả đo được | Lý do chọn một quyết định → [`../adr/`](../adr/) |
 
 **Phép thử:** nếu không viết được phần *"cổng nào lẽ ra phải bắt"*, hãy hỏi lại xem đây có phải sự cố không. Nhiều thứ tưởng là sự cố thật ra là một quyết định đã cân nhắc và chấp nhận rủi ro — thứ đó thuộc `adr/`.
@@ -42,9 +42,9 @@ Khu này là chỗ đó. Nó chỉ có giá trị nếu được viết đều: 
 | 3 | **Cách vá** | Đã làm gì để dừng chảy máu? Vá triệu chứng hay vá gốc? | Ghi cách vá như thể đã xong chuyện, trong khi mới chỉ chặn triệu chứng |
 | 4 | **Cổng nào lẽ ra phải bắt** | Cơ chế nào — có sẵn hoặc phải dựng — sẽ chặn lớp lỗi này lần sau? | Viết "cần cẩn thận hơn". Đó không phải cổng, đó là niềm tin |
 
-**Phần 4 là phần có giá trị nhất.** Ba phần đầu kể lại quá khứ; phần 4 đổi tương lai. Mỗi mục audit nên kết thúc bằng một dòng cụ thể đủ để thêm vào bảng luật ở [`../RULES.md`](../RULES.md), kèm cột *"Ép bằng gì"*.
+**Phần 4 là phần có giá trị nhất.** Ba phần đầu kể lại quá khứ; phần 4 đổi tương lai. Mỗi mục audit nên kết thúc bằng một dòng cụ thể đủ để thêm vào bảng luật ở một tệp `RULES-*.md` (mục lục: [`../RULES.md`](../RULES.md)), kèm cột *"Ép bằng gì"*.
 
-Nếu phần 4 kết luận rằng **chưa có cổng nào khả thi**, hãy viết đúng như vậy và đưa nó vào danh sách nợ ở §10 của file đó. Nợ nhìn thấy được thì còn trả được.
+Nếu phần 4 kết luận rằng **chưa có cổng nào khả thi**, hãy viết đúng như vậy. Dòng luật ở tệp `RULES-*.md` khi đó mang `🕳️`, ô *Ép bằng gì* nêu ai canh hôm nay kèm *chưa có cổng* hoặc *không ép được bằng máy* ([ADR-0114](../adr/0114-bo-so-no-luat-ve-rules-viec-ton-sang-issues-review-khong-sinh-viec-stop-chan-review-mot-lan-go-nhanh-chua-co-src.md) quyết định 9). Chỗ hở nhìn thấy được ở bảng luật thì người soát biết phải canh gì.
 
 Nên có thêm một mục cuối: **bài học tổng quát** — phát biểu lớp lỗi ở mức trừu tượng hơn một bậc, để nó dùng được cho tình huống khác chứ không chỉ cho đúng file đã hỏng.
 
@@ -79,7 +79,7 @@ grep -l 'Cổng nào lẽ ra phải bắt' docs/audit/*.md
 
 Vì sao chặt thế: hai bản của cùng một câu chuyện sẽ lệch nhau, và bản nằm trong code là bản không ai sửa. Một dòng trỏ đường thì không thể lệch — nó hoặc đúng, hoặc chết, và cổng tài liệu phát hiện được cái chết đó.
 
-Kèm theo: dòng trỏ đường **không được trỏ vào file mang nhãn lịch sử** (luật D10 ở [`../RULES.md`](../RULES.md)). Ở dự án tiền nhiệm từng có một chú thích trỏ đúng vào một tài liệu đã chết — đường dẫn tồn tại nên cổng xanh, mà nội dung thì đã hết hiệu lực từ lâu.
+Kèm theo: dòng trỏ đường **không được trỏ vào file mang nhãn lịch sử** (luật D10 ở [`../RULES-DOCS.md`](../RULES-DOCS.md) §1). Ở dự án tiền nhiệm từng có một chú thích trỏ đúng vào một tài liệu đã chết — đường dẫn tồn tại nên cổng xanh, mà nội dung thì đã hết hiệu lực từ lâu.
 
 ## 6. Văn hoá không đổ lỗi
 
@@ -105,7 +105,7 @@ Và: **kể lại bằng văn xuôi.** Không trích dẫn dạng đường-dẫ
 | 2 | Ghi nháp phần **Hiện tượng** khi ký ức còn tươi | người phát hiện | trong ngày |
 | 3 | Điều tra tới **nguyên nhân gốc**, không dừng ở nguyên nhân gần nhất | người xử lý | trong vài ngày |
 | 4 | Viết phần **Cổng nào lẽ ra phải bắt**, và đề xuất luật kèm cột "Ép bằng gì" | người xử lý + người review | trước khi coi sự cố là đóng |
-| 5 | Thêm luật vào [`../RULES.md`](../RULES.md), hoặc đưa vào danh sách nợ nếu chưa có cổng khả thi | người review | cùng lúc bước 4 |
+| 5 | Thêm dòng luật vào tệp `RULES-*.md` theo phạm vi (mục lục: [`../RULES.md`](../RULES.md)); chưa có cổng khả thi thì dòng mang `🕳️` | `architect`, do phiên chính giao ([ADR-0111](../adr/0111-git-danh-sach-cho-phep-cong-docs-chan-mot-lan-architect-truoc-thi-cong-theo-dau-hieu.md) quyết định 1) | cùng lúc bước 4 |
 | 6 | Đặt **một dòng** trỏ tới file audit ở chỗ code liên quan, nếu có | người sửa code | khi sửa code |
 
 Hai điều dễ bị bỏ:
@@ -130,12 +130,13 @@ Phép thử cho phần 4: **luật đề xuất có bắt được sự cố nà
 
 | Mục | Cơ chế hỏng | Cổng nó sinh ra |
 | --- | --- | --- |
-| [2026-09-21 — mẫu mã trong luật không ai chạy](2026-09-21-mau-ma-trong-luat-khong-ai-chay.md) | Mẫu `errorInterceptor` trong tài liệu luật mang hai lỗi ngữ nghĩa (context dùng chung bị sửa tại chỗ; lỗi của lần gửi lại thoát khỏi `catchError`); code sửa một nửa, tài liệu không được sửa theo | Dòng nợ D44 ở [`../DEBT.md`](../DEBT.md) — không ép được bằng máy, người kiểm là `core-reviewer`; spec hồi quy của interceptor canh phần code |
-| [2026-09-14 — lệnh cấm lọt qua PowerShell và tiền tố bọc](2026-09-14-lenh-cam-lot-qua-powershell-va-tien-to.md) | Lớp chặn so chuỗi lệnh theo từng công cụ; một công cụ shell thứ hai và một tiền tố bọc đều đi vòng. Cổng §1 chỉ đối chiếu văn bản cấu hình với văn bản `CLAUDE.md`, không thử hành vi chặn | Deny ba dạng kèm §1 kiểm ba dạng; hook `PreToolUse`; dòng nợ C4 (phần còn lại) ở [`../DEBT.md`](../DEBT.md) |
-| [2026-09-12 — phép dò neo vào mục thay vì vai của chuỗi](2026-09-12-cong-neo-vao-muc-thay-vi-vai-tro-cua-chuoi.md) | Luật nói về vai của chuỗi, phép dò neo vào mục chứa chuỗi; bản dò đầu báo sai mọi ca | Luật D28 — `check-docs.sh` §18 neo vào vị trí định danh; dòng nợ về chạy cổng mới trên repo thật ở [`../DEBT.md`](../DEBT.md) |
-| [2026-09-11 — lệnh kiểm tự đếm chính nó](2026-09-11-lenh-kiem-tu-dem-chinh-no.md) | Lệnh kiểm kê trong văn xuôi neo vào chuỗi giá trị, nên đếm cả dòng nhắc tên và chính khối lệnh; không cổng nào chạy lệnh kê trong tài liệu | Dòng nợ *mọi khối lệnh trong tài liệu phải chạy được* ở [`../DEBT.md`](../DEBT.md) |
+| [2026-10-05 — nhánh `path: ''` không component nuốt URL gốc](2026-10-05-nhanh-path-rong-khong-component-nuot-url-goc.md) | Router nhận một route `path: ''` không component là khớp với URL đã hết segment dù không route con nào khớp, nên nhánh anh em đứng sau không được xét; mẫu luật giả định ngược lại và code chép mẫu | Spec `app.routes.spec.ts` chạy trên `routes` thật, trong `ng test`; luật giữ spec đó đề xuất ở mục 4, chưa cấp mã — chờ người dùng chốt |
+| [2026-09-21 — mẫu mã trong luật không ai chạy](2026-09-21-mau-ma-trong-luat-khong-ai-chay.md) | Mẫu `errorInterceptor` trong tài liệu luật mang hai lỗi ngữ nghĩa (context dùng chung bị sửa tại chỗ; lỗi của lần gửi lại thoát khỏi `catchError`); code sửa một nửa, tài liệu không được sửa theo | Không cổng máy — luật D44 ở [`../RULES-DOCS.md`](../RULES-DOCS.md); spec hồi quy của interceptor canh phần code |
+| [2026-09-14 — lệnh cấm lọt qua PowerShell và tiền tố bọc](2026-09-14-lenh-cam-lot-qua-powershell-va-tien-to.md) | Lớp chặn so chuỗi lệnh theo từng công cụ; một công cụ shell thứ hai và một tiền tố bọc đều đi vòng. Cổng §1 chỉ đối chiếu văn bản cấu hình với văn bản `CLAUDE.md`, không thử hành vi chặn | Deny ba dạng kèm §1 kiểm ba dạng; hook `PreToolUse`; luật C4 ở [`../RULES-DOCS.md`](../RULES-DOCS.md) |
+| [2026-09-12 — phép dò neo vào mục thay vì vai của chuỗi](2026-09-12-cong-neo-vao-muc-thay-vi-vai-tro-cua-chuoi.md) | Luật nói về vai của chuỗi, phép dò neo vào mục chứa chuỗi; bản dò đầu báo sai mọi ca | Luật D28 — `check-docs.sh` §18 neo vào vị trí định danh; luật D35 — mục cổng mới chạy trên repo thật trước khi chốt — ở [`../RULES-DOCS.md`](../RULES-DOCS.md) |
+| [2026-09-11 — lệnh kiểm tự đếm chính nó](2026-09-11-lenh-kiem-tu-dem-chinh-no.md) | Lệnh kiểm kê trong văn xuôi neo vào chuỗi giá trị, nên đếm cả dòng nhắc tên và chính khối lệnh; không cổng nào chạy lệnh kê trong tài liệu | Luật D34 — mọi khối lệnh trong tài liệu phải chạy được — ở [`../RULES-DOCS.md`](../RULES-DOCS.md) |
 | [2026-09-08 — audit PlatformManager](2026-09-08-audit-platformmanager.md) | Rà soát repo tiền nhiệm: giữ gì, bỏ gì. **`kind: tham-chieu`** — ảnh chụp một dự án KHÁC, mọi đường dẫn trong đó thuộc repo đó | Nguồn của phần lớn luật ở [`../RULES.md`](../RULES.md) và các ADR đầu tiên |
-| [2026-09-09 — cổng no-op và hai mô hình nguồn](2026-09-09-cong-no-op-va-hai-mo-hinh-nguon.md) | Sáu mục cổng in "không có vi phạm" sau khi xét tập rỗng; hook ghi dấu bỏ sót mọi sửa file không đi qua công cụ sửa file; hai mô hình nguồn FE↔API cùng mang `kind: luat` và nói ngược nhau | Luật T6 — bộ dò phải khẳng định tập đầu vào khác rỗng; T5 và T7; bốn dòng nợ mới ở [`../DEBT.md`](../DEBT.md) |
+| [2026-09-09 — cổng no-op và hai mô hình nguồn](2026-09-09-cong-no-op-va-hai-mo-hinh-nguon.md) | Sáu mục cổng in "không có vi phạm" sau khi xét tập rỗng; hook ghi dấu bỏ sót mọi sửa file không đi qua công cụ sửa file; hai mô hình nguồn FE↔API cùng mang `kind: luat` và nói ngược nhau | Luật T6 — bộ dò phải khẳng định tập đầu vào khác rỗng; T5 và T7; bốn luật D18–D21 ở [`../RULES-DOCS.md`](../RULES-DOCS.md) |
 | [2026-09-10 — ghi chú lịch sử trong file nội dung](2026-09-10-ghi-chu-lich-su-trong-file-noi-dung.md) | Mỗi lượt vá để lại câu kể bản sai ngay tại chỗ vá; không luật nào cấm và không cổng nào dò | Luật D24 — `check-docs.sh` §17 dò dấu hiệu kể lịch sử |
 | [2026-09-05 — reflection ở đường xử lý lỗi](2026-09-05-reflection-envelope.md) | Cầu nối exception → envelope dựng bằng phản chiếu; phép tra trả null khi chữ ký đổi, biến mọi lỗi nghiệp vụ thành lỗi con trỏ rỗng | Luật R5 — cấm phản chiếu ở đường ánh xạ `Result` → HTTP |
 | [2026-08-23 — cổng không tồn tại](2026-08-23-cong-khong-ton-tai.md) | Script cổng được tài liệu hướng dẫn chạy không có trên đĩa; lệnh gãy mà chuỗi vẫn chạy tiếp | Luật T1 — mọi detector phải có test kiểm chính nó; và [`../adr/0011-ci-github-actions.md`](../adr/0011-ci-github-actions.md) |
@@ -154,12 +155,12 @@ Câu hỏi hợp lý: một postmortem kể chuyện đã qua, sao không phải
 Vì hai lý do, và cả hai đều thực dụng:
 
 1. **Phần 4 vẫn còn hiệu lực.** Một mục audit không chỉ kể chuyện — nó khai một lớp lỗi và cơ chế chặn lớp lỗi đó. Chừng nào cơ chế ấy còn phải được giữ, nội dung file còn là thứ code phải tuân.
-2. **Nhãn lịch sử là nhãn cấm trích dẫn.** Luật D10 ở [`../RULES.md`](../RULES.md) cấm mọi trích dẫn trỏ vào file mang nhãn đó. Mà [`../adr/0010-comment-toi-thieu.md`](../adr/0010-comment-toi-thieu.md) lại yêu cầu code để lại một dòng trỏ **vào đây**. Gắn nhãn lịch sử cho khu này là tự mâu thuẫn: dòng trỏ đường sẽ bị chính cổng của repo bắt lỗi.
+2. **Nhãn lịch sử là nhãn cấm trích dẫn.** Luật D10 ở [`../RULES-DOCS.md`](../RULES-DOCS.md) §1 cấm mọi trích dẫn trỏ vào file mang nhãn đó. Mà [`../adr/0010-comment-toi-thieu.md`](../adr/0010-comment-toi-thieu.md) lại yêu cầu code để lại một dòng trỏ **vào đây**. Gắn nhãn lịch sử cho khu này là tự mâu thuẫn: dòng trỏ đường sẽ bị chính cổng của repo bắt lỗi.
 
 `kind: lich-su` dành cho **tài liệu đã chết** — kế hoạch bị thay thế, thiết kế bị bỏ. Một bài học vẫn đang được ép bằng cổng thì chưa chết.
 
 ## 11. Liên quan
 
 - [`../adr/0010-comment-toi-thieu.md`](../adr/0010-comment-toi-thieu.md) — quyết định sinh ra khu này
-- [`../RULES.md`](../RULES.md) — nơi phần 4 của mỗi mục audit kết thúc thành một luật có cổng
+- [`../RULES.md`](../RULES.md) — mục lục các tệp `RULES-*.md`, nơi phần 4 của mỗi mục audit kết thúc thành một dòng luật — có cổng, hoặc mang `🕳️` khi chưa có
 - [`../quy-uoc/tieu-chi-review.md`](../quy-uoc/tieu-chi-review.md) — cái gì là finding, cái gì không

@@ -3,7 +3,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject, catchError, map, of, switchMap } from 'rxjs';
 
 import { ApiFailureError } from '../../../../core/http/api-result.model';
-import { dichLoiChoMan } from '../../../../core/http/dich-loi';
+import { cauLoiKhongPhaiApi, dichLoiChoMan } from '../../../../core/http/dich-loi';
 import { Option } from '../../../../shared/ui/autocomplete/autocomplete.component';
 import { VaiTroService } from '../services/vai-tro.service';
 import { VaiTro } from '../models/vai-tro.model';
@@ -41,13 +41,16 @@ type YeuCau = { readonly q: string; readonly boLoc?: (vt: VaiTro) => boolean } |
  * component (Router, service toàn cục) mà quên `takeUntilDestroyed` mới thực sự rò rỉ.
  */
 export class TraCuuVaiTroStore {
-  readonly options = signal<readonly Option[]>([]);
-  readonly loading = signal(false);
+  private readonly _options = signal<readonly Option[]>([]);
+  readonly options = this._options.asReadonly();
+  private readonly _loading = signal(false);
+  readonly loading = this._loading.asReadonly();
   /**
    * Câu lỗi của lần tìm gần nhất cho lớp nổi (`errorTemplate`), `null` khi không lỗi. GIỮ đúng lỗi, không
    * nuốt thành một cờ: Design/Screens/10-nguoi-dung.md, bảng mã lỗi dòng "tìm vai trò (ô chọn)".
    */
-  readonly error = signal<string | null>(null);
+  private readonly _error = signal<string | null>(null);
+  readonly error = this._error.asReadonly();
 
   private readonly tuKhoa$ = new Subject<YeuCau>();
 
@@ -61,8 +64,8 @@ export class TraCuuVaiTroStore {
           // Đặt lại: `switchMap` huỷ request đang bay, rồi phát `null` ngay để xoá trạng thái.
           if (yeuCau === 'reset') return of(null);
           const { q, boLoc } = yeuCau;
-          this.loading.set(true);
-          this.error.set(null);
+          this._loading.set(true);
+          this._error.set(null);
           return this.service.timKiem(q).pipe(
             map<{ items: readonly VaiTro[] }, KetQuaTim>((trang) => ({
               items: boLoc ? trang.items.filter(boLoc) : trang.items,
@@ -73,18 +76,18 @@ export class TraCuuVaiTroStore {
         }),
       )
       .subscribe((ketQua) => {
-        this.loading.set(false);
+        this._loading.set(false);
         if (ketQua === null) {
-          this.error.set(null);
-          this.options.set([]);
+          this._error.set(null);
+          this._options.set([]);
           return;
         }
         const { items, loi } = ketQua;
         if (loi !== null) {
-          this.error.set(loi);
+          this._error.set(loi);
           return;
         }
-        this.options.set(items.map((vt) => this.sangOption(vt)));
+        this._options.set(items.map((vt) => this.sangOption(vt)));
       });
   }
 
@@ -103,7 +106,7 @@ export class TraCuuVaiTroStore {
 
   /** Seed nhãn ban đầu (vai trò đã có sẵn của bản ghi) trước khi người dùng gõ tìm gì. */
   seed(vaiTros: readonly VaiTroTraCuu[]): void {
-    this.options.set(vaiTros.map((vt) => this.sangOption(vt)));
+    this._options.set(vaiTros.map((vt) => this.sangOption(vt)));
   }
 
   /**
@@ -113,7 +116,7 @@ export class TraCuuVaiTroStore {
    */
   private cauLoi(err: unknown): string {
     if (!(err instanceof ApiFailureError)) {
-      return this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION');
+      return cauLoiKhongPhaiApi(this.translate);
     }
     return dichLoiChoMan(this.translate, err) ?? this.translate.instant('vaiTro.tim.loi');
   }

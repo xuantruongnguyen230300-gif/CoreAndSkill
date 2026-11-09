@@ -21,5 +21,8 @@ Thumbs.db
 # Dau trang thai cua hook — cuc bo, khong commit
 .claude/.state/
 
+# Bản build FE triển khai cho Caddy (FE_WWW_DIR ở .env.example) — sản phẩm build, không commit
+fe-www/
+
 # Bản xem thử HTML sinh từ docs/Design/ — dùng một lần, không phải nguồn (CLAUDE.md §7), không commit
 preview/

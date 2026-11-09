@@ -32,7 +32,7 @@ verified: chua-doi-chieu
 | `aria-busy` khi `loading` | `<table>` mang `[attr.aria-busy]` gắn theo `loading()` | Giữ nguyên |
 | Khung chờ không vẽ hàng nhóm | Nhánh `dangTaiLanDau()` chỉ vẽ `<tr><td colspan>`, không có `.table__hang-nhom` | Giữ nguyên |
 | `error` — hàng `colspan` chứa `NoticeBanner` vai `danger` + nút thử lại | Nhánh `@else if (coLoi())` (`coLoi` xét cả `errorHeading` lẫn `errorMessage`) vẽ `<app-notice-banner severity="danger" [heading]="errorHeading()">` và `<app-button ... icon="refresh" (clicked)="retry.emit()">`; `.ts` khai `readonly errorHeading = input<string \| null>(null);` (so 2026-09-26) | Giữ nguyên |
-| Kiểu cột dùng **thẳng** `ColumnDef` của `../../quy-uoc/fe-ui-conventions.md` §9 | **Không.** `table.component.ts` tự khai `export interface TableColumnDef<T>`, và không tệp `.ts` nào dưới `src/FE/src` khai `interface ColumnDef`. Bản tự khai bắt buộc `cell` (gốc để tuỳ chọn) và **không có** `hideBelow` | Dùng lại kiểu gốc, hoặc chuyển chủ quyền kiểu — quyết định này vượt ra ngoài spec component |
+| Kiểu cột của `Table` | `table.component.ts` khai `export interface TableColumnDef<T>` (cột luôn có `cell`, không có `hideBelow`). Không còn kiểu gốc `ColumnDef` chung — người dùng chốt bỏ (Q50, 2026-10-06); chữ ký ở `../../quy-uoc/fe-ui-conventions.md` §9 | Giữ nguyên |
 | Đệm ô theo cỡ `sm` / `md` / `lg` | **Chưa có.** `.table th, .table td` khai `padding: var(--sp-3) var(--sp-5)` cố định; `.table--sm` / `.table--lg` chỉ đổi `font-size`, và `.table--lg` đặt lại đúng `--fs-sm` của mặc định | Dựng ba bậc đệm theo bảng §Kích thước |
 | Cỡ chữ `th` theo cỡ bảng | **Chưa có.** `.table thead th` cố định `font-size: var(--fs-xs)`; cỡ `sm` đáng lẽ `--fs-2xs` | Dựng theo bảng §Kích thước |
 | Cỡ chữ hàng tiêu đề nhóm bằng cỡ chữ `th` | **Chưa có.** `.table__hang-nhom th` chỉ đặt nền và `font-weight`, không đặt `font-size` | Đặt theo §Gom dòng theo nhóm |
@@ -153,7 +153,7 @@ Nội dung ô đổi sau khi lọc thì **đổi ngay, không transition** — [
 | < `$bp-md` | Vùng cuộn ngang bật; **không ghim cột nào**; mật độ hạ xuống `sm` |
 | < `$bp-xs` | `cardLayout` là `true` (mặc định): chuyển sang dạng thẻ — mỗi bản ghi là một khối, nhãn cột thành nhãn trường bên trong; khi `groupBy` khác `null`, hàng tiêu đề nhóm thành một dải nhãn đứng trước cụm thẻ của nhóm đó. `cardLayout` là `false`: **giữ dạng lưới**, vùng cuộn ngang và mật độ `sm` như ngưỡng `< $bp-md` — dùng khi quan hệ hàng–cột **chính là** nội dung (ma trận tick), vì dạng thẻ xoá đúng quan hệ đó |
 
-🛑 **`Table` KHÔNG có cột ghim, ở mọi ngưỡng.** Mục *Khi nào KHÔNG dùng* đã xếp cột ghim vào [`DataTable.md`](./DataTable.md), và `ColumnDef` không có khoá `frozen` — chữ ký ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9. Ghim một cột không phải là một dòng `position: sticky`: nó kéo theo lớp xếp chồng, kéo theo phép đo bù bề rộng cột lúc chạy, và kéo theo giao điểm với dải tổng — đúng ba thứ [`DataTable.md`](./DataTable.md) đã giải. Bảng nào cần ghim cột đầu khi cuộn ngang thì bảng đó cần `DataTable`, kể cả khi nó không phân trang.
+🛑 **`Table` KHÔNG có cột ghim, ở mọi ngưỡng.** Mục *Khi nào KHÔNG dùng* đã xếp cột ghim vào [`DataTable.md`](./DataTable.md), và `TableColumnDef` không có khoá `frozen` — chữ ký ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9. Ghim một cột không phải là một dòng `position: sticky`: nó kéo theo lớp xếp chồng, kéo theo phép đo bù bề rộng cột lúc chạy, và kéo theo giao điểm với dải tổng — đúng ba thứ [`DataTable.md`](./DataTable.md) đã giải. Bảng nào cần ghim cột đầu khi cuộn ngang thì bảng đó cần `DataTable`, kể cả khi nó không phân trang.
 
 Cái giá phải chấp nhận, nói thẳng: ở màn nhỏ, cuộn ngang một `Table` nhiều cột thì cột định danh trôi khỏi màn và người đọc mất mốc hàng. Đó là lý do ngưỡng `< $bp-xs` mặc định chuyển hẳn sang dạng thẻ thay vì cuộn tiếp. Bảng nào tắt `cardLayout` là nhận lại đúng cái giá đó ở khổ nhỏ nhất, có chủ ý — và phải giữ `<th scope="row">` cùng nhãn đọc lên của từng ô cho đủ, vì đó là thứ duy nhất còn giữ mốc hàng cho người dùng bàn phím và trình đọc màn hình.
 
@@ -184,7 +184,7 @@ Mặt trái phải chấp nhận: vùng cuộn trở thành một điểm dừng
 
 | Tên | Chiều | Kiểu | Mặc định | Ghi chú |
 | --- | --- | --- | --- | --- |
-| `columns` | input | `ReadonlyArray<ColumnDef<T>>` | — | **Bắt buộc.** Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 — `Table` dùng thẳng kiểu gốc, không mở rộng |
+| `columns` | input | `ReadonlyArray<TableColumnDef<T>>` | — | **Bắt buộc.** Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 — kiểu `TableColumnDef` của chính `Table` |
 | `rows` | input | `readonly T[]` | `[]` | Toàn bộ dữ liệu. Component vẽ hết — không có phân trang |
 | `caption` | input | `string` | — | **Bắt buộc.** Không có mặc định, và không suy ra từ tiêu đề `Card` bao ngoài |
 | `captionVisible` | input | `boolean` | `false` | `false` = chỉ trình đọc màn hình nghe được, vẫn nằm trong cây accessibility |

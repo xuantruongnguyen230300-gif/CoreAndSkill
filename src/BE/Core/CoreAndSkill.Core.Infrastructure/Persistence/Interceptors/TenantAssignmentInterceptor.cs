@@ -46,10 +46,22 @@ public sealed class TenantAssignmentInterceptor(ITenantContext tenantContext) : 
 
                 case EntityState.Modified:
                     {
+                        // Bất biến là GIÁ TRỊ, không phải cờ: DbContext.Update(entity) của Identity (UserStore.UpdateAsync)
+                        // đánh dấu MỌI cột là Modified dù giá trị giữ nguyên. Giá trị bằng nhau thì hạ cờ để câu UPDATE
+                        // không ghi cột tenant_id.
                         var property = entry.Property(nameof(ITenantScoped.TenantId));
-                        if (property.IsModified)
+                        if (!property.IsModified)
+                            break;
+
+                        var comparer = property.Metadata.GetValueComparer();
+                        var unchanged = comparer is null
+                            ? Equals(property.OriginalValue, property.CurrentValue)
+                            : comparer.Equals(property.OriginalValue, property.CurrentValue);
+                        if (!unchanged)
                             throw new InvalidOperationException(
                                 $"'{entry.Entity.GetType().Name}.TenantId' không bao giờ đổi sau khi tạo — lỗi lập trình.");
+
+                        property.IsModified = false;
                         break;
                     }
             }

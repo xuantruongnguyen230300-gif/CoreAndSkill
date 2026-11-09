@@ -17,6 +17,9 @@
 #
 # Thoát 0 = mọi ca đúng kỳ vọng · 1 = có ca sai kỳ vọng · 2 = không chạy được (thiếu script).
 
+# T12:cap-xanh-do — mọi ca xanh đi kèm một ca đỏ dùng chung cơ chế dò (RULES-CHUNG.md T12);
+# cặp nào nằm ở đâu thì chú thích 'Cặp đỏ:' ngay trên ca xanh nói ra, hoặc ca đỏ cùng fixture đứng sát đó.
+
 set -uo pipefail
 
 T="$(cd "$(dirname "$0")" && pwd)"
@@ -86,10 +89,26 @@ readonly moRong = inject(
 )?.['users'];"
 check "prettier bẻ dòng giữa inject( và CORE_SCREEN_EXT -> PASS" xanh
 
+# Cặp đỏ: cùng hình bẻ dòng, token đổi tên.
+make_fixture; page a/pages/ds/ds-a.page.ts "$DOC
+readonly moRong = inject(
+  KHONG_DOC_TOKEN,
+  { optional: true },
+)?.['users'];"
+check "bẻ dòng giữa inject( và tên token, nhưng token KHÁC -> FAIL (cặp đỏ của ca bẻ dòng)" do
+
 make_fixture; page a/pages/ds/ds-a.page.ts \
   "$(printf '%s\r\nreadonly moRong = inject(\r\n\tCORE_SCREEN_EXT,\r\n  { optional: true },\r\n)?.[%s];\r' \
     "$DOC" "'users'")"
 check "tệp CRLF, bẻ dòng và thụt TAB giữa inject( và CORE_SCREEN_EXT -> PASS" xanh
+
+# Cặp đỏ: cùng CRLF, cùng bẻ dòng, token đổi tên.
+make_fixture; page a/pages/ds/ds-a.page.ts   "$(printf '%s
+readonly moRong = inject(
+	KHONG_DOC_TOKEN,
+  { optional: true },
+)?.[%s];'     "$DOC" "'users'")"
+check "tệp CRLF, bẻ dòng, nhưng token KHÁC -> FAIL (cặp đỏ của ca CRLF)" do
 
 make_fixture; page a/pages/ds/ds-a.page.ts "$DOC_EXT"; page ho-so/pages/ho-so.page.ts "export class HoSoPage {}"
 check "màn KHÔNG phải danh sách (không ListStateStore) không bị đòi token -> PASS" xanh

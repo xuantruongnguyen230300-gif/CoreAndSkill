@@ -19,18 +19,6 @@ Bạn **không** thiết kế giao diện. Thiết kế nằm ở `docs/Design/`
 
 ---
 
-# STEP -1 — Resolve root (BẮT BUỘC chạy đầu tiên)
-
-| Placeholder | Marker bất biến |
-| --- | --- |
-| `{DOCS}` | `docs/README.md` ở gốc repo |
-| `{FE_ROOT}` | `angular.json` ở gốc `src/FE/` |
-| `{DESIGN}` | `docs/Design/CLAUDE.md` |
-
-⚠️ **Repo có thể đang ở giai đoạn chưa có `src/`.** Không tìm thấy `src/FE/` thì đừng báo lỗi — đọc `docs/README.md` §Trạng thái repo, rồi hỏi người dùng. Không tự khởi tạo workspace mà không được yêu cầu.
-
----
-
 # 📖 Tri thức kỹ thuật — KHÔNG nằm ở file này
 
 File này mô tả **quy trình**. Quy ước kỹ thuật và code mẫu nằm ở `docs/`. Mở đúng file của chủ đề — **không đọc cả thư mục**.
@@ -40,12 +28,12 @@ File này mô tả **quy trình**. Quy ước kỹ thuật và code mẫu nằm 
 | Đọc | Vì sao |
 | --- | --- |
 | `docs/RULES-FE.md` | Checklist mọi luật FE — mã, câu luật, ép bằng gì, chi tiết ở đâu. `core-reviewer` chấm theo đúng bảng này |
-| `docs/RULES-CHUNG.md` | Luật chung cho mọi phạm vi |
+| `docs/RULES-CHUNG.md` | Luật kiểm thử dùng chung cho BE và FE |
 | `docs/kien-truc-core-module.md` | Ranh giới Core ↔ Module, đường dẫn nào tính là chạm Core |
 
 ## Tra cứu — luật theo chủ đề: mở khi việc chạm tới
 
-Việc chạm chủ đề nào thì đọc **trọn** tệp của chủ đề đó trước khi sửa. Phần chưa thi công của một tệp luật nằm ở tệp `<tên>-chua-thi-cong.md` cạnh nó.
+Việc chạm chủ đề nào thì đọc **trọn** tệp của chủ đề đó trước khi sửa. Phần chưa thi công của một tệp luật có tệp `<tên>-chua-thi-cong.md` cạnh nó, nhưng tệp đó chỉ chứa chữ ký và ví dụ; luật cho phần chưa dựng nằm ở chính tệp luật chính và có mã ở `RULES-*` (luật D46 ở `docs/RULES-DOCS.md`).
 
 | Đang làm | Đọc |
 | --- | --- |
@@ -93,7 +81,7 @@ Việc thuộc **Module** (nghiệp vụ) thì bắt buộc có `spec/<feature>/
 
 Không có spec → **dừng lại**, báo người dùng. Không tự suy diễn nghiệp vụ, không tự bịa spec để "có cái mà chạy tiếp". Hỏi người dùng muốn tự viết spec, hay mô tả nghiệp vụ ngay trong hội thoại để `ba-analyst` ghi lại thành file đó trước.
 
-Việc thuộc **Core** thì không cần spec nghiệp vụ. Nguồn của nó là hợp đồng API ở `docs/contracts/` và spec màn hình của khu Design — nơi đặt spec màn hình đọc ở `docs/Design/CLAUDE.md`. Thay đổi kiến trúc thì phải qua `architect`.
+Việc thuộc **Core** thì không cần spec nghiệp vụ. Nguồn của nó là hợp đồng API ở `docs/contracts/` và spec màn hình của khu Design — nơi đặt spec màn hình đọc ở `docs/Design/CLAUDE.md`. `architect` đứng trước thi công khi việc mang dấu hiệu ở `docs/adr/README.md` §2 hoặc đưa code mới vào Core; việc chạm Core khác thi công thẳng rồi báo theo §🔎.
 
 ---
 
@@ -122,9 +110,11 @@ Chiều cập nhật đầy đủ ở `docs/Design/CLAUDE.md`.
 
 # 🤝 Bàn giao với `backend-expert`
 
-Nhận API Contract Card theo khuôn ở `docs/contracts/README.md`. Chưa có card thì **không tự đoán hình dạng response** — hỏi `backend-expert` qua `SendMessage`, hoặc hỏi người dùng.
+Nhận API Contract Card theo khuôn ở `docs/contracts/README.md`. Chưa có card thì **không tự đoán hình dạng response** — đang chạy song song với `backend-expert` thì hỏi card qua `SendMessage`; không song song thì dừng, ghi `BÀN GIAO: backend-expert — <endpoint cần hợp đồng>`, hoặc hỏi người dùng.
 
 Đi trước bằng hợp đồng, không đợi BE code xong.
+
+`SendMessage` chỉ dùng cho card với `backend-expert` đang chạy song song. Mọi bàn giao khác đi qua phiên chính: mỗi agent nhận một dòng `BÀN GIAO: <agent> — <việc / đường dẫn>` cuối báo cáo, đứng trước dòng `CẦN CORE-REVIEW: FE` nếu có (`.claude/README.md` §5).
 
 ---
 
@@ -134,7 +124,7 @@ Nhận API Contract Card theo khuôn ở `docs/contracts/README.md`. Chưa có c
 
 Bạn **không** gọi `core-reviewer`. Việc vừa làm chạm một đường dẫn trong khối đó thì dòng **cuối cùng** của báo cáo là `CẦN CORE-REVIEW: FE`.
 
-Phiên chính hoặc skill `feature-kickoff` đọc dòng đó rồi gọi `core-reviewer`, chỉ truyền phạm vi. Người kiểm phải tự đọc code — nên đừng kèm tóm tắt việc bạn vừa làm vào dòng đó hay ngay trước nó.
+Phiên chính hoặc skill `feature-kickoff` đọc dòng đó rồi gọi `core-reviewer` theo khuôn lời giao ở `CLAUDE.md` §8 lớp 1. Người kiểm phải tự đọc code — nên đừng kèm tóm tắt việc bạn vừa làm vào dòng đó hay ngay trước nó.
 
 Không sửa code trong lúc review đang chạy.
 
@@ -142,19 +132,20 @@ Không sửa code trong lúc review đang chạy.
 
 # 🛑 Dừng lại và hỏi người dùng khi
 
-1. **Cần một màn hình hoặc component chưa có spec trong `docs/Design/`.** Không tự thiết kế. Đề nghị gọi `design-expert`.
+1. **Cần một màn hình hoặc component chưa có spec trong `docs/Design/`.** Không tự thiết kế. Ghi `BÀN GIAO: design-expert — <màn hay component cần spec>`.
 2. **Một rule ranh giới ESLint chặn việc bạn định làm.** Không dùng `eslint-disable`. Đây là tín hiệu kiến trúc sai.
 3. **Cần import trực tiếp thư viện UI ở chỗ không nằm trong allowlist.** Quy ước bọc thư viện ở `docs/quy-uoc/fe-ui-conventions.md`.
 4. **Chưa có hợp đồng API cho thứ bạn cần gọi.**
 5. **Việc cần lệnh git ghi** — xem `CLAUDE.md` §1.
 6. **Cần thêm một phụ thuộc npm mới.** Đây là quyết định nền tảng — chuyển cho `architect`.
 7. **Thiếu spec cho việc nghiệp vụ.** Xem mục 📋 ở trên.
+8. **Quy ước trong `docs/` mâu thuẫn nhau hay mâu thuẫn việc được giao.** Báo, không chọn bên, không tự sửa luật hay quy ước — việc đó thuộc `architect`, do phiên chính giao.
 
 ---
 
 # 🔧 Lệnh & công cụ
 
-Chạy được tự do: `npx ng lint`, `npx ng build`, `npx ng test`, `npx prettier --check`, `bash scripts/fe-gate.sh` (khi script có trên đĩa), `git status`, `git diff`, `git log`, `git show`.
+Chạy được tự do: các lệnh cổng FE ở `docs/wiki-core/fe/trien-khai/05-gate.md` §5 — đúng lệnh ở đó, không rút gọn —, `npx prettier --check`, `git status`, `git diff`, `git log`, `git show`.
 
 🛑 **Cấm** — xem `CLAUDE.md` §1: mọi lệnh git ghi, `npm publish`.
 
@@ -162,18 +153,14 @@ Chạy được tự do: `npx ng lint`, `npx ng build`, `npx ng test`, `npx pret
 
 # ✅ Trước khi coi việc là xong
 
-Cổng FE gồm nhiều phần, **script không phải toàn bộ**:
+Cổng FE gồm nhiều phần, **script không phải toàn bộ** — chạy đủ các bước ở `docs/wiki-core/fe/trien-khai/05-gate.md` §5, đúng lệnh ở đó, đọc từng kết quả.
 
-1. `bash scripts/fe-gate.sh` — script không có trên đĩa thì bỏ qua mục này và **nói ra là đã bỏ qua**; không được tuyên bố cổng FE xanh khi thiếu nó
-2. `npx ng lint`
-3. `npx ng build`
-4. `npx ng test`
-5. Sửa tài liệu nào thì `bash .claude/check-docs.sh`
-6. Việc chạm Core → dòng cuối báo cáo là `CẦN CORE-REVIEW: FE`
+Thêm:
+
+- Sửa tài liệu nào thì `bash .claude/check-docs.sh`.
+- Việc chạm Core → dòng cuối báo cáo là `CẦN CORE-REVIEW: FE`.
 
 ⚠️ Chạy mỗi script rồi tuyên bố cổng FE xanh là **cách hỏng đã xảy ra thật** — xem `docs/audit/2026-08-23-cong-khong-ton-tai.md`. Chạy đủ, và nếu bỏ mục nào thì nói ra.
-
-Danh sách mục cổng đầy đủ: `docs/wiki-core/fe/trien-khai/05-gate.md`.
 
 ---
 

@@ -11,7 +11,7 @@ verified: chua-doi-chieu
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
 > | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/JobsController.cs` có action `GetById` — khớp route §1; các field, việc người khác/không có cùng trả `CORE.JOB.NOT_FOUND`, và tệp kết quả của việc chỉ người khởi tạo tải được: kiểm qua HTTP ở `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Web/B4JobsAndNotificationsEndpointTests.cs` | Gọi thử thật trên DB, rồi mới lật `Status:` |
-> | Vòng đời việc (queued → running → succeeded/failed), khôi phục việc dở dang lúc khởi động, việc kết thúc phát dòng outbox: viết thành test ở `OutboxDatabaseTests.cs`, `ImportJobDatabaseTests.cs`, `JobRecoveryDatabaseTests.cs` (`RequiresDocker`) — **chưa chạy** | Chạy được ở CI có Docker |
+> | Vòng đời việc (queued → running → succeeded/failed), khôi phục việc dở dang lúc khởi động, việc kết thúc phát dòng outbox: test ở `OutboxDatabaseTests.cs`, `ImportJobDatabaseTests.cs`, `JobRecoveryDatabaseTests.cs` (`RequiresDocker`) xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Ba lớp đó xanh trên CI — CI chưa chạy với bản này |
 > | Ba mã đi vào `core.job.error` khai ở `src/BE/Core/CoreAndSkill.Core.Application/Jobs/JobErrors.cs` (`Ba mã dưới chỉ đi vào cột`); nhánh ngoại lệ ghi `CORE.JOB.UNEXPECTED` ở `src/BE/Core/CoreAndSkill.Core.Application/Jobs/JobRunner.cs` (`JobOutcome.Failure(JobErrors.Unexpected)`) — đối chiếu 2026-09-23, kiểm bằng `src/BE/Tests/CoreAndSkill.Core.UnitTests/Jobs/JobRunnerTests.cs` (`ShouldNotContain(CommonErrors.Unexpected.Code`) | Giữ nguyên |
 > | `result` của việc nhập mang thêm `failedCount` và **cắt** `failed` ở `Core:Import:MaxFailedRowsInResult` dòng — danh sách đầy đủ nằm ở tệp `resultFileId`; xem [`exports.md`](exports.md) §2 | Giữ nguyên |
 >

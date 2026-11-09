@@ -5,6 +5,8 @@ verified: chua-doi-chieu
 ---
 
 > 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Các kiểu dưới đây là một phần của mục §9 ở [`fe-ui-conventions.md`](fe-ui-conventions.md) (kiểu dữ liệu công khai của thư viện UI) nhưng **chưa có tệp thật nào trong `src/FE`** (đối chiếu 2026-09-27, `grep` toàn bộ `src/FE/src` theo tên kiểu — 0 kết quả cho mỗi kiểu). Khối dưới là **chữ ký để dựng khi component tương ứng được thi công**, không phải kiểu đang `import` được hôm nay. Kiểu nào có tệp thật thì chuyển ngược về đúng vị trí cũ trong §9 của file gốc, kèm chuỗi neo.
+>
+> Tệp này không giữ câu luật nào: ghi chú dưới mỗi khối chỉ nói nghĩa của trường; luật hành vi nằm ở spec của component dùng kiểu đó, dưới [`../Design/Components/`](../Design/Components/).
 
 # Kiểu dữ liệu công khai của thư viện UI — phần chưa thi công
 
@@ -34,8 +36,16 @@ Dùng cho [`Timeline`](../Design/Components/Timeline.md).
 ## Họ kiểu CỘT — phần mở rộng chưa thi công
 
 ```typescript
-/** EditableGrid thêm ba khả năng của một lưới ghi. */
-export interface EditableColumnDef<T = unknown> extends ColumnDef<T> {
+/** Kiểu cột riêng của EditableGrid, không mở rộng kiểu nào — fe-ui-conventions.md §9. */
+export interface EditableColumnDef<T = unknown> {
+  key: string;
+  header: string;
+  width?: string;
+  align?: 'start' | 'end';
+  hideBelow?: 'xs' | 'sm' | 'md' | 'lg';
+  cell?: TemplateRef<{ $implicit: T }>;
+  value?: (row: T) => string;
+  // Ba khả năng của một lưới ghi:
   editor?: 'text' | 'number' | 'date' | 'select' | 'check';   // 'date' → DatePicker mode='single'
   computed?: boolean;                      // máy tính ra, không gõ được
   validate?: (value: unknown, row: T) => string | null;  // null = hợp lệ
@@ -44,7 +54,7 @@ export interface EditableColumnDef<T = unknown> extends ColumnDef<T> {
 /** Sáu công tắc của DataTable. Khai bằng MỘT object có tên, không phải sáu input boolean rời. */
 export interface DataTableSwitches {
   selectable?: boolean;
-  frozen?: boolean | 'first' | 'both';   // 'both' = ghim cả cột đầu và cột hành động
+  frozen?: boolean;                      // true = ghim cột đầu; cột hành động luôn ghim phải, không qua công tắc
   tree?: boolean;
   grouped?: boolean;                     // đi kèm `groupBy`
   expandable?: boolean;                  // đi kèm `rowDetail`
@@ -58,9 +68,9 @@ export interface SummaryRow {
 }
 ```
 
-**`values` của `SummaryRow` là chuỗi đã định dạng, không phải số**; component không được đoán hộ định dạng.
+**`values` của `SummaryRow` là chuỗi đã định dạng, không phải số** — định dạng là việc của máy chủ, component chỉ vẽ ra; hợp đồng dòng tổng ở [`DataTable`](../Design/Components/DataTable.md), input `summary`.
 
-`EditableColumnDef` mở rộng gốc `ColumnDef` (kiểu gốc, đã có thật — [`fe-ui-conventions.md`](fe-ui-conventions.md) §9); dùng cho [`EditableGrid`](../Design/Components/EditableGrid.md). `DataTableSwitches` và `SummaryRow` dùng cho [`DataTable`](../Design/Components/DataTable.md).
+`EditableColumnDef` là kiểu cột riêng, khai trong tệp của [`EditableGrid`](../Design/Components/EditableGrid.md) khi dựng — họ kiểu cột hôm nay không có gốc chung ([`fe-ui-conventions.md`](fe-ui-conventions.md) §9). Bảy trường đầu giữ đúng tên, đúng kiểu của trường cùng nghĩa ở `DataColumnDef`. Lúc dựng `EditableGrid` là lúc xét lại việc dựng gốc chung — dấu hiệu ở [`../wiki-core/fe/ly-do/fe-ui-conventions.md`](../wiki-core/fe/ly-do/fe-ui-conventions.md) §9. `DataTableSwitches` và `SummaryRow` dùng cho [`DataTable`](../Design/Components/DataTable.md).
 
 ---
 
@@ -73,7 +83,7 @@ export interface ChartSeries { key: string; label: string; points: ReadonlyArray
 export interface DateRangePreset { key: string; label: string; from: Date; to: Date }   // DatePicker mode='range'
 ```
 
-**`DateRangePreset` là điểm mở rộng của `DatePicker` ở `mode` `'range'`.** Core khai bộ lối tắt mặc định độc lập nghiệp vụ (hôm nay, 7 ngày qua, tháng này, quý này, năm nay); lối tắt nghiệp vụ do trang truyền vào qua đây. `from`/`to` là ngày đã tính sẵn.
+**`DateRangePreset` là điểm mở rộng của `DatePicker` ở `mode` `'range'`**; `from`/`to` là ngày đã tính sẵn. Bộ lối tắt nào Core khai, lối tắt nào trang truyền vào: [`DatePicker`](../Design/Components/DatePicker.md), luật 4 của mục biến thể.
 
 **`StepItem`, không phải `Step`.**
 
@@ -98,7 +108,7 @@ export interface UploadItem {                               // FileUpload
 }
 ```
 
-`UploadItem.progress` nhận `null` **có chủ đích**: khi đó [`../Design/Components/ProgressBar.md`](../Design/Components/ProgressBar.md) chuyển sang biến thể `indeterminate`, không bịa một con số.
+`UploadItem.progress` nhận `null` **có chủ đích**: khi đó [`../Design/Components/ProgressBar.md`](../Design/Components/ProgressBar.md) chuyển sang biến thể `indeterminate` — luật không bịa phần trăm nằm ở chính tệp đó.
 
 Dùng cho [`Toast`](../Design/Components/Toast.md) — `toast.service.ts` hôm nay tự khai `interface ToastMessage` riêng, không dùng `ToastItem` — và [`FileUpload`](../Design/Components/FileUpload.md).
 

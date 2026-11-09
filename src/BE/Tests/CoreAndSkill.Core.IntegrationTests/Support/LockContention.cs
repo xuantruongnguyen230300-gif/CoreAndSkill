@@ -49,16 +49,23 @@ internal static class LockContention
 
     // Chống test rỗng: request phải THẬT SỰ đứng chờ khoá của transaction dở dang, không được xong trước (nối đuôi thay vì
     // chồng nhau) — nếu không, kết quả nói về một kịch bản tuần tự, không phải kịch bản tranh chấp đang được test.
-    public static async Task WaitUntilSomeSessionWaitsOnALockAsync(PostgresFixture db, Task<HttpResponseMessage> request)
+    // `operation` là một request HTTP hoặc một lời gọi service chạy trong transaction — chỉ cần biết nó đã xong chưa.
+    public static async Task WaitUntilSomeSessionWaitsOnALockAsync(PostgresFixture db, Task operation)
     {
         var deadline = DateTime.UtcNow + ProbeLimit;
         while (DateTime.UtcNow < deadline)
         {
-            if (request.IsCompleted)
+            if (operation.IsCompleted)
             {
-                var early = await request;
-                throw new ShouldAssertException(
-                    $"chống test rỗng: request xong ({(int)early.StatusCode}) trước khi chờ khoá — {await early.Content.ReadAsStringAsync()}");
+                // Request HTTP xong sớm thì nói luôn nó xong với mã nào — chẩn đoán ngay, không phải đoán.
+                if (operation is Task<HttpResponseMessage> request)
+                {
+                    var early = await request;
+                    throw new ShouldAssertException(
+                        $"chống test rỗng: request xong ({(int)early.StatusCode}) trước khi chờ khoá — {await early.Content.ReadAsStringAsync()}");
+                }
+
+                throw new ShouldAssertException("chống test rỗng: lời gọi xong trước khi chờ khoá.");
             }
 
             var waiting = await db.CountAsync(

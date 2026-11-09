@@ -18,7 +18,6 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../../../../../core/auth/auth.service';
-import { ApiFailureError } from '../../../../../core/http/api-result.model';
 import { ListStateStore } from '../../../../../core/list/list-state.store';
 import { ToastService } from '../../../../../core/toast/toast.service';
 import { BadgeComponent } from '../../../../../shared/components/badge/badge.component';
@@ -38,6 +37,7 @@ import { ButtonComponent } from '../../../../../shared/components/button/button.
 import {
   DataColumnDef,
   DataTableComponent,
+  RowActionsContext,
 } from '../../../../../shared/ui/data-table/data-table.component';
 import { DialogComponent } from '../../../../../shared/ui/dialog/dialog.component';
 import { IconButtonComponent } from '../../../../../shared/components/icon-button/icon-button.component';
@@ -48,9 +48,10 @@ import { CotCore, kiemCotMoRong, sangCotDataTable } from '../../../../config/cot
 import { VaiTroService } from '../../services/vai-tro.service';
 import { VaiTro } from '../../models/vai-tro.model';
 import { HopVaiTroStore } from '../../state/hop-vai-tro.store';
+import { dichLoiBatKy } from '../../../../../core/http/dich-loi';
 
 /** Khoá cột Core của màn — tập đưa vào phép kiểm khoá trùng (fe-architecture.md §2.7 luật 6). */
-const KHOA_COT_CORE = ['name', 'isSystem', 'userCount', 'createdAt', 'hanhDong'] as const;
+const KHOA_COT_CORE = ['name', 'isSystem', 'userCount', 'createdAt'] as const;
 type KhoaCotCore = (typeof KHOA_COT_CORE)[number];
 
 /** Design/Screens/11-vai-tro.md. Guard: permissionGuard('core.role.read') (vai-tro.routes.ts). */
@@ -138,8 +139,13 @@ export class DanhSachVaiTroPage {
     viewChild.required<TemplateRef<{ $implicit: VaiTro }>>('colSoNguoiDung');
   private readonly colNgayTao =
     viewChild.required<TemplateRef<{ $implicit: VaiTro }>>('colNgayTao');
-  private readonly colHanhDong =
-    viewChild.required<TemplateRef<{ $implicit: VaiTro }>>('colHanhDong');
+  private readonly tplHanhDong =
+    viewChild.required<TemplateRef<RowActionsContext<VaiTro>>>('tplHanhDong');
+
+  /** Không có `core.role.write` thì không hành động dòng nào → `null`, cột không vẽ kể cả `th`. */
+  protected readonly hanhDongDong = computed(() =>
+    this.auth.coQuyen('core.role.write') ? this.tplHanhDong() : null,
+  );
 
   protected readonly columns = computed<DataColumnDef<VaiTro>[]>(() => {
     const cotDuLieu: CotCore<VaiTro, KhoaCotCore>[] = [
@@ -165,21 +171,8 @@ export class DanhSachVaiTroPage {
         cell: this.colNgayTao(),
       },
     ];
-    const cotHanhDong: CotCore<VaiTro, KhoaCotCore>[] = this.auth.coQuyen('core.role.write')
-      ? [
-          {
-            key: 'hanhDong',
-            header: this.translate.instant('vaiTro.cot.hanhDong'),
-            cell: this.colHanhDong(),
-          },
-        ]
-      : [];
-    // Cột của dự án nối sau cột dữ liệu của Core; cột hành động vẫn đứng cuối (DataTable.md).
-    return [
-      ...cotDuLieu,
-      ...sangCotDataTable(this.cotMoRong, (k) => this.translate.instant(k)),
-      ...cotHanhDong,
-    ];
+    // Cột của dự án nối sau cột dữ liệu của Core; cột hành động là `rowActionsTemplate`, luôn đứng cuối.
+    return [...cotDuLieu, ...sangCotDataTable(this.cotMoRong, (k) => this.translate.instant(k))];
   });
 
   // ---- Menu hành động theo hàng ----
@@ -294,9 +287,7 @@ export class DanhSachVaiTroPage {
         error: (err: unknown) => {
           // Hộp xác nhận không có form: câu của banner do fe-ui-conventions.md §6.2 quyết.
           this.loiXoa.set(
-            err instanceof ApiFailureError
-              ? fieldErrorsText(this.translate, err)
-              : this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION'),
+            dichLoiBatKy(this.translate, err, (l) => fieldErrorsText(this.translate, l)),
           );
         },
       });

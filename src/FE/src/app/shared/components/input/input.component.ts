@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { ControlValueAccessor, NgControl } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { roiOLaCham } from '../../forms/focus-luc-mo';
+
 /** Một lựa chọn của biến thể `select` — dùng lại kiểu đã có (fe-ui-conventions.md §9). */
 export interface SegmentOption {
   readonly value: string;
@@ -33,6 +35,8 @@ export class InputComponent implements ControlValueAccessor {
   }
 
   readonly id = input<string | null>(null);
+  /** Nhãn truy cập khi KHÔNG có <label> (ô lọc trong Toolbar); có FormRow thì để trống. */
+  readonly ariaLabel = input<string | null>(null);
   readonly type = input<'text' | 'password' | 'select'>('text');
   readonly size = input<'sm' | 'md' | 'lg'>('md');
   readonly width = input<'full' | 'md' | 'sm'>('full');
@@ -40,7 +44,9 @@ export class InputComponent implements ControlValueAccessor {
   readonly readonly = input(false);
   readonly describedBy = input<string | null>(null);
   readonly autocomplete = input<string | null>(null);
-  readonly inputmode = input<'text' | 'decimal' | 'numeric' | 'tel' | 'email' | 'url' | 'search' | null>(null);
+  readonly inputmode = input<
+    'text' | 'decimal' | 'numeric' | 'tel' | 'email' | 'url' | 'search' | null
+  >(null);
   readonly revealable = input(true);
   readonly options = input<readonly SegmentOption[]>([]);
   /** Chỉ dùng khi ô KHÔNG gắn control — hiển thị thuần (Input.md §API dự kiến, ca `readonly`). */
@@ -51,7 +57,9 @@ export class InputComponent implements ControlValueAccessor {
   protected readonly hienMatKhau = signal(false);
 
   /** Không gắn control → hiện `value()` truyền vào; có control → hiện giá trị CVA giữ. */
-  protected readonly hienThi = computed(() => (this.ngControl ? this.gia() : String(this.value() ?? '')));
+  protected readonly hienThi = computed(() =>
+    this.ngControl ? this.gia() : String(this.value() ?? ''),
+  );
 
   protected get loi(): boolean {
     return !!this.ngControl && this.ngControl.invalid === true && this.ngControl.touched === true;
@@ -63,12 +71,15 @@ export class InputComponent implements ControlValueAccessor {
 
   protected doiGia(gt: string): void {
     this.gia.set(gt);
+    // Không gọi onTouched ở đây: `touched` chỉ đặt khi rời ô (FormRow.md, "Lỗi hiện khi nào" dòng 1).
     this.onChange(gt);
-    this.onTouched();
   }
 
-  protected chamVao(): void {
-    this.onTouched();
+  /** Rời ô: ô tự đặt focus lúc mở mà chưa sửa thì không làm control `touched` (§6.5). */
+  protected chamVao(event: Event): void {
+    if (roiOLaCham(event.target, this.ngControl?.control ?? null)) {
+      this.onTouched();
+    }
   }
 
   protected toggleHienMatKhau(): void {

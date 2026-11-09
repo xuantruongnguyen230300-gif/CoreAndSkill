@@ -8,7 +8,8 @@ verified: chua-doi-chieu
 
 > 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/BE` đã có trên đĩa, nên code mẫu
 > dưới đây **có bản thật để đối chiếu**. Chưa ai đối chiếu toàn file, nên `verified:` giữ
-> `chua-doi-chieu`: khớp hay không thì mở file mã nguồn ra so và nêu `file:dòng`.
+> `chua-doi-chieu`: khớp hay không thì mở file mã nguồn ra so và nêu đường dẫn kèm một chuỗi tìm
+> được trong tệp ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §9).
 >
 > Đây là file chủ của: `ICommand<T>`/`IQuery<T>`, `Result<T>`, `Error`, `ErrorType`,
 > `ErrorDescriptor`, pipeline behavior, validator, `PagedList<T>`, tham số thông điệp đặt
@@ -40,7 +41,7 @@ public sealed record CreateUserCommand(
     string Email,
     string FullName,
     string TempPassword,
-    IReadOnlyList<Guid> RoleIds) : ICommand<Guid>;
+    IReadOnlyList<Guid> RoleIds) : ICommand<CreatedIdDto>;   // Core.Application/Common/CreatedIdDto.cs — data 201 { "id": "…" }
 
 // Core.Application/Users/GetUserByIdQuery.cs
 public sealed record GetUserByIdQuery(Guid Id) : IQuery<UserListItemDto>;
@@ -51,7 +52,9 @@ public sealed record GetUsersListQuery(
     int PageSize = 20,
     string? SortBy = null,
     bool SortDescending = false,
-    string? SearchText = null) : IQuery<PagedList<UserDto>>;
+    string? SearchText = null,
+    Guid? RoleId = null,
+    string? Status = null) : IQuery<PagedList<UserListItemDto>>;
 ```
 
 | Quy ước | Lý do |
@@ -146,7 +149,7 @@ public class Result : IResult, IResultFactory<Result>
     static Result IResultFactory<Result>.FromError(Error error) => Failure(error);
 }
 
-// Core.Domain/Common/Result{T}.cs
+// Core.Domain/Common/ResultOfT.cs
 public sealed class Result<TValue> : Result, IResultFactory<Result<TValue>>
 {
     private readonly TValue? _value;
@@ -289,7 +292,7 @@ public interface IUnitOfWork
 ([`../adr/0025-luu-du-lieu-module-mot-transaction.md`](../adr/0025-luu-du-lieu-module-mot-transaction.md)),
 qua **chung một** `DbConnection` scoped; mỗi `DbContext` đăng ký lại dưới kiểu `DbContext` để `UnitOfWork`
 nhận đủ — mã ở `CoreInfrastructureServiceCollectionExtensions.cs`, chuỗi `services.AddScoped<DbContext>(`. Cấu hình
-đủ: [`be-performance.md`](be-performance.md) §7.2. `DbContext` của module: 📐 chưa hỗ trợ, [nợ](../DEBT.md) B22.
+đủ: [`be-performance.md`](be-performance.md) §7.2. `DbContext` của module: 📐 chưa hỗ trợ, luật B22 ở [`../RULES-BE.md`](../RULES-BE.md).
 
 `UnitOfWork` (`Core.Infrastructure/Persistence/`) nhận `DbConnection` + `IEnumerable<DbContext>`.
 `ExecuteInTransactionAsync` theo đúng thứ tự: bọc bằng `Database.CreateExecutionStrategy().ExecuteAsync`
@@ -315,6 +318,19 @@ gắn **mọi** context bằng `UseTransactionAsync(tx)` → chạy `operation` 
    (chuỗi `await transaction.CommitAsync(CancellationToken.None)`).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng (gồm khối `UnitOfWork` đầy đủ): [`ly-do/be-cqrs-handler.md`](../wiki-core/be/ly-do/be-cqrs-handler.md) §4
+
+### 4.1 Lệnh ghi hỏng giữa chừng — dừng, không lưu tiếp
+
+Lượt lưu hỏng không gỡ những dòng `AuditLog`, `OutboxMessage` mà interceptor vừa thêm cho nó: chúng nằm lại trong bộ theo dõi, trạng thái Added, và lượt lưu kế tiếp trên cùng `DbContext` ghi chúng thật — nhật ký và sự kiện của một thay đổi không xảy ra. Mỗi lệnh ghi của `UserManager` tự lưu, nên một lệnh trả `IdentityResult` thất bại cũng là một lượt lưu hỏng.
+
+> ✅ CÓ THẬT (đối chiếu 2026-11-04) — mọi neo `src/` trong bảng dưới.
+
+| Ca | Cách làm |
+| --- | --- |
+| Lệnh ghi qua `UserManager` trong Core — luật E20 | Kiểm `Succeeded` của **từng** lệnh; hỏng thì trả `Result.Failure` ngay — không lệnh ghi nào chạy sau nó, không ghi nhật ký. Xung đột đồng thời nhận ra bằng `IdentityConcurrency.DetectConflict(result)`, không phải xung đột thì trả mã riêng của thao tác. Mẫu: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Identity/UserAdminService.cs`, chuỗi `IdentityConcurrency.DetectConflict(removeResult)`; chuỗi lệnh dừng ở lệnh hỏng đầu tiên: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/TenantProvisioningService.cs`, hàm `ResetPasswordWritesAsync(`. Kết quả thất bại thì `TransactionBehavior` không commit (§5.3) |
+| Ngoại lệ có tên của E20 | Chỉ hai lời gọi đếm lần sai của luồng đăng nhập — `AccessFailedAsync`, `ResetAccessFailedCountAsync` ở `src/BE/Core/CoreAndSkill.Core.Infrastructure/Identity/IdentityService.cs`: lệnh `INoTransaction`, không lưu gì sau đó. Ngoại lệ mới cần ADR mới ([ADR-0096](../adr/0096-lenh-ghi-usermanager-kiem-ket-qua-hong-thi-dung.md)) |
+| Phải lưu tiếp sau lượt hỏng, trong cùng `DbContext` — luật E19 | Gỡ sạch bộ theo dõi trước khi lưu tiếp, như đường nhập dữ liệu: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Import/EfImportRowWriter.cs`, hàm `DiscardTrackedChanges` (`ChangeTracker.Clear()` — mất luôn mọi thay đổi chưa lưu khác của người gọi). Không gỡ sạch được thì chỗ gọi đó là điều kiện kích hoạt (a) của [ADR-0092](../adr/0092-dong-interceptor-them-sau-luot-luu-hong-ghi-no-chua-don.md): thi công cùng lượt hướng sửa của ADR đó — mỗi interceptor tự gỡ dòng nó đã thêm khi lượt lưu hỏng; chỗ bắt lỗi không dọn hộ |
+| Interceptor tự gỡ dòng của lượt hỏng | 📐 **Chưa thi công, có chủ đích** (ADR-0092): không tệp nào dưới `src/BE/Core` chứa `SaveChangesFailed`. Dòng thừa chưa tới database chừng nào chưa chỗ gọi nào lưu tiếp sau lượt hỏng mà không gỡ sạch — ADR-0096 đối chiếu điều đó ngày 2026-09-25. Điều kiện kích hoạt thứ hai: hàng E19 của [`../RULES-BE.md`](../RULES-BE.md) |
 
 ---
 
@@ -422,13 +438,24 @@ không phải `if`. Commit **chỉ khi `response.IsSuccess`** — vì thế hand
 
 **Cấm** `typeof(Result<>).MakeGenericType(...)` + `Activator.CreateInstance` trong behavior. Dùng
 `TResponse.FromError(error)` qua `IResultFactory<TSelf>` (`static abstract`, C# 11) — đổi chữ ký thì đỏ
-lúc biên dịch.
+lúc biên dịch. Luật R12 ([`../RULES.md`](../RULES.md) §5).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-cqrs-handler.md`](../wiki-core/be/ly-do/be-cqrs-handler.md) §5.4
 
 ### 5.5 Vì sao CHƯA có Logging / Performance / Caching behavior
 
-> 📐 Phần chưa thi công: [`be-cqrs-handler-chua-thi-cong.md`](be-cqrs-handler-chua-thi-cong.md) §5.5
+Bốn behavior trong bảng chưa có trong `src/BE` — đối chiếu 2026-09-30: không tệp `.cs` nào khai `class LoggingBehavior`, `class PerformanceBehavior`, `class CachingBehavior` hay `class AuthorizationBehavior`.
+
+Nguyên tắc: **thêm sau khi đo, không thêm để phòng xa.** Behavior thứ ba là lật [`../adr/0006-pipeline-behavior.md`](../adr/0006-pipeline-behavior.md) — ADR mới nêu điều kiện nào dưới đây đã thoả. Code đăng ký một behavior mà §5.1 chưa khai thì test của luật B2 đỏ: `src/BE/Tests/CoreAndSkill.ArchTests/PipelineBehaviorOrderTests.cs`, chuỗi `registered.ShouldBe(documented)`.
+
+| Behavior thường thấy | Điều kiện để thêm |
+| --- | --- |
+| `LoggingBehavior` | Khi có nhu cầu log **theo use case** mà tầng HTTP không thấy được (ví dụ tham số đã giải mã) |
+| `PerformanceBehavior` | Khi đã có tracing và vẫn cần mốc đo ở ranh giới use case |
+| `CachingBehavior` | Ba điều kiện bắt buộc ở [`be-performance.md`](be-performance.md) §8.3 |
+| `AuthorizationBehavior` | Khi cần phân quyền theo **từng bản ghi** mà `RequirePermissionAttribute` không biểu diễn được |
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-cqrs-handler.md`](../wiki-core/be/ly-do/be-cqrs-handler.md) §5.5
 
 ---
 
@@ -473,7 +500,7 @@ internal sealed class CreateUserCommandValidator : AbstractValidator<CreateUserC
 | --- | --- |
 | Validator chỉ kiểm thứ **tính được từ payload** | Kiểm cần DB thuộc handler — validator thuần, test không cần hạ tầng |
 | **Không** `WithMessage("câu tiếng Việt")` | Câu hiển thị do client dựng từ mã. Luật R8 ([`../RULES.md`](../RULES.md) §5) |
-| **Bắt buộc** `WithErrorCode(...)` lấy từ catalog | Không có mã thì FE không tra được bảng dịch |
+| **Bắt buộc** `WithErrorCode(...)` lấy từ catalog | Không có mã thì FE không tra được bảng dịch. Luật R13 ([`../RULES.md`](../RULES.md) §5) |
 | Rỗng, độ dài, khuôn dạng dùng nhóm `CORE.VALIDATION.*` của `CommonErrors` (§7.1) | Một mã một bản dịch cho mọi module; mã riêng theo tài nguyên chỉ khi lý do không thuộc nhóm đó |
 | Một validator một file, cùng thư mục với command | Vertical slice |
 | `internal sealed` | Bộ quét phải bật `includeInternalTypes` — §5.1 |
@@ -558,7 +585,7 @@ public static class CommonErrors
 | `CORE.VALIDATION.MAX_LENGTH` | `MaxLength` | `MaximumLength(n)` |
 | `CORE.VALIDATION.MIN_LENGTH` | `MinLength` | `MinimumLength(n)` |
 | `CORE.VALIDATION.FORMAT` | — | `Matches`, `EmailAddress`, và mọi rule kiểm khuôn dạng |
-| `CORE.VALIDATION.MAX_ITEMS` | `MaxItems` | `Must(x => x.Count <= n)` trên danh sách — trần số phần tử |
+| `CORE.VALIDATION.MAX_ITEMS` | `MaxItems` | `.MaximumItems(n)` trên danh sách — trần số phần tử; extension dùng chung `ListRuleBuilderExtensions` (`Core.Application/Common/`) tự gắn mã và tham số `MaxItems`. **Không** viết `Must` trần: nó không gắn `MaxItems`, FE nhận câu thiếu số |
 
 Mã gốc của envelope **vẫn là `CORE.VALIDATION.FAILED`** — các mã trên không bao giờ đứng ở `error.code`.
 Khoá `messageParams` giữ đúng tên placeholder của FluentValidation (PascalCase — khoá của
@@ -573,24 +600,71 @@ luật R2 ([`../RULES.md`](../RULES.md) §5).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-cqrs-handler.md`](../wiki-core/be/ly-do/be-cqrs-handler.md) §7.1
 
-### 7.2 Ranh giới của luật R8 — chuỗi tiếng Việt được phép ở ĐÚNG một chỗ
+### 7.2 Ranh giới của luật R8 — tiếng Việt chỉ ở tám hình dạng cú pháp
 
-Luật R8 ([`../RULES.md`](../RULES.md) §5) cấm hardcode
-câu hiển thị trong BE; catalog §7.1 lại **bắt buộc** mang câu tiếng Việt. Ranh giới để cả hai cùng đúng:
+Luật R8 ([`../RULES.md`](../RULES.md) §5): BE không mang **câu hiển thị cho người dùng** — chỉ mã và tham số,
+câu do FE dựng; catalog §7.1 lại **bắt buộc** mang một câu tiếng Việt dự phòng. Máy không đọc được *"câu này
+có tới mắt người dùng không"*, nên luật được ép qua một đại diện đo được — người dùng chốt 2026-09-29, hình
+dạng 8 và hình dạng 3 mở rộng chốt 2026-09-30 ([`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md)):
 
-> **Chuỗi tiếng Việt chỉ được phép ở tham số `MessageTemplate` của một `Error` khai trong
-> catalog. Mọi vị trí khác trong BE là vi phạm.**
+> **Chuỗi tiếng Việt trong BE chỉ được đứng ở một trong tám hình dạng cú pháp dưới đây. Hình dạng không có
+> tên trong bảng — kể cả hình dạng chưa ai nghĩ tới — là vi phạm.**
 
-| Vị trí | Được? | Vì sao |
-| --- | --- | --- |
-| `MessageTemplate` của `Error` trong catalog | ✅ | Đây là **câu dự phòng**, không phải nguồn hiển thị — lý do đầy đủ ở [`../wiki-core/be/16-i18n-va-ma-loi.md`](../wiki-core/be/16-i18n-va-ma-loi.md) §4.1 |
-| `WithMessage("…")` của validator | 🛑 | Validator sinh `fieldErrors`, và mỗi mục ở đó mang **mã**; câu đến từ i18n phía FE |
-| Chuỗi trả thẳng từ controller, handler, middleware | 🛑 | Bỏ qua catalog ⇒ không có mã ⇒ FE không có gì để tra |
-| Thông điệp log, tên biến, comment | ✅ | Không hiển thị cho người dùng; R8 nói về **câu hiển thị** |
-| Chuỗi trong exception của hạ tầng ta không sở hữu | ✅ | Không ánh xạ ra envelope; xem §7.1 |
+| # | Hình dạng | Chuỗi đứng đúng ở đâu | Vì sao không phải câu hiển thị |
+| --- | --- | --- | --- |
+| 1 | Thông điệp `Error` trong catalog | Đối số vị trí thứ hai, hay đối số tên `MessageTemplate:`, của `new Error(…)`; hoặc của `new(…)` rút gọn khi nó **trực tiếp** là giá trị khởi tạo của một trường khai kiểu `Error`. Lời gọi nằm trong một lớp `static` tên kết thúc bằng `Errors` — khuôn §7.1 | Câu **dự phòng**, gắn một–một với một mã; FE tra mã chứ không đọc câu — [`../wiki-core/be/16-i18n-va-ma-loi.md`](../wiki-core/be/16-i18n-va-ma-loi.md) §4.1 |
+| 2 | Template của `ILogger` | Đối số chuỗi đầu tiên của lời gọi `LogTrace(`, `LogDebug(`, `LogInformation(`, `LogWarning(`, `LogError(`, `LogCritical(` | Chỉ vào log vận hành |
+| 3 | Thông điệp ngoại lệ | **(a)** Mọi vị trí, ở mọi độ sâu, bên trong biểu thức đứng sau `throw` — câu lệnh hay biểu thức `throw` —, kể cả đối số của hàm phụ dựng ngoại lệ gọi ở đó (`throw Invalid($"…")`); **(b)** mọi vị trí bên trong danh sách đối số của lời gọi hàm dựng lớp cơ sở — `: base(…)` của một hàm dựng, hay `: <Tên>(…)` của hàm dựng chính — trong một lớp mà kiểu cơ sở đầu tiên có tên kết thúc bằng `Exception` | Thông điệp ngoại lệ không bao giờ lên dây — điều kiện ngay dưới bảng |
+| 4 | Đối số attribute | Mọi đối số, vị trí hay tên, viết thẳng trong `[X(…)]` | Siêu dữ liệu cho người đọc code và cho cổng — ví dụ lý do của `[AuthenticatedOnly("…")]` |
+| 5 | Mô tả chỉ số | Đối số tên `description:` của một lời gọi `Create…(` trên `Meter` | Người vận hành đọc ở nơi thu chỉ số |
+| 6 | Mô tả health check | Đối số `description` — vị trí đầu hay tên — của `HealthCheckResult.Healthy(`, `Degraded(`, `Unhealthy(`; đối số vị trí thứ hai của `new HealthCheckResult(` | Chỉ vào log; `/health/*` chỉ ghi trạng thái — [`../wiki-core/be/07-observability.md`](../wiki-core/be/07-observability.md) §8 |
+| 7 | Đầu ra của lệnh Core | Đối số của `Console.Write(`, `Console.WriteLine(` — kể cả qua `Console.Error`, `Console.Out`, bản `Async` — trong tệp dưới thư mục `CoreAndSkill.Core.Web/Commands/` | Người vận hành chạy `core …` đọc ([`be-architecture.md`](be-architecture.md) §3), không phải người dùng ứng dụng |
+| 8 | Thông điệp kiểm cấu hình | Đối số vị trí đầu, hay đối số tên `errorMessage:`, của `new ValidationResult(`; đối số của `ValidateOptionsResult.Fail(`; đối số cuối, hay đối số tên `failureMessage:`, của lời gọi `.Validate(` mà đối số đầu là lambda — dạng `OptionsBuilder<T>.Validate(điều kiện, thông điệp)`; biểu thức trả về — thân `=>` hay câu `return` — của phương thức `override` tên `FormatErrorMessage` | Người vận hành đọc khi app từ chối khởi động — điều kiện ngay dưới bảng |
 
-Detector của R8 nhận diện theo **hình dạng** — chuỗi tiếng Việt ở tham số thứ hai của `new Error(...)` trong
-file catalog thì cho qua, mọi vị trí khác thì bắt; **không** quét toàn bộ rồi miễn trừ theo tên file.
+**Điều kiện của hình dạng 3.** `CoreExceptionHandler` không bao giờ đưa thông điệp của ngoại lệ vào phản hồi —
+mọi nhánh của nó ghi một mã catalog. Luật A15 canh nhánh 500; test của A15 cần thêm một khẳng định: thân phản
+hồi không chứa thông điệp của ngoại lệ thử. Chỗ khác bắt ngoại lệ rồi dựng phản hồi cũng dịch sang mã, không
+chép `.Message` ra dây; một chỗ chép như vậy biến hình dạng 3 thành lỗ rò, và lớp bắt nó là review. Ví dụ
+đỏ hay gặp: ly-do §7.2.
+
+**Điều kiện của hình dạng 8.** `ValidationResult` và `ValidationAttribute` cũng là cơ chế kiểm model của MVC:
+gắn lên một kiểu nhận từ request thì thông điệp vào `ModelState`. `ModelBindingProblemFactory` chỉ ghi mã, không
+đưa thông điệp của `ModelState` ra dây — `src/BE/Core/CoreAndSkill.Core.Web/Http/ModelBindingProblemFactory.cs`,
+chuỗi `KHÔNG bao giờ đưa thông điệp`. Chỗ khác đọc `ModelState` hay `ValidationResult.ErrorMessage` rồi chép ra
+dây biến hình dạng 8 thành lỗ rò; lớp bắt là review.
+
+> ✅ **CÓ THẬT** (đối chiếu 2026-10-02): bộ dò `NoUserFacingVietnameseString_InBackend` đã chạy xanh trên source thật — `src/BE/Tests/CoreAndSkill.ArchTests/NoUserFacingVietnameseStringTests.cs`, chuỗi `NoUserFacingVietnameseString_InBackend`; bộ quét ở `src/BE/Tests/CoreAndSkill.ArchTests/Support/NoUserFacingVietnameseStringScanner.cs`, chuỗi `ClassifyNode`. Đó là cổng của luật R8 ([`../RULES-BE.md`](../RULES-BE.md) §5); mọi chuỗi tiếng Việt trong tầm quét hôm nay nằm trong tám hình dạng — chính test đó là bằng chứng, không liệt kê lại từng chỗ.
+
+**Bộ dò `NoUserFacingVietnameseString_InBackend`** — ArchTest dưới `src/BE/Tests/CoreAndSkill.ArchTests/`:
+
+1. **Phân tích cú pháp, không grep** — vì sao: ly-do §7.2. Dựng cây cú pháp C# của từng tệp (Roslyn) rồi duyệt
+   token literal.
+2. **Tầm:** `ProductSourceFiles.Core()` — năm project Core và host; thêm project module khi module đầu tiên có
+   mặt. Không loại thư mục nào, kể cả `Migrations/`.
+3. **Chuỗi tiếng Việt:** token literal chuỗi — thường, verbatim, raw, UTF-8 — và phần văn bản của chuỗi nội suy,
+   mà sau khi chuẩn hoá NFC chứa ít nhất một chữ cái riêng của bảng chữ tiếng Việt: `đ`, `ă`,
+   `â`, `ê`, `ô`, `ơ`, `ư`, hay một chữ mang dấu thanh — hoa lẫn thường. Chú thích không phải token, nên tự nằm ngoài.
+   Literal ký tự đơn (`'đ'`) nằm ngoài: một ký tự không thể là câu hiển thị — nó dùng để so khớp, chuẩn hoá chữ
+   (người dùng chốt 2026-10-01).
+4. **Leo tới hình dạng.** Hình dạng 3 xét theo tổ tiên: literal hợp lệ khi một tổ tiên của nó là biểu thức
+   đứng sau `throw`, hay danh sách đối số của lời gọi hàm dựng lớp cơ sở nêu ở bảng — ở mọi độ sâu. Bảy hình
+   dạng còn lại xét theo chỗ đứng: từ literal đi lên cây qua các nút **trong suốt** — chuỗi nội suy và phần giữ
+   chỗ của nó, phép nối `+`, dấu ngoặc, hai nhánh của `?:`, vế phải của `??` — tới nút đầu tiên không trong
+   suốt; nút đó phải là đúng vị trí đối số của một hình dạng. Không khớp hình dạng nào thì đỏ.
+5. **Đóng mặc định.** Không danh sách miễn trừ theo tệp hay theo dòng. Thông báo đỏ nêu tệp, dòng, literal, và
+   hai lối ra: viết lại vào một trong tám hình dạng, hoặc xin người dùng thêm hình dạng — ghi nhật ký quyết định,
+   sửa bảng trên trước, bộ dò sau.
+6. **T6:** in số literal tiếng Việt đã xét và số khớp từng hình dạng; FAIL khi tổng về `0` hay hình dạng 1 về
+   `0` — bộ nhận chữ tiếng Việt hay bộ đọc catalog hỏng thì cổng xanh vì tập rỗng.
+7. **Đối chứng (T1)** trên source dựng sẵn: `return Ok("Xin chào")` trong controller đỏ; `WithMessage("Bắt
+   buộc")` đỏ; thân hàm phụ `Invalid(string d) => new($"… {d}")` đỏ còn `throw Invalid($"…")` xanh; `: base("…")`
+   trong lớp kế thừa `Exception` xanh, trong lớp khác đỏ; `failures.Add("…")` đỏ còn
+   `ValidateOptionsResult.Fail("…")` xanh; mỗi hình dạng một ca xanh; cùng một chuỗi viết ở dạng tổ hợp (NFD)
+   phải bị nhận ra như dạng dựng sẵn.
+
+**Điểm mù:** chuỗi tiếng Việt viết **không dấu** — code hôm nay có, ví dụ
+`src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/DatabaseSchemaStartupCheck.cs`, chuỗi
+`khong ket noi duoc database` — và câu hiển thị viết bằng **tiếng Anh**. Cả hai lọt bộ dò; lớp bắt là review.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-cqrs-handler.md`](../wiki-core/be/ly-do/be-cqrs-handler.md) §7.2
 
@@ -625,14 +699,18 @@ Lỗi **BE không bao giờ phát ra** (mất mạng, tải chunk hỏng, proxy 
 
 | Mã | Khi nào FE dùng |
 | --- | --- |
-| `CORE.CLIENT.NO_CONNECTION` | Không nhận được phản hồi nào (mất mạng, DNS hỏng, CORS chặn) |
+| `CORE.CLIENT.NO_CONNECTION` | Không nhận được phản hồi nào: status `0` (mất mạng, DNS hỏng, CORS chặn), hoặc lỗi không đến từ một phản hồi HTTP — hết thời gian chờ, và mọi lỗi khác không phải `ApiFailureError` mà màn hay store bắt được |
 | `CORE.CLIENT.SERVER_UNAVAILABLE` | Nhận 5xx **không mang envelope** (proxy trả 502/504) — thay câu mất kết nối |
+| `CORE.CLIENT.INVALID_RESPONSE` | Nhận phản hồi **không mang envelope** với status khác `0` và ngoài 5xx (proxy trả 413, 404 dạng HTML) — câu kèm số status, vì phản hồi này không có `traceId` để tra |
 | `CORE.CLIENT.RESOURCE_LOAD_FAILED` | Tải một tài nguyên của app thất bại (chunk sau khi triển khai bản mới) |
+| `CORE.CLIENT.UNKNOWN_ERROR_CODE` | Phản hồi **mang envelope**, FE chưa có khoá dịch cho mã gốc `error.code`, và `message` BE gửi kèm rỗng — câu dự phòng bậc 3 của `dichLoi` ([`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §5.4). Mã trong `fieldErrors` không dùng mã này |
 | `CORE.CLIENT.VALIDATION_REQUIRED` | Validator phía client: ô bắt buộc để trống |
 | `CORE.CLIENT.VALIDATION_EMAIL` | Validator phía client: sai định dạng email |
 | `CORE.CLIENT.VALIDATION_MAXLENGTH` | Validator phía client: vượt độ dài tối đa |
 | `CORE.CLIENT.VALIDATION_PATTERN` | Validator phía client: không khớp khuôn dạng khai ở ô nhập |
 | `CORE.CLIENT.VALIDATION_MISMATCH` | Validator phía client: ô nhập lại không khớp ô gốc |
+
+Ba mã cho lỗi HTTP không mang envelope — `NO_CONNECTION`, `SERVER_UNAVAILABLE`, `INVALID_RESPONSE` — FE chọn theo status ở đúng một hàm: [`fe-api-client.md`](fe-api-client.md) §2.2 (luật F45).
 
 **Validator phía client theo khuôn `CORE.CLIENT.VALIDATION_<VALIDATOR>`** — `<VALIDATOR>` là khoá lỗi
 validator gắn vào control, viết HOA; `VALIDATION` nằm **trong** đoạn LÝ DO, nối bằng `_` (giữ đúng ba
@@ -734,7 +812,7 @@ phải `Total`.**
 
 ### 9.2 Envelope nhất quán
 
-Endpoint danh sách trả **cùng envelope** với endpoint đơn: `Result<PagedList<UserDto>>`, không trả
+Endpoint danh sách trả **cùng envelope** với endpoint đơn: `Result<PagedList<UserListItemDto>>`, không trả
 `PagedList<T>` trần — FE viết **một** hàm bóc envelope.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-cqrs-handler.md`](../wiki-core/be/ly-do/be-cqrs-handler.md) §9
@@ -782,6 +860,14 @@ public interface IBackgroundJobScheduler
 
 Interface chỉ dùng `System.Linq.Expressions` của BCL — không lộ kiểu nào của thư viện job
 nền ra `Core.Application`.
+
+Giá trị `EnqueueAsync` trả về — cùng loại với của `ScheduleAsync` — là mã nội bộ của hàng đợi
+(`QueueItemId`), **không** phải `core.job.id`. Nơi gọi giữ giá trị đó và ghi một dòng Information
+mang cả `{JobId}` (`core.job.id`) lẫn `{QueueItemId}`: đó là dòng duy nhất nối log của hàng đợi với
+việc — luật B35 ở [`../RULES-BE.md`](../RULES-BE.md) §6, khuôn log ở
+[`../wiki-core/be/07-observability.md`](../wiki-core/be/07-observability.md) §6.
+
+> ✅ **CÓ THẬT** (đối chiếu 2026-10-04): `src/BE/Core/CoreAndSkill.Core.Application/Jobs/JobOutboxHandlers.cs`, chuỗi `"Việc {JobId} đã được đẩy vào hàng đợi nền với mã {QueueItemId}."`; `src/BE/Core/CoreAndSkill.Core.Infrastructure/Jobs/BackgroundJobQueueHostedService.cs`, chuỗi `"Job nền {QueueItemId} bắt đầu."`. Test: `Queued_LogsTheJobId_AndTheQueueItemId_ReturnedByTheScheduler` (`src/BE/Tests/CoreAndSkill.Core.UnitTests/Jobs/JobHandlersTests.cs`), `QueueLines_CarryTheIdReturnedByEnqueue_UnderQueueItemId_AndNoJobIdField` (`src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Jobs/BackgroundJobQueueHostedServiceTests.cs`).
 
 ### 10.3 Khuôn `jobId + polling`
 

@@ -24,7 +24,7 @@ namespace CoreAndSkill.ArchTests;
 //   • tập tài nguyên suy từ cột resource_key — §5.2 không có bảng tài nguyên riêng
 //     (PermissionCatalogDocScanner nói rõ hệ quả);
 //   • chỉ phủ khoá của CORE. Module khai khoá của mình theo cùng khuôn nhưng §5.2 không liệt kê
-//     chúng — nợ B9/B10, docs/RULES.md §10;
+//     chúng — nợ B9/B10, docs/RULES-BE.md;
 //   • đối chiếu với nguồn C#. Hai chiều còn lại (migration, script) khớp với C# qua nửa (2) và (3),
 //     nên chuỗi tài liệu ↔ C# ↔ migration ↔ script khép kín; nếu một mắt xích bị gỡ thì mắt đó đỏ
 //     chứ không phải mắt này.

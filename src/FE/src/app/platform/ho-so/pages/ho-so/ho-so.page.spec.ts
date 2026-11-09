@@ -4,7 +4,6 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup } from '@angular/forms';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import {
   TranslateLoader,
@@ -85,14 +84,20 @@ describe('HoSoPage — lỗi 422 không gắn được vào ô nào vẫn phải
       imports: [HoSoPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         { provide: HoSoService, useValue: service },
         { provide: DoiMatKhauService, useValue: doiMatKhau },
         { provide: AuthService, useValue: { lamMoiPhien: () => Promise.resolve() } },
         {
           provide: CORE_I18N,
           useValue: {
-            languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+            languages: [
+              {
+                code: 'vi',
+                nativeName: 'Tiếng Việt',
+                dateTimeFormat: 'HH:mm dd/MM/y',
+                localeData: localeVi,
+              },
+            ],
             defaultLanguage: 'vi',
             sources: [],
           },
@@ -289,6 +294,36 @@ describe('HoSoPage — lỗi 422 không gắn được vào ô nào vẫn phải
       expect(page.xungDotDongThoi()).toBeTrue();
       expect(page.loiLuuThongTin()).toBeNull();
     });
+
+    // Design/Screens/03-ho-so-ca-nhan.md §Trạng thái, nhánh `PUT` 409: banner xung đột không còn lý do đứng sau lần "Tải lại" thành công.
+    it('CONFLICT → "Tải lại" mà GET thành công → banner xung đột mất', async () => {
+      service.capNhatHoSo.and.returnValue(
+        throwError(() => loiApi('CORE.CONCURRENCY.CONFLICT', null)),
+      );
+      page.luuThongTin();
+      await veLai();
+      expect(page.xungDotDongThoi()).toBeTrue();
+
+      service.layHoSo.and.returnValue(of({ ...HO_SO, version: 'v-2' }));
+      page.thuLaiTaiHoSo();
+      await veLai();
+
+      expect(page.xungDotDongThoi()).toBeFalse();
+    });
+
+    it('CONFLICT → "Tải lại" mà GET hỏng → banner xung đột còn', async () => {
+      service.capNhatHoSo.and.returnValue(
+        throwError(() => loiApi('CORE.CONCURRENCY.CONFLICT', null)),
+      );
+      page.luuThongTin();
+      await veLai();
+
+      service.layHoSo.and.returnValue(throwError(() => loiApi('CORE.SOMETHING', null)));
+      page.thuLaiTaiHoSo();
+      await veLai();
+
+      expect(page.xungDotDongThoi()).toBeTrue();
+    });
   });
 
   describe('form đổi mật khẩu', () => {
@@ -392,7 +427,7 @@ describe('HoSoPage — lỗi 422 không gắn được vào ô nào vẫn phải
 
   // fe-ui-conventions.md §6.3 + Design/Screens/01 "kiểm tra dữ liệu" (03 dùng chung): ô nhập lại phải
   // khớp ô mật khẩu mới, kiểm ở FE. Lỗi `mismatch` nằm trên CHÍNH ô nhập lại — dòng lỗi dưới ô đó
-  // mang câu `VALIDATION_MISMATCH`, viền lỗi của ô đó bật. Gõ qua DOM: `Input` đánh dấu touched khi gõ.
+  // mang câu `VALIDATION_MISMATCH`, viền lỗi của ô đó bật. Gõ qua DOM rồi RỜI ô (blur): `Input` chỉ đánh dấu touched khi rời ô (FormRow.md, *Lỗi hiện khi nào* dòng 1).
   describe('ô nhập lại mật khẩu mới — kiểm khớp ở FE', () => {
     function o(id: string): HTMLInputElement {
       const input = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
@@ -407,6 +442,10 @@ describe('HoSoPage — lỗi 422 không gắn được vào ô nào vẫn phải
       o(id).dispatchEvent(new Event('input'));
     }
 
+    function roi(id: string): void {
+      o(id).dispatchEvent(new Event('blur'));
+    }
+
     function loiNhapLai(): string | undefined {
       return (fixture.nativeElement as HTMLElement)
         .querySelector('#ho-so-mat-khau-nhap-lai-error')
@@ -417,6 +456,7 @@ describe('HoSoPage — lỗi 422 không gắn được vào ô nào vẫn phải
       go('ho-so-mat-khau-hien-tai', 'cu');
       go('ho-so-mat-khau-moi', 'Moi-12345');
       go('ho-so-mat-khau-nhap-lai', 'Moi-54321');
+      roi('ho-so-mat-khau-nhap-lai');
       await veLai();
 
       expect(loiNhapLai()).toBe('loi.CORE.CLIENT.VALIDATION_MISMATCH');
@@ -435,6 +475,7 @@ describe('HoSoPage — lỗi 422 không gắn được vào ô nào vẫn phải
       go('ho-so-mat-khau-hien-tai', 'cu');
       go('ho-so-mat-khau-moi', 'Moi-12345');
       go('ho-so-mat-khau-nhap-lai', 'Moi-54321');
+      roi('ho-so-mat-khau-nhap-lai');
       await veLai();
       expect(loiNhapLai()).toBe('loi.CORE.CLIENT.VALIDATION_MISMATCH');
 
@@ -463,6 +504,7 @@ describe('HoSoPage — lỗi 422 không gắn được vào ô nào vẫn phải
     // bất kể người dùng gõ ô nào trước.
     it('gõ ô nhập lại khi ô mật khẩu mới CHƯA từng gõ → lỗi không khớp hiện ngay dưới ô nhập lại', async () => {
       go('ho-so-mat-khau-nhap-lai', 'Moi-54321');
+      roi('ho-so-mat-khau-nhap-lai');
       await veLai();
 
       expect(loiNhapLai()).toBe('loi.CORE.CLIENT.VALIDATION_MISMATCH');
@@ -571,7 +613,6 @@ describe('HoSoPage — câu của banner lỗi trong hộp từ bỏ cờ đặc
       imports: [HoSoPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         { provide: HoSoService, useValue: service },
         {
           provide: DoiMatKhauService,
@@ -581,7 +622,14 @@ describe('HoSoPage — câu của banner lỗi trong hộp từ bỏ cờ đặc
         {
           provide: CORE_I18N,
           useValue: {
-            languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+            languages: [
+              {
+                code: 'vi',
+                nativeName: 'Tiếng Việt',
+                dateTimeFormat: 'HH:mm dd/MM/y',
+                localeData: localeVi,
+              },
+            ],
             defaultLanguage: 'vi',
             sources: [],
           },
@@ -655,7 +703,6 @@ describe('HoSoPage — từ bỏ cờ hỏng với PERMISSION_BYPASS_NOT_HELD: �
       imports: [HoSoPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         { provide: HoSoService, useValue: service },
         {
           provide: DoiMatKhauService,
@@ -665,7 +712,14 @@ describe('HoSoPage — từ bỏ cờ hỏng với PERMISSION_BYPASS_NOT_HELD: �
         {
           provide: CORE_I18N,
           useValue: {
-            languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+            languages: [
+              {
+                code: 'vi',
+                nativeName: 'Tiếng Việt',
+                dateTimeFormat: 'HH:mm dd/MM/y',
+                localeData: localeVi,
+              },
+            ],
             defaultLanguage: 'vi',
             sources: [],
           },
@@ -777,7 +831,6 @@ describe('HoSoPage — 500 khi lưu thông tin: toast kèm traceId, banner của
       imports: [HoSoPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideHttpClient(withInterceptors([errorInterceptor])),
         provideHttpClientTesting(),
         { provide: SessionExpiryHandler, useValue: { handle: () => undefined } },
@@ -793,7 +846,14 @@ describe('HoSoPage — 500 khi lưu thông tin: toast kèm traceId, banner của
         {
           provide: CORE_I18N,
           useValue: {
-            languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+            languages: [
+              {
+                code: 'vi',
+                nativeName: 'Tiếng Việt',
+                dateTimeFormat: 'HH:mm dd/MM/y',
+                localeData: localeVi,
+              },
+            ],
             defaultLanguage: 'vi',
             sources: [],
           },
@@ -912,7 +972,6 @@ describe('HoSoPage — từ bỏ cờ: làm mới phiên (me) VÀ nạp lại me
       imports: [HoSoPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         provideHttpClient(withInterceptors([errorInterceptor])),
         provideHttpClientTesting(),
@@ -924,7 +983,14 @@ describe('HoSoPage — từ bỏ cờ: làm mới phiên (me) VÀ nạp lại me
         {
           provide: CORE_I18N,
           useValue: {
-            languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+            languages: [
+              {
+                code: 'vi',
+                nativeName: 'Tiếng Việt',
+                dateTimeFormat: 'HH:mm dd/MM/y',
+                localeData: localeVi,
+              },
+            ],
             defaultLanguage: 'vi',
             sources: [],
           },
@@ -1053,7 +1119,6 @@ async function dungHoSo(nguon: Observable<HoSo>): Promise<{
     imports: [HoSoPage],
     providers: [
       provideZonelessChangeDetection(),
-      provideNoopAnimations(),
       { provide: HoSoService, useValue: service },
       {
         provide: DoiMatKhauService,
@@ -1063,7 +1128,14 @@ async function dungHoSo(nguon: Observable<HoSo>): Promise<{
       {
         provide: CORE_I18N,
         useValue: {
-          languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+          languages: [
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+          ],
           defaultLanguage: 'vi',
           sources: [],
         },

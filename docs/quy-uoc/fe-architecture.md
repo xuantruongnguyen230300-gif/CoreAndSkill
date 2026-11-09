@@ -6,14 +6,17 @@ verified: chua-doi-chieu
 
 # Kiến trúc Frontend — bốn tầng và hàng rào giữ chúng
 
-> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §2.8 và §3**; phần còn lại chưa ai đối chiếu):
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §2.8 và §3**; 2026-10-06 thêm §2.3 `platform/loi/`; 2026-10-08 thêm dòng `navigation/` của §2.1; 2026-11-04 thêm câu hoãn trường lọc của §2.7; 2026-11-07 dòng provider hoạt ảnh của §2.6; phần còn lại chưa ai đối chiếu):
 >
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
 > | `src/FE/src/app/core/list/list-state.store.ts` — `connect(`, `TEN_DUNG_CHUNG`; luật 9 §2.8 (đối chiếu 2026-09-24): `// Luật 9:`, và `list-state.store.spec.ts` cạnh nó có `describe('luật 9` | — |
 > | `src/FE/src/app/platform/he-thong/don-vi/services/don-vi.mapper.ts` — `mapDonVi` ở `services/`; `state/` có ở ba feature của `platform/`, ví dụ `src/FE/src/app/platform/he-thong/don-vi/state/tao-don-vi.store.ts` — `class TaoDonViStore` ([ADR-0049](../adr/0049-trang-thai-quy-trinh-hop-thoai-o-state-khong-o-services.md)) | — |
-> | §2.6 luật F39 **đã khớp về chỗ đặt** (đọc mã 2026-09-24): `src/FE/src/app/core/theme/core-animations.ts` có `export function provideCoreAnimations(`; `src/FE/src/app/app.config.ts` chỉ còn dòng nối `provideCoreAnimations(),`; ngoài `*.spec.ts`, không tệp nào khác dưới `src/FE/src/app` khớp `provideAnimationsAsync(` | — cổng: [`../RULES.md`](../RULES.md) F39 |
-> | 🚧 §2.3 `platform/loi/` (chốt 2026-09-25): hai page nằm thẳng dưới `src/FE/src/app/platform/loi/` — `khong-co-quyen.page.ts`, `khong-tim-thay.page.ts` — ngoài mọi `pages/`, nên F10 không quét | Dời vào `loi/pages/khong-co-quyen/`, `loi/pages/khong-tim-thay/`; hai `loadComponent` ở `app.routes.ts` đổi cùng lượt |
+> | §2.6 provider hoạt ảnh (đối chiếu 2026-11-07): tệp `src/FE/src/app/core/theme/core-animations.ts` không còn; `grep -rl -e 'provideCoreAnimations' -e 'provideNoopAnimations' -e 'platform-browser/animations' -e '@angular/animations' src e2e package.json`, chạy trong `src/FE`, không in gì — [ADR-0124](../adr/0124-go-nua-provider-hoat-anh-giam-chuyen-dong-dua-vao-css-toan-cuc-va-safe-f39-het-ap-dung.md) | — |
+> | §1.1, §2.5 giá trị của bản cài (đối chiếu 2026-10-06): `src/FE/src/app/core/config/khai-bao-moi-truong.ts` có `export function khaiBaoMoiTruong<const T extends string>(`; `src/FE/src/app/core/config/tenant-code.ts` có `export const TENANT_CODE = new InjectionToken<string>('TENANT_CODE');`; `src/FE/src/app/app.config.ts` có `{ provide: TENANT_CODE, useValue: environment.tenantCode },` | — |
+> | §2.3 `platform/loi/` (đối chiếu 2026-10-06): hai page nằm ở `src/FE/src/app/platform/loi/pages/khong-co-quyen/khong-co-quyen.page.ts` và `src/FE/src/app/platform/loi/pages/khong-tim-thay/khong-tim-thay.page.ts`; `src/FE/src/app/app.routes.ts` có `import('./platform/loi/pages/khong-co-quyen/khong-co-quyen.page')` | — |
+> | §2.5 khuôn `core-i18n.ts`, phần khuôn ngày giờ — ✅ **CÓ THẬT** (đối chiếu 2026-11-09): mã khớp khuôn §2.5 — `src/FE/src/app/core/config/core-i18n.ts`, chuỗi `{ provide: DATE_PIPE_DEFAULT_OPTIONS, useValue: { dateFormat: macDinh.dateTimeFormat } },`; `src/FE/src/app/app.config.ts`, chuỗi `dateTimeFormat: 'HH:mm dd/MM/y',` | — |
+> | §2.1 dòng `navigation/` (đối chiếu 2026-10-08): `src/FE/src/app/core/navigation/loi-tai-phan-ma.ts` có `@Injectable({ providedIn: 'root' })` ngay trên `export class LoiTaiPhanMaService {`, không import gì từ `shared/`, `platform/`, `modules/` | — |
 >
 > Lý do đằng sau ranh giới Core ↔ Module (chung cho cả BE lẫn FE): [`../kien-truc-core-module.md`](../kien-truc-core-module.md).
 
@@ -52,18 +55,22 @@ src/FE/
 │   ├── favicon.ico
 │   ├── fonts/              # woff2 tự host — không gọi CDN font lúc chạy
 │   ├── i18n/               # bảng dịch của Core, nạp lúc chạy — v1 chỉ vi.json (wiki-core/fe/08-i18n.md §2.3)
-│   └── i18n-app/           # bảng dịch của dự án, nạp sau và ghi đè được khoá Core — v1 chỉ vi.json
+│   └── i18n-app/           # bảng dịch của dự án, nạp sau và ghi đè được khoá Core — v1 chỉ vi.json.
+│                           #   Dự án hạ nguồn tạo, và thêm '/i18n-app/' vào `sources` của CORE_I18N —
+│                           #   thiếu dòng đó thì thư mục có cũng không được nạp. Repo Core không có (08-i18n.md §2.3)
 ├── src/
-│   ├── environments/       # cấu hình COMPILE-TIME: apiBaseUrl, production
+│   ├── environments/       # cấu hình COMPILE-TIME: apiBaseUrl, tenantCode, production — bảng dưới
 │   ├── styles/             # token global + style toàn cục — xem fe-ui-conventions.md
 │   ├── index.html
 │   ├── main.ts
 │   └── app/                # bốn tầng, xem §2
+├── e2e/                    # lưới giao diện Playwright — ADR-0117, luật F56
 ├── .nvmrc                  # phiên bản Node của môi trường build — cùng package.json là nguồn phiên bản
 ├── angular.json
 ├── eslint.boundaries.cjs   # mảng BUSINESS_MODULES — eslint.config.js và cổng F4 cùng đọc, §4.3–§4.4
 ├── eslint.config.js        # hàng rào ranh giới — §4
 ├── package.json
+├── playwright.config.ts    # cấu hình lưới giao diện
 └── tsconfig*.json
 ```
 
@@ -73,9 +80,23 @@ Không tạo thư mục thứ năm ở cấp `src/FE/` khi chưa trả lời đ�
 | --- | --- | --- |
 | Giá trị chốt lúc | **build** | **runtime**, fetch lúc khởi động |
 | Đổi giá trị cần | build lại | thay file, không build lại |
-| Dùng cho | `apiBaseUrl`, cờ `production` | bảng dịch |
+| Dùng cho | `apiBaseUrl`, `tenantCode`, cờ `production` | bảng dịch |
 
 **Không dựng cả hai cơ chế cho cùng một giá trị.**
+
+**Các tệp môi trường** ([ADR-0116](../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md) QC4). `tenantCode` là mã đơn vị nghiệp vụ mà trang đăng nhập gửi ở chế độ thường; mã đơn vị hệ thống **không** có mặt ở tệp nào.
+
+| Tệp | Trong git | Được dùng bởi | Giá trị |
+| --- | --- | --- | --- |
+| `environment.ts` | Có | `ng test`, `ng lint`, và là kiểu của `environment` | Placeholder **không rỗng**. **Không bao giờ vào artifact sản xuất** — cấu hình `production` thay nó |
+| `environment.development.ts` | Có | `ng serve`, build `development` | `tenantCode` bằng `Core:Bootstrap:FirstTenantCode` của `appsettings.Development.json` |
+| `environment.ban-cai.ts` — tệp môi trường của bản cài | **Không** — `.gitignore` | Build `production`, qua `fileReplacements` | Người triển khai tạo cho từng bản cài, chép từ mẫu `environment.ban-cai.mau` cùng thư mục. `tenantCode` bằng mã đơn vị nghiệp vụ trong database, tức giá trị `Core:Bootstrap:FirstTenantCode` lúc cài ([`../database/script-runbook.md`](../database/script-runbook.md) §3.3 bước 4) |
+| `environment.e2e.ts` | Có | Build và serve cấu hình `e2e` — lưới giao diện ([ADR-0117](../adr/0117-luoi-giao-dien-playwright-do-dom-theo-spec-design-axe-aa-api-gia-anh-chi-tham-khao.md) QC1) | Giá trị giả, khai qua `khaiBaoMoiTruong`: `apiBaseUrl` trên miền `.invalid`, khác nguồn với dev server, bị `page.route` của lưới chặn — chuỗi `api.e2e-gia.invalid`; `tenantCode` giả — chuỗi `E2E-GIA`. **Không** dùng tệp bản cài: kết quả lưới không được phụ thuộc giá trị riêng của một máy |
+
+- **Thiếu tệp bản cài thì build `production` hỏng** — luật F54. Đó là chủ ý: không artifact nào ra được với `apiBaseUrl` placeholder hay thiếu mã đơn vị.
+- **Tệp bản cài khai giá trị qua hàm khai báo `khaiBaoMoiTruong` ở `core/config/`**, hàm đó từ chối `tenantCode` rỗng lúc biên dịch. Viết tay không qua hàm thì mất lớp kiểm này.
+- **Mẫu không mang đuôi `.ts`**: `tsconfig.app.json` biên dịch mọi tệp `.ts` dưới `src/`, nên một mẫu `.ts` để trống làm hỏng mọi build, kể cả CI.
+- **Cấu hình `e2e` trong `src/FE/angular.json`:** build tối ưu như `production` nhưng không `budgets` — bước 4b đã canh ngân sách; `serve` chạy http — chứng chỉ máy dev nằm ngoài git —, cổng cố định (chuỗi `"port": 4300`), tắt nạp lại nóng. `webServer` của `playwright.config.ts` dựng nó; `ng serve` không cấu hình vẫn là `development`, có SSL.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-architecture.md`](../wiki-core/fe/ly-do/fe-architecture.md) §1.1
 
@@ -88,13 +109,14 @@ Không tạo thư mục thứ năm ở cấp `src/FE/` khi chưa trả lời đ�
 ```
 core/
 ├── auth/            # trạng thái phiên, đăng nhập/đăng xuất, permission signal
-├── config/          # InjectionToken seam: CORE_ROUTES, CORE_BRANDING, CORE_I18N
+├── config/          # InjectionToken seam — bảng §2.5 (trừ API_BASE_URL ở http/); hàm khai báo tệp môi trường — §1.1
 ├── guards/          # authGuard, permissionGuard, mustChangePasswordGuard
 ├── http/            # envelope model, hàm CRUD dùng chung, unwrap, mapper lỗi, dịch mã lỗi (dich-loi.ts)
 ├── interceptors/    # thứ tự khai ở fe-api-client.md, KHÔNG tuỳ tiện
 ├── i18n/            # cấu hình ngx-translate, loader, service đổi ngôn ngữ
 ├── list/            # trạng thái màn danh sách: GridQuery, ListStateStore — §2.8
 ├── menu/            # menu động theo quyền
+├── navigation/      # bắt lần điều hướng hỏng vì không tải được phần mã của tuyến — fe-routing-guard.md §8.1
 ├── theme/           # preset PrimeNG, chuyển sáng/tối — cơ chế ở wiki-core/fe/04 §7
 ├── toast/           # service giữ hàng đợi toast (component Toast bọc PrimeNG nên nằm ở shared/ui/)
 └── unsaved-changes/ # hỏi-và-chặn khi rời màn còn thay đổi chưa lưu (fe-routing-guard.md §4.1); hộp thoại ở platform/shell/
@@ -158,7 +180,7 @@ Cấu trúc con giống hệt `modules/` (§3); khác biệt duy nhất là **ý
 
 | Thư mục | Chứa gì |
 | --- | --- |
-| `platform/loi/` | Hai trang lỗi trong khung, `khong-co-quyen` và `khong-tim-thay` — không `*.routes.ts`, không service. Page vẫn nằm ở `loi/pages/<ten-page>/` như §3, để F10 quét tới (🚧 bảng đầu file) |
+| `platform/loi/` | Hai trang lỗi trong khung, `khong-co-quyen` và `khong-tim-thay` — không `*.routes.ts`, không service. Page vẫn nằm ở `loi/pages/<ten-page>/` như §3, để F10 quét tới |
 | `platform/shell/` | **Khung ứng dụng — smart.** Inject phiên và menu, rồi truyền dữ liệu xuống `Sidebar` và `Topbar` qua `input()`. Hai component đó **dumb**, tự dựng ở `shared/components/` — luật F11 áp cho chúng như mọi component khác, không ngoại lệ |
 | `platform/config/` | Seam `CORE_SCREEN_EXT` (§2.7). Đặt ở đây vì kiểu dòng của nó là model của màn `platform/`, mà `core/` không được import `platform/` (luật F1) |
 
@@ -189,7 +211,8 @@ Tương ứng phía BE là một `Modules.<X>.*`; ranh giới khi nào tách mod
 | `CORE_HOME` | **Hàm nạp lười** component trang chủ; không khai ⇒ trang chào của Core | §2.3, khuôn ngay dưới |
 | `CORE_I18N` | Danh sách ngôn ngữ, ngôn ngữ mặc định, và các nguồn tệp dịch theo thứ tự nạp | [`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §2.3 |
 | `API_BASE_URL` | Base URL của API, cấp từ `environment.apiBaseUrl` | [`fe-api-client.md`](fe-api-client.md) §2.1 |
-| Bảng màu | **Không đi qua DI.** Giá trị nằm ở `src/styles/_tokens.scss` theo `Design/`; preset PrimeNG ở `core/theme/` chỉ đọc `var(--color-*)` | [`../wiki-core/fe/04-design-token-system.md`](../wiki-core/fe/04-design-token-system.md) §7 |
+| `TENANT_CODE` | Mã đơn vị nghiệp vụ của bản cài, cấp từ `environment.tenantCode`; trang đăng nhập gửi nó ở chế độ thường. Token nằm ở `core/config/`, cùng loại với `API_BASE_URL`: giá trị của bản cài, kiểu `string`, không kéo model nào của `platform/` — khác `CORE_SCREEN_EXT` | §1.1 · [ADR-0116](../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md) |
+| Bảng màu | **Chưa có seam — ngoại lệ ghi tên của bảng này.** Giá trị nằm ở `src/styles/_tokens.scss` theo `Design/`; tệp thuộc khối `core-paths` nên thuộc vùng Core, và dự án hạ nguồn **không** sửa nó. Dự án cần màu riêng thì chờ cơ chế bảng màu dựng ở repo Core, kích hoạt khi dự án đầu tiên cần ([ADR-0125](../adr/0125-ca-thu-muc-styles-fe-vao-core-paths-bang-mau-du-an-cho-co-che-rieng.md) quyết định 3). Preset PrimeNG ở `core/theme/` chỉ đọc `var(--color-*)` | [`../wiki-core/fe/04-design-token-system.md`](../wiki-core/fe/04-design-token-system.md) §7 |
 | `CORE_SCREEN_EXT` | **Cột dự án thêm vào màn danh sách Core.** Token nằm ở `platform/config/`, **không** ở `core/` | §2.7 |
 
 Khuôn bắt buộc, không phát minh khuôn thứ hai:
@@ -213,6 +236,7 @@ export interface LanguageOption {
   readonly code: string;        // mã BCP 47
   readonly nativeName: string;  // tên viết bằng CHÍNH ngôn ngữ đó
   readonly localeData: unknown; // import tĩnh '@angular/common/locales/<mã>' ở composition root — ADR-0063
+  readonly dateTimeFormat: string; // khuôn ngày giờ của pipe `date`, bắt buộc — fe-ui-conventions.md §5.5
 }
 
 export interface CoreI18n {
@@ -223,14 +247,18 @@ export interface CoreI18n {
 
 export const CORE_I18N = new InjectionToken<CoreI18n>('CORE_I18N');
 
-/** Luật F36: LOCALE_ID và registerLocaleData CHỈ ở đây — fe-ui-conventions.md §5.5. */
+/** Luật F36: LOCALE_ID, registerLocaleData và DATE_PIPE_DEFAULT_OPTIONS CHỈ ở đây — fe-ui-conventions.md §5.5. */
 export function provideCoreI18n(i18n: CoreI18n): EnvironmentProviders {
+  const macDinh = i18n.languages.find((n) => n.code === i18n.defaultLanguage);
+  if (!macDinh) throw new Error(`CORE_I18N: defaultLanguage '${i18n.defaultLanguage}' không có trong languages`);
   for (const ngonNgu of i18n.languages) {
     registerLocaleData(ngonNgu.localeData, ngonNgu.code); // MỌI ngôn ngữ khai, không riêng mặc định
   }
   return makeEnvironmentProviders([
     { provide: CORE_I18N, useValue: i18n },
     { provide: LOCALE_ID, useValue: i18n.defaultLanguage },
+    // Không khai `timezone`: giờ hiện theo trình duyệt — wiki-core/fe/08-i18n.md §6.1
+    { provide: DATE_PIPE_DEFAULT_OPTIONS, useValue: { dateFormat: macDinh.dateTimeFormat } },
   ]);
 }
 
@@ -270,7 +298,7 @@ Composition root phía FE (tương ứng "host mỏng" ở `be-architecture.md` 
 
 **Luật:** mỗi bước khởi tạo chạy trước khi app dựng phải khai rõ **nó phụ thuộc bước nào**. Hai bước độc lập chạy song song được.
 
-**Luật F39:** composition root **không** khai provider hoạt ảnh của Angular. Nó gọi `provideCoreAnimations()` của `core/`, và hàm đó tự chọn bộ chạy theo cài đặt giảm chuyển động của hệ điều hành. Nửa provider của giảm chuyển động là nghĩa vụ trợ năng của các component Core, nên thân của nó phải nằm trong `core-paths` — cùng lý do `LOCALE_ID` đi qua `provideCoreI18n` ([`../adr/0063-locale-id-den-tu-seam-core-i18n.md`](../adr/0063-locale-id-den-tu-seam-core-i18n.md)). Chọn API nào và vì sao: [`../adr/0080-nua-provider-giam-chuyen-dong-nap-luoi-va-song-o-core.md`](../adr/0080-nua-provider-giam-chuyen-dong-nap-luoi-va-song-o-core.md).
+**Không provider hoạt ảnh nào của Angular.** Composition root không khai provider hoạt ảnh, và `src/FE/package.json` không khai `@angular/animations`: từ PrimeNG 21, không component nào của thư viện chạy bằng bộ chạy đó. Giảm chuyển động của component thư viện không đi qua provider nào — luật F63. Vì sao, và vì sao F39 hết áp dụng: [`../adr/0124-go-nua-provider-hoat-anh-giam-chuyen-dong-dua-vao-css-toan-cuc-va-safe-f39-het-ap-dung.md`](../adr/0124-go-nua-provider-hoat-anh-giam-chuyen-dong-dua-vao-css-toan-cuc-va-safe-f39-het-ap-dung.md). Không import bộ chạy trở lại — luật F64; máy chặn tới đâu, phần nào còn hở: ô *Ép bằng gì* của F64 ở [`../RULES-FE.md`](../RULES-FE.md). Vì sao gỡ khỏi `package.json` chưa đủ, phải gỡ cả mục của gói trong lock: [`../adr/0128-tai-nhap-bo-chay-hoat-anh-khong-bi-lock-chan-luat-f64-review-canh-chua-dung-cong.md`](../adr/0128-tai-nhap-bo-chay-hoat-anh-khong-bi-lock-chan-luat-f64-review-canh-chua-dung-cong.md).
 
 > 📖 Danh sách interceptor và thứ tự: [`fe-api-client.md`](fe-api-client.md) — file này không chép lại.
 
@@ -317,7 +345,7 @@ export function provideCoreScreenExt(factory: () => CoreScreenExtensions): Envir
 
 Màn Core đổi mỗi `ScreenExtColumn` thành một `DataColumnDef` có `header` đã dịch và `value` ([`fe-ui-conventions.md`](fe-ui-conventions.md) §9).
 
-> 📐 Phần chưa thi công: [fe-architecture-chua-thi-cong.md](fe-architecture-chua-thi-cong.md)
+Hành động dòng, trường lọc và nút riêng trên `Toolbar` **chưa** có điểm mở rộng: nút và hành động cần một dạng callback chưa ai dùng thật để đối chiếu. Trường lọc không còn chờ `FilterPanel` — ✅ CÓ THẬT (đối chiếu 2026-11-04): `src/FE/src/app/shared/components/filter-panel/filter-panel.component.ts` có `export interface FilterField {` — mà chờ phía BE: truy vấn danh sách của Core nhận một tập tiêu chí đóng (như `src/BE/Core/CoreAndSkill.Core.Application/Users/GetUsersListQuery.cs`, chuỗi `public sealed record GetUsersListQuery(`), nên trường lọc dự án thêm cần cả một điểm mở rộng tiêu chí ở BE. Thêm một loại mở rộng vào `ScreenExtension` là đổi hợp đồng seam — viết ADR mới khi dự án hạ nguồn đầu tiên cần ([`../adr/README.md`](../adr/README.md) §2; hoãn ở [`../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md`](../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md)).
 
 Luật của seam này:
 
@@ -334,16 +362,17 @@ Luật của seam này:
 
 [`../wiki-core/fe/11-grid-and-metadata.md`](../wiki-core/fe/11-grid-and-metadata.md) §3–§4 mô tả **cái gì** phải làm; mục này chốt **ai** làm và **làm thế nào**: đúng **một** mẫu, `ListStateStore` ở `core/list/`. Mọi màn danh sách — `platform/` lẫn `modules/` — dùng mẫu này; không màn nào tự viết lại vòng *đọc URL → gọi API → đổi trạng thái*.
 
-Hiện thực nằm ở tệp nguồn, tài liệu không giữ bản sao: `src/FE/src/app/core/list/grid-query.ts` — `export interface GridQuery extends PageQuery` (bộ lọc riêng của endpoint ở `filters`, mỗi khoá một tham số rời); `src/FE/src/app/core/list/list-state.store.ts` — `export class ListStateStore<T>`, hằng số `NGUNG_GO_MS` và `PAGE_SIZE_MAC_DINH` kèm lý do ngay cạnh. Store phát `query` (bản đọc của URL), `state` (`idle` · `loading` · `error` · `empty` · `empty-filtered` — cái cuối khi đang có từ khoá hoặc bộ lọc), `rows`, `totalCount`; màn đổi truy vấn qua `setPage`, `setSort`, `setSearchText`, `setFilters`, `reload`. `connect()` gọi đúng một lần mỗi màn — gọi lại thì ném lỗi. Giá trị mặc định không nằm trên URL. Lỗi tải chỉ đổi `state` sang `error`; hiện lỗi là việc của `errorInterceptor`. `rows` rỗng không có nghĩa *không có dữ liệu* — `state` mới mang nghĩa đó.
+Hiện thực nằm ở tệp nguồn, tài liệu không giữ bản sao: `src/FE/src/app/core/list/grid-query.ts` — `export interface GridQuery extends PageQuery` (bộ lọc riêng của endpoint ở `filters`, mỗi khoá một tham số rời); `src/FE/src/app/core/list/list-state.store.ts` — `export class ListStateStore<T>`, hằng số `NGUNG_GO_MS` và `PAGE_SIZE_MAC_DINH` kèm lý do ngay cạnh. Store phát `query` (bản đọc của URL), `state` (`idle` · `loading` · `error` · `empty` · `empty-filtered` — cái cuối khi đang có từ khoá hoặc bộ lọc), `rows`, `totalCount`, `errorCode` (mã lỗi của lần tải cuối — luật 10); màn đổi truy vấn qua `setPage`, `setSort`, `setSearchText`, `setFilters`, `reload`. `connect()` gọi đúng một lần mỗi màn — gọi lại thì ném lỗi. Giá trị mặc định không nằm trên URL. Lỗi tải đổi `state` sang `error` và đặt `errorCode`; câu lỗi là việc của `errorInterceptor`. `rows` rỗng không có nghĩa *không có dữ liệu* — `state` mới mang nghĩa đó.
 
 Màn danh sách dùng mẫu này — phần `.ts` dưới đây; phần template (bind `Toolbar`, `DataTable` và ba slot) ở [`ly-do/fe-architecture.md`](../wiki-core/fe/ly-do/fe-architecture.md) §2.8:
 
 ```typescript
-// platform/quan-tri/nguoi-dung/pages/danh-sach/danh-sach-nguoi-dung.page.ts — khối import ở ly-do §2.8
+// platform/quan-tri/nguoi-dung/pages/danh-sach/danh-sach-nguoi-dung.page.ts — trích: tệp thật còn PageHeader,
+// cột, bộ lọc, CORE_SCREEN_EXT và các hộp thoại. Khối import ở ly-do §2.8
 @Component({
   selector: 'app-danh-sach-nguoi-dung',
   standalone: true,
-  imports: [TranslateModule, ToolbarComponent, DataTableComponent, EmptyStateComponent, SkeletonLoaderComponent],
+  imports: [TranslatePipe, ToolbarComponent, DataTableComponent, EmptyStateComponent, SkeletonLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ListStateStore], // luật 7 — một thực thể cho MỘT màn
   templateUrl: './danh-sach-nguoi-dung.page.html',
@@ -371,6 +400,7 @@ Luật của tầng này:
 7. **Một thực thể cho một màn, cấp ở cấp route — trong `providers` của chính page mà route trỏ tới.**
 8. **`tab` là tên dùng chung, không phải bộ lọc.** Store bỏ qua nó (`TEN_DUNG_CHUNG`), không gửi lên API; `queryParamsHandling: 'merge'` giữ nó khi store ghi URL. Trang cha tự ghi và đọc `tab` qua `Router` / `queryParamMap` của route; màn không có store cũng đọc thẳng `queryParamMap` — không cấp `ListStateStore` chỉ để có `tab` ([`../Design/Components/Tabs.md`](../Design/Components/Tabs.md)).
 9. **Trang vượt trang cuối thì về trang cuối.** `items` rỗng, `totalCount > 0`, `page > 1` ⇒ store ghi `page = min(page − 1, ⌈totalCount / pageSize⌉)` bằng `replaceUrl`, không đổi `state` khỏi `loading`, không giữ kết quả rỗng. `page` giảm ngặt nên dừng chắc chắn. Test đơn vị của store khoá ca này. Chốt 2026-09-24.
+10. **`errorCode` là mã lỗi của lần tải cuối — để màn chọn hành động, không để dựng câu.** Kiểu `Signal<BusinessCode | null>`, chỉ đọc. Mỗi lượt tải đặt nó về `null` cùng lúc `state` sang `loading`; lượt hỏng đặt nó bằng `body.error.code` của `ApiFailureError`, và bằng `null` khi lỗi không mang envelope hay không phải `ApiFailureError`. Không lấy `ApiFailureError.message`: với thân không envelope, trường đó mang một mã phía client chứ không phải mã máy chủ trả. `null` chỉ có nghĩa khi đọc cùng `state` — `error` kèm `null` là hỏng mà không có mã. Màn đọc `errorCode` để chọn nút hay hành động của khối lỗi theo spec màn; câu lỗi vẫn chỉ hiện ở toast của `errorInterceptor` — một lỗi, một chỗ hiện câu — nên màn không dịch `errorCode`, và store không giữ câu hay đối tượng lỗi. Test đơn vị của store khoá ca này (`list-state.store.spec.ts` khối `describe('luật 10`); màn danh sách người dùng khoá ca đầu tiên (`danh-sach-nguoi-dung.page.spec.ts` khối `describe('DanhSachNguoiDungPage — khối lỗi tải`). Chốt 2026-09-29, code về 2026-09-30 — mã F44 ở [`../RULES-FE.md`](../RULES-FE.md) §7.
 
 🛑 **Tầng này KHÔNG inject `HttpClient` và không biết endpoint.** Màn truyền hàm tải của service mình qua `connect()`; mapper DTO → model vẫn nằm ở service ([`fe-api-client.md`](fe-api-client.md) §4).
 

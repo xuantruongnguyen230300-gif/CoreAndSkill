@@ -49,7 +49,14 @@ describe('HasPermissionDirective', () => {
       provideHttpClientTesting(),
       provideRouter([]),
       provideCoreI18n({
-        languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+        languages: [
+          {
+            code: 'vi',
+            nativeName: 'Tiếng Việt',
+            dateTimeFormat: 'HH:mm dd/MM/y',
+            localeData: localeVi,
+          },
+        ],
         defaultLanguage: 'vi',
         sources: ['/i18n/'],
       }),

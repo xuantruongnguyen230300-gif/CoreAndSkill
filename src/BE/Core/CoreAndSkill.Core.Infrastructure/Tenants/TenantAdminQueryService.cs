@@ -18,8 +18,8 @@ internal sealed class TenantAdminQueryService(CoreDbContext db) : ITenantAdminQu
         {
             var pattern = LikePattern.Contains(criteria.SearchText.Trim());
             tenants = tenants.Where(t =>
-                EF.Functions.ILike(t.Code, pattern, LikePattern.EscapeCharacter) ||
-                EF.Functions.ILike(t.Name, pattern, LikePattern.EscapeCharacter));
+                EF.Functions.ILike(EF.Functions.Unaccent(t.Code), EF.Functions.Unaccent(pattern), LikePattern.EscapeCharacter) ||
+                EF.Functions.ILike(EF.Functions.Unaccent(t.Name), EF.Functions.Unaccent(pattern), LikePattern.EscapeCharacter));
         }
 
         tenants = (criteria.SortBy, criteria.SortDescending) switch

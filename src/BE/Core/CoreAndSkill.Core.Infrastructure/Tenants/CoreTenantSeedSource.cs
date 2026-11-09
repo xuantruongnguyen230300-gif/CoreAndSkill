@@ -19,8 +19,20 @@ namespace CoreAndSkill.Core.Infrastructure.Tenants;
 // (docs/database/schema-core.md §6.3, docs/contracts/meta-menu.md §1.5), nên để ngỏ không đổi kết
 // quả với người có ít nhất một trong ba quyền con; nó chỉ trống với người không có quyền nào —
 // chấp nhận được ở v1.
+//
+// Danh sách RIÊNG của đơn vị hệ thống (ADR-0122 điểm 1–2) — SystemTenantMenuItems — nằm NGOÀI ITenantSeedSource: seam không đổi,
+// nguồn của module không góp được gì vào đó. TenantProvisioningService ghép nó vào tập menu khi đơn vị vừa tạo mang IsSystem;
+// TenantSeedValidator kiểm đúng tập đó. Giá trị lấy từ docs/Design/Screens/00-khung-ung-dung.md (bảng Quyết định bố cục). Script
+// bù dữ liệu database/bu-du-lieu/0001__core__he-thong-don-vi-menu.sql mang CÙNG giá trị — test SystemTenantMenuDatabaseTests giữ hai chỗ khớp.
 internal sealed class CoreTenantSeedSource : ITenantSeedSource
 {
+    // Không quyền, không dòng core.menu_item_role: hiện cho mọi tài khoản của đơn vị hệ thống — đúng bằng tập tài khoản vận
+    // hành nhờ luật M16. displayOrder lớn hơn mọi mục gốc của nguồn Core (cao nhất 90) để đứng cuối cây.
+    public static readonly IReadOnlyCollection<SeedMenuItem> SystemTenantMenuItems =
+    [
+        new("he-thong-don-vi", "menu.he-thong-don-vi", "pi-building", "/he-thong/don-vi", null, 100, null, null),
+    ];
+
     public IReadOnlyCollection<SeedRole> GetRoles() => [];
 
     public IReadOnlyCollection<SeedRolePermission> GetRolePermissions() => [];

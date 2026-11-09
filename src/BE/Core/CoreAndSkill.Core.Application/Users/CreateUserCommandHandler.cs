@@ -17,9 +17,9 @@ internal sealed class CreateUserCommandHandler(
     IRoleQueryService roleQuery,
     IPermissionChecker permissionChecker,
     UserPrivilegeGuard privilegeGuard)
-    : IRequestHandler<CreateUserCommand, Result<Guid>>
+    : IRequestHandler<CreateUserCommand, Result<CreatedIdDto>>
 {
-    public async Task<Result<Guid>> Handle(CreateUserCommand command, CancellationToken ct)
+    public async Task<Result<CreatedIdDto>> Handle(CreateUserCommand command, CancellationToken ct)
     {
         var callerId = currentUser.UserId
             ?? throw new InvalidOperationException("CreateUserCommand chạy khi chưa xác thực.");
@@ -29,7 +29,7 @@ internal sealed class CreateUserCommandHandler(
         // danh sách vai trò phải trả cùng một câu trả lời.
         var duplicateCheck = UserRoleAssignmentRules.EnsureNoDuplicateRoleIds(command.RoleIds);
         if (duplicateCheck.IsFailure)
-            return Result.Failure<Guid>(duplicateCheck.Error!);
+            return Result.Failure<CreatedIdDto>(duplicateCheck.Error!);
 
         var roleIds = command.RoleIds;
 
@@ -41,14 +41,14 @@ internal sealed class CreateUserCommandHandler(
         {
             callerPermissions = await permissionChecker.GetEffectivePermissionsAsync(callerId, ct);
             if (!callerPermissions.Contains(CorePermissions.UserRoleAssign))
-                return Result.Failure<Guid>(CommonErrors.Forbidden);
+                return Result.Failure<CreatedIdDto>(CommonErrors.Forbidden);
         }
 
         if (await userLookup.UserNameExistsAsync(command.UserName, ct))
-            return Result.Failure<Guid>(UserErrors.UsernameDuplicated.WithParams(("UserName", command.UserName)));
+            return Result.Failure<CreatedIdDto>(UserErrors.UsernameDuplicated.WithParams(("UserName", command.UserName)));
 
         if (await userLookup.EmailExistsAsync(command.Email, ct))
-            return Result.Failure<Guid>(UserErrors.EmailDuplicated.WithParams(("Email", command.Email)));
+            return Result.Failure<CreatedIdDto>(UserErrors.EmailDuplicated.WithParams(("Email", command.Email)));
 
         if (callerPermissions is not null)
         {
@@ -61,18 +61,18 @@ internal sealed class CreateUserCommandHandler(
             foreach (var roleId in roleIds)
             {
                 if (!existing.Contains(roleId))
-                    return Result.Failure<Guid>(UserErrors.RoleNotFound.WithParams(("RoleId", roleId)));
+                    return Result.Failure<CreatedIdDto>(UserErrors.RoleNotFound.WithParams(("RoleId", roleId)));
 
                 var escalationCheck = escalation.Check(roleId);
                 if (escalationCheck.IsFailure)
-                    return Result.Failure<Guid>(escalationCheck.Error!);
+                    return Result.Failure<CreatedIdDto>(escalationCheck.Error!);
             }
         }
 
         var createResult = await userAdmin.CreateAsync(
             new CreateUserInput(command.UserName, command.Email, command.FullName, command.TempPassword), ct);
         if (createResult.IsFailure)
-            return createResult;
+            return Result.Failure<CreatedIdDto>(createResult.Error!);
 
         if (command.RoleIds.Count > 0)
         {
@@ -81,9 +81,9 @@ internal sealed class CreateUserCommandHandler(
             // trong transaction này nên không có token nào để so (ADR-0082 chỉ áp cho tài khoản đã có).
             var assignResult = await userAdmin.GrantInitialRolesAsync(createResult.Value, command.RoleIds, ct);
             if (assignResult.IsFailure)
-                return Result.Failure<Guid>(assignResult.Error!);
+                return Result.Failure<CreatedIdDto>(assignResult.Error!);
         }
 
-        return createResult;
+        return Result.Success(new CreatedIdDto(createResult.Value));
     }
 }

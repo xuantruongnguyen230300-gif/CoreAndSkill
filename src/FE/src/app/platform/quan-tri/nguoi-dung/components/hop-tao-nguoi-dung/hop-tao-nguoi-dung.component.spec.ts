@@ -1,7 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, Validators } from '@angular/forms';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import {
   TranslateLoader,
   TranslationObject,
@@ -41,7 +40,6 @@ describe('HopTaoNguoiDungComponent — focus về ô sai đầu tiên khi bấm 
       imports: [HopTaoNguoiDungComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideTranslateService({
           lang: 'vi',
           fallbackLang: 'vi',
@@ -76,6 +74,18 @@ describe('HopTaoNguoiDungComponent — focus về ô sai đầu tiên khi bấm 
     TestBed.tick();
   }
 
+  /**
+   * Chờ điều kiện đúng. PrimeNG 21 thoát phần tử bằng hoạt ảnh CSS thật (lớp `p-leave-to`, gỡ khỏi
+   * DOM khi `transitionend`), không còn gỡ đồng bộ như bản 20 — nên không thể đo ngay sau `onDinh`.
+   */
+  async function choDen(dieuKien: () => boolean, toiDaMs = 2000): Promise<void> {
+    const batDau = Date.now();
+    while (!dieuKien() && Date.now() - batDau < toiDaMs) {
+      await new Promise((xong) => setTimeout(xong, 20));
+      fixture.detectChanges();
+    }
+  }
+
   async function bamGuiSai(lan: number): Promise<void> {
     form.markAllAsTouched();
     fixture.componentRef.setInput('loiTruong', {
@@ -100,7 +110,21 @@ describe('HopTaoNguoiDungComponent — focus về ô sai đầu tiên khi bấm 
     expect(document.activeElement?.id).toBe('nd-tao-email');
   });
 
+  it('hộp mở → focus ở ô đầu; rời ô khi chưa gõ → control không touched, không aria-invalid (§6.5)', async () => {
+    await veLai();
+    const o = document.querySelector<HTMLInputElement>('input#nd-tao-ten')!;
+    // Focus vào ô đầu đặt ở `onShow` — cuối hoạt ảnh vào, không còn đồng bộ với lần vẽ đầu.
+    await choDen(() => document.activeElement === o);
+    expect(document.activeElement).toBe(o);
+    o.dispatchEvent(new Event('blur'));
+    await veLai();
+    expect(form.controls['userName'].touched).toBeFalse();
+    expect(o.hasAttribute('aria-invalid')).toBeFalse();
+  });
+
   it('lanGuiSai còn 0 → không tự kéo focus dù form đang sai', async () => {
+    // Hộp vừa mở đã đặt focus vào ô đầu (Dialog.md, *Focus lúc mở*); bỏ focus đó để thấy lanGuiSai không tự kéo.
+    (document.activeElement as HTMLElement | null)?.blur();
     form.markAllAsTouched();
     await veLai();
     expect(document.activeElement?.id).not.toBe('nd-tao-ten');
@@ -113,7 +137,6 @@ describe('HopTaoNguoiDungComponent — lỗi của ô "Vai trò" (users.md §5 t
       imports: [HopTaoNguoiDungComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideTranslateService({
           lang: 'vi',
           fallbackLang: 'vi',
@@ -156,7 +179,6 @@ describe('HopTaoNguoiDungComponent — lớp nổi ô "Vai trò" hiện câu l�
       imports: [HopTaoNguoiDungComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideTranslateService({
           lang: 'vi',
           fallbackLang: 'vi',

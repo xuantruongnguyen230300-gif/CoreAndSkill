@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using CoreAndSkill.Core.Application.Common.Interfaces;
 using CoreAndSkill.Core.Application.Configuration;
+using CoreAndSkill.Core.Application.Common.Logging;
 using CoreAndSkill.Core.Application.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -89,18 +90,21 @@ internal sealed class BackgroundJobQueueHostedService(
             ? executionContextScope.Enter(tenantId, job.Scope.UserId, job.Scope.UserName)
             : null;
 
-        logger.LogInformation("Job nền {JobId} bắt đầu.", job.JobId);
+        // Đây là mã hàng đợi do EnqueueAsync trả, KHÔNG phải core.job.id: một tên trường mang một nghĩa
+        // (luật người dùng chốt 2026-10-04), {JobId} luôn là core.job.id; JobQueuedOutboxHandler nối hai mã.
+        logger.LogInformation("Job nền {QueueItemId} bắt đầu.", job.JobId);
         try
         {
             await job.Run(scope.ServiceProvider, stoppingToken);
-            logger.LogInformation("Job nền {JobId} kết thúc.", job.JobId);
+            logger.LogInformation("Job nền {QueueItemId} kết thúc.", job.JobId);
         }
         catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
         {
             // Lọc theo TOKEN, không theo kiểu: việc hết thời gian chờ (TaskCanceledException bọc TimeoutException) trong lúc
             // hàng đợi còn chạy là việc HỎNG — không được lọt qua đây im lặng như một lần dừng tiến trình.
             CoreMetrics.BackgroundJobFailed.Add(1);
-            logger.LogError(ex, "Job nền {JobId} lỗi — cần người can thiệp.", job.JobId);
+            logger.LogError(
+                "Job nền {QueueItemId} lỗi — cần người can thiệp. {Failure}", job.JobId, FailureText.DescribeWithStack(ex));
         }
     }
 }

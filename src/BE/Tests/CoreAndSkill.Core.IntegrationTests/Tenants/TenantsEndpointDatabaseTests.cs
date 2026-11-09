@@ -14,11 +14,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Tenants;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Lệnh ghi của /system/tenants đi QUA HTTP tới PostgreSQL thật: controller → MediatR → TransactionBehavior →
 // handler → TenantProvisioningService → UnitOfWork thật trên Npgsql. Đây là đường mà gọi thẳng service (như
 // TenantProvisioningDatabaseTests và core bootstrap) KHÔNG đi qua — và chính vì thế một transaction lồng trong

@@ -1,3 +1,23 @@
-<router-outlet />
-<app-toast />
+@if (loiTaiPhanMa.khoiToanTrang()) {
+  <main class="khoi-loi-tai">
+    <app-empty-state
+      variant="error"
+      size="page"
+      [headingLevel]="1"
+      [title]="'trangLoi.khongTaiDuoc.tieuDe' | translate"
+      [description]="'loi.CORE.CLIENT.RESOURCE_LOAD_FAILED' | translate"
+      [actionLabel]="'trangLoi.khongTaiDuoc.taiLai' | translate"
+      (actionClicked)="loiTaiPhanMa.taiLaiTrang()"
+    />
+  </main>
+} @else {
+  <router-outlet />
+}
+<!-- Nút hành động của toast: shared/ui/ không import được Button, nên khung gốc vẽ và truyền vào. -->
+<ng-template #nutHanhDong let-hanhDong let-id="id" let-daBam="daBam" let-bam="bam">
+  <app-button variant="secondary" size="sm" [disabled]="daBam" (clicked)="bam(id, hanhDong)">
+    {{ hanhDong.nhan }}
+  </app-button>
+</ng-template>
+<app-toast [nutHanhDong]="nutHanhDong" />
 <app-unsaved-changes-dialog />

@@ -12,7 +12,10 @@ internal sealed class CreateTenantAdminCommandValidator : AbstractValidator<Crea
             .NotEmpty().WithErrorCode(CommonErrors.Required.Code)
             .MaximumLength(256).WithErrorCode(CommonErrors.MaxLength.Code)
             .NotReservedUserName(); // danh tính hệ thống — SystemActor
-        RuleFor(x => x.Email).NotEmpty().WithErrorCode(CommonErrors.Required.Code).EmailAddress().WithErrorCode(CommonErrors.Format.Code);
+        RuleFor(x => x.Email)
+            .NotEmpty().WithErrorCode(CommonErrors.Required.Code)
+            .EmailAddress().WithErrorCode(CommonErrors.Format.Code)
+            .MaximumLength(256).WithErrorCode(CommonErrors.MaxLength.Code); // khớp cột core.app_user.email
         RuleFor(x => x.FullName).NotEmpty().WithErrorCode(CommonErrors.Required.Code).MaximumLength(200).WithErrorCode(CommonErrors.MaxLength.Code);
         RuleFor(x => x.TempPassword).NotEmpty().WithErrorCode(CommonErrors.Required.Code);
     }

@@ -17,15 +17,15 @@ internal sealed class RoleQueryService(CoreDbContext db) : IRoleQueryService
         if (!string.IsNullOrWhiteSpace(criteria.SearchText))
         {
             var pattern = LikePattern.Contains(criteria.SearchText.Trim());
-            roles = roles.Where(r => EF.Functions.ILike(r.Name!, pattern, LikePattern.EscapeCharacter));
+            roles = roles.Where(r => EF.Functions.ILike(EF.Functions.Unaccent(r.Name!), EF.Functions.Unaccent(pattern), LikePattern.EscapeCharacter));
         }
 
         roles = (criteria.SortBy, criteria.SortDescending) switch
         {
             ("createdAt", false) => roles.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id),
             ("createdAt", true) => roles.OrderByDescending(r => r.CreatedAt).ThenBy(r => r.Id),
-            (_, false) => roles.OrderBy(r => r.NormalizedName).ThenBy(r => r.Id),
-            (_, true) => roles.OrderByDescending(r => r.NormalizedName).ThenBy(r => r.Id),
+            (_, false) => roles.OrderBy(r => r.Name).ThenBy(r => r.Id),
+            (_, true) => roles.OrderByDescending(r => r.Name).ThenBy(r => r.Id),
         };
 
         var totalCount = await roles.CountAsync(ct);

@@ -16,7 +16,7 @@
 } @else {
   <app-page-header
     [title]="nguoiDung()?.fullName ?? ('nguoiDung.chiTiet' | translate)"
-    [loading]="dangTai()"
+    [loading]="dangTai() && !nguoiDung()"
     backRoute=".."
     [backLabel]="'nguoiDung.chiTietTrang.quayLai' | translate"
   >
@@ -80,6 +80,14 @@
         [ngTemplateOutlet]="khoiLoiTai"
         [ngTemplateOutletContext]="{ $implicit: loi }"
       />
+    </app-card>
+  } @else if (dangTai() && !nguoiDung()) {
+    <span class="sr-only" aria-live="polite">{{ 'chung.dangTai' | translate }}</span>
+    <app-card [heading]="'nguoiDung.chiTietTrang.theThongTin' | translate" [loading]="true">
+      <app-skeleton-loader variant="text" [lines]="3" />
+    </app-card>
+    <app-card [heading]="'nguoiDung.chiTietTrang.theVaiTro' | translate" [loading]="true">
+      <app-skeleton-loader variant="text" />
     </app-card>
   } @else if (nguoiDung(); as nd) {
     @if (nd.mustChangePassword) {

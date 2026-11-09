@@ -27,15 +27,21 @@ export function dungCayMenu(phang: readonly MenuItemDto[]): readonly MenuNode[] 
 
   // Rút hình dạng dây về đúng thứ màn cần: bỏ `parentId`, `displayOrder` — `displayOrder` là
   // tiêu chí máy chủ đã dùng để sắp, FE không đọc lại nó.
+  //
+  // Nhóm không còn mục con thì ẩn (Sidebar.md §Trạng thái): mục KHÔNG `route` và KHÔNG con là nhãn
+  // nhóm trống — ngõ cụt. Áp đệ quy từ lá lên, nên nhóm mà mọi con đều bị bỏ cũng bị bỏ. Mục có
+  // `route` mà không có con thì giữ. Cây rỗng → `MenuStore` đặt `state` = `empty`.
   const dung = (khoaCha: string | null): MenuNode[] =>
-    (conCua.get(khoaCha) ?? []).map((muc) => ({
-      id: muc.id,
-      code: muc.code,
-      labelKey: muc.labelKey,
-      icon: muc.icon,
-      route: muc.route,
-      children: dung(muc.id),
-    }));
+    (conCua.get(khoaCha) ?? [])
+      .map((muc) => ({
+        id: muc.id,
+        code: muc.code,
+        labelKey: muc.labelKey,
+        icon: muc.icon,
+        route: muc.route,
+        children: dung(muc.id),
+      }))
+      .filter((nut) => nut.route !== null || nut.children.length > 0);
 
   return dung(null);
 }

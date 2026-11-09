@@ -1,12 +1,12 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-05
 ---
 
 # 11. Bảng dữ liệu server-side
 
-> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §2**; phần còn lại, gồm §3 tới §9, chưa ai đối chiếu). Thư mục `DataTable` theo cột "Nền" ([`05-component-library.md`](05-component-library.md) §3):
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu cả tệp 2026-11-05, chỉ bằng đọc mã — chưa chạy bảng kiểm §10). Hạng mục nào có thật, hạng mục nào chưa: bảng ở §11. Thư mục `DataTable` theo cột "Nền" ([`05-component-library.md`](05-component-library.md) §3):
 >
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
@@ -92,7 +92,7 @@ Server trả `totalCount`; số trang do FE tự tính. Lý do: `totalPages` là
 
 URL đổi → tải dữ liệu → cập nhật state → ghi lại URL → URL đổi → …
 
-Vòng lặp này xảy ra khi cùng một dòng dữ liệu đi cả hai chiều. Cách chống: **chỉ một chiều là nguồn.** URL là nguồn; component chỉ đọc từ URL và chỉ ghi lên URL khi **người dùng** thao tác, không ghi lại URL sau khi tải xong.
+Vòng lặp này xảy ra khi cùng một dòng dữ liệu đi cả hai chiều. Cách chống: **chỉ một chiều là nguồn.** URL là nguồn; store chỉ đọc từ URL và chỉ ghi lên URL khi **người dùng** thao tác. Ngoại lệ duy nhất ghi lại URL sau khi tải: trang vượt trang cuối thì store đưa `page` về trang cuối bằng `replaceUrl` — luật 9 ở [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.8. Nó không thành vòng lặp vì `page` chỉ giảm.
 
 ---
 
@@ -143,7 +143,7 @@ Ba mức, đi từ rẻ tới đắt. Đừng nhảy thẳng lên mức 3.
 
 | Trạng thái | Hiển thị | Bỏ qua thì sao |
 | --- | --- | --- |
-| Đang tải lần đầu | Skeleton giữ đúng chiều cao hàng | Giao diện nhảy khi dữ liệu về |
+| Đang tải lần đầu | Skeleton dạng hàng, đúng số dòng của trang ([`../../Design/Components/DataTable.md`](../../Design/Components/DataTable.md) §Trạng thái) | Giao diện nhảy khi dữ liệu về |
 | Đang tải lại (đổi trang, đổi lọc) | Giữ dữ liệu cũ mờ đi, **không** thay bằng skeleton | Nhấp nháy toàn bảng ở mỗi thao tác |
 | Rỗng | Câu giải thích + hành động gợi ý | Bảng trắng — người dùng không biết là chưa có dữ liệu hay là lỗi |
 | Lỗi | Thông báo + nút thử lại | Bảng trắng, giống hệt trạng thái rỗng |
@@ -213,22 +213,28 @@ Chi tiết: [`15-accessibility.md`](15-accessibility.md).
 
 ## 11. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Đối chiếu với `src/` ngày 2026-11-05, chỉ bằng đọc mã: hàng ghi ✅ CÓ THẬT có neo ở cột *Ghi chú*; hàng ghi 🚧 có bảng *có thật hôm nay → sẽ thành* ngay dưới bảng; hàng ghi 📐 là đích đến đã có đặc tả ở `docs/Design/`, chưa thi công — không phải nợ. Ý nghĩa ký hiệu: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| `DataTable` server-side dùng chung, ở `shared/ui/data-table` | ✅ sẽ có | §1 — mặc định cho mọi bảng, kể cả bảng ít dữ liệu |
-| Trang bắt đầu từ 1; không gửi số trang qua dây | ✅ sẽ có | §2.1, §2.2 |
-| Trạng thái bảng đặt trên URL | ✅ sẽ có | §3 |
-| Ba cơ chế chống gọi dồn dập khi tìm kiếm | ✅ sẽ có | §4 — cơ chế huỷ request cũ là cái hay quên nhất |
-| Bốn trạng thái bắt buộc của bảng | ✅ sẽ có | §7 |
-| Chọn nhiều dòng, phạm vi trang hiện tại | ✅ sẽ có | §5 |
-| Ẩn / hiện cột, lưu theo máy | ✅ sẽ có | Mức 1 ở §6 |
+| `DataTable` server-side dùng chung, ở `shared/ui/data-table` | ✅ CÓ THẬT 2026-11-05 | §1 — mặc định cho mọi bảng, kể cả bảng ít dữ liệu. Neo: `src/FE/src/app/shared/ui/data-table/data-table.component.ts` (chuỗi `selector: 'app-data-table'`); màn danh sách người dùng dùng thật (chuỗi `<app-data-table` ở `src/FE/src/app/platform/quan-tri/nguoi-dung/pages/danh-sach/danh-sach-nguoi-dung.page.html`) |
+| Trang bắt đầu từ 1; không gửi số trang qua dây | ✅ CÓ THẬT 2026-11-05 | §2.1, §2.2. Neo: `src/FE/src/app/core/list/list-state.store.ts` (chuỗi `page: soNguyenDuong(p.get('page')) ?? 1`); `interface PagedList` ở `src/FE/src/app/core/http/paged.model.ts` không có `totalPages` |
+| Trạng thái bảng đặt trên URL | ✅ CÓ THẬT 2026-11-05 | §3. Neo: `src/FE/src/app/core/list/list-state.store.ts` — đọc từ URL (chuỗi `toSignal(this.route.queryParamMap.pipe(map(docQuery))`), đổi lọc thì về trang 1 (chuỗi `this.ghiUrl({ ...filters, page: null }, false)`) |
+| Ba cơ chế chống gọi dồn dập khi tìm kiếm | ✅ CÓ THẬT 2026-11-05 | §4 — cơ chế huỷ request cũ là cái hay quên nhất. Neo: `src/FE/src/app/core/list/list-state.store.ts` — chuỗi `debounceTime(NGUNG_GO_MS)`, `distinctUntilChanged(cungTruyVan)` (so cả truy vấn, không so từng lần gõ), `// Cơ chế 3: request mới huỷ request cũ.` |
+| Bốn trạng thái bắt buộc của bảng | ✅ CÓ THẬT 2026-11-05 | §7. Neo: `src/FE/src/app/shared/ui/data-table/data-table.component.ts` — trạng thái `'empty-filtered'` tách khỏi `'empty'`, tải lại giữ dòng cũ dưới lớp phủ (chuỗi `protected readonly dangTaiLai`); hai câu rỗng khác nhau ở màn người dùng (chuỗi `variant="no-results"` ở `danh-sach-nguoi-dung.page.html` cùng thư mục trên). **Trừ hình dạng skeleton lần đầu:** ba màn danh sách dưới `src/FE/src/app/platform/` cấp một vạch (chuỗi `<app-skeleton-loader variant="text" width="full" />`), chưa dạng hàng đúng số dòng trang như §7 |
+| Chọn nhiều dòng, phạm vi trang hiện tại | ❌ chưa | §5. Điều kiện: màn đầu tiên có thao tác áp cho nhiều bản ghi — công tắc `selectable` ở [`../../Design/Components/DataTable.md`](../../Design/Components/DataTable.md) §Biến thể. `DataTable` hôm nay chỉ dựng biến thể phân trang (chuỗi `F3 tối giản: chỉ dựng biến thể` ở `data-table.component.ts`) |
+| Ẩn / hiện cột, lưu theo máy | ❌ chưa | Mức 1 ở §6. Điều kiện: câu 1 ở §Cần chốt của [`../../Design/Components/DataTable.md`](../../Design/Components/DataTable.md) được trả lời là có — hỏi khi dự án hạ nguồn đầu tiên có bảng nhiều cột. `hideBelow` của `DataColumnDef` là ẩn theo khổ màn, không phải tuỳ chọn của người dùng |
 | Đổi thứ tự và độ rộng cột | ❌ chưa | Điều kiện: có yêu cầu thật (mức 2 ở §6) |
 | Cấu hình cột theo tài khoản, đồng bộ giữa máy | ❌ chưa | Điều kiện: có endpoint và hợp đồng (mức 3 ở §6) |
-| Xuất dữ liệu theo bộ lọc đang xem | ❌ chưa | Điều kiện: nghiệp vụ đầu tiên cần. Dựng tệp ở server — [`../be/15-import-export.md`](../be/15-import-export.md) |
-| Bảng chỉnh sửa tại chỗ | ✅ sẽ có | Component riêng [`../../Design/Components/EditableGrid.md`](../../Design/Components/EditableGrid.md), **không** phải một chế độ của lưới đọc — hai thứ có nguồn sự thật ngược nhau. Điều kiện cấp bởi [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md). Bài toán lưu từng ô và xung đột vẫn để ngỏ, ghi ở `Cần chốt` của chính spec đó |
+| Xuất dữ liệu theo bộ lọc đang xem | 🚧 đang thi công | Endpoint và hàm tải tệp đã có, chưa màn nào gọi — bảng dưới. Dựng tệp ở server — [`../be/15-import-export.md`](../be/15-import-export.md) |
+| Bảng chỉnh sửa tại chỗ | 📐 đích đến — chưa thi công | Spec mang nhãn 📐, `src/FE` chưa có component. Component riêng [`../../Design/Components/EditableGrid.md`](../../Design/Components/EditableGrid.md), **không** phải một chế độ của lưới đọc — hai thứ có nguồn sự thật ngược nhau. Điều kiện cấp bởi [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md). Bài toán lưu từng ô và xung đột vẫn để ngỏ, ghi ở `Cần chốt` của chính spec đó |
 | Lọc và phân trang ở client | ❌ loại, không hoãn `K32` | §1 — chạy hoàn hảo với dữ liệu thử, hỏng với dữ liệu thật |
+
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** — hàng *Xuất dữ liệu theo bộ lọc đang xem* (đối chiếu 2026-11-05, chỉ bằng đọc mã):
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | Endpoint xuất danh sách người dùng: `src/BE/Core/CoreAndSkill.Core.Web/Controllers/UsersController.cs` (chuỗi `[HttpGet("export")]`); hàm tải tệp phía FE: `src/FE/src/app/core/http/tai-tep.ts` (chuỗi `export function luuTepXuat(`) — chưa màn nào dưới `src/FE/src/app/platform/` gọi hàm này | Màn danh sách có thao tác Xuất, gửi cùng bộ lọc và không gửi tham số phân trang (§8.1) |
 
 > Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 

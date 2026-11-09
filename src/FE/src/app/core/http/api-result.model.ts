@@ -73,6 +73,22 @@ export const BO_QUA_HET_PHIEN = new HttpContextToken<boolean>(() => false);
 export const CO_TAC_DUNG_PHU = new HttpContextToken<boolean>(() => false);
 
 /**
+ * Mã phía client cho một phản hồi HTTP KHÔNG mang envelope, chọn theo status — NGUỒN DUY NHẤT cho
+ * luật này (be-cqrs-handler.md §7.4, luật F45 ở fe-api-client.md §2.2). `dichLoi` (core/http/dich-loi.ts)
+ * dùng hàm này để dịch câu hiển thị; `ApiFailureError` dùng để đặt `message` (dev-facing) khớp đúng
+ * mã người dùng đang thấy trên màn hình.
+ */
+export function maLoiKhongEnvelope(status: number): BusinessCode {
+  if (status === 0) {
+    return 'CORE.CLIENT.NO_CONNECTION';
+  }
+  if (status >= 500 && status <= 599) {
+    return 'CORE.CLIENT.SERVER_UNAVAILABLE';
+  }
+  return 'CORE.CLIENT.INVALID_RESPONSE';
+}
+
+/**
  * Lỗi ném ra khi envelope báo thất bại; mang envelope ĐÃ BÓC. `body` là `null` khi phản hồi không
  * phải envelope. `status` là HTTP status thật của phản hồi lỗi — `errorInterceptor` luôn điền; `0` khi
  * không có phản hồi (mất mạng) hoặc khi lỗi không đến từ một phản hồi HTTP lỗi (`unwrapData`).
@@ -84,6 +100,6 @@ export class ApiFailureError extends Error {
     readonly status = 0,
   ) {
     // Mã lấy từ danh mục mã phía client ở be-cqrs-handler.md §7.4 — FE KHÔNG tự chế mã.
-    super(body?.error.code ?? 'CORE.CLIENT.NO_CONNECTION');
+    super(body?.error.code ?? maLoiKhongEnvelope(status));
   }
 }

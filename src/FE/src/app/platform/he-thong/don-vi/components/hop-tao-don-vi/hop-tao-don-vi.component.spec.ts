@@ -1,7 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, Validators } from '@angular/forms';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import {
   TranslateLoader,
   TranslationObject,
@@ -50,7 +49,6 @@ describe('HopTaoDonViComponent — component dumb: chỉ nhận giá trị, ch�
       imports: [HopTaoDonViComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideTranslateService({
           lang: 'vi',
           fallbackLang: 'vi',
@@ -107,6 +105,8 @@ describe('HopTaoDonViComponent — component dumb: chỉ nhận giá trị, ch�
     });
 
     it('lanGuiSai còn 0 → không tự kéo focus dù form đang sai', async () => {
+      // Hộp vừa mở đã đặt focus vào ô đầu (Dialog.md, *Focus lúc mở*); bỏ focus đó để thấy lanGuiSai không tự kéo.
+      (document.activeElement as HTMLElement | null)?.blur();
       form.markAllAsTouched();
       await veLai();
       expect(document.activeElement?.id).not.toBe('dv-tao-ma');

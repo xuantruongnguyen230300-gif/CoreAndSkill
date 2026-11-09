@@ -1,6 +1,12 @@
 // Design/Components/Topbar.md
+@use 'spacing' as s;
+
 :host {
   display: block;
+  // Đứng yên ở đỉnh cột phải; nằm trên `main` để bóng không bị nội dung che.
+  position: sticky;
+  top: 0;
+  z-index: var(--z-topbar);
 }
 
 .topbar {
@@ -12,22 +18,43 @@
   padding: 0 var(--sp-6);
   background: var(--color-surface);
   border-bottom: var(--border-w) solid var(--color-border);
+  transition: box-shadow var(--dur-fast) var(--ease-standard);
 }
 
-.topbar__tieu-de {
-  font-size: var(--fs-md);
-  font-weight: var(--fw-semibold);
-  color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+// Bóng chỉ khi `main` đã cuộn khỏi đỉnh (input `scrolled`).
+.topbar--da-cuon {
+  box-shadow: var(--shadow-2);
 }
 
+// Khu tài khoản: MỘT nút (avatar + hai dòng chữ) mở menu nổi.
 .topbar__tai-khoan {
   display: flex;
   align-items: center;
   gap: var(--sp-4);
   flex: none;
+  min-width: 0;
+  padding: var(--sp-2) var(--sp-4) var(--sp-2) var(--sp-2);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--color-surface-2);
+    }
+  }
+
+  &[aria-expanded='true'] {
+    background: var(--color-surface-2);
+  }
+
+  &:focus-visible {
+    outline: var(--border-w-strong) solid var(--color-focus);
+    outline-offset: 2px;
+  }
 }
 
 .topbar__avatar {
@@ -50,6 +77,14 @@
   line-height: var(--lh-snug);
 }
 
+.topbar__ten,
+.topbar__don-vi {
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .topbar__ten {
   font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
@@ -61,33 +96,35 @@
   color: var(--color-text-muted);
 }
 
-.topbar__muc {
-  display: inline-flex;
+// Nút theme và khối tài khoản dồn sang phải, nút theme đứng liền trước khu tài khoản.
+.topbar__ben-phai {
+  display: flex;
   align-items: center;
-  gap: var(--sp-3);
-  height: var(--size-control-md);
-  padding: 0 var(--sp-4);
-  border-radius: var(--radius-md);
-  background: transparent;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-medium);
-  cursor: pointer;
+  gap: var(--sp-4);
+  margin-left: auto;
+  flex: none;
+}
 
-  @media (hover: hover) {
-    &:hover:not(:disabled) {
-      background: var(--color-surface-2);
-      color: var(--color-text);
-    }
-  }
+.topbar__theme {
+  display: inline-flex;
+}
 
-  &:disabled {
-    color: var(--color-text-disabled);
-    cursor: not-allowed;
+// Thứ tự hy sinh khi hết chỗ: tên đơn vị (dưới $bp-lg) → tên người dùng (dưới $bp-md). Avatar giữ mãi.
+@include s.duoi-man-hinh(s.$bp-lg) {
+  .topbar__don-vi {
+    display: none;
   }
 }
 
-.topbar__muc--danger {
-  color: var(--color-danger);
+@include s.duoi-man-hinh(s.$bp-md) {
+  .topbar__ten-khoi {
+    display: none;
+  }
+}
+
+// Dưới $bp-xs nút theme vào menu tài khoản (Topbar.md §Responsive).
+@include s.duoi-man-hinh(s.$bp-xs) {
+  .topbar__theme {
+    display: none;
+  }
 }

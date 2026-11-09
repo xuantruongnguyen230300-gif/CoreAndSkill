@@ -60,6 +60,7 @@ verified: chua-doi-chieu
 | # | Mục | Nội dung |
 | --- | --- | --- |
 | 0 | Tiêu đề + nhãn fidelity + dòng **Nền** | Nhãn theo [`../CLAUDE.md`](../CLAUDE.md) §2. Dòng Nền nói tự dựng hay bọc thư viện, kèm một câu lý do |
+| 0b | Bảng `Mục trong spec \| Có thật hôm nay \| Sẽ thành` | **Chỉ spec mang nhãn `🚧`.** Khai đúng những mục đã mở source ra so, kèm ngày và neo bằng chuỗi tìm được trong `src/FE` ([`../CLAUDE.md`](../CLAUDE.md) §3); mục không có tên trong bảng là chưa ai đối chiếu. Một dạng cột duy nhất, khớp nhãn `🚧` của [`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §4. Spec `📐` chưa có code nên không có bảng này |
 | 1 | `## Mục đích` | **Một câu.** Dài hơn một câu là dấu hiệu component đang gánh hai vai |
 | 2 | `## Khi nào dùng / khi nào KHÔNG dùng` | Bảng hai cột. Mỗi dòng "không dùng" **phải trỏ sang component thay thế** |
 | 3 | `## Biến thể` | Bảng. Mỗi biến thể nói vai và khi nào dùng |
@@ -78,7 +79,7 @@ verified: chua-doi-chieu
 | --- | --- | --- |
 | `default` | | |
 | `hover` | Bọc trong `@media (hover: hover)` | |
-| `focus-visible` | `outline` + `outline-offset` ≥ 2px | |
+| `focus-visible` | Nút và control nền đặc: `outline` + `outline-offset` ≥ 2px. Ô nhập chữ: một đường biên tại chỗ, không vòng ngoài — [`../DESIGN.md`](../DESIGN.md) §2.6 *Ô nhập chữ* | |
 | `active` | | |
 | `disabled` | Thuộc tính thật, không chỉ đổi màu | |
 | `loading` | `aria-busy`, khoá thao tác | |
@@ -132,7 +133,7 @@ Mục 11, viết đúng:
 | Khối markup mẫu | ⬜ Tuỳ chọn | Chỉ khi cấu trúc DOM khó tả bằng lời. Dùng khối `text`, không dùng khối `html` — nó là minh hoạ hình dạng, không phải code chạy được |
 | Sơ đồ giải phẫu | ⬜ Tuỳ chọn | |
 | Bảng so sánh với component gần giống | ⬜ Tuỳ chọn | Rất nên có với cặp dễ nhầm (`Toast` ↔ `NoticeBanner`, `Tabs` ↔ `SegmentedControl`) |
-| `Normalize on redesign` | 🛑 **Cấm** ở giai đoạn 1 | |
+| `Normalize on redesign` | 🛑 **Cấm** trước khi component đã có code thật | |
 
 ---
 

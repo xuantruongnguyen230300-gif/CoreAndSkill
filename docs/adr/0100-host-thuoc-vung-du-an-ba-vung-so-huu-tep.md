@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0100 — Host `CoreAndSkill.Api` thuộc vùng dự án và ra khỏi khối `core-paths`; ba vùng sở hữu tệp thay cho *"tệp thuộc `Core/`"*
 
-> **Trạng thái:** Đã chấp nhận (2026-09-25)
+> **Trạng thái:** Đã chấp nhận (2026-09-25) · Bổ sung bởi [ADR-0125](0125-ca-thu-muc-styles-fe-vao-core-paths-bang-mau-du-an-cho-co-che-rieng.md) (2026-11-06)
 
 ## Bối cảnh
 

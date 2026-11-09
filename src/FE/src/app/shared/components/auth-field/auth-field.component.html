@@ -10,25 +10,34 @@
       class="auth-field__input"
       [class.auth-field__input--co-icon]="icon() !== null"
       [class.auth-field__input--md]="size() === 'md'"
+      [class.auth-field__input--co-nut]="variant() === 'password' && revealable()"
       [id]="controlId()"
       [type]="kieuThat"
-      [placeholder]="placeholder()"
+      [attr.placeholder]="placeholder()"
       [disabled]="voHieuHoa()"
       [autocomplete]="autocomplete()"
       [attr.aria-invalid]="errorMessage() !== null ? 'true' : null"
       [attr.aria-describedby]="describedBy()"
       [value]="gia()"
       (input)="doiGia($any($event.target).value)"
-      (blur)="chamVao()"
+      (blur)="chamVao($event)"
     />
     @if (variant() === 'password' && revealable()) {
       <button
         type="button"
         class="auth-field__nut-hien-an"
-        [attr.aria-label]="(hienMatKhau() ? 'xacThuc.matKhau.an' : 'xacThuc.matKhau.hien') | translate"
+        [attr.aria-label]="
+          (hienMatKhau() ? 'xacThuc.matKhau.an' : 'xacThuc.matKhau.hien') | translate
+        "
+        [disabled]="voHieuHoa()"
         (click)="toggleHienMatKhau()"
       >
-        <i class="pi" [class.pi-eye]="!hienMatKhau()" [class.pi-eye-slash]="hienMatKhau()" aria-hidden="true"></i>
+        <i
+          class="pi"
+          [class.pi-eye]="!hienMatKhau()"
+          [class.pi-eye-slash]="hienMatKhau()"
+          aria-hidden="true"
+        ></i>
       </button>
     }
   </div>

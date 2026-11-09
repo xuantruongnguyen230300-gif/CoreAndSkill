@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0088 — Đơn vị hệ thống tiếp tục nhận seed như mọi đơn vị mới; việc tách nó ra được hoãn tới khi có nguồn seed ngoài Core hoặc lệnh chạy lại seed
 
-> **Trạng thái:** Đã chấp nhận (2026-09-24)
+> **Trạng thái:** Đã chấp nhận (2026-09-24) · Bổ sung bởi [ADR-0122](0122-don-vi-he-thong-duoc-seed-mot-muc-menu-toi-he-thong-don-vi-moi-tai-khoan-cua-no-mang-co-van-hanh.md) (2026-10-08)
 >
 > Đây là một ADR thuộc nhóm **quyết định KHÔNG làm**, loại **hoãn** ([`../wiki-core/be/08-adr-practice.md`](../wiki-core/be/08-adr-practice.md) §3.1). Mục *Điều kiện kích hoạt* ở cuối là mục bắt buộc của nhóm này.
 

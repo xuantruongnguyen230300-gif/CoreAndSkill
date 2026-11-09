@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Diagnostics;
 using CoreAndSkill.Core.Application.Common.Interfaces;
+using CoreAndSkill.Core.Application.Common.Logging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -98,9 +99,9 @@ public sealed class UnitOfWork(DbConnection connection, IEnumerable<DbContext> c
         {
             var traceId = Activity.Current?.TraceId.ToHexString();
             logger.LogError(
-                ex,
-                "Commit không rõ kết quả (traceId {TraceId}) — dữ liệu có thể đã được ghi; KHÔNG chạy lại đơn vị công việc. Cần người đối soát.",
-                traceId);
+                "Commit không rõ kết quả (traceId {TraceId}) — dữ liệu có thể đã được ghi; KHÔNG chạy lại đơn vị công việc. " +
+                "Cần người đối soát. {Failure}",
+                traceId, FailureText.DescribeWithStack(ex));
             throw new CommitOutcomeUnknownException(traceId, ex);
         }
     }

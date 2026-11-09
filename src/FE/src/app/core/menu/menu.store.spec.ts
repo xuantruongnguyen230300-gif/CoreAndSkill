@@ -45,7 +45,7 @@ const PHANG_HAI_MUC: readonly MenuItemDto[] = [
     code: 'quan-tri',
     labelKey: 'menu.quan-tri',
     icon: 'pi-cog',
-    route: null,
+    route: '/quan-tri',
     displayOrder: 90,
   },
 ];
@@ -77,7 +77,14 @@ describe('MenuStore', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         provideCoreI18n({
-          languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+          languages: [
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+          ],
           defaultLanguage: 'vi',
           sources: ['/i18n/'],
         }),
@@ -263,7 +270,9 @@ describe('MenuStore — ngôn ngữ trong khoá cache đến từ CORE_I18N', ()
         provideHttpClientTesting(),
         provideTranslateService({ loader: provideTranslateLoader(FakeTranslateLoader) }),
         provideCoreI18n({
-          languages: [{ code: 'xx', nativeName: 'XX', localeData: localeVi }],
+          languages: [
+            { code: 'xx', nativeName: 'XX', dateTimeFormat: 'HH:mm dd/MM/y', localeData: localeVi },
+          ],
           defaultLanguage: 'xx',
           sources: ['/i18n/'],
         }),

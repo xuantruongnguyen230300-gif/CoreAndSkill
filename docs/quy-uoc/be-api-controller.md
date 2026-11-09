@@ -18,6 +18,9 @@ verified: chua-doi-chieu
 > | ✅ **Ngoại lệ có tên của §7.2 khớp code** — `RequireAntiforgeryAttribute.cs`; bước 1 của `AntiforgeryValidationMiddleware.cs` mang `GetMetadata<RequireAntiforgeryAttribute>() is null`; `UsersController.cs` action `Export` mang `[RequireAntiforgery]`; `.WithExposedHeaders("Retry-After", "Content-Disposition")` ở `CoreWebServiceCollectionExtensions.cs`. `B4ExportEndpointTests.cs` 14/14 và `AntiforgeryMarkTests.cs` 9/9 xanh (đối chiếu 2026-09-23) | — |
 > | ✅ **Catalog mã của hạ tầng HTTP ở §7.4 khớp code** — `src/BE/Core/CoreAndSkill.Core.Web/Security/SecurityErrors.cs`, chuỗi `Forbidden = CommonErrors.Forbidden` (đối chiếu 2026-09-26) | — |
 > | ✅ **Tiền tố đường dẫn ở §8.1 khớp code** — `src/BE/Core/CoreAndSkill.Core.Web/Http/ApiRoutes.cs`: `public static class ApiRoutes` chỉ phơi `Root`, `V1`; mọi `[Route(` dưới `src/BE/Core` dùng `CoreRoutes.`; cổng `HandTypedApiPrefixTests.cs` (đối chiếu 2026-09-24) | — |
+> | ✅ **Khoá cấu hình rate limit ở §6.1 khớp code** — neo ngay dưới khoá (đối chiếu 2026-10-06) | — |
+> | ✅ **Bảng *dùng gì thay phép so tên* ở §4.5 khớp code** — neo ở cột *Có thật ở* (đối chiếu 2026-11-05) | — |
+> | ✅ **Lượt 1 của OpenAPI ở §8.2 và ngoại lệ tiền tố thứ hai ở §8.1 khớp code** — neo ở §8.2 (đối chiếu 2026-10-06) | Luật R11 — khai `[ProducesResponseType]` theo từng nhóm controller, ArchTest ở lượt khai cuối ([ADR-0118](../adr/0118-openapi-sinh-bang-goi-cua-aspnetcore-xem-thu-bang-scalar-chi-o-development-ide-mo-trang-scalar-bo-cong-http.md) quyết định 4) |
 > | Các mục còn lại chưa ai mở code ra so, nên `verified:` giữ `chua-doi-chieu` | Từng mục lật riêng lẻ khi có người đối chiếu |
 >
 > Đây là file chủ của mọi mốc `— định nghĩa gốc` bên dưới ([`../OWNERSHIP.md`](../OWNERSHIP.md) §3). File khác
@@ -317,6 +320,29 @@ Nó kiểm quyền ở mức **endpoint**, không ở mức **bản ghi**. Kiể
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §4.4
 
+### 4.5 Không quyết theo tên đăng nhập — dùng gì thay
+
+Tên đăng nhập do người vận hành đặt; một phép so với nó là một vai trò ẩn, không ai cấp hay thu được
+(luật S10 ở [`../RULES-BE.md`](../RULES-BE.md) §6 — ngoại lệ có tên ghi ở chính hàng đó). Mỗi câu hỏi
+dưới đã có nguồn trong code:
+
+| Cần biết | Dùng | Có thật ở |
+| --- | --- | --- |
+| Người gọi được làm thao tác X không | Khoá quyền: `[RequirePermission]` ở endpoint, `IPermissionChecker` trong handler (§4.2) | `src/BE/Core/CoreAndSkill.Core.Application/Permissions/IPermissionChecker.cs` — `Task<bool> HasPermissionAsync(Guid userId, string permissionKey` |
+| Tài khoản có phải tài khoản vận hành hệ thống | Cờ `is_system_operator`: `[RequireSystemOperator]` ở endpoint, `UserSummaryDto.IsSystemOperator` trong Application | `src/BE/Core/CoreAndSkill.Core.Application/Identity/IUserLookupService.cs` — `bool IsSystemOperator,` |
+| Tài khoản có mang cờ bỏ qua ma trận | `IUserLookupService.HasPermissionBypassAsync` (§4.3) | Cùng tệp — `Task<bool> HasPermissionBypassAsync(Guid userId` |
+| Tài khoản có giữ vai trò hệ thống | Cờ `is_system` của vai trò: `IRoleQueryService.UserHoldsAnySystemRoleAsync` | `src/BE/Core/CoreAndSkill.Core.Application/Roles/IRoleQueryService.cs` — `UserHoldsAnySystemRoleAsync(Guid userId` |
+| Đích có phải chính người gọi | So `Guid`: `ICurrentUser.UserId` với id đích | `src/BE/Core/CoreAndSkill.Core.Application/Users/UserPrivilegeGuard.cs` — `targetUserId == callerId` |
+| Có người thực hiện không (job nền, bootstrap) | `ICurrentUser.UserName` là `null` — không so với `SystemActor.UserName` | `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/Interceptors/AuditInterceptor.cs` — `currentUser.UserName ?? SystemActor.UserName` |
+
+✅ **CÓ THẬT** (đối chiếu 2026-11-05): mọi chuỗi ở cột *Có thật ở* tìm được trong tệp nêu. Mẫu đủ các vế:
+`UserPrivilegeGuard.cs` — năm luật bảo vệ tài khoản quản trị, không vế nào đọc tên đăng nhập.
+
+Câu hỏi bảng không có — ví dụ *hàng này có do hệ thống ghi không* — thì **không** so `created_by` với
+`SystemActor.UserName`: chưa có cờ nào mang nghĩa đó, và thêm cờ là một quyết định —
+[ADR-0090](../adr/0090-ten-dang-nhap-system-la-ten-danh-rieng-chan-o-duong-tao.md) mục *Dấu hiệu quyết
+định này bắt đầu sai*.
+
 ---
 
 ## 5. `[AllowAnonymous]` — allowlist khai tường minh
@@ -353,15 +379,40 @@ Thêm lại một trong hai là đảo một ADR, không phải thêm một dòn
 | # | Hàng rào | Phân vùng theo | Kiểu cửa sổ | Chặn được gì |
 | --- | --- | --- | --- | --- |
 | 1 | Policy `login` | **IP** | `FixedWindow` | Brute-force từ một nguồn |
-| 2 | Giới hạn nền, mọi request | **IP** | `SlidingWindow` | Vòng lặp retry hỏng ở FE, tab treo gọi API liên tục |
+| 2 | Giới hạn nền, mọi request — kể cả request bị 401 hay 403 ở xác thực, chống giả mạo, buộc đổi mật khẩu, vì `UseRateLimiter` đứng trước ba lớp đó ([`be-architecture.md`](be-architecture.md) §3.1 ràng buộc 5) | **IP** | `SlidingWindow` | Vòng lặp retry hỏng ở FE, tab treo gọi API liên tục, máy quét dò endpoint |
 | 3 | Trong handler đăng nhập — **không** ở `UseRateLimiter` | **`LoginPartitionKey`** (§6.5) | Cửa sổ trượt | Brute-force **phân tán** nhiều IP cùng nhắm một tài khoản |
 | 4 | Policy `client-errors` | **IP** | `FixedWindow` | Một lỗi trong vòng lặp vẽ lại ở FE sinh hàng nghìn báo cáo mỗi phút — [`../contracts/client-errors.md`](../contracts/client-errors.md) |
+
+**Khoá cấu hình rate limit — định nghĩa gốc.** Ngưỡng của hàng rào 1, 2, 4 là **giá trị mặc định**, bản cài ghi đè được
+qua cấu hình dưới tiền tố `Core:RateLimit:` ([nhật ký quyết định](../adr/nhat-ky-quyet-dinh.md), 2026-10-06). Tên khoá,
+miền giá trị và giá trị mặc định khai ở **một** chỗ — lớp `CoreRateLimitOptions`; tài liệu không chép lại. Tên khoá lá
+trùng tên thuộc tính: nhóm `Login*` cho hàng rào 1, `Global*` cho hàng rào 2, `ClientErrors*` cho hàng rào 4; cửa sổ
+tính bằng giây. Giá trị ngoài miền `[Range]` của thuộc tính ⇒ tiến trình không khởi động ([`be-architecture.md`](be-architecture.md) §4).
+Ngưỡng được đọc một lần khi dựng bộ giới hạn — đổi khoá có hiệu lực từ lần khởi động sau. Hàng rào 3 không có khoá:
+hạn mức của nó ở §6.5. Thêm khoá thì thêm thuộc tính vào lớp đó, không khai ở chỗ khác.
+
+**Hàng rào 1 có trần** (người dùng chốt 2026-10-06, [nhật ký quyết định](../adr/nhat-ky-quyet-dinh.md)): `LoginPermitLimit`
+không quá **100**, `LoginWindowSeconds` không dưới **60** — bản cài không nới quá 100 lần mỗi 60 giây, kể cả bằng cách rút
+ngắn cửa sổ. Lý do: hàng rào 1 là hàng rào **duy nhất** chặn rải mật khẩu — một mật khẩu thử lần lượt trên nhiều tài khoản
+từ một nguồn — vì hàng rào 3 đếm theo tài khoản, mà rải mật khẩu thử mỗi tài khoản rất ít lần, không chạm hạn mức đó. Trần khai bằng `[Range]` ở lớp
+`CoreRateLimitOptions`, nên vượt trần là không khởi động. Nhóm `Global*`, `ClientErrors*` chưa có trần riêng.
+
+✅ **CÓ THẬT** (đối chiếu 2026-10-06): `src/BE/Core/CoreAndSkill.Core.Application/Configuration/CoreRateLimitOptions.cs`,
+chuỗi `SectionName = "Core:RateLimit"`; buộc và kiểm lúc khởi động ở
+`src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreOptionsServiceCollectionExtensions.cs`, chuỗi
+`.Bind(configuration.GetSection(CoreRateLimitOptions.SectionName))`; ba hàng rào đọc khoá ở
+`CoreWebServiceCollectionExtensions.cs` cùng thư mục, chuỗi `.Configure<IOptions<CoreRateLimitOptions>>(ConfigureRateLimiter)`.
+Trần của hàng rào 1: cùng tệp, chuỗi `[Range(1, 100)]` trên `LoginPermitLimit` và `[Range(60, 3600)]` trên
+`LoginWindowSeconds`. Ca ngoài miền của từng khoá, gồm `101` và `59`, cùng ca đúng biên `LoginRateLimit_AtTheBoundaries_StartsNormally`:
+`src/BE/Tests/CoreAndSkill.Core.IntegrationTests/ConfigurationFailFastTests.cs`, chuỗi `Core:RateLimit:LoginPermitLimit`;
+ngưỡng cấu hình được dùng thật: `Security/RateLimitPolicyWiringTests.cs` cùng project, chuỗi
+`Login_ConfiguredPermitLimit_IsHonoured_ThirdAttemptReturns429`. Cả hai lớp xanh (`dotnet test`, 2026-10-06, không Docker).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §6.1
 
 ### 6.2 ⚠️ Chọn đúng overload — bẫy đã dính thật
 
-**Không dùng overload `AddFixedWindowLimiter("login", …)`** — dùng `AddPolicy` + `RateLimitPartition.GetFixedWindowLimiter` với `partitionKey` là địa chỉ kết nối; giới hạn nền là `GlobalLimiter` dựng bằng `PartitionedRateLimiter.Create` + `GetSlidingWindowLimiter`, cùng khoá phân vùng; `RejectionStatusCode` = 429. Mặc định đã chốt: `login` **5 lượt / 1 phút** mỗi IP; nền **200 lượt / 1 phút** mỗi IP, 6 đoạn. Khối đầy đủ, cạnh dạng sai: ly-do §6.2.
+**Không dùng overload `AddFixedWindowLimiter("login", …)`** — dùng `AddPolicy` + `RateLimitPartition.GetFixedWindowLimiter` với `partitionKey` là địa chỉ kết nối; giới hạn nền là `GlobalLimiter` dựng bằng `PartitionedRateLimiter.Create` + `GetSlidingWindowLimiter`, cùng khoá phân vùng; `RejectionStatusCode` = 429. Mặc định đã chốt: `login` **5 lượt / 1 phút** mỗi IP; nền **200 lượt / 1 phút** mỗi IP, 6 đoạn — giá trị mặc định của khoá §6.1, bản cài ghi đè được; mặc định của `client-errors`: đọc ở lớp options. Khối đầy đủ, cạnh dạng sai: ly-do §6.2.
 
 Hàng rào 3 không nằm trong `AddRateLimiter` — §6.5. Action đăng nhập gắn policy bằng `[EnableRateLimiting("login")]`.
 
@@ -384,7 +435,7 @@ Hàng rào 3 không nằm trong `AddRateLimiter` — §6.5. Action đăng nhập
 
 ### 6.4 Con số là ước lượng, không phải số đo
 
-Hạn mức trên là mặc định cho vài chục người dùng đồng thời; chỉnh theo số lần 429 trong log, cách đọc ở ly-do §6.4. Rate limit theo IP **không phải** phòng thủ DDoS — việc đó thuộc tầng mạng.
+Hạn mức trên là mặc định cho vài chục người dùng đồng thời; chỉnh qua khoá §6.1 theo số lần 429 trong log, cách đọc ở ly-do §6.4. Rate limit theo IP **không phải** phòng thủ DDoS — việc đó thuộc tầng mạng.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §6.4
 
@@ -432,6 +483,7 @@ public sealed class LoginAttemptLimitExceededException(TimeSpan retryAfter) : Ex
 | **Hiện thực** của seam ném, handler không ném (luật R1). Kiểu exception khai ở `Core.Application` để `Core.Web` bắt được mà không biết hiện thực |
 | Seam nhận mã đơn vị và tên đăng nhập **thô**; khoá dựng trong hiện thực, ở `Core.Infrastructure` |
 | `Retry-After` là số nguyên giây, làm tròn lên từ `RetryAfter` — lấy từ cửa sổ của bộ đếm, không hardcode |
+| **`RetryAfter` ≥ 1 giây, kể cả khi cửa sổ trôi qua đúng lúc chặn** — tính ra ≤ 0 thì ném 1 giây (luật B24). ✅ CÓ THẬT (đối chiếu 2026-11-05) ở biên HTTP, chỗ mọi bản cài cùng đi qua: `src/BE/Core/CoreAndSkill.Core.Web/Http/RetryAfterSeconds.cs`, chuỗi `Math.Max(1, Math.Ceiling(retryAfter.TotalSeconds))` — `CoreExceptionHandler.cs` và `OnRejected` của rate limiter (`CoreWebServiceCollectionExtensions.cs`) cùng gọi `RetryAfterSeconds.Format(`, nên header và `messageParams.RetryAfterSeconds` luôn một số. Bản cài của Core giữ thêm sàn riêng (`LoginAttemptLimiter.cs`, chuỗi `retryAfter > TimeSpan.Zero ? retryAfter : TimeSpan.FromSeconds(1)`). Ca canh: `LoginPartitionLimitExceeded_RoundsRetryAfterUp_InBothHeaderAndMessageParams` (`src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Security/LoginAttemptLimitRetryAfterRoundingTests.cs`), gồm ca 0 và ca âm |
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §6.5
 
@@ -459,7 +511,7 @@ Cả hai lớp nằm trong **một** middleware, `AntiforgeryValidationMiddlewar
 | 1 | Request ghi có header `Origin` không nằm trong allowlist — cùng allowlist với CORS (§7.3) | 403 `CORE.AUTH.ORIGIN_REJECTED` | Request từ site lạ do trình duyệt phát sinh, vì trình duyệt luôn gắn `Origin` cho request cross-origin và **script không sửa được** header đó |
 | 2 | Token antiforgery — mọi `POST`/`PUT`/`PATCH`/`DELETE`, cộng `GET` mang dấu ở bảng dưới, phải mang header `X-XSRF-TOKEN` khớp | 403 `CORE.AUTH.CSRF_REJECTED` | Ca lớp 1 bỏ lọt (request không có `Origin` — kể cả điều hướng cấp cao nhất xuyên site — hoặc allowlist bị cấu hình rộng) |
 
-Hai lớp độc lập: request với `Origin` lạ nhưng token hợp lệ vẫn phải bị **403 `CORE.AUTH.ORIGIN_REJECTED`**. Cách FE xử lý từng mã: [`../contracts/auth.md`](../contracts/auth.md) §11.
+Hai lớp độc lập: request với `Origin` lạ nhưng token hợp lệ vẫn phải bị **403 `CORE.AUTH.ORIGIN_REJECTED`** — luật S30 ([`../RULES.md`](../RULES.md) §6). Cách FE xử lý từng mã: [`../contracts/auth.md`](../contracts/auth.md) §11.
 
 **Phiên hết hạn ra 401, không ra 403** — bước 2 dưới đây cho đi tiếp để `UseAuthorization` trả 401 qua `OnRedirectToLogin`.
 
@@ -659,8 +711,13 @@ FE **gọi lại endpoint phát token ngay sau đăng nhập và sau đăng xu�
 
 ### 8.1 Tiền tố đường dẫn — định nghĩa gốc
 
-**Mọi endpoint HTTP của repo này nằm dưới `/api/v<N>/<khu>/…`**, trừ **đúng hai** endpoint kiểm tra sức
-khoẻ ở §8.3 — ngoại lệ có tên, đóng, không có ca thứ ba.
+**Mọi endpoint HTTP của repo này nằm dưới `/api/v<N>/<khu>/…`**, trừ hai nhóm ngoại lệ có tên, đóng, không có
+nhóm thứ ba:
+
+1. **Đúng hai** endpoint kiểm tra sức khoẻ ở §8.3 — mọi môi trường.
+2. **Đúng hai** đường công cụ tài liệu ở §8.2 — `/openapi/{tên tài liệu}.json` và trang Scalar dưới `/scalar` — **chỉ ở
+   Development**; môi trường khác không đăng ký chúng ([ADR-0118](../adr/0118-openapi-sinh-bang-goi-cua-aspnetcore-xem-thu-bang-scalar-chi-o-development-ide-mo-trang-scalar-bo-cong-http.md)).
+   ✅ Có thật — neo ở §8.2 (đối chiếu 2026-10-06).
 
 | Thành phần | Giá trị | Ghi chú |
 | --- | --- | --- |
@@ -693,7 +750,23 @@ contract card ở [`../contracts/`](../contracts/).
 
 ### 8.2 Swagger / OpenAPI
 
-> 📐 Phần chưa thi công: [be-api-controller-chua-thi-cong.md](be-api-controller-chua-thi-cong.md) §8.2.
+✅ **CÓ THẬT — lượt 1 của [ADR-0118](../adr/0118-openapi-sinh-bang-goi-cua-aspnetcore-xem-thu-bang-scalar-chi-o-development-ide-mo-trang-scalar-bo-cong-http.md)** (đối chiếu 2026-10-06). Hai gói ghim ở `src/BE/Directory.Packages.props`, chuỗi `Microsoft.AspNetCore.OpenApi" Version="10.0.14"` và chuỗi `Scalar.AspNetCore" Version="2.17.13"`; chỉ `Core.Web` tham chiếu. Dưới `src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/`: `CoreWebServiceCollectionExtensions.cs` gọi `services.AddOpenApi();` trong khối `if (environment.IsDevelopment())`; `CoreApplicationBuilderExtensions.cs` gọi `app.MapOpenApi();` và `app.MapScalarApiReference(` kèm `.DisableTelemetry()`, `.DisableDefaultFonts()` trong khối `if (app.Environment.IsDevelopment())`. Cặp test S29 — `OpenApiDocument_IsNotServedAnonymously_InProduction` (`/openapi/v1.json`, `/scalar`, `/scalar/v1` ra 404) và `OpenApiDocument_IsServed_InDevelopment` — ở `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Web/OpenApiDocumentTests.cs` — kết quả chạy ở dòng S29 của [`../RULES-BE.md`](../RULES-BE.md) §6.
+
+📐 **R11 chưa thi công:** chưa action nào khai kiểu phản hồi — PASS khi `grep -rn 'ProducesResponseType' src/BE --include=*.cs` ra đủ mọi action; hôm nay không ra dòng nào, nên tài liệu sinh ra chưa có schema phản hồi. Các luật dưới đã áp ([`tieu-chi-review.md`](tieu-chi-review.md) §3.2), trừ R11 áp theo đợt — mỗi nhóm controller từ lượt khai kiểu cho nó, trọn vẹn từ lượt khai cuối cùng (ADR-0118 quyết định 4):
+
+- Bật ở Development; ở Production **chỉ** bật sau xác thực, hoặc tắt hẳn — luật **S29**. Repo này chọn **tắt hẳn ở mọi
+  môi trường không phải Development**: tài liệu ở `/openapi/v1.json`, trang Scalar ở `/scalar`, đăng ký và map trong
+  `Core.Web`, telemetry và phông tải từ CDN của Scalar tắt — gói, phiên bản, lý do: [ADR-0118](../adr/0118-openapi-sinh-bang-goi-cua-aspnetcore-xem-thu-bang-scalar-chi-o-development-ide-mo-trang-scalar-bo-cong-http.md).
+- Mọi action khai `[ProducesResponseType]` cho status thành công và ít nhất một nhánh lỗi — luật **R11**.
+- Kiểu trả về trong tài liệu là `ApiEnvelope<T>`, không phải `T` — luật **R11**. Ba khuôn khai theo lối `Handle*` (§3):
+  - `HandleResult<T>` → `ApiEnvelope<T>` ở 200; `HandleCreated<T>` → `ApiEnvelope<T>` ở 201; `HandleResult` không giá trị → `ApiEnvelope<object>` ở 200.
+  - `HandleExport`, `HandleFile` — **ngoại lệ có tên của R11**: thân thành công là chính tệp, không envelope, nên status thành công khai kiểu tệp kèm kiểu nội dung; nhánh lỗi vẫn là envelope.
+  - Nhánh lỗi, mọi lối: `ApiEnvelope<object>`.
+- OpenAPI là tài liệu **sinh ra**, không phải hợp đồng — hợp đồng nằm ở [`../contracts/`](../contracts/).
+
+Hai mã ở [`../RULES-BE.md`](../RULES-BE.md) §5, §6.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §8.2.
 
 ### 8.3 Health check
 

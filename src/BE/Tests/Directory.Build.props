@@ -1,0 +1,11 @@
+<Project>
+
+  <!-- Nhập props gốc của BE: Directory.Build.props gần nhất chặn việc tự tìm lên trên. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!-- ADR-0121 quyết định 1: logger khai một chỗ cho mọi project test BE; phiên bản ở Directory.Packages.props. -->
+  <ItemGroup>
+    <PackageReference Include="GitHubActionsTestLogger" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

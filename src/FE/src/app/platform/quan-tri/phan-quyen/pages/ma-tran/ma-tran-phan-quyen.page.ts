@@ -14,7 +14,7 @@ import { finalize } from 'rxjs';
 
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ApiFailureError } from '../../../../../core/http/api-result.model';
-import { dichLoiChoMan } from '../../../../../core/http/dich-loi';
+import { cauLoiKhongPhaiApi, dichLoiBatKy } from '../../../../../core/http/dich-loi';
 import { UnsavedChangesService } from '../../../../../core/unsaved-changes/unsaved-changes.service';
 import { ConfirmDialogComponent } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { EmptyStateComponent } from '../../../../../shared/components/empty-state/empty-state.component';
@@ -116,9 +116,7 @@ export class MaTranPhanQuyenPage {
   }
 
   private cauLoiTai(err: unknown): string | null {
-    return err instanceof ApiFailureError
-      ? dichLoiChoMan(this.translate, err)
-      : this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION');
+    return dichLoiBatKy(this.translate, err);
   }
 
   /** `(retry)` của hàng lỗi `Table`. Chưa có ma trận → tải lần đầu; đã có (GET sau lưu hỏng) → tải lại
@@ -335,6 +333,8 @@ export class MaTranPhanQuyenPage {
             ),
           );
           this.choVersionMoi.set(true);
+          // Người lưu có thể vừa đổi quyền của chính mình: làm mới quyền + menu, không đợi tải lại trang.
+          void this.auth.lamMoiPhien({ napLaiMenu: true });
           this.toast.thanhCong(this.translate.instant('phanQuyen.thongBao.luuThanhCong'));
           this.taiMaTranSauLuu();
         },
@@ -374,7 +374,7 @@ export class MaTranPhanQuyenPage {
 
   private xuLyLoiLuu(err: unknown): void {
     if (!(err instanceof ApiFailureError)) {
-      this.loiLuu.set(this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION'));
+      this.loiLuu.set(cauLoiKhongPhaiApi(this.translate));
       return;
     }
     const ma = err.body?.error.code;
@@ -395,9 +395,7 @@ export class MaTranPhanQuyenPage {
       (err: unknown) => {
         // Cùng khu lỗi với `xuLyLoiLuu` — cùng hàm: lớp lỗi xuyên suốt → `null` (interceptor đã toast).
         this.loiLuu.set(
-          err instanceof ApiFailureError
-            ? fieldErrorsText(this.translate, err)
-            : this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION'),
+          dichLoiBatKy(this.translate, err, (l) => fieldErrorsText(this.translate, l)),
         );
       },
     );

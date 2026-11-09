@@ -12,7 +12,7 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Security;
 
-// B21 (docs/DEBT.md) — biên của phép làm tròn trên đường 429 qua IExceptionHandler (hàng rào 3). Luật:
+// B21, B24 (docs/DEBT.md) — biên của phép làm tròn trên đường 429 qua IExceptionHandler (hàng rào 3). Luật:
 // docs/quy-uoc/be-api-controller.md §6.5, hàng "Retry-After là số nguyên giây, làm tròn lên từ RetryAfter"; header và
 // messageParams.RetryAfterSeconds mang cùng số (§6.3 ràng buộc 6, docs/contracts/auth.md §10).
 //
@@ -28,6 +28,11 @@ public sealed class LoginAttemptLimitRetryAfterRoundingTests
     [Theory]
     [InlineData(47_000, "47")]
     [InlineData(200, "1")]
+    [InlineData(1_200, "2")]
+    // B24 — sàn 1 giây ở biên HTTP: bản ILoginAttemptLimiter đăng ký sau AddCore ném 0 hay số âm thì header vẫn ≥ 1
+    // và bằng RetryAfterSeconds trong thân lỗi (be-api-controller.md §6.5).
+    [InlineData(0, "1")]
+    [InlineData(-5_000, "1")]
     public async Task LoginPartitionLimitExceeded_RoundsRetryAfterUp_InBothHeaderAndMessageParams(
         int retryAfterMilliseconds, string expectedSeconds)
     {

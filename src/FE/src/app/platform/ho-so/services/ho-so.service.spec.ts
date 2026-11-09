@@ -22,7 +22,11 @@ describe('HoSoService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     });
     service = TestBed.inject(HoSoService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -34,7 +38,9 @@ describe('HoSoService', () => {
     let ketQua: unknown;
     service.layHoSo().subscribe((d) => (ketQua = d));
 
-    httpMock.expectOne('/core/profile').flush({ success: true, data: DTO, error: null, traceId: 't' });
+    httpMock
+      .expectOne('/core/profile')
+      .flush({ success: true, data: DTO, error: null, traceId: 't' });
 
     expect(ketQua).toEqual({
       userName: 'an.nv',
@@ -48,11 +54,18 @@ describe('HoSoService', () => {
   });
 
   it('capNhatHoSo() gửi PUT với đúng payload', () => {
-    service.capNhatHoSo({ fullName: 'A', phoneNumber: null, preferredLanguage: null, version: 'v1' }).subscribe();
+    service
+      .capNhatHoSo({ fullName: 'A', phoneNumber: null, preferredLanguage: null, version: 'v1' })
+      .subscribe();
 
     const req = httpMock.expectOne('/core/profile');
     expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toEqual({ fullName: 'A', phoneNumber: null, preferredLanguage: null, version: 'v1' });
+    expect(req.request.body).toEqual({
+      fullName: 'A',
+      phoneNumber: null,
+      preferredLanguage: null,
+      version: 'v1',
+    });
     req.flush({ success: true, data: DTO, error: null, traceId: 't' });
   });
 

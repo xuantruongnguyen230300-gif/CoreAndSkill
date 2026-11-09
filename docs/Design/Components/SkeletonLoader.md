@@ -12,7 +12,7 @@ verified: chua-doi-chieu
 
 ## Đã có → còn thiếu (F2, ADR-0037)
 
-Component: `src/FE/src/app/shared/components/skeleton-loader/skeleton-loader.component.ts`. Dùng ở `ho-so.page.html` — `ho-so.page` tự ghép nhiều `SkeletonLoader` đơn (một `text` + một `block` mỗi hàng) thay vì gọi một khuôn `group`, đúng năm hàng `FormRow` thật ([03-ho-so-ca-nhan.md](../Screens/03-ho-so-ca-nhan.md) §Trạng thái).
+Component: `src/FE/src/app/shared/components/skeleton-loader/skeleton-loader.component.ts`. Đối chiếu 2026-10-06: dùng ở `ho-so.page.html`, `danh-sach-don-vi.page.html`, `danh-sach-nguoi-dung.page.html`, `danh-sach-vai-tro.page.html` (tìm bằng chuỗi `<app-skeleton-loader`). Ở `ho-so.page.html` — `ho-so.page` tự ghép nhiều `SkeletonLoader` đơn (một `text` + một `block` mỗi hàng) thay vì gọi một khuôn `group`, đúng năm hàng `FormRow` thật ([03-ho-so-ca-nhan.md](../Screens/03-ho-so-ca-nhan.md) §Trạng thái).
 
 | Khoản | Đã có | Còn thiếu |
 | --- | --- | --- |

@@ -16,11 +16,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Permissions;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Luật S17 (docs/RULES.md §6) — PUT /api/v1/core/permissions/matrix qua HTTP tới PostgreSQL thật, rồi đọc thẳng
 // core.audit_log. Hình dạng dòng: docs/contracts/permissions.md §6 mục "Nhật ký kiểm toán".
 //

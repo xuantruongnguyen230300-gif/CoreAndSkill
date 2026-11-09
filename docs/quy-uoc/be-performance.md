@@ -8,7 +8,8 @@ verified: chua-doi-chieu
 
 > 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/BE` đã có trên đĩa. Code mẫu ở §2 là
 > **khuôn, không phải trích dẫn** — không tệp nào mang các tên đó. Chưa ai đối chiếu toàn file, nên
-> `verified:` giữ `chua-doi-chieu`: khớp hay không thì mở file mã nguồn ra so và nêu `file:dòng`.
+> `verified:` giữ `chua-doi-chieu`: khớp hay không thì mở file mã nguồn ra so và nêu đường dẫn kèm
+> một chuỗi tìm được trong tệp ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §9).
 >
 > Đọc file này khi viết repository/query mới, hoặc khi nhận bất kỳ task nào có chữ
 > *"chậm"* / *"tối ưu"* / *"cache"*.
@@ -58,7 +59,7 @@ mọi truy vấn trong đơn vị hiện hành ([`be-entity-domain.md`](be-entit
 ### 2.2 `IQueryable` không được rò ra khỏi Application
 
 > **Không method public nào trả `IQueryable<T>`.** Handler viết `.Include(...)` hay
-> `EF.Functions.ILike(...)` là đang viết code EF Core trong tầng Application.
+> `EF.Functions.ILike(...)` là đang viết code EF Core trong tầng Application. Luật A24 ([`../RULES.md`](../RULES.md) §3).
 
 Repository nhận một **criteria object** và trả kết quả đã materialize:
 
@@ -78,6 +79,28 @@ public sealed record MenuItemSearchCriteria(
 sang biểu thức sắp xếp; không ghép chuỗi vào `OrderBy` động.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §2.2
+
+### 2.3 SQL thô — giá trị chỉ đi qua tham số
+
+> Luật S31 ([`../RULES-BE.md`](../RULES-BE.md) §6). Phạm vi: code sản phẩm dưới `src/BE/` — Core, host, module.
+> Ngoài phạm vi: thư mục `Migrations/` và `database/scripts/` — văn bản viết lúc thiết kế, không nhận đầu vào lúc
+> chạy; quy ước của chúng ở [`../database/migration-policy.md`](../database/migration-policy.md),
+> [`../database/script-runbook.md`](../database/script-runbook.md).
+
+| Cần | Dùng | Không dùng |
+| --- | --- | --- |
+| Đưa giá trị lúc chạy vào câu | Chuỗi nội suy `$"…{x}…"` trao cho `FromSql`, `SqlQuery<T>`, `ExecuteSql`, `ExecuteSqlAsync` (tên cũ `…Interpolated`) — EF Core đổi mỗi lỗ thành một tham số | Chuỗi nội suy hay chuỗi ghép trao cho `FromSqlRaw`, `SqlQueryRaw<T>`, `ExecuteSqlRaw`, `ExecuteSqlRawAsync` — API `…Raw` nhận chuỗi đã dựng xong, giá trị thành văn bản SQL |
+| Gọi API `…Raw` | Đối số `sql` là hằng — literal, `const`, ghép các hằng, `nameof` — hoặc một trong các câu hằng do `switch` ở hàng dưới chọn; giá trị qua chỗ giữ `{0}` kèm mảng tham số, hay `DbParameter` | Đối số `sql` dựng lúc chạy — `+`, `+=`, `string.Format`, `string.Concat`, `StringBuilder` — dù dựng ở biến, trường hay hàm khác rồi mới truyền |
+| Tên cột, bảng, chiều sắp xếp theo đầu vào | `switch` trên giá trị đã qua danh sách cho phép, chọn biểu thức LINQ (§2.2) hay một câu SQL hằng trọn vẹn — nguyên tắc ở [`09-security-beyond-auth.md`](../wiki-core/be/09-security-beyond-auth.md) §8 | Ghép tên vào câu, kể cả sau khi "làm sạch"; đặt tên vào lỗ nội suy |
+
+- `FormattableStringFactory.Create` chỉ nhận chuỗi định dạng hằng.
+- Lối ADO.NET (`Database.GetDbConnection().CreateCommand()`) cùng luật: `CommandText` hằng, giá trị qua `Parameters`.
+
+Hai lối ở hai hàng đầu, ✅ CÓ THẬT (đối chiếu 2026-11-05): `src/BE/Core/CoreAndSkill.Core.Infrastructure/Roles/RoleRowLocks.cs`,
+chuỗi `.SqlQuery<bool>(`; `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/LockTimeout.cs`, chuỗi
+`ExecuteSqlRawAsync(SetLockTimeoutSql`.
+
+> 📖 Lý do, cổng bắt hình dạng nào, điểm mù: [`ly-do/RULES-BE.md`](../wiki-core/be/ly-do/RULES-BE.md) §6, hàng S31
 
 ---
 
@@ -242,7 +265,7 @@ Tên bảng, tên cột trong `HasFilter` và tên index lấy **nguyên văn** 
 ### 5.3 Cột `CreatedAt` và múi giờ
 
 Dùng `DateTimeOffset` ở CLR và `timestamptz` ở PostgreSQL (mặc định của Npgsql). **Luôn ghi UTC.**
-Chuyển sang giờ địa phương là việc của tầng hiển thị.
+Chuyển sang giờ địa phương là việc của tầng hiển thị. Luật E27 ([`../RULES.md`](../RULES.md) §4).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §5.3
 
@@ -270,7 +293,7 @@ return new PagedList<UserListItemDto>
 };
 ```
 
-**Bắt buộc có tiêu chí sắp xếp phụ ổn định** (`ThenBy(u => u.Id)`).
+**Bắt buộc có tiêu chí sắp xếp phụ ổn định** (`ThenBy(u => u.Id)`) — luật E28 ([`../RULES.md`](../RULES.md) §4).
 
 ### 6.2 Khi nào offset không còn dùng được
 
@@ -350,7 +373,7 @@ mở: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §7.2
 `AuditLogInterceptor` → `OutboxInterceptor` — nhật ký và dòng outbox đọc `TenantId` **đã gán** của entity.
 
 > 📐 **`DbContext` của module: chưa hỗ trợ** — chưa có hàm `public` đăng ký đủ sáu thứ, và
-> `CoreExecutionStrategy` là `internal`. Tự dựng thì hỏng im lặng: [nợ](../DEBT.md) B22.
+> `CoreExecutionStrategy` là `internal`. Tự dựng thì hỏng im lặng: luật B22 ở [`../RULES-BE.md`](../RULES-BE.md).
 
 #### Lỗi KHÔNG được thử lại — định nghĩa gốc
 
@@ -363,9 +386,9 @@ mở: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §7.2
 > `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Support/CoreWebApplicationFactory.cs` (chuỗi
 > `NonRetryingExecutionStrategy`).
 >
-> **Chưa ai thấy trên PostgreSQL thật:** hết `CommandTimeout` có đúng là `NpgsqlException` bọc
-> `TimeoutException` không, và `55P03` có ra 500 sau đúng một lần chờ không. Test có, chưa chạy — luật
-> E11 ở [`../RULES.md`](../RULES.md) §4. Lý do và phương án đã loại:
+> **Đã thấy trên PostgreSQL thật** (`dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18`; CI chưa
+> chạy với bản này): hết `CommandTimeout` là `NpgsqlException` bọc `TimeoutException`, và hết `lock_timeout`
+> ra 500 sau đúng một lần chờ — luật E11 ở [`../RULES.md`](../RULES.md) §4. Lý do và phương án đã loại:
 > [`../adr/0053-thu-lai-khong-ap-cho-het-han-cho-va-commit-khong-ro-ket-qua.md`](../adr/0053-thu-lai-khong-ap-cho-het-han-cho-va-commit-khong-ro-ket-qua.md).
 
 Phân loại "tạm thời" của Npgsql rộng hơn thứ nên thử lại. Core thay `EnableRetryOnFailure` bằng một
@@ -374,7 +397,7 @@ execution strategy riêng. Strategy giữ số lần thử, trễ tối đa và 
 | Lỗi | Vì sao không thử lại |
 | --- | --- |
 | `PostgresException` mã `55P03` (hết `lock_timeout`) | Thời hạn chờ là trần cho **cả request**. Thử lại nhân nó lên bốn lần trong lúc giữ kết nối — [`../wiki-core/be/06-concurrency-control.md`](../wiki-core/be/06-concurrency-control.md) §7 quy tắc 3 |
-| `NpgsqlException` có `InnerException` là `TimeoutException` — hết `CommandTimeout`, và **có chủ đích** cả hết hạn mở kết nối lẫn hết hạn chờ pool ([ADR-0055](../adr/0055-commit-khong-nhan-token-huy-va-het-han-mo-ket-noi-khong-thu-lai.md)) | Lỗi đã tiêu hết một thời hạn chờ thì không thử lại: câu vừa quá hạn sẽ lại quá hạn trên database đang chậm; pool cạn thì thử lại chỉ thêm người xếp hàng. Lỗi mở kết nối **hỏng nhanh** (bị từ chối, bị ngắt) vẫn thử lại. Hình dạng ngoại lệ của hai ca mở kết nối chưa tái hiện trên PostgreSQL thật |
+| `NpgsqlException` có `InnerException` là `TimeoutException` — hết `CommandTimeout`, và **có chủ đích** cả hết hạn mở kết nối lẫn hết hạn chờ pool ([ADR-0055](../adr/0055-commit-khong-nhan-token-huy-va-het-han-mo-ket-noi-khong-thu-lai.md)) | Lỗi đã tiêu hết một thời hạn chờ thì không thử lại: câu vừa quá hạn sẽ lại quá hạn trên database đang chậm; pool cạn thì thử lại chỉ thêm người xếp hàng. Lỗi mở kết nối **hỏng nhanh** (bị từ chối, bị ngắt) vẫn thử lại. Hình dạng ngoại lệ của hết hạn chờ pool đã tái hiện trên PostgreSQL thật (luật E11, lớp 2); của hết hạn mở kết nối thì chỉ tái hiện với một máy chủ TCP im lặng, không phải PostgreSQL (lớp 3) |
 | Lỗi đường truyền ném từ `CommitAsync` | Không biết máy chủ đã commit chưa. Chạy lại có thể ghi hai lần. `UnitOfWork` bọc lỗi này thành ngoại lệ không tạm thời — [`be-cqrs-handler.md`](be-cqrs-handler.md) §4 |
 
 Host test **không có database** dùng strategy không thử lại, vì ở đó mọi lượt thử lại đều chắc chắn
@@ -386,15 +409,15 @@ hỏng. Host test trên PostgreSQL thật giữ đúng strategy của production
 
 ### 8.1 Trạng thái và lý do
 
-> 📐 Phần chưa thi công: [`be-performance-chua-thi-cong.md`](be-performance-chua-thi-cong.md) §1.
+**Redis và `CachingBehavior` KHÔNG có ở v1.** Không phải bỏ sót — chưa đo được vấn đề nào để cache giải quyết. Quyết định về số lượng behavior ở v1: [`../adr/0006-pipeline-behavior.md`](../adr/0006-pipeline-behavior.md). Đối chiếu 2026-09-30: không tệp `.cs` hay `.csproj` nào dưới `src/BE` (trừ `bin/`, `obj/`) nhắc `Redis`, `StackExchange` hay `ICacheStore`.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §8.1
 
 ### 8.2 Interface khai trước — để đổi implementation không sửa call site
 
-`Core.Application` **không bao giờ** chạm thẳng `HybridCache`/`IMemoryCache`/`IDistributedCache` — chỉ qua `ICacheStore`. Implementation ở v1: **không có**; chỗ nào thật sự cần trước thì đăng ký một implementation **no-op** (luôn miss, `Set` không làm gì).
+`Core.Application` **không bao giờ** chạm thẳng `HybridCache`/`IMemoryCache`/`IDistributedCache` — chỉ qua `ICacheStore`. Implementation ở v1: **không có**; chỗ nào thật sự cần trước thì đăng ký một implementation **no-op** (luôn miss, `Set` không làm gì). Luật **A22** ở [`../RULES-BE.md`](../RULES-BE.md) §3.
 
-> 📐 Chữ ký `ICacheStore` — chưa thi công: [`be-performance-chua-thi-cong.md`](be-performance-chua-thi-cong.md) §2.
+> 📐 Chữ ký `ICacheStore` — chưa thi công: [`be-performance-chua-thi-cong.md`](be-performance-chua-thi-cong.md) §2. Nhãn nói *chưa có interface*; luật trên áp ngay.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-performance.md`](../wiki-core/be/ly-do/be-performance.md) §8.2
 
@@ -408,6 +431,8 @@ Thiếu **một** thì dừng lại và hỏi, không tự quyết:
 
 > **Cache dữ liệu phân quyền mà chỉ dựa TTL → quyền đã thu hồi còn hiệu lực tới hết TTL.** Đó là lỗ hổng
 > bảo mật. Nếu cache phân quyền, invalidation phải **đồng bộ** trong cùng lượt ghi ma trận.
+
+Luật **B34** — §8.3 cùng §8.4: dòng B34 ở [`../RULES-BE.md`](../RULES-BE.md).
 
 ### 8.4 Cái gì được cache mà không cần ba điều kiện trên
 
@@ -441,5 +466,6 @@ trên cùng tập dữ liệu, so sánh, rồi mới xoá bản cũ.
 - [ ] Không `await` trong vòng lặp.
 - [ ] Sắp xếp có tiêu chí phụ ổn định (`ThenBy(x => x.Id)`).
 - [ ] `SortBy` qua allowlist ở validator (B3), không phải chuỗi client gửi thẳng vào `OrderBy`.
+- [ ] SQL thô: giá trị chỉ qua tham số, đối số `sql` của API `…Raw` là hằng (S31, §2.3).
 - [ ] Nếu bỏ qua một mục trên: comment nêu **con số** trần trên và điều kiện làm nó hết đúng.
       *"Dataset hiện tại nhỏ"* suông **không** phải ngoại lệ hợp lệ.

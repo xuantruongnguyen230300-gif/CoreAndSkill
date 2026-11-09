@@ -90,13 +90,30 @@ public class CoreBootstrapOptionsTests
         results.ShouldHaveSingleItem().MemberNames.ShouldBe([nameof(CoreBootstrapOptions.AdminEmail)]);
     }
 
+    // Luật M16: hai mã đơn vị trùng nhau sau chuẩn hoá (Trim + chữ hoa) ⇒ cấu hình bị từ chối, nêu cả hai khoá.
+    [Theory]
+    [InlineData("HETHONG", "hethong")]
+    [InlineData("HETHONG", "  HetHong ")]
+    public void TenantCodesEqualAfterNormalisation_FailsValidation_NamingBothKeys(string systemCode, string firstCode)
+    {
+        var options = Valid("vanhanh", "quantri", systemCode: systemCode, firstCode: firstCode);
+
+        var results = Validate(options);
+
+        results.ShouldHaveSingleItem().MemberNames.ShouldBe([nameof(CoreBootstrapOptions.SystemTenantCode), nameof(CoreBootstrapOptions.FirstTenantCode)]);
+    }
+
+    [Fact]
+    public void DistinctTenantCodes_PassValidation() => Validate(Valid("vanhanh", "quantri", systemCode: "HETHONG", firstCode: "HETHONG2")).ShouldBeEmpty();
+
     private static CoreBootstrapOptions Valid(
         string operatorUserName, string adminUserName,
-        string? operatorEmail = "vanhanh@dv.vn", string? adminEmail = "quantri@dv.vn") => new()
+        string? operatorEmail = "vanhanh@dv.vn", string? adminEmail = "quantri@dv.vn",
+        string systemCode = "HETHONG", string firstCode = "DEMO") => new()
         {
-            SystemTenantCode = "HETHONG",
+            SystemTenantCode = systemCode,
             SystemTenantName = "Đơn vị hệ thống",
-            FirstTenantCode = "DEMO",
+            FirstTenantCode = firstCode,
             FirstTenantName = "Đơn vị demo",
             OperatorUserName = operatorUserName,
             OperatorPassword = "pw1",

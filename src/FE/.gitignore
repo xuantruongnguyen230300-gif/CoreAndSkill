@@ -26,6 +26,9 @@ yarn-error.log
 !.vscode/extensions.json
 .history/*
 
+# Tệp môi trường của bản cài — mỗi bản cài một tệp, tạo từ mẫu environment.ban-cai.mau (ADR-0116, luật F54)
+/src/environments/environment.ban-cai.ts
+
 # Test và build phụ trợ của Angular CLI
 .sass-cache/
 /connect.lock
@@ -34,3 +37,9 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+
+# Kết quả và báo cáo của lưới giao diện Playwright (ADR-0117 QC4) — ảnh chỉ để tham khảo, không commit
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

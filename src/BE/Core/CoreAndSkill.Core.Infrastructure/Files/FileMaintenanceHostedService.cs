@@ -53,18 +53,28 @@ internal sealed class FileMaintenanceHostedService(
     // internal — test gọi thẳng một lượt mà không lái PeriodicTimer thật.
     internal async Task RunOnceAsync(CancellationToken ct)
     {
-        await GuardedAsync("dọn tệp tạm", PurgeTempAsync, ct);
-        await GuardedAsync("gỡ tệp kết quả quá hạn", ExpireResultFilesAsync, ct);
-        await GuardedAsync("gỡ tệp không bao giờ được gắn", ExpireUnattachedFilesAsync, ct);
-        await GuardedAsync("đối soát đĩa và DB", ReconcileAsync, ct);
+        await GuardedAsync(MaintenanceStep.PurgeTemp, PurgeTempAsync, ct);
+        await GuardedAsync(MaintenanceStep.ExpireResultFiles, ExpireResultFilesAsync, ct);
+        await GuardedAsync(MaintenanceStep.ExpireUnattachedFiles, ExpireUnattachedFilesAsync, ct);
+        await GuardedAsync(MaintenanceStep.Reconcile, ReconcileAsync, ct);
     }
 
-    private async Task GuardedAsync(string name, Func<IServiceScope, CancellationToken, Task> step, CancellationToken ct)
+    // Giá trị enum là trường có cấu trúc {Step} của dòng log lỗi; câu tiếng Việt cố định nằm thẳng trong
+    // logger.LogError(...) (hình dạng 2, docs/quy-uoc/be-cqrs-handler.md §7.2).
+    private enum MaintenanceStep
+    {
+        PurgeTemp,
+        ExpireResultFiles,
+        ExpireUnattachedFiles,
+        Reconcile,
+    }
+
+    private async Task GuardedAsync(MaintenanceStep step, Func<IServiceScope, CancellationToken, Task> action, CancellationToken ct)
     {
         try
         {
             using var scope = scopeFactory.CreateScope();
-            await step(scope, ct);
+            await action(scope, ct);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
@@ -72,7 +82,9 @@ internal sealed class FileMaintenanceHostedService(
             // thành TaskCanceledException trong lúc tiến trình còn chạy là bước hỏng như mọi bước hỏng khác.
             // Không nuốt: log Error + chỉ số, việc chạy lại ở chu kỳ sau.
             CoreMetrics.BackgroundJobFailed.Add(1);
-            logger.LogError("Bảo trì kho tệp — bước '{Step}' lỗi: {Failure} — cần người can thiệp.", name, FailureText.Describe(ex));
+            var failure = FailureText.DescribeWithStack(ex);
+
+            logger.LogError("Bảo trì kho tệp — bước '{Step}' lỗi: {Failure} — cần người can thiệp.", step, failure);
         }
     }
 

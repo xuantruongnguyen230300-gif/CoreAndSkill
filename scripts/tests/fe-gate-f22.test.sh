@@ -14,7 +14,7 @@
 #   (2) PHÍA BẢNG CHỦ — cổng giữ một BẢN SAO con số, hoặc một bản sao danh sách loại. Nửa này KHÔNG
 #       ca nào của nửa (1) bắt được: một cổng viết cứng 400 và liệt kê tay sáu loại vẫn qua sạch
 #       nửa (1). Chỉ SỬA BẢNG rồi xem cổng có đổi hành vi theo không mới bắt được — đúng lớp lỗi
-#       DEBT F34 nêu đích danh ("đọc từ đó, không viết cứng hai nơi").
+#       F22 (gồm F34 cũ) nêu đích danh ("đọc từ đó, không viết cứng hai nơi").
 #
 #   (3) PHÍA BỘ BÓC — phân loại dòng (trống / chú thích / mã) lệch khỏi đoạn "Phân loại một dòng"
 #       ở §5. Mỗi quy tắc của đoạn đó một cặp ca, dựng sao cho bộ bóc SAI theo đúng chiều quy tắc
@@ -80,7 +80,7 @@ SO_LOAI=$(bang_loai "$BANG_THAT" | grep -c .)
 # ---------------------------------------------------------------- dựng fixture
 # dong <n> — in n DÒNG MÃ. Từ ADR-0081 cổng đếm dòng mã, nên dòng độn phải là mã ở CẢ ba cú pháp
 # (.ts, .scss, .html): một định danh trần — không mở đầu bằng dấu chú thích nào. Nội dung vẫn tránh
-# nhuốm màu luật khác (F6 hex, F8 dấu thanh, F37 hằng *_MS).
+# nhuốm màu luật khác (F6 hex, F8 dấu thanh).
 dong() { LC_ALL=C awk -v n="$1" 'BEGIN { for (i = 1; i <= n; i++) print "zz_canary_" i ";" }'; }
 
 # duong_dan <mẫu> — đường dẫn tương đối dưới $DIR của tệp canary cho mẫu đó
@@ -199,7 +199,7 @@ MUC_CT=$(bang_loai "$BANG_THAT" | LC_ALL=C awk -F'\t' '$1 == "*.component.ts" { 
 MUC_PAGE=$(bang_loai "$BANG_THAT" | LC_ALL=C awk -F'\t' '$1 == "*.page.ts" { print $2 }')
 [ -n "$MUC_CT" ] && [ -n "$MUC_PAGE" ] || { echo "ABORT — bảng §5 không còn dòng *.component.ts / *.page.ts"; exit 2; }
 
-# Ca quyết định của DEBT F34: NỚI ngưỡng ở bảng thì tệp vừa vượt phải thành hợp lệ. Một cổng viết
+# Ca quyết định của F22 (gồm F34 cũ): NỚI ngưỡng ở bảng thì tệp vừa vượt phải thành hợp lệ. Một cổng viết
 # cứng con số vẫn đỏ ở ca này.
 # Cặp đỏ: ca ngay dưới — cùng repo giả, cùng tệp vượt, bảng KHÔNG nới.
 dung_toi_gian; dung_repo_gia

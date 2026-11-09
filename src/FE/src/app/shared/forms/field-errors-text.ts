@@ -19,7 +19,7 @@ export function fieldErrorsText(translate: TranslateService, loi: ApiFailureErro
     return null;
   }
   const cau = cauTungMa(translate, Object.values(loi.body?.error.fieldErrors ?? {}).flat());
-  return cau ?? dichLoi(translate, loi.body);
+  return cau ?? dichLoi(translate, loi.body, loi.status);
 }
 
 /**
@@ -30,7 +30,21 @@ export function cauTungMa(
   translate: TranslateService,
   loi: readonly ApiFieldError[],
 ): string | null {
-  return loi.length > 0
-    ? loi.map((l) => translate.instant(`loi.${l.code}`, l.messageParams ?? {}) as string).join('\n')
-    : null;
+  return loi.length > 0 ? loi.map((l) => cauMaCon(translate, l)).join('\n') : null;
+}
+
+/** Khoá câu dự phòng khi mã trong `fieldErrors` chưa có khoá dịch (08-i18n.md §5.4 bậc 3). */
+const KHOA_CAU_DU_PHONG = 'loi.CORE.VALIDATION.INVALID';
+
+/**
+ * Câu của MỘT mã trong `fieldErrors`. Mã chưa có khoá dịch thì `instant` trả lại nguyên chuỗi khoá —
+ * không bao giờ để chuỗi đó hiện cho người dùng: thay bằng câu dự phòng chung. Nơi DUY NHẤT dịch mã con.
+ */
+export function cauMaCon(translate: TranslateService, l: ApiFieldError): string {
+  const khoa = `loi.${l.code}`;
+  const cau = translate.instant(khoa, l.messageParams ?? {}) as string;
+  if (cau !== khoa) return cau;
+  // Bộ chuỗi chưa nạp (không có cả câu dự phòng) thì giữ nguyên kết quả — không bịa câu.
+  const duPhong = translate.instant(KHOA_CAU_DU_PHONG) as string;
+  return duPhong === KHOA_CAU_DU_PHONG ? cau : duPhong;
 }

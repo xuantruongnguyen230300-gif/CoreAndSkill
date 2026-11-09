@@ -52,6 +52,21 @@ public sealed class RolesEndpointTests(RolesHostFixture fixture) : IClassFixture
         detail.GetProperty("version").GetString().ShouldBe(stamp);
     }
 
+    // docs/contracts/roles.md §2: thân 201 là { "id": "…" }, không phải chuỗi GUID trần.
+    [Fact]
+    public async Task Post_Returns201_WithIdObjectInData()
+    {
+        using var client = RoleAdmin();
+
+        var response = await client.PostAsJsonAsync(Url, new { name = "Kế toán" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
+        var data = (await ReadEnvelope(response)).Data;
+        data.ValueKind.ShouldBe(JsonValueKind.Object);
+        Guid.TryParse(data.GetProperty("id").GetString(), out var id).ShouldBeTrue();
+        response.Headers.Location!.ToString().ShouldEndWith($"/{id}");
+    }
+
     [Fact]
     public async Task Put_StaleVersion_Returns409_ConcurrencyConflict_AndNameUnchanged()
     {

@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0022 — Seed dev không có đường code riêng: `.sql` lo dữ liệu, lệnh bootstrap lo tài khoản
 
-> **Trạng thái:** Đã chấp nhận (2026-09-12) · Sửa một phần bởi ADR-0023 (2026-09-14)
+> **Trạng thái:** Đã chấp nhận (2026-09-12) · Sửa một phần bởi ADR-0023 (2026-09-14) · Sửa một phần bởi [ADR-0110](0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md) (2026-09-28)
 >
 > Sửa một phần bởi [`0023-dich-vu-tao-don-vi-dung-chung.md`](0023-dich-vu-tao-don-vi-dung-chung.md).
 >

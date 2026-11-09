@@ -123,6 +123,18 @@ public sealed class TenantSeedValidationTests
     }
 
     [Fact]
+    public async Task Startup_Rejects_MenuCodeCollidingWithTheSystemTenantList()
+    {
+        // ADR-0122 điểm 2: đơn vị hệ thống nhận thêm danh sách riêng của Core; nguồn khác khai trùng mã đó thì va chạm phải
+        // hiện LÚC KHỞI ĐỘNG, không thành lỗi ghi giữa lệnh bootstrap.
+        var source = new FixedSeedSource(menuItems: [Menu("he-thong-don-vi")]);
+
+        var error = await Should.ThrowAsync<InvalidOperationException>(() => StartAllHostedServicesAsync(source));
+
+        error.Message.ShouldContain("he-thong-don-vi");
+    }
+
+    [Fact]
     public async Task Startup_Rejects_RolePermissionPairDeclaredTwice()
     {
         var source = new FixedSeedSource(

@@ -96,9 +96,9 @@ internal sealed class UserQueryService(CoreDbContext db) : IUserQueryService
         {
             var pattern = LikePattern.Contains(criteria.SearchText.Trim());
             users = users.Where(u =>
-                EF.Functions.ILike(u.UserName!, pattern, LikePattern.EscapeCharacter) ||
-                EF.Functions.ILike(u.FullName, pattern, LikePattern.EscapeCharacter) ||
-                (u.Email != null && EF.Functions.ILike(u.Email, pattern, LikePattern.EscapeCharacter)));
+                EF.Functions.ILike(EF.Functions.Unaccent(u.UserName!), EF.Functions.Unaccent(pattern), LikePattern.EscapeCharacter) ||
+                EF.Functions.ILike(EF.Functions.Unaccent(u.FullName), EF.Functions.Unaccent(pattern), LikePattern.EscapeCharacter) ||
+                (u.Email != null && EF.Functions.ILike(EF.Functions.Unaccent(u.Email), EF.Functions.Unaccent(pattern), LikePattern.EscapeCharacter)));
         }
 
         if (criteria.RoleId is { } roleId)

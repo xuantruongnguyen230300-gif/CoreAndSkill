@@ -46,6 +46,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap; // khung hẹp: nhóm hành động xuống dòng thay vì đè lên nút quay lại / tiêu đề
   gap: var(--sp-6);
 }
 
@@ -60,14 +61,18 @@
   display: flex;
   align-items: center;
   gap: var(--sp-4);
+  min-width: 0;
 }
 
 .page-header__quay-lai {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--icon-xl);
-  height: var(--icon-xl);
+  // Vùng chạm >= 24px (WCAG 2.2 SC 2.5.8; DESIGN.md §6.2): `flex: none` để hàng tiêu đề hẹp không
+  // ép nút co lại, `--size-control-sm` làm sàn kể cả khi icon nhỏ hơn.
+  flex: none;
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
   color: var(--color-text-muted);
 
   @media (hover: hover) {
@@ -78,6 +83,8 @@
 }
 
 .page-header__tieu-de {
+  min-width: 0;
+  overflow-wrap: anywhere;
   margin: 0;
   font-size: var(--fs-xl);
   font-weight: var(--fw-bold);
@@ -103,4 +110,12 @@
 
 .page-header__hanh-dong:empty {
   display: none;
+}
+
+// Hàng tiêu đề là flex co theo nội dung: skeleton `width` theo % sẽ ra 0px nên cần khung có bề rộng
+// tự thân (PageHeader.md §loading — giữ đúng chiều cao một dòng tiêu đề).
+.page-header__skeleton {
+  display: block;
+  width: calc(var(--layout-form-w) / 2);
+  max-width: 100%;
 }

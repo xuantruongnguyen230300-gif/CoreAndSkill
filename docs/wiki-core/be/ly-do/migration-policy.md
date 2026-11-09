@@ -126,7 +126,7 @@ sang tên đăng nhập trên vài triệu dòng.
 | 3 | **Không đo tiến độ được** | Migration là hộp đen: nó đang ở dòng thứ mấy trong ba triệu dòng, không có cách nào biết. Người vận hành chỉ có hai trạng thái — *"chưa xong"* và *"đã xong"* — và một cửa sổ chờ không biết dài bao lâu |
 | 4 | **Không dừng và tiếp lại được** | Timeout ở giữa chừng thì transaction rollback sạch. Ba tiếng chạy đổi lấy con số không, và lần chạy lại cũng có ngần ấy rủi ro |
 
-## 5. Thay đổi phá vỡ — quy trình bốn bước
+## 5. Thay đổi phá vỡ
 
 —
 

@@ -1,14 +1,26 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-05
 ---
 
 # Lộ trình thi công Core FE — tổng thể
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../../README.md`](../../../README.md) mục *Trạng thái repo*. Toàn bộ lộ trình dưới đây là **kế hoạch cho giai đoạn 2**, không phải mô tả tiến độ.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu cả tệp 2026-11-05, chỉ bằng đọc tệp — không đi lại danh sách nghiệm thu bằng tay). Bốn pha F0–F3 đã đóng; phần còn là kế hoạch là các mục *Sau F3* ở §1 và §4.1 — hiện trạng từng mục ở bảng ngay dưới.
 >
 > Các file `fe/01-…17-…` trả lời *"một Core FE tốt gồm gì và vì sao"*. Thư mục này trả lời *"làm theo thứ tự nào, và mỗi bước xong thì có gì chạy được"*.
+
+## Có thật hôm nay → sẽ thành
+
+Đối chiếu lại 2026-11-05 (lần đầu 2026-10-06), chỉ bằng đọc tệp.
+
+| Mục | Có thật hôm nay | Sẽ thành |
+| --- | --- | --- |
+| F0–F3 | Đã đóng — số đo bundle lấy ngay sau khi F3 xong, 2026-09-18: [`05-gate.md:498`](05-gate.md). Ba màn của F3: `src/FE/src/app/platform/quan-tri/quan-tri.routes.ts`, chuỗi `path: 'phan-quyen'` | — |
+| Khu quản trị đơn vị | Có code: `src/FE/src/app/platform/he-thong/don-vi/don-vi.routes.ts`, chuỗi `canActivate: [systemOperatorGuard]`; gọi đường thật của card — `src/FE/src/app/platform/he-thong/don-vi/services/don-vi.service.ts`, chuỗi `private readonly duongDan = '/core/system/tenants';` | Đóng khi B3 xong, như §1 — B3 chưa ai đối chiếu là xong ([`../../be/trien-khai/04-b3-van-hanh.md:9`](../../be/trien-khai/04-b3-van-hanh.md)) |
+| Khu thông báo trong ứng dụng, component tải tệp lên | Chưa có gì dưới `src/FE/src/app/` | Như §1 |
+| Nút xuất dữ liệu | Chưa có nút. Hàm lưu tệp xuất đã có: `src/FE/src/app/core/http/tai-tep.ts`, chuỗi `export function luuTepXuat(` — chưa màn nào gọi ([`../11-grid-and-metadata.md`](../11-grid-and-metadata.md) §11, hàng *Xuất dữ liệu theo bộ lọc đang xem*) | Như §1 |
+| Module mẫu | Không ở repo Core — đúng §4.1 | Ở dự án hạ nguồn đầu tiên |
 
 ---
 
@@ -29,8 +41,7 @@ verified: chua-doi-chieu
 
 **Module mẫu** — sau F3, ở dự án hạ nguồn đầu tiên, **không** ở repo Core: §4.1.
 
-Mỗi pha có một file riêng với định nghĩa hoàn thành và danh sách nghiệm thu:
-[`01-f0-nen-mong.md`](01-f0-nen-mong.md) · [`02-f1-design-token.md`](02-f1-design-token.md) · [`03-f2-auth-routing.md`](03-f2-auth-routing.md) · [`04-f3-man-quan-tri.md`](04-f3-man-quan-tri.md)
+Bốn pha F0–F3 đã đóng, và không còn tệp kế hoạch riêng cho từng pha — phần còn sống nằm ở tệp chủ của nó: danh sách kiểm chứng ở mục *Kiểm chứng* của từng tệp `fe/*.md`, lệnh dựng HTTPS ở máy dev ở [`../17-phuc-vu-va-trien-khai.md`](../17-phuc-vu-va-trien-khai.md) §4.2. Kế hoạch gốc của bốn pha còn trong lịch sử git.
 
 ---
 
@@ -39,7 +50,7 @@ Mỗi pha có một file riêng với định nghĩa hoàn thành và danh sách
 | Nguyên tắc | Nghĩa cụ thể |
 | --- | --- |
 | **Mỗi pha kết thúc bằng thứ chạy được** | Không phải "một thư mục đầy file". Định nghĩa hoàn thành của mỗi pha là một hành vi kiểm được bằng tay |
-| **Luật kiến trúc phải có máy kiểm** | Cổng sinh ra cùng lúc với luật, không sinh ra sau — luật chưa có cổng nằm ở [`../../../DEBT.md`](../../../DEBT.md) |
+| **Luật kiến trúc phải có máy kiểm** | Cổng sinh ra cùng lúc với luật, không sinh ra sau — luật chưa có cổng vẫn là dòng ở bảng luật, mang 🕳️ ([`../../../RULES-FE.md`](../../../RULES-FE.md)) |
 | **Một luật, một nguồn** | Envelope định nghĩa đúng một chỗ; mọi nơi khác import lại — [`../../../../.claude/CLAUDE.md`](../../../../.claude/CLAUDE.md) §5 |
 | **Viết đúng ngay từ đầu, không dọn nợ sau** | Bốn pha này là xây mới. Không có giai đoạn "đồng bộ" hay "dọn nợ" nào, vì không có gì để đồng bộ ngược |
 
@@ -134,9 +145,9 @@ Nhưng **đóng** một pha thì cần endpoint thật chạy — vì đúng nh�
 | --- | --- |
 | Store chuyên dụng | [`../03-state-management.md`](../03-state-management.md) §2 |
 | Thư viện biểu đồ | [`../12-charting.md`](../12-charting.md) §2 |
-| Gửi lỗi runtime ra ngoài | [`../10-observability.md`](../10-observability.md) §4 |
+| Gửi lỗi runtime ra ngoài | **Đã mở lại, làm sau F3:** bản dựng `production` gửi lỗi về BE, bản `development` giữ `console` — người dùng chốt 2026-11-06, [`../10-observability.md:100`](../10-observability.md). ✅ CÓ THẬT (đối chiếu 2026-11-06): `src/FE/src/app/app.config.ts`, chuỗi `return production ? [provideClientErrorOutput(HttpClientErrorOutput)] : [];` |
 | Đo Web Vitals tự động | [`../10-observability.md`](../10-observability.md) §6.2 |
-| Bộ test E2E | [`../06-testing-strategy.md`](../06-testing-strategy.md) §6 |
+| Bộ test E2E luồng — bốn luồng ở [`../06-testing-strategy.md`](../06-testing-strategy.md) §6 | Vẫn chưa làm; điều kiện mở lại: [`../06-testing-strategy.md:271`](../06-testing-strategy.md). **Lưới giao diện Playwright không thuộc hàng này** — nó không phải E2E luồng (§6.1 cùng tệp); dựng sau F3 theo [ADR-0117](../../../adr/0117-luoi-giao-dien-playwright-do-dom-theo-spec-design-axe-aa-api-gia-anh-chi-tham-khao.md), luật F56, F57; trạng thái 🚧 ở [`../06-testing-strategy.md:272`](../06-testing-strategy.md) |
 | Cấu hình runtime | [`../17-phuc-vu-va-trien-khai.md`](../17-phuc-vu-va-trien-khai.md) §5 |
 
 Danh sách này là **quyết định**, không phải việc tồn đọng. Mỗi dòng có điều kiện mở lại ghi ở file tương ứng.
@@ -145,8 +156,8 @@ Danh sách này là **quyết định**, không phải việc tồn đọng. M�
 
 ## 7. Cách dùng bộ tài liệu này khi thi công
 
-1. Mở file của pha đang làm, đọc **định nghĩa hoàn thành** trước khi viết dòng code đầu tiên.
-2. Mỗi khi file pha trỏ sang một file `fe/*.md`, mở file đó — chép mẫu từ đó, **đừng viết lại từ trí nhớ**.
+1. Đọc **định nghĩa hoàn thành** của việc đang làm (§1, §4.1) trước khi viết dòng code đầu tiên.
+2. Mỗi khi tệp này trỏ sang một file `fe/*.md`, mở file đó — chép mẫu từ đó, **đừng viết lại từ trí nhớ**.
 3. Chạy cổng liên tục, không đợi tới cuối pha.
 4. Đóng pha bằng cách đi hết danh sách nghiệm thu **bằng tay**, không bằng cách đọc lại code.
 
@@ -158,12 +169,12 @@ Danh sách này là **quyết định**, không phải việc tồn đọng. M�
 
 | Xong nghĩa là | Xong **không** nghĩa là |
 | --- | --- |
-| Định nghĩa hoàn thành ở đầu file pha đã đạt, kiểm bằng tay | Mọi file dự kiến đã được tạo |
+| Định nghĩa hoàn thành của việc đó (§1, §4.1) đã đạt, kiểm bằng tay | Mọi file dự kiến đã được tạo |
 | Toàn bộ danh sách nghiệm thu đã tick, từng mục một | Code trông giống tài liệu |
 | Cổng của pha đó bật và đã được chứng minh bằng canary | Cổng chạy xanh (xanh có thể vì mù — [`05-gate.md`](05-gate.md) §4.3) |
 | Test của phần mới đã từng đỏ trước khi xanh | Có file test |
 
-**Không "đóng" một pha bằng cách dời mục chưa xong sang pha sau.** Nếu buộc phải dời, mục đó phải được ghi ra tường minh như một khoản nợ, kèm điều kiện xử lý — theo đúng tinh thần [`../../../DEBT.md`](../../../DEBT.md).
+**Không "đóng" một pha bằng cách dời mục chưa xong sang pha sau.** Nếu buộc phải dời, mục đó phải được ghi ra tường minh, kèm điều kiện xử lý: việc thành GitHub Issue; cổng chưa dựng thành dòng 🕳️ kèm `kích hoạt:` ở [`../../../RULES-FE.md`](../../../RULES-FE.md) ([ADR-0114](../../../adr/0114-bo-so-no-luat-ve-rules-viec-ton-sang-issues-review-khong-sinh-viec-stop-chan-review-mot-lan-go-nhanh-chua-co-src.md)).
 
 Lý do luật này tồn tại: một mục nghiệm thu bị dời im lặng sẽ không bao giờ được làm. Nó không nằm trong pha nào cả, và không ai chịu trách nhiệm cho nó.
 

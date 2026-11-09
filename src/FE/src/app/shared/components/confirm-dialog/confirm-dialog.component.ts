@@ -5,8 +5,8 @@ import {
   computed,
   effect,
   input,
+  linkedSignal,
   output,
-  signal,
   viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -51,7 +51,11 @@ export class ConfirmDialogComponent {
   protected readonly idTieuDe = `confirm-dialog-tieu-de-${++dem}`;
   protected readonly idNoiDung = `confirm-dialog-noi-dung-${dem}`;
 
-  protected readonly daDanhDau = signal(false);
+  /** Về `false` mỗi lần `open` đổi (K15: `linkedSignal`, không ghi signal trong `effect()`). */
+  protected readonly daDanhDau = linkedSignal<boolean, boolean>({
+    source: this.open,
+    computation: () => false,
+  });
   protected readonly khoaXacNhan = computed(
     () => this.requireAcknowledge() !== null && !this.daDanhDau(),
   );
@@ -67,7 +71,6 @@ export class ConfirmDialogComponent {
     effect(() => {
       if (this.open()) {
         this.phanTuTruocKhiMo = document.activeElement as HTMLElement | null;
-        this.daDanhDau.set(false);
         document.body.style.overflow = 'hidden';
         queueMicrotask(() =>
           this.hopThoai()?.nativeElement.querySelector<HTMLButtonElement>('button')?.focus(),

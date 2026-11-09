@@ -25,8 +25,8 @@ verified: chua-doi-chieu
 | E6 `EveryMigration_LivesIn_ItsOwningProject` | ArchTest | Migration chạm schema `core` nằm trong project module ngoài ngoại lệ khoá quyền ([`migration-policy.md`](migration-policy.md) §1), hoặc ngược lại — tức chính ca hai chủ sở hữu mà §1.1 của file đó mô tả |
 | E8 `Startup_Fails_When_PendingMigrationsExist` | Integration test, PostgreSQL thật | App khởi động được trong khi DB thật còn thiếu migration. Xem [`script-runbook.md`](script-runbook.md) §5 |
 
-Các dòng trên nằm trong bảng §4 của [`../RULES.md`](../RULES.md). Riêng E8 đã có một lớp không
-database; tên ở bảng này là phần còn nợ — hàng E8 của `RULES.md` và của [`../DEBT.md`](../DEBT.md).
+Các dòng trên nằm trong bảng §4 của [`../RULES-BE.md`](../RULES-BE.md). Riêng E8 đã có một lớp không
+database; tên ở bảng này là phần chưa có cổng của luật E8 — dòng E8 ở [`../RULES-BE.md`](../RULES-BE.md).
 
 Kiểm bằng một lệnh phủ **mọi** tên trong bảng, không phải một tên — hai con số chép tay không khớp
 nhau thì lệnh đi kèm chỉ chứng minh được đúng một dòng:

@@ -1,0 +1,17 @@
+@use 'spacing' as s;
+
+// Design/Screens/02-trang-loi.md, mục "Không tải được phần ứng dụng": không khung, khối căn giữa cả dọc lẫn ngang.
+.khoi-loi-tai {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  background: var(--color-bg);
+  padding: var(--layout-page-pad);
+}
+
+@include s.duoi-man-hinh(s.$bp-md) {
+  .khoi-loi-tai {
+    padding: var(--layout-page-pad-sm);
+  }
+}

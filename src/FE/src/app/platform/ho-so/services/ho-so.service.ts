@@ -29,7 +29,14 @@ export class HoSoService {
 
   tuBoCoDacQuyen(): Observable<void> {
     return this.http
-      .post<ApiResult<null>>(`${this.duongDan}/renounce-permission-bypass`, {}, { context: this.ctx })
-      .pipe(map(unwrapData), map(() => undefined));
+      .post<ApiResult<null>>(
+        `${this.duongDan}/renounce-permission-bypass`,
+        {},
+        { context: this.ctx },
+      )
+      .pipe(
+        map(unwrapData),
+        map(() => undefined),
+      );
   }
 }

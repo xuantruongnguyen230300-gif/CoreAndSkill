@@ -12,7 +12,9 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   styleUrl: './badge.component.scss',
 })
 export class BadgeComponent {
-  readonly variant = input<'neutral' | 'outline' | 'success' | 'warning' | 'danger' | 'info'>('neutral');
+  readonly variant = input<'neutral' | 'outline' | 'success' | 'warning' | 'danger' | 'info'>(
+    'neutral',
+  );
   readonly size = input<'sm' | 'md'>('md');
   readonly shape = input<'pill' | 'square'>('pill');
   readonly icon = input<string | null>(null);

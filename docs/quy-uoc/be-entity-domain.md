@@ -9,7 +9,8 @@ verified: chua-doi-chieu
 > 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/BE` đã có trên đĩa, nên code mẫu
 > dưới đây **có bản thật để đối chiếu**. Chưa ai đối chiếu toàn file, nên `verified:` giữ
 > `chua-doi-chieu`: một đoạn ở đây khớp code hay không thì phải mở file mã nguồn ra so, nêu
-> `file:dòng` — không suy ra từ nhãn này.
+> đường dẫn kèm một chuỗi tìm được trong tệp ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §9)
+> — không suy ra từ nhãn này.
 >
 > **Domain không ném exception cho lỗi nghiệp vụ.** Factory và mutation method trả `Result<T>`.
 > Xem §3 và [`../adr/0003-result-thuan.md`](../adr/0003-result-thuan.md).
@@ -127,7 +128,7 @@ public class AppUser : IdentityUser<Guid>, ITenantScoped, IAuditableEntity
 | Luật | Ghi chú |
 | --- | --- |
 | Interceptor chọn entity theo interface, không theo lớp cơ sở | Chọn theo `BaseEntity` thì kiểu ngoài cây kế thừa phải ghi tay bốn cột ở **từng** điểm tạo/sửa |
-| Public setter chỉ cho **đúng bốn** field của interface | Cùng ranh giới §1.2. Với `AppUser`/`AppRole` ranh giới có ArchTest `AppUserAndAppRole_SelfDeclaredFields_HaveNoPublicSetter` (E1 chỉ quét hậu duệ `BaseEntity`); `Tenant` vẫn giữ bằng review. Với `AppUser`: field kế thừa từ `IdentityUser<Guid>` nằm ngoài ranh giới; field do chính `AppUser` khai — như cờ `has_permission_bypass`, mà luật M12 cấm bật trên tài khoản đã tồn tại — thì nằm trong |
+| Public `set` chỉ cho **đúng bốn** field của interface; public `init` chỉ cho `Id` do chính kiểu khai (§1.1) và `TenantId` của `ITenantScoped` (§5.1); field khác không mở accessor ghi công khai nào, kể cả `init` | Cùng ranh giới §1.2 — luật E24 ([`../RULES-BE.md`](../RULES-BE.md) §4). Với `AppUser`/`AppRole` ranh giới có ArchTest `AppUserAndAppRole_SelfDeclaredFields_HaveNoPublicSetter` (E1 chỉ quét hậu duệ `BaseEntity`); `Tenant` vẫn giữ bằng review. Với `AppUser`: field kế thừa từ `IdentityUser<Guid>` nằm ngoài ranh giới; field do chính `AppUser` khai — như cờ `has_permission_bypass`, mà luật M12 cấm bật trên tài khoản đã tồn tại — thì nằm trong |
 
 **Ghi của chính Identity cũng đi qua interceptor** (`UserManager` lưu bằng `SaveChangesAsync` cả khi tính
 lần sai mật khẩu, đặt mốc khoá, đổi security stamp). Lần sai lúc đăng nhập chạy khi chưa có người —
@@ -165,7 +166,7 @@ tenant.IsActive = false;                          // SAI — không biên dịch
 public static class TenantErrors
 {
     public static readonly Error SystemImmutable = new(
-        "CORE.TENANT.SYSTEM_IMMUTABLE", "Không được ngưng hoạt động đơn vị hệ thống.", ErrorType.BusinessRule);
+        "CORE.TENANT.SYSTEM_IMMUTABLE", "Không được thay đổi trạng thái hoạt động của đơn vị hệ thống.", ErrorType.BusinessRule);
 }
 ```
 
@@ -207,8 +208,12 @@ public sealed class Tenant : IAuditableEntity
         return Result.Success();
     }
 
+    // Đối xứng với Deactivate: đơn vị hệ thống không có trạng thái để đổi, nên bật lại cũng bị chặn
     public Result Activate()
     {
+        if (IsSystem)
+            return Result.Failure(TenantErrors.SystemImmutable);
+
         IsActive = true;
         return Result.Success();
     }
@@ -399,7 +404,7 @@ public sealed class CoreDbContext(
 > `DbContext` ([`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §4).
 
 Ba việc bắt buộc, cổng đã thiết kế (📐, [`../RULES.md`](../RULES.md) §9): `TenantId` do interceptor gán lúc
-`Added` — thiếu đơn vị thì từ chối (M8) — rồi không bao giờ đổi (nợ M15); index unique gồm `TenantId` (M3, §5.3);
+`Added` — thiếu đơn vị thì từ chối (M8) — rồi không bao giờ đổi (M15 — review canh, chưa có cổng); index unique gồm `TenantId` (M3, §5.3);
 `IgnoreQueryFilters` nằm trong allowlist (M5, §5.4).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`ly-do/be-entity-domain.md`](../wiki-core/be/ly-do/be-entity-domain.md) §5.1
@@ -589,7 +594,7 @@ Hai vế là luật E5 và E4 ([`../RULES.md`](../RULES.md) §4).
 
 ## 9. ArchTest canh gì trong file này
 
-> 📖 **Danh mục tên ArchTest là cột "Ép bằng gì" của [`../RULES.md`](../RULES.md) — nguồn duy nhất.**
+> 📖 **Danh mục tên ArchTest là cột "Ép bằng gì" của [`../RULES-BE.md`](../RULES-BE.md) — nguồn duy nhất.**
 > Luật của file này nằm ở §4 (Domain & dữ liệu) và §9 (multi-tenant) của bảng đó.
 > Giải thích từng test canh điều gì: [`../wiki-core/be/04-testing-strategy.md`](../wiki-core/be/04-testing-strategy.md) §2.2.
 

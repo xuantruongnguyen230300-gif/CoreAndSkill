@@ -14,7 +14,7 @@ namespace CoreAndSkill.Core.IntegrationTests.Web;
 // thay bằng bản trong bộ nhớ (Support/InMemoryCoreHost.cs).
 //
 // Thứ chúng KHÔNG chứng minh — và không được đọc như đã chứng minh: SQL của repository, bộ lọc đơn vị và xoá mềm ở
-// tầng dữ liệu, giao dịch. Đó là việc của FilesDatabaseTests (RequiresDocker), chưa chạy được ở môi trường không có Docker.
+// tầng dữ liệu, giao dịch. Đó là việc của FilesDatabaseTests (RequiresDocker, cần Docker daemon).
 public sealed class B4FilesEndpointTests(InMemoryHostFixture fixture) : B4EndpointTestBase(fixture), IClassFixture<InMemoryHostFixture>
 {
     // ---- Tệp: đường vào -----------------------------------------------------------------------

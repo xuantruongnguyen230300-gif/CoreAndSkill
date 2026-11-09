@@ -17,6 +17,7 @@ Component: `src/FE/src/app/shared/components/icon-button/icon-button.component.t
 | Khoản | Đã có | Còn thiếu |
 | --- | --- | --- |
 | API | Khớp **đúng từng dòng** §API dự kiến: `icon` và `ariaLabel` đều `input.required` (không mặc định, đúng chủ đích spec), `variant`, `size`, `type`, `disabled`, `loading`, `pressed`, output `clicked` | — |
+| `haspopup` · `expanded` | ✅ Có (đã đọc mã, đối chiếu 2026-10-06): `icon-button.component.ts` chuỗi `readonly haspopup = input<'menu' | null>(null);` và `readonly expanded = input<boolean | null>(null);`; `icon-button.component.html` chuỗi `[attr.aria-haspopup]="haspopup()"` và `[attr.aria-expanded]="expanded() === null ? null : expanded()"` — `null` không sinh thuộc tính, đúng §API. Bằng chứng chạy: `topbar.component.spec.ts` (`aria-haspopup="menu"`, `aria-expanded="false"`, không `aria-pressed`) xanh 2026-10-06 | `IconButton` **không có spec riêng** (thư mục chỉ có `.ts`/`.html`/`.scss`); hai input chỉ được phủ gián tiếp qua test của `Topbar`. Hàng "API khớp đúng từng dòng" ở trên là bản trước khi thêm hai input, chưa đối chiếu lại |
 | `clicked` không phát khi `disabled`/`loading` | Có, chặn trong `onClick()` | — |
 | Bốn biến thể | Đủ, đúng token §Biến thể: `ghost` (nghỉ), `.icon-button--secondary`, `--primary`, `--danger` | — |
 | Ba cỡ | Đủ, và **cả ba chiều** khớp spec: cạnh `--size-control-*`, đệm `--sp-3`/`--sp-4`/`--sp-5`, icon `--icon-sm`/`--icon-md`/`--icon-lg` | — |
@@ -142,6 +143,8 @@ Nút bật/tắt (`aria-pressed="true"`, ví dụ ghim cột) không có biến 
 | `disabled` | input | `boolean` | `false` | |
 | `loading` | input | `boolean` | `false` | Khi `true` thì nút tự vô hiệu hoá, không cần đặt `disabled` kèm |
 | `pressed` | input | `boolean \| null` | `null` | `null` = không phải nút bật/tắt, không sinh `aria-pressed` |
+| `haspopup` | input | `'menu' \| null` | `null` | Nút **mở một lớp nổi** (ví dụ nút theme của [`Topbar.md`](./Topbar.md)): `'menu'` sinh `aria-haspopup="menu"`. `null` = không sinh thuộc tính. Khác `pressed`: nút mở menu không phải nút bật/tắt, không đặt `pressed` |
+| `expanded` | input | `boolean \| null` | `null` | Chỉ có nghĩa khi `haspopup` khác `null`: sinh `aria-expanded` phản ánh lớp nổi đang mở. `null` = không sinh thuộc tính |
 | `clicked` | output | `void` | — | **Không phát khi `disabled` hoặc `loading`.** Chặn ở component, không bắt mỗi nơi gọi tự nhớ |
 
 **Vì sao `ariaLabel` không suy ra từ `icon`:** một bảng tra "pencil → Sửa" nghe tiện và hỏng ngay ở ca thật — cùng `pi-pencil` là "Sửa người dùng" ở màn này và "Sửa ghi chú" ở màn kia. Bảng tra sẽ sinh ra hàng loạt nút cùng đọc là "Sửa", đúng thứ mục Accessibility ở trên cấm. Bắt khai tường minh là chỗ duy nhất ép được người dựng nghĩ về đối tượng.

@@ -1,3 +1,4 @@
+using CoreAndSkill.Core.Application.Common.Logging;
 using CoreAndSkill.Core.Application.Configuration;
 using CoreAndSkill.Core.Infrastructure.Persistence;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -23,7 +24,7 @@ internal sealed class DatabaseHealthCheck(IOptions<CoreConnectionOptions> option
         }
         catch (Exception ex)
         {
-            return HealthCheckResult.Unhealthy("Không kết nối được PostgreSQL.", ex);
+            return HealthCheckResult.Unhealthy($"Không kết nối được PostgreSQL. {FailureText.Describe(ex)}");
         }
 
         IReadOnlyList<SchemaDriftReport> reports;
@@ -36,7 +37,7 @@ internal sealed class DatabaseHealthCheck(IOptions<CoreConnectionOptions> option
             // Kết nối vừa mở được ở trên nhưng InspectAsync lại lỗi (vd. mất kết nối giữa chừng,
             // hoặc bảng __ef_migrations_history chưa tồn tại vì chưa chạy script lần nào) — vẫn là
             // KHÔNG SẴN SÀNG, không phải 500: readiness không lộ chi tiết nội bộ (§8 "hai nguyên tắc").
-            return HealthCheckResult.Unhealthy("Không kiểm được trạng thái migration.", ex);
+            return HealthCheckResult.Unhealthy($"Không kiểm được trạng thái migration. {FailureText.Describe(ex)}");
         }
 
         var missing = reports.Where(r => r.MissingInDatabase.Count > 0).ToList();

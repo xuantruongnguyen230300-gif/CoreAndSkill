@@ -10,11 +10,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Jobs;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Khôi phục việc dở dang lúc khởi động — docs/quy-uoc/be-cqrs-handler.md §10.3 ràng buộc 5. Hàng đợi việc nằm trong bộ
 // nhớ nên tiến trình dừng giữa chừng làm mất nó; một việc `running` hay `queued`-mà-không-còn-dòng-outbox-chờ sẽ không
 // bao giờ được nhặt lại. Không có phép khôi phục này thì người dùng chờ vô hạn một việc đã chết.

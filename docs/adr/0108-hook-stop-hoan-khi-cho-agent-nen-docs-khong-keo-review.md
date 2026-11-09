@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0108 — Hook `Stop` không chặn khi phiên đang chờ agent nền; sửa luật trong `docs/` không kéo review code; dấu hook tách theo phiên
 
-> **Trạng thái:** Đã chấp nhận (2026-09-27)
+> **Trạng thái:** Đã chấp nhận (2026-09-27) · Sửa một phần bởi [ADR-0111](0111-git-danh-sach-cho-phep-cong-docs-chan-mot-lan-architect-truoc-thi-cong-theo-dau-hieu.md) (2026-09-29) · Sửa một phần bởi [ADR-0113](0113-ban-giao-qua-phien-chinh-no-review-phien-chinh-ghi-tai-lieu-ban-giao-o-spec-go-muc-11-quet-shell-theo-loi-goi.md) (2026-09-30) · Sửa một phần bởi [ADR-0114](0114-bo-so-no-luat-ve-rules-viec-ton-sang-issues-review-khong-sinh-viec-stop-chan-review-mot-lan-go-nhanh-chua-co-src.md) (2026-10-05)
 
 ## Bối cảnh
 

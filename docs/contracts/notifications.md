@@ -12,8 +12,8 @@ verified: chua-doi-chieu
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
 > | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/NotificationsController.cs` có action `GetList`, `GetUnreadCount`, `MarkRead`, `MarkAllRead` — khớp route §1–§4, không có action tạo hay xoá; thân, mã lỗi và việc chỉ chạm thông báo của chính người gọi đã được kiểm qua HTTP ở `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Web/B4JobsAndNotificationsEndpointTests.cs` | Gọi thử thật trên DB, thay ví dụ bằng response thật, rồi mới lật `Status:` |
-> | Bộ lọc đơn vị, đếm/đánh dấu đọc bằng SQL, và việc kênh email chọn ngôn ngữ theo **người nhận**: viết thành test ở `NotificationsDatabaseTests.cs` (`RequiresDocker`) — **chưa chạy** | Chạy được ở CI có Docker |
-> | Kênh email: Core chỉ có giao diện (`IEmailSender`, `INotificationTemplateRenderer`) và **không** đăng ký bản mặc định — thiếu nhà cung cấp thì dòng outbox `dead` kèm mã `CORE.NOTIFICATION.EMAIL_NOT_CONFIGURED`. Nhà cung cấp chưa được chọn | `architect` chọn nhà cung cấp; module đăng ký bản của mình |
+> | Bộ lọc đơn vị, đếm/đánh dấu đọc bằng SQL, và việc kênh email chọn ngôn ngữ theo **người nhận**: test ở `NotificationsDatabaseTests.cs` (`RequiresDocker`) xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Lớp đó xanh trên CI — CI chưa chạy với bản này |
+> | Kênh email (đối chiếu 2026-09-30): Core **không** đăng ký bộ gửi `IEmailSender` nào — thiếu nhà cung cấp thì dòng outbox `dead` kèm mã `CORE.NOTIFICATION.EMAIL_NOT_CONFIGURED`. Bộ kết xuất `INotificationTemplateRenderer` thì **có** bản mặc định, luôn trả `CORE.NOTIFICATION.TEMPLATE_MISSING` — `src/BE/Core/CoreAndSkill.Core.Application/Notifications/IEmailSender.cs`, chuỗi `internal sealed class MissingTemplateRenderer`. Nhà cung cấp chưa được chọn | `architect` chọn nhà cung cấp; dự án đăng ký bộ gửi và bộ kết xuất của mình trước `AddCore` |
 >
 > Người dùng tắt/bật từng loại thông báo: có seam `INotificationPreferences` (mặc định bật hết), **chưa có bảng** lưu tuỳ chọn — quyết định lưu ở đâu chưa được chốt.
 >

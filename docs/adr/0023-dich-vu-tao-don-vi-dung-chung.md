@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0023 — Một service C# tạo đơn vị dùng chung cho lệnh bootstrap và khu quản trị hệ thống; dev và bản cài thật chạy cùng một lệnh
 
-> **Trạng thái:** Đã chấp nhận (2026-09-14)
+> **Trạng thái:** Đã chấp nhận (2026-09-14) · Sửa một phần bởi [ADR-0110](0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md) (2026-09-28)
 >
 > **Sửa một phần [`0022-seed-dev-khong-co-duong-code-rieng.md`](0022-seed-dev-khong-co-duong-code-rieng.md).** Bỏ tệp `.sql` dựng dữ liệu dev và script bọc. Giữ nguyên câu trung tâm của ADR đó: **không có đường code nào chứa sẵn thông tin tài khoản.**
 

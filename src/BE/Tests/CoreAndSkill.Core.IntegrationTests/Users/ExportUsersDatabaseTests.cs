@@ -13,11 +13,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Users;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Xuất danh sách người dùng trên PostgreSQL THẬT — docs/contracts/exports.md §1, docs/wiki-core/be/15-import-export.md §5.
 // Điều duy nhất không có DB thì không chứng minh được: tệp xuất KHỚP với thứ màn danh sách đang hiển thị, vì cả hai đi
 // qua CÙNG MỘT chỗ dựng truy vấn (UserQueryService.FilterAndOrder). B4ExportEndpointTests chạy trên repository trong bộ
@@ -123,22 +118,30 @@ public sealed class ExportUsersDatabaseTests(PostgresFixture db) : IAsyncLifetim
 
     // ---- Chính tệp -----------------------------------------------------------------------------------
 
-    private async Task<(ExportFile File, string Text)> ExportAsync(ExportUsersCommand command)
-    {
-        var result = await _host.AsAsync(_tenant, sp => sp.GetRequiredService<ISender>().Send(command));
-        result.IsSuccess.ShouldBeTrue(result.Error?.Code);
+    // Gửi lệnh VÀ ghi tệp trong CÙNG một scope — đúng đường thật: ExportFileResult gọi ExportFile.WriteToAsync khi ghi
+    // phản hồi, tức sau commit nhưng vẫn trong vòng đời request (docs/contracts/exports.md, dòng "✅ CÓ THẬT" của §1 Ghi
+    // chú). Hàm ghi đọc dữ liệu qua IUserQueryService của scope đó (scoped, giữ CoreDbContext); gọi nó sau khi scope đã
+    // huỷ là một đường không request nào đi, và chỉ nhận ObjectDisposedException.
+    private Task<byte[]> ExportBytesAsync(ExportUsersCommand command)
+        => _host.AsAsync(_tenant, async sp =>
+        {
+            var result = await sp.GetRequiredService<ISender>().Send(command);
+            result.IsSuccess.ShouldBeTrue(result.Error?.Code);
 
-        using var output = new MemoryStream();
-        await result.Value.WriteToAsync(output, CancellationToken.None);
-        return (result.Value, Encoding.UTF8.GetString(output.ToArray()));
-    }
+            using var output = new MemoryStream();
+            await result.Value.WriteToAsync(output, CancellationToken.None);
+            return output.ToArray();
+        });
+
+    private async Task<string> ExportAsync(ExportUsersCommand command)
+        => Encoding.UTF8.GetString(await ExportBytesAsync(command));
 
     [Fact]
     public async Task TheCsvFile_HasOneRowPerListedUser_InTheListsOrder()
     {
         var listed = (await InScopeAsync(q => q.SearchAsync(Criteria(sortBy: "userName", desc: true), CancellationToken.None))).Items.Select(u => u.UserName).ToList();
 
-        var (_, text) = await ExportAsync(new ExportUsersCommand(ExportFormats.Csv, "userName", SortDescending: true));
+        var text = await ExportAsync(new ExportUsersCommand(ExportFormats.Csv, "userName", SortDescending: true));
 
         var lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries).Skip(1).ToList();
         lines.Count.ShouldBe(listed.Count);
@@ -183,11 +186,7 @@ public sealed class ExportUsersDatabaseTests(PostgresFixture db) : IAsyncLifetim
     [Fact]
     public async Task TheXlsxFile_ReadsBackToTheSameRowsAsTheCsv()
     {
-        var command = new ExportUsersCommand(ExportFormats.Xlsx, "userName");
-        var result = await _host.AsAsync(_tenant, sp => sp.GetRequiredService<ISender>().Send(command));
-        using var output = new MemoryStream();
-        await result.Value.WriteToAsync(output, CancellationToken.None);
-        output.Position = 0;
+        using var output = new MemoryStream(await ExportBytesAsync(new ExportUsersCommand(ExportFormats.Xlsx, "userName")));
 
         await using var source = await _host.Services.GetRequiredService<ITabularReader>().OpenAsync(output, CancellationToken.None);
         var names = new List<string?>();

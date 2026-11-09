@@ -6,7 +6,7 @@
     "schematicCollections": [
       "angular-eslint"
     ],
-    "analytics": "5c81e319-5948-4261-af27-b19bd471b633"
+    "analytics": false
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -45,6 +45,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.ban-cai.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -63,6 +69,17 @@
                 }
               ],
               "outputHashing": "all"
+            },
+            "e2e": {
+              "optimization": true,
+              "sourceMap": false,
+              "extractLicenses": false,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.e2e.ts"
+                }
+              ]
             },
             "development": {
               "optimization": false,
@@ -91,6 +108,13 @@
             },
             "development": {
               "buildTarget": "fe:build:development"
+            },
+            "e2e": {
+              "buildTarget": "fe:build:e2e",
+              "ssl": false,
+              "port": 4300,
+              "liveReload": false,
+              "hmr": false
             }
           },
           "defaultConfiguration": "development"
@@ -102,6 +126,7 @@
           "builder": "@angular/build:karma",
           "options": {
             "tsConfig": "tsconfig.spec.json",
+            "karmaConfig": "karma.conf.js",
             "inlineStyleLanguage": "scss",
             "stylePreprocessorOptions": {
               "includePaths": [

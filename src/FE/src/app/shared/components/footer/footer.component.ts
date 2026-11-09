@@ -19,7 +19,7 @@ export interface FooterLink {
   styleUrl: './footer.component.scss',
 })
 export class FooterComponent {
-  readonly variant = input<'full' | 'compact' | 'auth'>('full');
+  readonly variant = input<'full' | 'compact' | 'auth' | 'sidebar'>('full');
   readonly size = input<'sm' | 'md'>('md');
   readonly version = input<string | null>(null);
   readonly copyright = input<string | null>(null);

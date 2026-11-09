@@ -12,7 +12,7 @@ verified: chua-doi-chieu
 > | --- | --- |
 > | Interface `IFileStorage` (`src/BE/Core/CoreAndSkill.Core.Application/Files/IFileStorage.cs`) và bản cài trên hệ thống tệp (`src/BE/Core/CoreAndSkill.Core.Infrastructure/Files/LocalFileStorage.cs`, `PurgeTempAsync`): khoá do hệ thống sinh, ghi nguyên tử qua `.part`, chống thoát khỏi thư mục gốc; kiểm cấu hình lúc khởi động ở `CoreFileOptionsValidator.cs` | Chạy trên đĩa của môi trường thật (Linux/Docker) — chưa từng chạy ngoài Windows |
 > | Nhận diện kiểu bằng nội dung (`FileContentDetector.cs`), giới hạn dung lượng ba lớp (`UploadSizeLimitAttribute.cs`), phục vụ qua endpoint kiểm quyền theo bản ghi chủ (`FileAccessPolicy.cs`) | Quét mã độc (chưa ở v1) |
-> | Job đối soát và dọn tạm (`FileMaintenanceHostedService.cs`, `RunOnceAsync`): logic chưa được chạy trên PostgreSQL thật — `FilesDatabaseTests.cs` (`RequiresDocker`) **chưa chạy** | Chạy được ở CI có Docker |
+> | Job đối soát và dọn tạm (`FileMaintenanceHostedService.cs`, `RunOnceAsync`): logic chạy trên PostgreSQL thật ở `FilesDatabaseTests.cs` (`RequiresDocker`), xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Lớp đó xanh trên CI — CI chưa chạy với bản này |
 >
 > Phần bảo mật khi nhận file tải lên ở [`09-security-beyond-auth.md`](09-security-beyond-auth.md) §9. File này lo **cơ chế lưu, vòng đời file và các cách hỏng đặc trưng**.
 
@@ -55,7 +55,7 @@ public interface IFileStorage
 
 **Dự án đổi nơi lưu bằng cách thay bản cài** ([`../../adr/0106-ifilestorage-la-seam-du-an-thay-duoc.md`](../../adr/0106-ifilestorage-la-seam-du-an-thay-duoc.md)). Dự án hiện thực đủ interface trên, giữ đủ các hợp đồng của đoạn này, rồi đăng ký bản của mình bằng `AddSingleton` **trước** `AddCore`, cùng chỗ với dòng của module. Core đăng ký bản đĩa cục bộ bằng `TryAddSingleton` nên nhường, và khi nhường thì bỏ qua phép kiểm `Core:File:RootPath` (§2) — [`../../adr/0107-rootpath-chi-kiem-khi-dung-ban-luu-cua-core.md`](../../adr/0107-rootpath-chi-kiem-khi-dung-ban-luu-cua-core.md).
 
-> 🚧 **Lệch (đối chiếu 2026-09-25):** Core còn đăng ký bằng `AddSingleton`, nên bản của dự án đăng ký trước bị đè im lặng; `Core:File:RootPath` còn bị kiểm vô điều kiện — [nợ](../../DEBT.md) B23.
+> ✅ **CÓ THẬT (đối chiếu 2026-10-04):** `src/BE/Core/CoreAndSkill.Core.Infrastructure/DependencyInjection/CoreInfrastructureServiceCollectionExtensions.cs`, chuỗi `TryAddSingleton<IFileStorage, LocalFileStorage>` — cùng nhánh đăng ký hai phép kiểm `Core:File:RootPath`; các khoá còn lại của nhóm vẫn kiểm vô điều kiện. Test hai chiều, có bản giả và không: `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Files/FileStorageRegistrationTests.cs`, chuỗi `WithAFake_AMissingRootPath_DoesNotPreventStartup`.
 
 ---
 

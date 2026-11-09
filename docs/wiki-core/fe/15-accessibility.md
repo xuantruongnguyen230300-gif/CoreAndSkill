@@ -1,12 +1,12 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-05
 ---
 
 # 15. Khả năng tiếp cận
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu cả tệp 2026-11-05, chỉ bằng đọc mã — chưa chạy lint, chưa chạy lưới axe, chưa chạy bảng kiểm §8). Hạng mục có thật và hạng mục chưa: bảng ở §9, bảng *có thật hôm nay → sẽ thành* ngay dưới nó.
 >
 > **Điểm vào chung cho chủ đề tiếp cận.** Phần riêng của biểu đồ nằm ở [`12-charting.md`](12-charting.md) §4; phần riêng của bảng ở [`11-grid-and-metadata.md`](11-grid-and-metadata.md) §9; tương phản màu nối với [`04-design-token-system.md`](04-design-token-system.md).
 
@@ -213,20 +213,30 @@ Cả ba đều **không** ảnh hưởng gì tới người dùng chuột, nên 
 
 ## 9. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Đối chiếu với `src/` ngày 2026-11-05, chỉ bằng đọc mã: hàng ghi ✅ CÓ THẬT có neo ở cột *Ghi chú*; hàng ghi 🚧 có bảng *có thật hôm nay → sẽ thành* ngay dưới bảng; hàng ghi 📐 là đích đến, chưa thi công — không phải nợ. Ý nghĩa ký hiệu: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| Nhắm mức WCAG 2.2 AA | ✅ sẽ có | §1 |
-| Bộ quy tắc tiếp cận trong lint | ✅ sẽ có | Pha F0. **Luật F17**, còn nợ cổng — [`../../DEBT.md`](../../DEBT.md) và [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §3.3 |
-| Quản lý focus: route, hộp thoại, nội dung động | ✅ sẽ có | §3 |
-| Kiểm tương phản ở tầng token, cả hai chế độ | ✅ sẽ có | §4.2, §4.3 — làm ở pha F1 |
-| Checklist §2 cho mỗi màn mới | ✅ sẽ có | Dán vào mô tả PR |
-| Kiểm tự động lúc chạy trong bộ test | ❌ chưa | Điều kiện: bộ test component đã ổn định — [`06-testing-strategy.md`](06-testing-strategy.md) |
+| Nhắm mức WCAG 2.2 AA | ✅ CÓ THẬT 2026-11-05 | §1. Neo: lưới axe chấm đúng thẻ A/AA tới WCAG 2.2, không AAA — `src/FE/e2e/ha-tang/axe.ts` (chuỗi `'wcag22aa'`) |
+| Bộ quy tắc tiếp cận trong lint | ✅ CÓ THẬT 2026-11-05 | Pha F0. **Luật F17** ở [`../../RULES-FE.md`](../../RULES-FE.md); nơi đặt lệnh ở [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §3.3. Neo: `src/FE/eslint.config.js` (chuỗi `...angular.configs.templateAccessibility`) |
+| Quản lý focus: route, hộp thoại, nội dung động | 🚧 đang thi công | §3. Bảng dưới |
+| Kiểm tương phản ở tầng token, cả hai chế độ | 🚧 đang thi công | §4.2, §4.3 — làm ở pha F1. Bảng dưới |
+| Mẫu mô tả PR mang checklist §2 | 📐 đích đến — chưa thi công | Checklist có ở §2 của tệp này; `.github/` chưa có mẫu mô tả PR — chỉ có `.github/workflows/` |
+| Kiểm tự động lúc chạy trong bộ test | 🚧 đang thi công | Lưới axe trên Playwright, không phải trong bộ test component — [`06-testing-strategy.md`](06-testing-strategy.md). Bảng dưới |
 | Kiểm định kỳ bằng trình đọc màn hình thật | ❌ chưa | Điều kiện: trước lần bàn giao đầu tiên cho người dùng ngoài đội |
 | Nhắm mức AAA cho toàn ứng dụng | ❌ loại, không hoãn `K43` | §1 — một số tiêu chí AAA mâu thuẫn nhau; áp cho từng phần khi có lý do |
 | Xoá viền focus mà không thay bằng thứ rõ hơn | ❌ loại, không hoãn `K44` | §3.4 — thay đổi CSS phá khả năng dùng bàn phím nhiều nhất |
 | Dùng ARIA thay cho phần tử HTML gốc đã có sẵn | ❌ loại, không hoãn `K45` | §5 — ARIA sai tệ hơn không có ARIA |
+
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** — các hàng ghi 🚧 ở bảng trên (đối chiếu 2026-11-05, chỉ bằng đọc mã):
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | Hộp thoại: `src/FE/src/app/shared/ui/dialog/dialog.component.html` (chuỗi `[focusTrap]="true"`, `[closeOnEscape]="!khoaDong()"`); `ConfirmDialog` tự giữ focus, đóng bằng Esc và trả focus về nơi mở (chuỗi `this.phanTuTruocKhiMo?.focus()` ở `src/FE/src/app/shared/components/confirm-dialog/confirm-dialog.component.ts`) | — |
+> | Điều hướng route: tiêu đề tài liệu đổi theo màn (chuỗi `class CoreTitleStrategy` ở `src/FE/src/app/core/i18n/core-title.strategy.ts`); liên kết bỏ qua tới vùng chính (chuỗi `href="#noi-dung-chinh"` ở `src/FE/src/app/platform/shell/shell.component.html`). Chưa có bước đưa focus về tiêu đề hay vùng chính sau mỗi lần điều hướng | Focus về tiêu đề màn mới sau mỗi lần điều hướng (§3.1) |
+> | Nội dung động: toast vẽ bằng `primeng/toast` (chuỗi `<p-toast` ở `src/FE/src/app/shared/ui/toast/toast.component.html`); bản PrimeNG đang cài đặt cứng `aria-live="assertive"` cho mọi thông báo — chưa có mức lịch sự | Hai mức theo §3.3 |
+> | Tương phản: axe chấm `color-contrast` trên màn đã render, cả theme sáng lẫn tối (project `rong-sang`, `rong-toi` ở `src/FE/playwright.config.ts`); số đo tương phản của token ghi ở [`../../Design/DESIGN.md`](../../Design/DESIGN.md) §2, không có phép kiểm nào trong repo chạy trên chính cặp token | Phép kiểm chạy trên cặp token, cả hai chế độ (§4.2, §4.3) |
+> | Kiểm tự động lúc chạy: lưới axe `src/FE/e2e/ha-tang/axe.ts` (chuỗi `export async function quetAxe(`) — bước 5c của `frontend-gate` chưa có trong workflow, như ô trạng thái của F17 ở [`../../RULES-FE.md`](../../RULES-FE.md) | Bước 5c chạy lưới này trên CI — [`../../adr/0117-luoi-giao-dien-playwright-do-dom-theo-spec-design-axe-aa-api-gia-anh-chi-tham-khao.md`](../../adr/0117-luoi-giao-dien-playwright-do-dom-theo-spec-design-axe-aa-api-gia-anh-chi-tham-khao.md) QC5 |
 
 > Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 

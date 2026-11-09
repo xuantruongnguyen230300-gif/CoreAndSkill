@@ -130,13 +130,18 @@ describe('UnsavedChangesService — đóng tab/tải lại (window "beforeunload
 
     const goiDangKy = addEventListenerSpy.calls.allArgs().find(([ten]) => ten === 'beforeunload');
     if (!goiDangKy) {
-      throw new Error('UnsavedChangesService không đăng ký listener "beforeunload" trên window ở constructor');
+      throw new Error(
+        'UnsavedChangesService không đăng ký listener "beforeunload" trên window ở constructor',
+      );
     }
     onBeforeUnload = goiDangKy[1] as (e: BeforeUnloadEvent) => void;
   });
 
   function taoEventGia(): BeforeUnloadEvent {
-    return { preventDefault: jasmine.createSpy('preventDefault'), returnValue: '' } as unknown as BeforeUnloadEvent;
+    return {
+      preventDefault: jasmine.createSpy('preventDefault'),
+      returnValue: '',
+    } as unknown as BeforeUnloadEvent;
   }
 
   it('còn thay đổi chưa lưu → handler gọi preventDefault() và đặt returnValue = "" (chặn đóng tab/tải lại)', () => {

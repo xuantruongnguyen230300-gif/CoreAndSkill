@@ -91,6 +91,7 @@ Danh sách đầy đủ, kèm ngưỡng "khi nào Nhóm B thành cần thiết",
 | [`../kien-truc-core-module.md`](../kien-truc-core-module.md) | [`be/ly-do/kien-truc-core-module.md`](be/ly-do/kien-truc-core-module.md) |
 | [`../database/schema-core.md`](../database/schema-core.md) | [`be/ly-do/schema-core.md`](be/ly-do/schema-core.md) |
 | [`../database/script-runbook.md`](../database/script-runbook.md) | [`be/ly-do/script-runbook.md`](be/ly-do/script-runbook.md) |
+| [`../RULES-BE.md`](../RULES-BE.md) | [`be/ly-do/RULES-BE.md`](be/ly-do/RULES-BE.md) |
 
 ## 5. Mục lục — Frontend
 

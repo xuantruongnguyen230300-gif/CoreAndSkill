@@ -1,6 +1,5 @@
 import { Component, provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
 import { CheckComponent } from '../check/check.component';
 import { TOOLTIP_DELAY_CHUOT_MS, TooltipComponent } from './tooltip.component';
@@ -89,7 +88,7 @@ describe('TooltipComponent — lớp bọc, hai kênh tách nhau', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
-      providers: [provideZonelessChangeDetection(), provideNoopAnimations()],
+      providers: [provideZonelessChangeDetection()],
     }).compileComponents();
     fixture = TestBed.createComponent(HostComponent);
     await dungXong();
@@ -229,7 +228,7 @@ describe('TooltipComponent — phần tử neo là một component Core', () => 
   async function dung<T>(loai: new () => T): Promise<ComponentFixture<T>> {
     await TestBed.configureTestingModule({
       imports: [loai as never],
-      providers: [provideZonelessChangeDetection(), provideNoopAnimations()],
+      providers: [provideZonelessChangeDetection()],
     }).compileComponents();
     const fixture = TestBed.createComponent(loai);
     fixture.detectChanges();
@@ -295,7 +294,7 @@ describe('TooltipComponent — nội dung chiếu vào không đúng một phầ
     const loi = spyOn(console, 'error');
     await TestBed.configureTestingModule({
       imports: [HostHaiPhanTuComponent],
-      providers: [provideZonelessChangeDetection(), provideNoopAnimations()],
+      providers: [provideZonelessChangeDetection()],
     }).compileComponents();
     const fixture = TestBed.createComponent(HostHaiPhanTuComponent);
     fixture.detectChanges();

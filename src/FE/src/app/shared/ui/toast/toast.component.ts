@@ -1,49 +1,24 @@
-import { ChangeDetectionStrategy, Component, effect, inject, untracked } from '@angular/core';
+import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  effect,
+  inject,
+  input,
+  signal,
+  TemplateRef,
+  untracked,
+} from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { ExclamationTriangleIcon } from 'primeng/icons/exclamationtriangle';
+import { InfoCircleIcon } from 'primeng/icons/infocircle';
+import { TimesCircleIcon } from 'primeng/icons/timescircle';
 import { Toast } from 'primeng/toast';
+import type { ToastPassThroughOptions } from 'primeng/types/toast';
 
-import { ToastService, ToastSeverity } from '../../../core/toast/toast.service';
-
-/**
- * Thời lượng toast BAY VÀO, mili-giây — phản chiếu token **`--dur-slow`** (`320ms`,
- * src/styles/_tokens.scss; DESIGN.md §7 gán đích danh token này cho "`Toast` bay vào").
- *
- * Vì sao con số sống trong TypeScript chứ không trong CSS: `showTransitionOptions` của
- * `primeng/toast` nhận một chuỗi tham số hoạt ảnh Angular, và chuỗi đó **không giải `var()`**.
- * Luật **F37** (docs/RULES.md §7) đòi hằng số nêu ĐÍCH DANH token nó phản chiếu, để hai nơi truy
- * được về nhau; đổi `--dur-slow` thì sửa cả con số này.
- */
-export const TOAST_THOI_LUONG_VAO_MS = 320;
-
-/**
- * Thời lượng toast RỜI ĐI, mili-giây — phản chiếu token **`--dur-base`** (`200ms`,
- * src/styles/_tokens.scss). Cùng lý do "sống trong TypeScript" với hằng trên.
- *
- * 🛑 Ra NHANH hơn vào là có chủ đích, và `Toast` là component nhóm này DUY NHẤT giữ được điều đó:
- * `primeng/toast` có HAI input rời nhau (`showTransitionOptions`, `hideTransitionOptions`), nên cả
- * bốn khoản của Design/Components/Toast.md khớp được. `Dialog` và `Drawer` chỉ có MỘT input
- * `transitionOptions` dùng chung hai chiều, nên chúng đã bỏ hẳn phần bất đối xứng — ADR-0073
- * quyết định 5 và 6. Đừng "cho ba component trông giống nhau" bằng cách gỡ chỗ này.
- */
-export const TOAST_THOI_LUONG_RA_MS = 200;
-
-/**
- * Đường cong bay vào — phản chiếu token **`--ease-decelerate`** (`cubic-bezier(0, 0, 0, 1)`,
- * src/styles/_tokens.scss): DESIGN.md §7 dành nó cho phần tử **đi vào** màn hình.
- */
-const TOAST_DUONG_CONG_VAO = 'cubic-bezier(0, 0, 0, 1)';
-
-/**
- * Đường cong rời đi — phản chiếu token **`--ease-accelerate`** (`cubic-bezier(0.3, 0, 1, 1)`,
- * src/styles/_tokens.scss): DESIGN.md §7 dành nó cho phần tử **rời khỏi** màn hình.
- */
-const TOAST_DUONG_CONG_RA = 'cubic-bezier(0.3, 0, 1, 1)';
-
-/** Chuỗi truyền vào `[showTransitionOptions]`. Ghép từ hai hằng trên — không viết tay lần thứ hai. */
-export const TOAST_SHOW_TRANSITION_OPTIONS = `${TOAST_THOI_LUONG_VAO_MS}ms ${TOAST_DUONG_CONG_VAO}`;
-
-/** Chuỗi truyền vào `[hideTransitionOptions]`. */
-export const TOAST_HIDE_TRANSITION_OPTIONS = `${TOAST_THOI_LUONG_RA_MS}ms ${TOAST_DUONG_CONG_RA}`;
+import { ToastHanhDong, ToastService, ToastSeverity } from '../../../core/toast/toast.service';
 
 /**
  * Thời gian tự tắt theo vai, mili-giây — bảng §Biến thể của Design/Components/Toast.md
@@ -67,30 +42,82 @@ const TOAST_THOI_GIAN_TU_TAT_MS: Readonly<Record<Exclude<ToastSeverity, 'error'>
 };
 
 /**
+ * Vùng thông báo theo vai (Design/Components/Toast.md §Accessibility, ba hàng "Vùng thông báo",
+ * "role", "Ngăn chứa tồn tại sẵn"). Thư viện gắn cứng `role="alert"` + `aria-live="assertive"`
+ * lên MỌI thông báo; pass-through ghi đè sau thuộc tính tĩnh, nên `success` / `info` hạ xuống
+ * `role="status"` + `aria-live="polite"`, còn `warn` / `error` trả `{}` để GIỮ `alert` +
+ * `assertive` của thư viện. `host` mang `aria-live="polite"` ngay khi phần tử chủ được dựng —
+ * vùng live có mặt trong DOM TRƯỚC toast đầu tiên.
+ *
+ * `instance` của pass-through kiểu `unknown`: chỉ đọc `message.severity` qua kiểu hẹp, không ép
+ * sang kiểu nội bộ của thư viện. Cố ý KHÔNG khai khoá `motion` ở đây (luật F62, F63).
+ *
+ * Hai rủi ro đã biết, chỉ đo được phần DOM: (1) `warn` / `error` nằm trong vùng `polite` của phần
+ * tử chủ nên trình đọc màn hình có thể đọc hai lần; (2) có khe giữa thuộc tính tĩnh của thư viện
+ * và lúc pass-through ghi đè. Trước khi lật dòng spec: đo bằng trình đọc màn hình thật.
+ */
+const TOAST_PT: ToastPassThroughOptions = {
+  host: { 'aria-live': 'polite' },
+  message: ({ instance }) => {
+    const severity = (instance as { readonly message?: { readonly severity?: string } }).message
+      ?.severity;
+    return severity === 'success' || severity === 'info'
+      ? { role: 'status', 'aria-live': 'polite' }
+      : {};
+  },
+};
+
+/**
+ * Ngữ cảnh của mẫu nút hành động mà nơi dùng truyền vào `nutHanhDong`. `$implicit` là hành động;
+ * `bam(id, hanhDong)` chạy nó đúng một lần và đặt `daBam` — nút phải `disabled` theo `daBam`.
+ */
+export interface ToastNutHanhDongContext {
+  readonly $implicit: ToastHanhDong;
+  readonly id: number;
+  readonly daBam: boolean;
+  readonly bam: (id: number, hanhDong: ToastHanhDong) => void;
+}
+
+/**
  * Lớp bọc PrimeNG (`shared/ui/`) — nơi DUY NHẤT được import `primeng/*` ngoài `core/theme`,
  * `core/i18n` và `app.config.ts` (luật F5). Đọc hàng đợi từ `ToastService` (core/) rồi đẩy vào
  * `MessageService` của PrimeNG — bản thân `core/` không được biết thư viện UI.
+ *
+ * Chuyển động vào/ra KHÔNG đi qua TypeScript (luật F62, ADR-0123): thời lượng và đường cong đè bằng
+ * token ở `src/styles/_thu-vien.scss` (khối toast), thư viện đọc giá trị đã tính của phần tử. Lớp
+ * bọc không bind `showTransitionOptions` / `hideTransitionOptions` (deprecated, không ai đọc) và
+ * không truyền `duration`. Bất đối xứng vào chậm / ra nhanh của Toast.md nằm ở hai khối đè rời
+ * nhau — đừng "cho ba component trông giống nhau" bằng cách gộp chúng.
  */
 @Component({
   selector: 'app-toast',
   standalone: true,
-  imports: [Toast],
+  imports: [Toast, NgTemplateOutlet, ExclamationTriangleIcon, InfoCircleIcon, TimesCircleIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [MessageService],
   templateUrl: './toast.component.html',
+  styleUrl: './toast.component.scss',
 })
 export class ToastComponent {
+  protected readonly pt = TOAST_PT;
   private readonly toast = inject(ToastService);
   private readonly messageService = inject(MessageService);
 
   /**
-   * KHÔNG mở thành `input()`: thời lượng chuyển động là thẩm quyền của spec, không phải của nơi
-   * gọi — và toàn app chỉ dựng MỘT `<app-toast>` nên không có ca nào cần khác đi.
+   * Mẫu vẽ nút hành động. `shared/ui/` không được import `shared/components/` (ESLint, fe-architecture.md
+   * §2.2), nên nút `Button` `secondary` cỡ `sm` (Toast.md) do nơi ghép — `app.html` — vẽ và truyền vào.
+   * Không truyền mẫu thì toast có `hanhDong` không hiện nút.
    */
-  protected readonly showTransitionOptions = TOAST_SHOW_TRANSITION_OPTIONS;
-  protected readonly hideTransitionOptions = TOAST_HIDE_TRANSITION_OPTIONS;
+  readonly nutHanhDong = input<TemplateRef<ToastNutHanhDongContext> | null>(null);
+
+  /** Id các toast đã bấm nút hành động — nút `disabled` ngay để không bấm đôi (Toast.md §Accessibility). */
+  protected readonly daBam = signal<ReadonlySet<number>>(new Set());
+
+  private readonly doc = inject(DOCUMENT);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   constructor() {
+    this.chanToastCuopFocus();
     effect(() => {
       if (this.toast.hangDoi().length === 0) {
         return;
@@ -101,12 +128,22 @@ export class ToastComponent {
           severity: message.severity,
           summary: message.summary,
           detail: message.traceId ? `traceId: ${message.traceId}` : undefined,
+          data: { id: message.id, hanhDong: message.hanhDong },
           life: tuTatSau,
           sticky: tuTatSau === undefined,
         });
       }
     });
   }
+
+  /** Chạy hành động của toast đúng một lần: ghi nhận trước, chạy sau. */
+  protected readonly bam = (id: number, hanhDong: ToastHanhDong): void => {
+    if (this.daBam().has(id)) {
+      return;
+    }
+    this.daBam.update((ds) => new Set(ds).add(id));
+    hanhDong.chay();
+  };
 
   /**
    * Thời gian tự tắt của một vai, hoặc `undefined` khi vai đó KHÔNG tự tắt.
@@ -126,5 +163,53 @@ export class ToastComponent {
    */
   private thoiGianTuTat(severity: ToastSeverity): number | undefined {
     return severity === 'error' ? undefined : TOAST_THOI_GIAN_TU_TAT_MS[severity];
+  }
+
+  /**
+   * Toast KHÔNG tự cướp focus — kể cả toast lỗi (Design/Components/Toast.md §Token dùng, ~:144-147).
+   * Template của `primeng/toast` gắn `autofocus` cứng lên nút đóng, nên trình duyệt chuyển focus vào
+   * đó mỗi khi một toast được chèn. Hai lớp: gỡ thuộc tính ngay khi nút xuất hiện, và nếu focus vẫn
+   * rơi vào nút đóng thì trả về phần tử đang giữ focus lúc toast xuất hiện. Người dùng chủ động Tab
+   * tới nút đóng sau đó không bị đụng tới.
+   */
+  private chanToastCuopFocus(): void {
+    const view = this.doc.defaultView;
+    if (!view || typeof MutationObserver === 'undefined') {
+      return;
+    }
+    const observer = new MutationObserver((mutations) => {
+      const truoc = this.doc.activeElement as HTMLElement | null;
+      let coNutMoi = false;
+      for (const m of mutations) {
+        m.addedNodes.forEach((n) => {
+          if (!(n instanceof HTMLElement)) {
+            return;
+          }
+          const nuts = Array.from(n.querySelectorAll('button[autofocus]'));
+          if (n.matches('button[autofocus]')) {
+            nuts.push(n);
+          }
+          for (const nut of nuts) {
+            nut.removeAttribute('autofocus');
+            coNutMoi = true;
+          }
+        });
+      }
+      if (!coNutMoi) {
+        return;
+      }
+      view.requestAnimationFrame(() => {
+        const hien = this.doc.activeElement as HTMLElement | null;
+        if (hien && hien !== truoc && this.host.nativeElement.contains(hien)) {
+          if (truoc && truoc !== this.doc.body && truoc.isConnected) {
+            truoc.focus({ preventScroll: true });
+          } else {
+            hien.blur();
+          }
+        }
+      });
+    });
+    observer.observe(this.host.nativeElement, { childList: true, subtree: true });
+    inject(DestroyRef).onDestroy(() => observer.disconnect());
   }
 }

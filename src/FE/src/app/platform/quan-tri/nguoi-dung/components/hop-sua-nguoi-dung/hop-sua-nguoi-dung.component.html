@@ -9,7 +9,7 @@
   (dismissAttempted)="dismissAttempted.emit()"
 >
   <app-banner-loi-hop [xungDot]="xungDot()" [loiChung]="loiChung()" (thuLai)="thuLai.emit()" />
-  <form #formEl [formGroup]="form()" (ngSubmit)="submitted.emit()">
+  <form #formEl [formGroup]="form()" class="form-grid" (ngSubmit)="submitted.emit()">
     <app-form-row [label]="'nguoiDung.cot.tenDangNhap' | translate" controlId="ndsua-ten"
       ><app-input id="ndsua-ten" type="text" [readonly]="true" [value]="tenDangNhap()"
     /></app-form-row>

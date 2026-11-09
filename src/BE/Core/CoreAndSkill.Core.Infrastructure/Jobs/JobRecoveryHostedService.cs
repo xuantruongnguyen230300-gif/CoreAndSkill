@@ -67,8 +67,8 @@ internal sealed class JobRecoveryHostedService(
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        // Database chưa kết nối được lúc khởi động là ca luật E8 đã xử lý (chỉ cảnh báo, readiness đỏ):
-        // không được để việc dọn dẹp này làm tiến trình không lên, nhưng cũng không được im lặng.
+        // Phép kiểm schema ở khởi động (luật E8, DatabaseSchemaStartupCheck) từ chối khởi động khi database không dùng được;
+        // việc dọn dẹp này không được tự nó làm tiến trình không lên khi lỗi chỉ ở phép quét, nhưng cũng không được im lặng.
         try
         {
             await RecoverAsync(cancellationToken);
@@ -80,7 +80,7 @@ internal sealed class JobRecoveryHostedService(
             CoreMetrics.BackgroundJobFailed.Add(1);
             logger.LogError(
                 "Không đánh dấu được việc dở dang lúc khởi động: {Failure} — việc `running`/`queued` cũ có thể treo cho tới lần khởi động sau.",
-                FailureText.Describe(ex));
+                FailureText.DescribeWithStack(ex));
         }
     }
 
@@ -95,31 +95,73 @@ internal sealed class JobRecoveryHostedService(
             candidates = await Candidates(db).ToListAsync(ct);
         }
 
+        var marked = 0;
         foreach (var candidate in candidates)
         {
-            // Mỗi việc một phạm vi ngữ cảnh + một giao dịch: một việc hỏng không kéo việc khác.
-            using var scope = scopeFactory.CreateScope();
-            using var context = executionContextScope.Enter(candidate.TenantId, candidate.CreatedByUserId, null);
-
-            var jobs = scope.ServiceProvider.GetRequiredService<IJobRepository>();
-            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-
-            await unitOfWork.ExecuteInTransactionAsync(async innerCt =>
+            // Mỗi việc một phạm vi ngữ cảnh + một giao dịch + một try: một việc hỏng không kéo việc khác. Lọc theo TOKEN
+            // như StartAsync — khởi động bị huỷ thì thoát ra, không nuốt.
+            try
             {
-                var job = await jobs.FindByIdAsync(candidate.Id, innerCt);
-                if (job is null)
-                    return new TransactionOutcome<bool>(false, ShouldCommit: false);
+                using var scope = scopeFactory.CreateScope();
+                using var context = executionContextScope.Enter(candidate.TenantId, candidate.CreatedByUserId, null);
 
-                var failed = job.Fail(timeProvider.GetUtcNow(), JobJson.ErrorOf(JobErrors.Interrupted));
-                return new TransactionOutcome<bool>(failed.IsSuccess, ShouldCommit: failed.IsSuccess);
-            }, ct);
+                var jobs = scope.ServiceProvider.GetRequiredService<IJobRepository>();
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-            logger.LogWarning("Việc {JobId} bị gián đoạn vì tiến trình dừng giữa chừng — đã đánh dấu failed.", candidate.Id);
+                var outcome = await unitOfWork.ExecuteInTransactionAsync(async innerCt =>
+                {
+                    var job = await jobs.FindByIdAsync(candidate.Id, innerCt);
+                    if (job is null)
+                        return new TransactionOutcome<RecoveryResult>(RecoveryResult.NotFound, ShouldCommit: false);
+
+                    var failed = job.Fail(timeProvider.GetUtcNow(), JobJson.ErrorOf(JobErrors.Interrupted));
+                    return failed.IsSuccess
+                        ? new TransactionOutcome<RecoveryResult>(RecoveryResult.Marked, ShouldCommit: true)
+                        : new TransactionOutcome<RecoveryResult>(RecoveryResult.Rejected, ShouldCommit: false);
+                }, ct);
+
+                switch (outcome)
+                {
+                    case RecoveryResult.Marked:
+                        marked++;
+                        logger.LogWarning("Việc {JobId} bị gián đoạn vì tiến trình dừng giữa chừng — đã đánh dấu failed.", candidate.Id);
+                        break;
+                    case RecoveryResult.NotFound:
+                        logger.LogWarning("Việc {JobId} là ứng viên khôi phục nhưng không còn trong kho — không có gì để đánh dấu.", candidate.Id);
+                        break;
+                    default:
+                        logger.LogWarning("Việc {JobId} là ứng viên khôi phục nhưng không ở trạng thái cho phép đánh dấu hỏng — giữ nguyên.", candidate.Id);
+                        break;
+                }
+            }
+            catch (Exception ex) when (!ct.IsCancellationRequested)
+            {
+                CoreMetrics.BackgroundJobFailed.Add(1);
+                logger.LogError(
+                    "Không đánh dấu được việc {JobId} lúc khởi động: {Failure} — làm tiếp các việc còn lại.",
+                    candidate.Id,
+                    FailureText.DescribeWithStack(ex));
+            }
         }
 
-        if (candidates.Count > 0)
-            logger.LogWarning("Đã đánh dấu {Count} việc dở dang lúc khởi động.", candidates.Count);
+        // Luôn ghi, kể cả 0 — việc nền log số bản ghi xử lý (docs/wiki-core/be/07-observability.md §6).
+        if (marked > 0)
+        {
+            logger.LogWarning(
+                "Đã đánh dấu {Marked} việc dở dang lúc khởi động, {NotMarked} việc ứng viên còn lại không đánh dấu được.",
+                marked,
+                candidates.Count - marked);
+        }
+        else
+        {
+            logger.LogInformation(
+                "Đã đánh dấu {Marked} việc dở dang lúc khởi động, {NotMarked} việc ứng viên còn lại không đánh dấu được.",
+                marked,
+                candidates.Count - marked);
+        }
     }
+
+    private enum RecoveryResult { Marked, NotFound, Rejected }
 }
 
 // Ba cột phép khôi phục cần, không phải cả entity: nó KHÔNG sửa Job ở đây mà mở lại phạm vi đơn vị

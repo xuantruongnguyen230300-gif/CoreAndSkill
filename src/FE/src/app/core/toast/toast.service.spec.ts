@@ -45,4 +45,13 @@ describe('ToastService', () => {
     expect(service.hangDoi()).toEqual([]);
     expect(service.layHet()).toEqual([]);
   });
+
+  it('loi() nhận hanhDong tuỳ chọn và mang nó trong thông báo; không truyền thì null', () => {
+    const chay = (): void => undefined;
+    service.loi('Có nút.', null, { nhan: 'Tải lại trang', chay });
+    expect(service.latest()?.hanhDong).toEqual({ nhan: 'Tải lại trang', chay });
+
+    service.loi('Không nút.');
+    expect(service.latest()?.hanhDong).toBeNull();
+  });
 });

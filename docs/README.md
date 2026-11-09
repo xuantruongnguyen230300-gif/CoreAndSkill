@@ -23,7 +23,7 @@ tám điều kiện và lật nhãn này ngày 2026-09-16.
 | --- | --- |
 | **`src/BE` đã có trên đĩa** — project Core, host `CoreAndSkill.Api` và các project Tests khai ở `src/BE/CoreAndSkill.slnx` (danh sách gốc: [`kien-truc-core-module.md`](kien-truc-core-module.md) §2); `dotnet test` trên `src/BE/Tests/CoreAndSkill.ArchTests` xanh (đối chiếu 2026-09-19) | — |
 | **`src/FE` đã có trên đĩa** các tầng `core/`, `platform/`, `shared/` — **chưa có `modules/`** | Đủ bốn tầng theo [`quy-uoc/fe-architecture.md`](quy-uoc/fe-architecture.md) §1 khi module đầu tiên về |
-| **`src/`, `scripts/`, `database/` đã vào git** từ commit `d8efddc`. Job `backend-gate` và `frontend-gate` trong [`../.github/workflows/docs-gate.yml`](../.github/workflows/docs-gate.yml) **chạy lần đầu** ở run `36323787424` trên commit `cdcc816` (đối chiếu qua API công khai của GitHub 2026-09-27): `frontend-gate` xanh; `backend-gate` đỏ ở bước test, bước E10 bị bỏ qua theo; log chưa đọc được vì cần đăng nhập GitHub | `backend-gate` xanh. Từ lần push kế tiếp, bước test chia hai — không Docker và nhóm `RequiresDocker` ([`adr/nhat-ky-quyet-dinh.md`](adr/nhat-ky-quyet-dinh.md), 2026-09-27) — nên thấy ngay nhóm nào đỏ |
+| **`src/`, `scripts/`, `database/` đã vào git** từ commit `d8efddc`. Job `backend-gate` và `frontend-gate` trong [`../.github/workflows/docs-gate.yml`](../.github/workflows/docs-gate.yml) đã chạy; lần chạy mới nhất là run `36326562510` trên commit `ac807bd`, 2026-09-27 (đối chiếu qua API công khai của GitHub 2026-10-06): `frontend-gate` xanh; `backend-gate` đỏ ở **cả hai** bước test — bước không Docker và bước *Test DB* của nhóm `RequiresDocker` (bước test chia hai từ commit này: [`adr/nhat-ky-quyet-dinh.md`](adr/nhat-ky-quyet-dinh.md), 2026-09-27) — và đỏ ở bước E10, bước này đã chạy chứ không bị bỏ qua; log chưa đọc được vì cần đăng nhập GitHub, nên chưa biết nguyên nhân | `backend-gate` xanh |
 | Mọi mô tả kiến trúc trong `docs/` chưa đối chiếu với code thật | Từng file lật sang nhãn đã đối chiếu — mức cao nhất ở [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) §4 — **riêng lẻ**, khi có người mở source ra so; không lật hàng loạt theo dòng này |
 | Lớp 3 chặn Core (hook `Stop`) chưa thử bằng payload thật | Chứng minh sống ở PR đầu tiên chạm Core — xem ADR-0035 |
 
@@ -51,13 +51,14 @@ Xem [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) §4 và §9 cho khuôn nhãn.
 | **Chấm review: cái gì là finding, cái gì không** | [`quy-uoc/tieu-chi-review.md`](quy-uoc/tieu-chi-review.md) |
 | **Ranh giới Core ↔ Module, khi nào tách module** | [`kien-truc-core-module.md`](kien-truc-core-module.md) |
 | **Luật nào được ép bằng gì** | [`RULES.md`](RULES.md) |
-| **Luật nào CHƯA có cổng nào ép — sổ nợ** | [`DEBT.md`](DEBT.md) |
+| **Luật nào CHƯA có cổng nào ép** — dòng `🕳️`, lệnh liệt kê ở đầu tệp | [`RULES.md`](RULES.md) |
 | **Nội dung nào thuộc file nào — nguồn đối chiếu duy nhất** | [`OWNERSHIP.md`](OWNERSHIP.md) |
 | **Giao diện: layout, câu chữ, token, component, ảnh màn hình** | [`Design/`](Design/) — nguồn UI **duy nhất** |
 | **Hợp đồng API một endpoint cụ thể** | [`contracts/`](contracts/) |
 | **Schema `core`: bảng, cột, index** | [`database/schema-core.md`](database/schema-core.md) |
 | **Ai sở hữu migration, schema theo module** | [`database/migration-policy.md`](database/migration-policy.md) |
 | **Chạy script DB: đường dẫn, thứ tự, phát hiện DB lệch model** | [`database/script-runbook.md`](database/script-runbook.md) |
+| **Chạy DB + BE + FE trên máy dev: điều kiện cần, thứ tự từ clone tới đăng nhập, tài khoản, lỗi hay gặp, cổng và origin phải khớp** | [`quy-uoc/chay-may-dev.md`](quy-uoc/chay-may-dev.md) |
 | **"Core đủ chưa, còn thiếu mảng nào"** | [`wiki-core/be/01-core-components.md`](wiki-core/be/01-core-components.md) §Áp dụng |
 | **Lộ trình thi công: pha nào làm gì, khi nào một pha đóng** | [`wiki-core/be/trien-khai/00-lo-trinh-tong-the.md`](wiki-core/be/trien-khai/00-lo-trinh-tong-the.md) · [`wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md`](wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md) |
 | **Kiến thức nền về core (chuẩn chung, không riêng dự án)** | [`wiki-core/`](wiki-core/) |
@@ -96,7 +97,7 @@ Ba hệ quả cho người viết:
 
 - Bảng nào muốn được canh thì đặt tiêu đề cột cuối theo tập đó. Đường dẫn khi ấy nằm ở **ô nào cũng được**.
 - Bảng **văn xuôi** có kèm liên kết (bảng lý do, bảng nhật ký quyết định) cố ý **không** dùng tiêu đề trong tập — nếu không, định danh ở cột đầu sẽ bị đối chiếu với một file chỉ được nhắc làm dẫn chứng.
-- 🛑 **Giới hạn đã biết:** đổi tiêu đề một bảng sang chữ ngoài tập sẽ **âm thầm** đưa bảng đó ra khỏi tầm canh. Cổng chỉ đỏ khi **mọi** bảng đều rơi ra ngoài. Đây là nợ có ý thức, ghi ở [`DEBT.md`](DEBT.md).
+- 🛑 **Giới hạn đã biết:** đổi tiêu đề một bảng sang chữ ngoài tập sẽ **âm thầm** đưa bảng đó ra khỏi tầm canh. Cổng chỉ đỏ khi **mọi** bảng đều rơi ra ngoài. Chỗ hở này ghi ở dòng D23 của [`RULES-DOCS.md`](RULES-DOCS.md).
 - Bảng định tuyến của một **agent** còn tách hai phần theo **tiêu đề mục**: mục *Bộ luật* (cộng dồn, có ngưỡng cỡ) và mục *Tra cứu* (mở đúng một file, không cộng). Luật D36 ở [`RULES.md`](RULES.md) §1; cổng §23 đọc thẳng tiêu đề mục. Muốn thêm một file vào bảng của agent thì hỏi trước: *agent phải tuân nó ở mọi việc, hay chỉ mở khi chủ đề chạm tới?* — câu trả lời quyết định phần.
 
 ---
@@ -109,8 +110,8 @@ Ba hệ quả cho người viết:
 | [`wiki-core/`](wiki-core/) | ✅ sống — kiến thức nền, không phụ thuộc có `src/` hay chưa |
 | [`Design/`](Design/) | ✅ sống — nguồn UI duy nhất |
 | [`contracts/`](contracts/) | 🚧 **ĐANG THI CÔNG** — controller đã có trong `src/BE`; trạng thái thật của một endpoint đọc ở dòng `Status:` của **từng** card, không đọc ở dòng này |
-| [`database/`](database/) | 🚧 **ĐANG THI CÔNG** — migration EF và script DDL đã có trên đĩa; **chưa script nào được áp lên một Postgres thật** ([`database/schema-core.md`](database/schema-core.md) đầu file) |
-| [`luong/`](luong/) | 📐 **ĐÍCH ĐẾN** — mục lục khai đủ luồng |
+| [`database/`](database/) | 🚧 **ĐANG THI CÔNG** — migration EF và script DDL đã có trên đĩa; **script mới chỉ được áp lên container test** ([`database/schema-core.md`](database/schema-core.md) đầu file) |
+| [`luong/`](luong/) | 🚧 **ĐANG THI CÔNG** — mục lục khai đủ luồng; phần lớn luồng đã có code ở `src/`. Trạng thái thật của một luồng đọc ở đầu **từng** tệp, lật riêng lẻ khi có người đối chiếu trọn tệp đó |
 | [`adr/`](adr/) | ✅ sống |
 | [`audit/`](audit/) | ✅ sống |
 | [`00-overview/`](00-overview/) | 🗄️ **lịch sử** — kế hoạch lập ở giai đoạn 1, không còn hiệu lực; lộ trình thi công tra ở bảng *Tra theo chủ đề* |
@@ -135,6 +136,10 @@ grep -rl 'verified: chua-doi-chieu' docs          # file chưa đối chiếu so
 bash .claude/check-docs.sh
 ```
 
-Gate chặn hồi quy: đường dẫn trích dẫn tồn tại, link resolve, tuyên bố hoàn thành có ngày, `.claude/` không lẫn tri thức, mọi file khai đủ ba khoá.
+Gate chặn hồi quy. Danh sách mục nó kiểm nằm ở chính script — đọc bằng lệnh, đừng chép tay:
+
+```bash
+grep -n '^section ' .claude/check-docs.sh
+```
 
 **PASS không có nghĩa là nội dung đúng** — xem [`.claude/CLAUDE.md`](../.claude/CLAUDE.md) §8 để biết ba loại lỗi gate không bao giờ bắt được.

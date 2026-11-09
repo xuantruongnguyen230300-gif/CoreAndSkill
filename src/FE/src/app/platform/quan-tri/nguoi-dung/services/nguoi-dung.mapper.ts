@@ -1,7 +1,7 @@
 import type { NguoiDungDto } from '../models/nguoi-dung.dto';
 import type { NguoiDung } from '../models/nguoi-dung.model';
 
-/** Tên trường theo contracts/users.md §3, §4 — không đổi tên ở đây (fe-api-client.md §4.2). */
+/** Tên trường DTO theo contracts/users.md §3, §4. Mapper đổi DTO sang model: ngày thành `Date`, rút đúng thứ màn cần; được phép đổi tên trường khi model cần (fe-api-client.md §4.2). */
 export function mapNguoiDung(dto: NguoiDungDto): NguoiDung {
   return {
     id: dto.id,

@@ -19,6 +19,17 @@
     }
   }
 
+  // Nút mở lớp nổi giữ nền như hover cho tới khi lớp nổi đóng (Topbar.md §Nút theme, `active`).
+  &[aria-haspopup][aria-expanded='true']:not(
+      :disabled,
+      .icon-button--secondary,
+      .icon-button--primary,
+      .icon-button--danger
+    ) {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+  }
+
   &:focus-visible {
     outline: var(--border-w-strong) solid var(--color-focus);
     outline-offset: 2px;

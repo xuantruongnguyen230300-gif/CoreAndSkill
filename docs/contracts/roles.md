@@ -13,6 +13,8 @@ verified: chua-doi-chieu
 > | --- | --- |
 > | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/RolesController.cs` có action `GetList`, `GetById`, `Create`, `Update`, `Delete` — khớp route §1–§5 | Gọi thử thật, thay ví dụ bằng response thật, rồi mới lật `Status:` |
 > | Thân request/response, bảng lỗi, luật xoá vai trò đang có người giữ: **chưa ai đối chiếu với handler** | Đối chiếu từng card rồi mới lật `verified:` |
+> | §1 `searchText` không phân biệt dấu và `sortBy=name` — đối chiếu 2026-10-06, **chỉ hai điểm này**: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Roles/RoleQueryService.cs`, chuỗi `EF.Functions.ILike(EF.Functions.Unaccent(r.Name!), EF.Functions.Unaccent(pattern)`; sắp theo cột `name` mang collation `core.vi_vn`, không còn theo `normalized_name` — chuỗi `roles.OrderBy(r => r.Name)`. `ViVnCollationAndUnaccentTests` xanh (`dotnet test`, 2026-10-06, không database) | Script `0009` áp lên database ngoài container test — **chưa ai áp**; tìm và thứ tự của vai trò trên PostgreSQL thật chưa đo |
+> | §2, §3 trùng `name` khi ghi đồng thời — đối chiếu 2026-10-06, **chỉ điểm này**: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Roles/RoleAdminService.cs` — `CreateAsync` và `RenameAsync` đều có `catch (DbUpdateException ex) when (UniqueViolations.IsOn(ex, UniqueViolations.NormalizedNameIndex))` trả `RoleErrors.NameDuplicate`. `RoleNameUniqueViolationTests` xanh (`dotnet test`, 2026-10-06, không Docker). Ca tạo đồng thời trên PostgreSQL thật — `TenantCodeAndRoleNameUniqueViolationDatabaseTests` (nhóm `RequiresDocker`), chuỗi `CreateRole_WhileAnotherCreateOfTheSameNameCommits_Is409NameDuplicate_AndWritesNothing` — xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18`. Ca **đổi tên** đồng thời (§3), cùng lớp — chuỗi `RenameRole_WhileAnotherRenameToTheSameNameCommits_Is409NameDuplicate_AndWritesNothing` và `RenameRole_WhileAnotherCreateOfTheSameNameCommits_Is409NameDuplicate_AndWritesNothing` — xanh: `dotnet test` 2026-11-05 ở máy Windows, Docker `postgres:18` | Lớp đó xanh trên CI — CI chưa chạy với bản này |
 >
 > Ma trận vai trò × quyền: [`permissions.md`](permissions.md). Gán vai trò cho người dùng: [`users.md`](users.md). Bảng dữ liệu: [`../database/schema-core.md`](../database/schema-core.md) §4.2.
 
@@ -33,7 +35,7 @@ Danh sách vai trò của đơn vị hiện hành, phân trang theo khuôn chung
 | --- | --- | --- |
 | `page` · `pageSize` · `sortBy` · `sortDescending` | | Theo quy ước chung, [`README.md`](README.md) §8 |
 | `sortBy` allowlist | `name` (tăng dần) | `name`, `createdAt` |
-| `searchText` | — | Khớp một phần trên `name`; không phân biệt hoa thường. Tối đa 200 ký tự |
+| `searchText` | — | Khớp một phần trên `name`; không phân biệt hoa thường **và dấu** — `d` khớp `đ` ([ADR-0119](../adr/0119-cot-ten-dung-collation-icu-core-vi-vn-tim-khong-dau-qua-unaccent-is-deleted-co-default-false.md)). Tối đa 200 ký tự |
 
 ### Response 200
 
@@ -88,7 +90,7 @@ Danh sách vai trò của đơn vị hiện hành, phân trang theo khuôn chung
 
 | Field | Ghi chú |
 | --- | --- |
-| `name` | Tên hiển thị, đổi được. **Duy nhất trong đơn vị**, so trên tên đã chuẩn hoá — tức không phân biệt hoa thường (`RoleNameIndex`, [`../database/schema-core.md`](../database/schema-core.md) §4.2) |
+| `name` | Tên hiển thị, đổi được. Tối đa 256 ký tự. **Duy nhất trong đơn vị**, so trên tên đã chuẩn hoá — tức không phân biệt hoa thường (`RoleNameIndex`, [`../database/schema-core.md`](../database/schema-core.md) §4.2) |
 
 Vai trò mới được tạo **không có quyền nào**. Cấp quyền là việc của màn ma trận ([`permissions.md`](permissions.md)) — hai bước tách nhau, vì trộn chúng vào một lời gọi thì một nửa hỏng là cả hai không rõ đã tới đâu.
 
@@ -109,19 +111,19 @@ Kèm header `Location: /api/v1/core/roles/0192f3c2-1111-7000-8000-000000000002`.
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.ROLE.NAME_DUPLICATE` | `Conflict` | 409 | `name` trùng tên một vai trò khác trong đơn vị này |
+| `CORE.ROLE.NAME_DUPLICATE` | `Conflict` | 409 | `name` trùng tên một vai trò khác trong đơn vị này. `messageParams.Name` là `name` như request gửi |
 
 **Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | Thiếu `name`. Kèm `fieldErrors["Name"]` |
+| `CORE.VALIDATION.FAILED` | Thiếu `name`, hoặc `name` quá 256 ký tự. Kèm `fieldErrors["Name"]` |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 | `CORE.AUTH.FORBIDDEN` | Thiếu quyền `core.role.write` |
 
-**Hai lượt ghi cùng `name` chạy đồng thời** (tạo ở đây, hoặc đổi tên ở §3): lượt sau hôm nay nhận **500**, không nhận `CORE.ROLE.NAME_DUPLICATE`. Index `RoleNameIndex` nằm ngoài phạm vi [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md) — mở rộng sang nó là câu hỏi mở của ADR đó, chờ người dùng.
+**Hai lượt ghi cùng `name` chạy đồng thời** (tạo ở đây, hoặc đổi tên ở §3) có thể cùng lọt phép kiểm trước. Lượt sau nhận `CORE.ROLE.NAME_DUPLICATE` như ca trùng thường — `messageParams.Name` là `name` như request gửi —, không nhận 500. Nguyên tắc 1–2 của [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md) mở rộng sang `RoleNameIndex` ([`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md), dòng 2026-10-06). Code, test không database và test trên PostgreSQL thật cho cả ca tạo lẫn ca đổi tên đã có, xanh ở máy; CI chưa chạy với bản này (bảng đầu file).
 
 ---
 
@@ -140,7 +142,7 @@ Chỉ đổi `name`.
 
 | Field | Bắt buộc | Ghi chú |
 | --- | --- | --- |
-| `name` | ✔ | Cùng ràng buộc với §2 — duy nhất trong đơn vị, so trên tên đã chuẩn hoá |
+| `name` | ✔ | Cùng ràng buộc với §2 — tối đa 256 ký tự, duy nhất trong đơn vị, so trên tên đã chuẩn hoá |
 | `version` | ✔ | Token nhận từ `GET` gần nhất (§1, §5). Thiếu hoặc lệch ⇒ 409, vì `null` không bao giờ khớp |
 
 Payload **không** có chỗ cho quyền: cấp quyền đi đường ma trận ([`permissions.md`](permissions.md) §6), cùng lý do tách hai bước ở §2.
@@ -163,14 +165,14 @@ Payload **không** có chỗ cho quyền: cấp quyền đi đường ma trận 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
 | `CORE.ROLE.NOT_FOUND` | `NotFound` | 404 | Không có vai trò đó trong đơn vị này |
-| `CORE.ROLE.NAME_DUPLICATE` | `Conflict` | 409 | `name` mới trùng tên một vai trò khác trong đơn vị này |
+| `CORE.ROLE.NAME_DUPLICATE` | `Conflict` | 409 | `name` mới trùng tên một vai trò khác trong đơn vị này. `messageParams.Name` như §2 |
 | `CORE.ROLE.SYSTEM_IMMUTABLE` | `BusinessRule` | 422 | Vai trò hệ thống — không đổi tên |
 
 **Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | `name` rỗng. Kèm `fieldErrors["Name"]` — như §2 |
+| `CORE.VALIDATION.FAILED` | `name` rỗng hoặc quá 256 ký tự. Kèm `fieldErrors["Name"]` — như §2 |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |

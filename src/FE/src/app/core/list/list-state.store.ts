@@ -14,6 +14,7 @@ import {
   tap,
 } from 'rxjs';
 
+import { ApiFailureError, BusinessCode } from '../http/api-result.model';
 import { PagedList } from '../http/paged.model';
 import { GridQuery } from './grid-query';
 
@@ -50,6 +51,8 @@ export class ListStateStore<T> {
 
   private readonly _state = signal<ListViewState>('idle');
   private readonly _result = signal<PagedList<T> | null>(null);
+  /** Mã lỗi của lần tải cuối (luật 10) — màn chọn hành động của khối lỗi theo mã, không dựng câu. */
+  private readonly _errorCode = signal<BusinessCode | null>(null);
   private readonly reloadTick = signal(0);
   private readonly searchInput = new Subject<string>();
   private connected = false;
@@ -57,6 +60,7 @@ export class ListStateStore<T> {
   /** Bản ĐỌC của URL, không phải bản thứ hai (luật 1). */
   readonly query = toSignal(this.route.queryParamMap.pipe(map(docQuery)), { requireSync: true });
   readonly state = this._state.asReadonly();
+  readonly errorCode = this._errorCode.asReadonly();
   /** Rỗng KHÔNG mang nghĩa "không có dữ liệu" — `state` mới mang nghĩa đó. */
   readonly rows = computed<readonly T[]>(() => this._result()?.items ?? []);
   readonly totalCount = computed(() => this._result()?.totalCount ?? 0);
@@ -84,7 +88,12 @@ export class ListStateStore<T> {
       toObservable(this.reloadTick, { injector: this.injector }),
     ])
       .pipe(
-        tap(() => this._state.set('loading')),
+        // Luật 10: mỗi lượt tải đặt errorCode về null CÙNG LÚC state sang loading — không đợi lỗi
+        // mới xoá mã cũ, kẻo màn còn đọc mã của lượt trước trong lúc lượt mới đang chạy.
+        tap(() => {
+          this._state.set('loading');
+          this._errorCode.set(null);
+        }),
         // Cơ chế 3: request mới huỷ request cũ.
         switchMap(([q]) =>
           load(q).pipe(
@@ -102,9 +111,14 @@ export class ListStateStore<T> {
                 trang.totalCount > 0 ? 'idle' : coDieuKien(q) ? 'empty-filtered' : 'empty',
               );
             }),
-            // errorInterceptor đã hiển thị lỗi; ở đây chỉ đổi trạng thái.
-            catchError(() => {
+            // errorInterceptor đã hiển thị lỗi; ở đây chỉ đổi trạng thái và giữ mã (luật 10).
+            // KHÔNG đọc ApiFailureError.message: với lỗi không mang envelope, trường đó là một mã
+            // phía client do chính lớp lỗi tự gắn (api-result.model.ts), không phải mã BE trả.
+            catchError((err: unknown) => {
               this._state.set('error');
+              this._errorCode.set(
+                err instanceof ApiFailureError ? (err.body?.error.code ?? null) : null,
+              );
               return EMPTY;
             }),
           ),

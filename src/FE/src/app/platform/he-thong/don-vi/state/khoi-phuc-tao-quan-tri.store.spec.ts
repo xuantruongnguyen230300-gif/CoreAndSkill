@@ -300,7 +300,7 @@ describe('KhoiPhucTaoQuanTriStore', () => {
   });
 
   // Screen 20, bảng "Mã lỗi → chỗ hiện": NOT_FOUND → banner trong hộp đang mở VÀ tải lại danh sách
-  // (đơn vị đã bị người khác xoá thì hàng đó không được nằm lại trong lưới).
+  // (id không tồn tại hoặc là đơn vị hệ thống thì hàng đó không được nằm lại trong lưới).
   describe('CORE.TENANT.NOT_FOUND → banner trong hộp VÀ tải lại danh sách', () => {
     it('khôi phục: banner theo mã, hộp giữ mở, gọi tải lại đúng một lần', () => {
       dienKhoiPhuc();

@@ -2,7 +2,7 @@ import localeVi from '@angular/common/locales/vi';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component, provideZonelessChangeDetection, signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
 import {
@@ -20,11 +20,12 @@ import { CORE_ROUTES } from '../../core/config/core-routes';
 import { ApiFailureError } from '../../core/http/api-result.model';
 import { errorInterceptor } from '../../core/interceptors/error.interceptor';
 import { MenuStore } from '../../core/menu/menu.store';
+import { ThemeService } from '../../core/theme/theme.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { UnsavedChangesService } from '../../core/unsaved-changes/unsaved-changes.service';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { TopbarComponent } from '../../shared/components/topbar/topbar.component';
-import { ShellComponent } from './shell.component';
+import { ShellComponent, tenIconTran } from './shell.component';
 
 class FakeTranslateLoader extends TranslateLoader {
   getTranslation(): Observable<TranslationObject> {
@@ -75,7 +76,14 @@ describe('ShellComponent — bảng dịch về muộn (V-01)', () => {
         provideHttpClientTesting(),
         provideRouter([{ path: 'a', title: 'trang.a', component: TrongComponent }]),
         provideCoreI18n({
-          languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+          languages: [
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+          ],
           defaultLanguage: 'vi',
           sources: ['/i18n/'],
         }),
@@ -102,7 +110,7 @@ describe('ShellComponent — bảng dịch về muộn (V-01)', () => {
 
   afterEach(() => httpMock.verify());
 
-  it('nút tài khoản, tiêu đề tuyến và nhãn menu đổi sang câu đã dịch khi bảng dịch về', async () => {
+  it('nút tài khoản và nhãn menu đổi sang câu đã dịch khi bảng dịch về', async () => {
     await TestBed.inject(Router).navigateByUrl('/a');
     const fixture = TestBed.createComponent(ShellComponent);
     httpMock.expectOne('/core/meta/menu').flush({
@@ -142,11 +150,139 @@ describe('ShellComponent — bảng dịch về muộn (V-01)', () => {
     // Design/Icons.md §5: input `icon` nhận TÊN TRẦN — shell là vế "nơi gọi" của luật đó, còn
     // topbar là vế ghép tiền tố. Truyền `pi-user` ở đây thì DOM ra `pi pi-pi-user`, không vẽ gì.
     expect(topbar.menuItems().map((m) => m.icon)).toEqual(['user', 'sign-out']);
-    const iconHoSo = (fixture.nativeElement as HTMLElement).querySelector('.topbar__muc i');
-    expect(iconHoSo?.classList.contains('pi-user')).toBeTrue();
-    expect(iconHoSo?.classList.contains('pi-pi-user')).toBeFalse();
-    expect(topbar.title()).toBe('Trang A');
+    // Topbar không mang tiêu đề trang (Topbar.md §Accessibility, chốt 2026-10-08).
+    expect('title' in topbar).toBeFalse();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.topbar__tieu-de')).toBeNull();
     expect(sidebar.items().map((m) => m.label)).toEqual(['Trang chủ']);
+  });
+
+  it('icon menu từ máy chủ có hay không có tiền tố `pi-` đều ra đúng một lớp icon ở Sidebar', async () => {
+    await TestBed.inject(Router).navigateByUrl('/a');
+    const fixture = TestBed.createComponent(ShellComponent);
+    const muc = (id: string, icon: string): unknown => ({
+      id,
+      parentId: null,
+      code: id,
+      labelKey: `menu.${id}`,
+      icon,
+      route: `/${id}`,
+      displayOrder: 10,
+    });
+    httpMock.expectOne('/core/meta/menu').flush({
+      success: true,
+      data: [muc('a1', 'pi-users'), muc('a2', 'users')],
+      error: null,
+      traceId: 't-icon',
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const icons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('app-sidebar i.pi'),
+    );
+    expect(icons.length).toBe(2);
+    for (const i of icons) {
+      expect(i.className).toBe('pi pi-users');
+    }
+  });
+
+  it('tenIconTran: cắt tiền tố, giữ tên trần, bỏ rỗng', () => {
+    expect(tenIconTran('pi-users')).toBe('users');
+    expect(tenIconTran('users')).toBe('users');
+    expect(tenIconTran('pi pi-users')).toBe('users');
+    expect(tenIconTran('')).toBeUndefined();
+    expect(tenIconTran(null)).toBeUndefined();
+  });
+});
+
+describe('ShellComponent — khung', () => {
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [ShellComponent],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        provideCoreI18n({
+          languages: [
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+          ],
+          defaultLanguage: 'vi',
+          sources: ['/i18n/'],
+        }),
+        provideTranslateService({
+          lang: 'vi',
+          fallbackLang: 'vi',
+          loader: provideTranslateLoader(FakeTranslateLoader),
+        }),
+        { provide: AuthService, useValue: authGia },
+        { provide: CORE_BRANDING, useValue: { name: 'X', shortName: 'X' } },
+        {
+          provide: CORE_ROUTES,
+          useValue: {
+            dangNhap: '/dang-nhap',
+            doiMatKhauBatBuoc: '/doi',
+            khongCoQuyen: '/403',
+            sauDangNhap: '/',
+          },
+        },
+      ],
+    });
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => httpMock.verify());
+
+  async function dung(): Promise<ComponentFixture<ShellComponent>> {
+    const fixture = TestBed.createComponent(ShellComponent);
+    httpMock
+      .expectOne('/core/meta/menu')
+      .flush({ success: true, data: [], error: null, traceId: 't' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('Footer ở đáy Sidebar (biến thể sidebar, ngoài <nav>); không còn Footer sau main', async () => {
+    const fixture = await dung();
+
+    const goc = fixture.nativeElement as HTMLElement;
+    const footer = goc.querySelector('app-sidebar app-footer footer');
+    expect(footer).not.toBeNull();
+    expect(footer?.classList.contains('footer--sidebar')).toBeTrue();
+    expect(footer?.closest('nav')).toBeNull();
+    expect(goc.querySelectorAll('footer').length).toBe(1);
+    expect(goc.querySelector('main ~ app-footer')).toBeNull();
+  });
+
+  it('truyền `scrolled` cho Topbar theo vùng cuộn thật của main', async () => {
+    const fixture = await dung();
+
+    const goc = fixture.nativeElement as HTMLElement;
+    const topbar = fixture.debugElement.query(By.directive(TopbarComponent))
+      .componentInstance as TopbarComponent;
+    const main = goc.querySelector<HTMLElement>('main')!;
+    expect(topbar.scrolled()).toBeFalse();
+
+    Object.defineProperty(main, 'scrollTop', { value: 40, configurable: true });
+    main.dispatchEvent(new Event('scroll'));
+    fixture.detectChanges();
+    expect(topbar.scrolled()).toBeTrue();
+
+    Object.defineProperty(main, 'scrollTop', { value: 0, configurable: true });
+    main.dispatchEvent(new Event('scroll'));
+    fixture.detectChanges();
+    expect(topbar.scrolled()).toBeFalse();
   });
 });
 
@@ -162,7 +298,14 @@ describe('ShellComponent — menu', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         provideCoreI18n({
-          languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+          languages: [
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+          ],
           defaultLanguage: 'vi',
           sources: ['/i18n/'],
         }),
@@ -256,7 +399,14 @@ describe('ShellComponent — đăng xuất hỏng sau khi đã chọn "Rời đi
         provideHttpClientTesting(),
         provideRouter([]),
         provideCoreI18n({
-          languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+          languages: [
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+          ],
           defaultLanguage: 'vi',
           sources: ['/i18n/'],
         }),
@@ -304,4 +454,94 @@ describe('ShellComponent — đăng xuất hỏng sau khi đã chọn "Rời đi
     expect(thayDoi.dangHoi()).withContext('lần thử lại vẫn phải hỏi').toBeTrue();
     thayDoi.huy();
   });
+});
+
+/** Bản dịch thật của ba câu thông báo — kiểm câu đọc lên, không kiểm khoá thô. */
+class LoaderTheme extends TranslateLoader {
+  getTranslation(): Observable<TranslationObject> {
+    return of({
+      khung: {
+        theme: {
+          daChuyenSang: 'Đã chuyển sang giao diện sáng',
+          daChuyenToi: 'Đã chuyển sang giao diện tối',
+          daChuyenTheoHeThong: 'Đã chuyển sang giao diện theo hệ điều hành',
+        },
+      },
+    });
+  }
+}
+
+/** Topbar.md §Nút theme, Trợ năng: đổi theme → gọi `ThemeService` đúng giá trị + đọc câu qua `aria-live`. */
+describe('ShellComponent — đổi giao diện (khiDoiTheme)', () => {
+  const cacCa = [
+    ['light', 'Đã chuyển sang giao diện sáng'],
+    ['dark', 'Đã chuyển sang giao diện tối'],
+    ['system', 'Đã chuyển sang giao diện theo hệ điều hành'],
+  ] as const;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [ShellComponent],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        provideCoreI18n({
+          languages: [
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+          ],
+          defaultLanguage: 'vi',
+          sources: ['/i18n/'],
+        }),
+        provideTranslateService({
+          lang: 'vi',
+          fallbackLang: 'vi',
+          loader: provideTranslateLoader(LoaderTheme),
+        }),
+        { provide: AuthService, useValue: authGia },
+        { provide: CORE_BRANDING, useValue: { name: 'X', shortName: 'X' } },
+        {
+          provide: CORE_ROUTES,
+          useValue: {
+            dangNhap: '/dang-nhap',
+            doiMatKhauBatBuoc: '/doi',
+            khongCoQuyen: '/403',
+            sauDangNhap: '/',
+          },
+        },
+      ],
+    });
+  });
+
+  for (const [theme, cau] of cacCa) {
+    it(`"${theme}" → ThemeService.setPreference("${theme}") và vùng status đọc đúng câu`, async () => {
+      const setPreference = spyOn(TestBed.inject(ThemeService), 'setPreference');
+      const fixture = TestBed.createComponent(ShellComponent);
+      TestBed.inject(HttpTestingController)
+        .expectOne('/core/meta/menu')
+        .flush({ success: true, data: [], error: null, traceId: 't' });
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const vung = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
+        'div[role="status"]',
+      )!;
+      expect(vung.getAttribute('aria-live')).toBe('polite');
+      expect(vung.textContent?.trim()).toBe('');
+
+      fixture.debugElement
+        .query(By.directive(TopbarComponent))
+        .triggerEventHandler('themeChangeRequested', theme);
+      fixture.detectChanges();
+
+      expect(setPreference).toHaveBeenCalledOnceWith(theme);
+      expect(vung.textContent?.trim()).toBe(cau);
+    });
+  }
 });

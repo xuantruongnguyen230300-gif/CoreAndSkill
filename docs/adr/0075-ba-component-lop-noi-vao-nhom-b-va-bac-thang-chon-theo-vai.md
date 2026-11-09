@@ -6,7 +6,11 @@ verified: chua-doi-chieu
 
 # ADR-0075 — `Menu`, `DatePicker`, `Autocomplete` vào **nhóm B**; bậc thang thời lượng chọn theo **VAI trong `DESIGN.md` §7**, không theo con số trùng; lượt rà `120ms` đóng lại
 
-> **Trạng thái:** Đã chấp nhận (2026-09-23)
+> **Trạng thái:** Đã chấp nhận (2026-09-23) · Sửa một phần bởi [ADR-0123](0123-chuyen-dong-component-primeng-di-bang-token-qua-css-go-hang-ms-f37-het-ap-dung.md) (2026-11-06) · Sửa một phần bởi [ADR-0127](0127-nhip-lop-noi-neo-mot-chu-o-design-spec-component-thoi-dat-so.md) (2026-11-06)
+>
+> ADR-0123: quyết định 1 mất phần cơ chế (hằng TypeScript, F37), quyết định 6 hết hiệu lực; phần còn hiệu lực đọc ở bảng *ADR cũ — phần nào còn hiệu lực* của ADR đó.
+>
+> ADR-0127: quyết định 1 mất nốt phần phân loại — nhịp lớp nổi neo có một chủ ở `DESIGN.md` §7, spec component không đặt số; quyết định 1 không còn phần nào hiệu lực.
 
 ## Bối cảnh
 

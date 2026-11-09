@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0099 — Database dev chung: script chỉ áp sau khi hợp nhất, do người vận hành DB dev áp tay; việc nền của nhiều máy trên cùng dữ liệu ghi thành nợ có điều kiện; công cụ SQL dùng tài khoản Postgres cá nhân
 
-> **Trạng thái:** Đã chấp nhận (2026-09-25) · Bổ sung bởi [ADR-0104](0104-tai-khoan-ung-dung-cua-dev-tren-db-chung-tao-qua-man-quan-tri.md) (2026-09-25)
+> **Trạng thái:** Đã chấp nhận (2026-09-25) · Bổ sung bởi [ADR-0104](0104-tai-khoan-ung-dung-cua-dev-tren-db-chung-tao-qua-man-quan-tri.md) (2026-09-25) · Tạm hoãn bởi [ADR-0110](0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md) (2026-09-28)
 
 ## Bối cảnh
 

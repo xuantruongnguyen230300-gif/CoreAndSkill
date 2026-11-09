@@ -117,6 +117,18 @@ describe('TaoDonViStore', () => {
     expect(hop.lanGuiSai()).toBe(2);
   });
 
+  it('tên đơn vị dài 201 ký tự → không gọi service, lỗi độ dài hiện ở ô tên; 200 ký tự thì gửi', () => {
+    hop.form.controls.name.setValue('a'.repeat(201));
+    hop.gui(() => undefined);
+    expect(service.tao).not.toHaveBeenCalled();
+    expect(hop.loiTruong().name).toBe('[loi.CORE.CLIENT.VALIDATION_MAXLENGTH]');
+
+    service.tao.and.returnValue(of(DON_VI));
+    hop.form.controls.name.setValue('a'.repeat(200));
+    hop.gui(() => undefined);
+    expect(service.tao).toHaveBeenCalledTimes(1);
+  });
+
   it('gửi hợp lệ → lanGuiSai không tăng', () => {
     service.tao.and.returnValue(of(DON_VI));
     hop.gui(() => undefined);

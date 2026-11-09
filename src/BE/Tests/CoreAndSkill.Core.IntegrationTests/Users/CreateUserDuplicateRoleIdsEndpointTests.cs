@@ -79,6 +79,10 @@ public sealed class CreateUserDuplicateRoleIdsEndpointTests : IAsyncLifetime
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
         await _userAdmin.ReceivedWithAnyArgs(1).CreateAsync(default!, default);
+        // docs/contracts/users.md §5: thân 201 là { "id": "…" }, không phải chuỗi GUID trần.
+        var data = (await ReadEnvelope(response)).Data;
+        data.ValueKind.ShouldBe(JsonValueKind.Object);
+        Guid.TryParse(data.GetProperty("id").GetString(), out _).ShouldBeTrue();
     }
 
     private static object Body(Guid[] roleIds) => new

@@ -1,0 +1,5 @@
+@use 'spacing' as s;
+
+:host {
+  @include s.man-danh-sach;
+}

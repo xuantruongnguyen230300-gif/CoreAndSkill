@@ -1,0 +1,12 @@
+// Design/Components/FilterPanel.md §Kích thước — một cột ở `drawer`, khe dọc giữa hai trường --sp-6.
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+}
+
+.filter-panel__loi-tim {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-xs);
+  color: var(--color-danger);
+}

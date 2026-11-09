@@ -12,7 +12,7 @@ verified: chua-doi-chieu
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
 > | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/FilesController.cs` có action `Upload`, `Download`, `Remove` — khớp route §1–§3; thân, mã lỗi, `Content-Disposition`, 404 thay 403 và giới hạn dung lượng đã được kiểm qua HTTP ở `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Web/B4FilesEndpointTests.cs` | Gọi thử thật trên DB, thay ví dụ bằng response thật, rồi mới lật `Status:` |
-> | Bộ lọc đơn vị, xoá mềm, cột `created_by` do interceptor đóng dấu: viết thành test ở `FilesDatabaseTests.cs` (`RequiresDocker`) — **chưa chạy** | Chạy được ở CI có Docker, rồi mới coi chiều DB là đã chứng minh |
+> | Bộ lọc đơn vị, xoá mềm, cột `created_by` do interceptor đóng dấu: test ở `FilesDatabaseTests.cs` (`RequiresDocker`) xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Lớp đó xanh trên CI — CI chưa chạy với bản này |
 > | Tệp **chưa gắn** bản ghi chủ: hiện thực cho **chỉ người tải lên** đọc/gỡ được. [`../luong/N2-dinh-kem-tep.md`](../luong/N2-dinh-kem-tep.md) §6 câu 2 còn để mở — đây là lựa chọn của người thi công, **chưa được `architect` chốt** | `architect` chốt; card này ghi lại quy tắc đã chốt ở §4 |
 > | Thân tải xuống ngoài `Content-Disposition: attachment` còn mang `X-Content-Type-Options: nosniff` và `Cache-Control: no-store` | Giữ nguyên |
 >
@@ -34,7 +34,7 @@ Nhận một tệp và trả về mã tệp để gắn vào bản ghi nghiệp 
 | Phần | Bắt buộc | Ghi chú |
 | --- | --- | --- |
 | `file` | ✅ | Nội dung tệp |
-| `purpose` | ✅ | Mục đích lưu, do module khai. Quyết định thư mục đích và giới hạn áp dụng — lưu ở cột `purpose` của `core.file` ([`../database/schema-core.md`](../database/schema-core.md) §9.7) |
+| `purpose` | ✅ | Mục đích lưu, do module khai. Tối đa 50 ký tự. Quyết định thư mục đích và giới hạn áp dụng — lưu ở cột `purpose` của `core.file` ([`../database/schema-core.md`](../database/schema-core.md) §9.7) |
 
 ### Response 200
 
@@ -60,14 +60,14 @@ Bốn field ứng với cột `id` · `original_name` · `content_type` · `size
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.FILE.TOO_LARGE` | `Validation` | 400 | Vượt giới hạn dung lượng — trần chung `Core:File:MaxUploadMb` hoặc trần hẹp hơn của `purpose` đó. Cũng là mã trả khi thân request vượt trần từ trước lúc đọc hết nội dung (`Content-Length` khai quá trần, hoặc luồng bị ngắt giữa chừng) |
+| `CORE.FILE.TOO_LARGE` | `Validation` | 400 | Vượt giới hạn dung lượng — trần chung `Core:File:MaxUploadMb` hoặc trần hẹp hơn của `purpose` đó. Cũng là mã trả khi thân request vượt trần từ trước lúc đọc hết nội dung (`Content-Length` khai quá trần, hoặc luồng bị ngắt giữa chừng). `messageParams.MaxBytes` là trần đã áp, tính bằng byte: trần chung khi bị chặn trước lúc đọc hết thân, trần của `purpose` khi chặn sau |
 | `CORE.FILE.TYPE_NOT_ALLOWED` | `Validation` | 400 | Kiểu tệp ngoài danh sách cho phép của `purpose` đó |
 
 **Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | Thiếu tệp, thiếu `purpose`, tệp rỗng |
+| `CORE.VALIDATION.FAILED` | Thiếu tệp, thiếu `purpose`, tệp rỗng — mã `CORE.VALIDATION.REQUIRED`; `purpose` quá 50 ký tự — `CORE.VALIDATION.MAX_LENGTH`; `purpose` không có trong danh mục mục đích đã khai — `CORE.VALIDATION.FORMAT`. `fieldErrors` mang khoá `File` / `Purpose` |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |

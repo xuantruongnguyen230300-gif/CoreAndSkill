@@ -1,12 +1,12 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-05
 ---
 
 # 04. Hệ design token
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Đây là hệ thống phải dựng ở pha F1.
+> **Hiện trạng:** hàng ghi `✅ CÓ THẬT` ở §10 đã đối chiếu với `src/` ngày 2026-11-05, neo ở từng hàng. Các khối SCSS ở §3.2, §4.1, §6.2 là minh hoạ cơ chế, không trích code đang chạy; khối ở §7.1 là khuôn — danh sách sub-preset thật đọc ở tệp nguồn. Hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
 >
 > **Giá trị token — tên khoá, mã màu, thang chữ — nằm ở [`../../Design/DESIGN.md`](../../Design/DESIGN.md), không nằm ở file này.** File này mô tả *cơ chế* và *luật*. Mọi tên token viết dưới đây là **minh hoạ cách đặt tên**, không phải danh sách chốt.
 >
@@ -53,7 +53,7 @@ Công cụ trích token từ code ra tài liệu — nếu có — chỉ dùng �
 | **Màu** | `--surface`, `--text`, `--brand`, `--line`, `--warn` | Đặt theo **vai trò**, không theo giá trị | `--xanh-duong` là tên chết ngay khi thương hiệu đổi màu |
 | **Chữ** | `--font-body`, `--fs-300`, `--lh-tight`, `--fw-semibold` | Thang rời rạc, không giá trị tự do | Cho phép cỡ chữ tuỳ ý là mất luôn nhịp thị giác |
 | **Khoảng cách** | `--sp-1` … `--sp-8` | Thang nhân từ một đơn vị gốc | Trộn thang với giá trị lẻ thì thang mất nghĩa |
-| **Bóng & bo góc** | `--shadow-card`, `--shadow-overlay`, `--radius-md` | Đặt theo **lớp độ cao**, không theo số | `--shadow-2` không cho biết dùng ở đâu |
+| **Bóng & bo góc** | `--shadow-0` … `--shadow-4`, `--radius-sm`, `--radius-md` | Thang có thứ tự — bóng đánh số theo độ cao, bo góc theo cỡ; bậc nào dùng ở đâu khai ở cột *Dùng ở đâu* của [`DESIGN.md`](../../Design/DESIGN.md) §5.1, §5.2 | Đặt tên theo một component (`--shadow-card`) thì hai component cùng độ cao phải giữ hai token cho một giá trị |
 
 ### 3.1 Đặt tên theo vai trò — vì sao đây là quy tắc quan trọng nhất
 
@@ -63,26 +63,23 @@ Công cụ trích token từ code ra tài liệu — nếu có — chỉ dùng �
 
 Cùng lý do, tránh tên gắn với **vị trí duy nhất**: `--mau-nen-sidebar` chỉ dùng được ở một chỗ. Đặt là `--surface-nav` thì dùng lại được cho thanh điều hướng thứ hai.
 
-### 3.2 Token ngữ nghĩa và token gốc
+### 3.2 Tầng nguyên thuỷ và tầng ngữ nghĩa
 
-Hai tầng, và chỉ tầng ngoài được dùng trong component:
+> 📖 Ba tầng token và ai được dùng tầng nào: đọc [`../../Design/DESIGN.md`](../../Design/DESIGN.md) §1.
+
+Tầng nguyên thuỷ là **mã màu thô và bậc px**, không phải một tập biến có tên: nó chỉ xuất hiện trong file khai token, làm giá trị của token ngữ nghĩa. Component chỉ đọc token ngữ nghĩa và token riêng của chính nó.
 
 ```scss
 :root {
-  /* Tầng gốc — bảng màu thô, KHÔNG dùng trực tiếp trong component */
-  --blue-600: <một mã màu>;
-
-  /* Tầng ngữ nghĩa — thứ component được phép dùng */
-  --brand: var(--blue-600);
-  --focus-ring: var(--blue-600);
+  /* Tầng ngữ nghĩa — mã thô (tầng nguyên thuỷ) chỉ nằm ở đây, làm giá trị */
+  --color-brand: <một mã màu>;
+  --color-focus: <một mã màu>;
 }
 ```
 
-> 🛑 **Bốn tên trên là minh hoạ KHÁI NIỆM, không phải token của Core.** Tên thật và giá trị thật khai ở [`../../Design/DESIGN.md`](../../Design/DESIGN.md) — đó là nguồn duy nhất, theo [`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §7. Khu này giải thích **vì sao** cần hai tầng; nó không đặt tên cho hệ nào.
+Lợi ích: khi chế độ tối cần `--color-brand` sáng hơn để đủ tương phản, chỉ giá trị trong khối theme tối đổi; component đọc `var(--color-brand)` không sửa gì. Component viết thẳng mã màu thì không có chỗ nào để can thiệp.
 
-Lợi ích thật: khi chế độ tối cần đổi `--brand` sang sắc độ sáng hơn để đủ tương phản, chỉ tầng ngữ nghĩa đổi. Nếu component dùng thẳng `--blue-600`, không có chỗ nào để can thiệp.
-
-Cái giá là một tầng gián tiếp nữa. Nó đáng trả vì đúng một lý do: **chế độ tối và đổi thương hiệu đều tác động lên tầng ngữ nghĩa, không lên tầng gốc.**
+Cái giá: hai token ngữ nghĩa trùng giá trị giữ hai bản mã thô — ở theme sáng `--color-focus` trùng `--color-brand` ([`DESIGN.md`](../../Design/DESIGN.md) §2.6). Đổi sắc độ thương hiệu phải sửa cả hai, và sót một chỗ thì không có gì báo.
 
 ---
 
@@ -118,7 +115,7 @@ Ba trạng thái, không phải hai: **sáng**, **tối**, và **theo hệ đi�
 ### 4.2 Ba luật đi kèm
 
 1. **Component không được biết đang ở chế độ nào.** Không có `@media (prefers-color-scheme: dark)` trong SCSS của component. Chế độ tối được xử lý trọn vẹn ở tầng token; component chỉ đọc `var()`. Vi phạm luật này là chế độ tối rò rỉ ra khắp codebase và không ai gom lại được nữa.
-2. **Bóng đổ phải khai lại, không chỉ màu.** Bóng đen trên nền tối gần như vô hình. Chế độ tối thường dùng đường viền sáng thay bóng — nên `--shadow-card` phải là token có giá trị riêng cho mỗi chế độ.
+2. **Bóng đổ phải khai lại, không chỉ màu.** Bóng đen trên nền tối gần như vô hình; theme tối bù bằng bề mặt sáng dần, và mỗi bậc `--shadow-*` mang giá trị riêng cho từng chế độ ([`DESIGN.md`](../../Design/DESIGN.md) §5.2).
 3. **Tương phản phải đo lại ở cả hai chế độ.** Một cặp màu đạt AA ở chế độ sáng không bảo đảm gì ở chế độ tối. Xem [`15-accessibility.md`](15-accessibility.md) §4.
 
 ### 4.3 Lưu lựa chọn ở đâu
@@ -141,7 +138,7 @@ Một mã hex trong file style của component là **một bản sao của một
 
 Nơi **duy nhất** được phép giữ literal là chỗ khai token toàn cục — vì ở đó literal là **định nghĩa**, không phải bản sao.
 
-> ⚠️ Ở dự án tiền nhiệm, luật này được dọn tay hai lần và tự tái sinh cả hai lần: hex mới xuất hiện ngay ở đợt màn hình kế tiếp. Nó chỉ dừng lại khi có script kiểm. **Luật không có cổng thì không phải luật** — xem [`../../DEBT.md`](../../DEBT.md).
+> ⚠️ Ở dự án tiền nhiệm, luật này được dọn tay hai lần và tự tái sinh cả hai lần: hex mới xuất hiện ngay ở đợt màn hình kế tiếp. Nó chỉ dừng lại khi có script kiểm. **Luật chưa có cổng chỉ còn người canh** — dòng 🕳️, cột *Ép bằng gì* ở [`../../RULES-FE.md`](../../RULES-FE.md).
 
 ---
 
@@ -163,7 +160,7 @@ background: rgba(15, 91, 215, .08);       /* bản sao của một quyết đị
 background: rgba(0, 0, 0, .5);            /* CẤM — xem lý do dưới */
 ```
 
-**Vì sao `rgba(0, 0, 0, .5)` cũng bị cấm dù trông vô hại:** nó vẫn là một quyết định thiết kế. Độ tối của lớp phủ sau modal là thứ nhà thiết kế chọn, thứ phải đổi ở chế độ tối, và thứ sản phẩm thứ hai có thể muốn khác. Nó thuộc `Design/` như mọi màu khác — tên nó là `--overlay-backdrop`, không phải "đen 50%".
+**Vì sao `rgba(0, 0, 0, .5)` cũng bị cấm dù trông vô hại:** nó vẫn là một quyết định thiết kế. Độ tối của lớp phủ sau modal là thứ nhà thiết kế chọn, thứ phải đổi ở chế độ tối, và thứ sản phẩm thứ hai có thể muốn khác. Nó thuộc `Design/` như mọi màu khác — tên nó là `--color-overlay` ([`DESIGN.md`](../../Design/DESIGN.md) §2.6), không phải "đen 50%".
 
 **Vì sao miễn trừ phải theo cú pháp:** miễn trừ theo giá trị đòi hỏi một danh sách "giá trị vô hại". Danh sách đó không có tiêu chí khách quan nào để từ chối thêm một giá trị nữa, nên nó sẽ dài ra sau mỗi lần ai đó thấy phiền — và tới lúc nào đó, cổng tha nhiều hơn bắt. Miễn trừ theo cú pháp thì khác: dạng `rgb(var(--x) / a)` **không mang giá trị màu nào**, nên nó không có gì để lệch khi đổi theme. Đó là một tiêu chí đúng vĩnh viễn, không phải một danh sách phải bảo trì.
 
@@ -181,7 +178,7 @@ Cách đúng: một **preset styled** ở `core/theme/`, dựng từ preset Aura
 
 | Việc | Cơ chế |
 | --- | --- |
-| Tầng được ghi đè | Tầng **semantic** `colorScheme`: primary, highlight, formField, content, overlay, text, focusRing — mỗi giá trị trỏ một `var(--color-*)` |
+| Tầng được ghi đè | Tầng **semantic**: primary, highlight, formField, content, overlay, text, mask nằm dưới `colorScheme`, mỗi màu trỏ một `var(--color-*)` — `mask` chỉ mang khoá `background`, lớp phủ sau hộp modal, trỏ `var(--color-overlay)`; `focusRing` nằm ngoài `colorScheme` vì dùng chung hai chế độ — màu `var(--color-focus)`, hình học outline + offset của [`DESIGN.md`](../../Design/DESIGN.md) §2.6 |
 | Thời lượng chuyển động của thư viện | Cũng ở tầng semantic, nhưng **ngoài** `colorScheme` vì nó không đổi theo chế độ sáng/tối: `transitionDuration` (mọi chuyển tiếp nhỏ) và `mask.transitionDuration` (backdrop của lớp nổi modal), mỗi giá trị trỏ một `var(--dur-*)`. Hai khoá, không phải một khoá cho mỗi component — mọi sub-preset đều đổ về đây; xem §7.2 |
 | Thang màu 50–950 của preset | **Không** dựng. Tầng semantic đã trỏ token của mình thì không còn chỗ nào cần thang đó |
 | Component token còn trỏ thẳng palette | Đè riêng từng chỗ, cũng bằng `var(--color-*)` |
@@ -190,7 +187,7 @@ Cách đúng: một **preset styled** ở `core/theme/`, dựng từ preset Aura
 
 ### 7.1 Cú pháp import preset — ghép từng sub-preset, không import object `Aura` gộp
 
-`@primeuix/themes/aura` export default một object gộp tĩnh khoảng 90 sub-preset — mỗi loại control PrimeNG một sub-preset (`button`, `toast`, `message`, `datatable`...). Import object đó kéo theo theme của toàn bộ ~90 component vào bundle initial, kể cả những component chưa màn nào dùng — đã đo thấy làm bundle initial vượt ngân sách cảnh báo của luật F14 (`docs/RULES.md`). Quyết định và số liệu đo: [`../../adr/0038-preset-primeng-tung-sub-theo-phan-dung.md`](../../adr/0038-preset-primeng-tung-sub-theo-phan-dung.md).
+`@primeuix/themes/aura` export default một object gộp tĩnh khoảng 90 sub-preset — mỗi loại control PrimeNG một sub-preset (`button`, `toast`, `message`, `datatable`...). Import object đó kéo theo theme của toàn bộ ~90 component vào bundle initial, kể cả những component chưa màn nào dùng — đã đo thấy làm bundle initial vượt ngân sách cảnh báo của luật F14 ([`../../RULES-FE.md`](../../RULES-FE.md)). Quyết định và số liệu đo: [`../../adr/0038-preset-primeng-tung-sub-theo-phan-dung.md`](../../adr/0038-preset-primeng-tung-sub-theo-phan-dung.md).
 
 Cú pháp đã chốt: package tách sẵn export theo sub-path cho từng sub-preset — `@primeuix/themes/aura/<x>`, với `<x>` là tên component viết thường (`base`, `button`, `toast`, `message`...). `core/theme/prime-preset.ts` ghép TỪNG sub-preset đó thành preset gốc bằng cách spread, rồi mới truyền vào `definePreset` cùng phần override token:
 
@@ -212,19 +209,38 @@ export const CORE_PRIME_PRESET = definePreset(AURA_SUBSET, {
 });
 ```
 
-Tập sub-preset phải có — gồm cả component con mà component PrimeNG được import dựng bên trong — là **luật F29** ở [`../../RULES.md`](../../RULES.md) §7, lý do ở [`../../adr/0056-f29-tinh-component-con-duoc-dung-ben-trong.md`](../../adr/0056-f29-tinh-component-con-duoc-dung-ben-trong.md). Danh sách sub-preset thật cần hôm nay đọc trực tiếp ở `src/FE/src/app/core/theme/prime-preset.ts` — không chép lại danh sách đó vào tài liệu này (luật `.claude/CLAUDE.md` §6: nội dung đếm được bằng lệnh thì không chép tay).
+Tập sub-preset phải có — gồm cả component con mà component PrimeNG được import dựng bên trong — là **luật F29** ở [`../../RULES-FE.md`](../../RULES-FE.md) §7, lý do ở [`../../adr/0056-f29-tinh-component-con-duoc-dung-ben-trong.md`](../../adr/0056-f29-tinh-component-con-duoc-dung-ben-trong.md). Danh sách sub-preset thật cần hôm nay đọc trực tiếp ở `src/FE/src/app/core/theme/prime-preset.ts` — không chép lại danh sách đó vào tài liệu này (luật `.claude/CLAUDE.md` §6: nội dung đếm được bằng lệnh thì không chép tay).
 
-⚠️ **Cái giá phải trả:** thiếu một sub-preset khi thêm component mới không gây lỗi biên dịch — component vẫn chạy nhưng **sai theme** (dùng token mặc định của PrimeNG thay vì `var(--color-*)`). Cho tới khi có cổng F29 thật (xem `docs/DEBT.md`), lớp bắt duy nhất là review bằng mắt.
+⚠️ **Cái giá phải trả:** thiếu một sub-preset khi thêm component mới không gây lỗi biên dịch — component vẫn chạy nhưng **sai theme** (dùng token mặc định của PrimeNG thay vì `var(--color-*)`). Cổng F29 ([`../../RULES-FE.md`](../../RULES-FE.md)) bắt sub-preset thiếu cho component PrimeNG import trực tiếp; vế *component con thật sự dựng bên trong* chỉ `prime-preset.spec.ts` canh.
 
 **Hệ quả:** literal màu chỉ còn ở tệp khai token (`_tokens.scss`, [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §3.3). Đổi bảng màu là sửa một nơi; CSS của mình và component thư viện không thể vẽ hai màu khác nhau cho cùng một token, vì cả hai đọc cùng một biến.
 
-### 7.2 Thời lượng chuyển động — nối ở gốc, và cái giá của nhóm không nối được
+### 7.2 Thời lượng chuyển động — nối ở gốc, và đè trên lớp chuyển động khi gốc không với tới
 
 Thời lượng **không** đi theo khuôn "mỗi component một chỗ đè" của màu, vì hình dạng của nó ở tầng dưới khác hẳn: mọi sub-preset đều khai `root.transitionDuration` trỏ tới **một trong hai** tên — `{transition.duration}` hoặc `{form.field.transition.duration}` — và Aura lại khai nhánh thứ hai bằng chính nhánh thứ nhất. Hai nhánh hội tụ, nên nối ở gốc là **một** dòng và mọi component bọc thêm về sau tự thừa hưởng. Khai thêm nhánh `formField` cho "dễ đọc" là dựng nguồn thứ hai cho cùng một giá trị — đúng thứ mục này cấm.
 
-Phía kia của ranh giới là nhóm chạy hoạt ảnh **Angular** chứ không CSS: tham số của chúng là một chuỗi bị phân tích thành số và **không giải `var()`**, nên token đặt được *giá trị* nhưng không *đi tới* được. Giá trị của nhóm đó buộc phải sống ở nơi thứ hai — một hằng số TypeScript — và luật **F37** ([`../../RULES.md`](../../RULES.md) §7) đòi hằng số ấy nêu **đích danh** token nó phản chiếu, để hai nơi truy được về nhau.
+Phía kia của ranh giới là các component mà thời lượng chuyển động **không** đi qua token nào của preset: thư viện viết cứng nó trong khai báo `animation` của **lớp chuyển động theo pha** — một lớp gắn lúc vào, một lớp gắn lúc ra. Token vẫn tới được, vì bộ chạy chuyển động của thư viện, khi không được truyền thời lượng, đọc **giá trị đã tính** của phần tử — và trình duyệt đã giải `var()` trước đó. Nên luật **F62** ([`../../RULES-FE.md`](../../RULES-FE.md) §7) đè thời lượng và đường cong ngay trên lớp chuyển động, ở tệp gom override, bằng `var(--dur-*)` và `var(--ease-*)`; lớp bọc không truyền số nào từ TypeScript. Truyền số thì thư viện ghi nó thành style nội tuyến và bỏ qua CSS — giá trị lại sống ở nơi thứ hai.
 
-🛑 Đây là ngoại lệ **có giá**, không phải một khuôn để nhân bản: nó chỉ áp cho chỗ token thật sự không tới được, và F37 làm hai nơi *truy được về nhau* chứ không làm chúng thành một. Ranh giới, danh sách component nhóm này, và lý do từng phương án khác bị loại: [`../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md`](../../adr/0073-token-thoi-luong-noi-o-mot-khoa-semantic-nhom-b-di-bang-hang-so-co-ten.md).
+⚠️ Hai bẫy, cả hai im lặng:
+
+- **Tên lớp chuyển động là tên nội bộ của thư viện, không phải API.** Đổi tên ở một lượt nâng thì khối đè không khớp gì, thư viện chạy lại số của nó, build và lint vẫn xanh. Chỉ spec của lớp bọc — đo giá trị đã tính trên phần tử đang mang lớp pha — bắt được.
+- **Thư viện định thời theo thời lượng LỚN NHẤT** trong mọi `transition`, `animation` của phần tử chuyển động. Một `transition` dài hơn giành quyền kết thúc pha, và phần tử nhảy về chỗ cũ trong khoảng lệch. Đè cả hai, cùng token.
+
+Component nào, phương án đã loại, cái giá: [`../../adr/0123-chuyen-dong-component-primeng-di-bang-token-qua-css-go-hang-ms-f37-het-ap-dung.md`](../../adr/0123-chuyen-dong-component-primeng-di-bang-token-qua-css-go-hang-ms-f37-het-ap-dung.md).
+
+✅ **CÓ THẬT** (ADR-0123 đã thi công; đối chiếu 2026-11-06 bằng đọc mã, cộng `ng test` cùng ngày cho hàng spec):
+
+| Hạng mục | Neo |
+| --- | --- |
+| Lớp bọc không còn hằng thời lượng, không bind input chuyển động nào | `grep -rnE '\[(show\|hide)?[tT]ransitionOptions\]\|_TRANSITION_OPTIONS' src/FE/src/app/shared/ui` không in dòng nào |
+| `Dialog` đè hai pha trên lớp chuyển động | `src/FE/src/styles/_thu-vien.scss`, chuỗi `&.p-dialog-enter-active {` |
+| `Drawer` đè hai pha trên tấm, gỡ `transition` của thư viện trên tấm | Cùng tệp, chuỗi `&:is(.p-drawer-enter-left, .p-drawer-enter-right, .p-drawer-enter-bottom) {` và `transition: none;` |
+| `Toast` đè hai pha, kể cả `transition` của phần tử con | Cùng tệp, chuỗi `p-toast .p-toast-message-enter-active {` và `p-toast .p-toast-message-content {` |
+| Lớp nổi neo một khối chung | Cùng tệp, chuỗi `body .p-anchored-overlay-enter-active {` |
+| Spec cạnh từng lớp bọc chứng minh token tới đích | Bốn khối `describe` nêu ở dòng F62 của [`../../RULES-FE.md`](../../RULES-FE.md) — không chép lại ở đây |
+| Section F37 và canary đã gỡ | `grep -c '^section "F37' scripts/fe-gate.sh` in `0`; `ls scripts/tests/` không có `fe-gate-f37.test.sh` |
+
+🚧 Khối đè lớp phủ của `Drawer` trong `src/FE/src/styles/_thu-vien.scss` chưa đối chiếu ở lượt này: một lượt sửa lỗi lớp phủ còn sót lại sau khi đóng đang chạy và có thể đổi khối đó. Sẽ thành: khối đè trỏ lớp pha `-active` của thư viện, và lớp phủ rời `<body>` khi pha ra xong.
 
 Nếu chỉ nhớ một câu từ mục này: **hai nơi giữ cùng một giá trị thì chúng sẽ lệch nhau; việc phải làm là chọn một nơi làm nguồn, không phải cẩn thận hơn.**
 
@@ -242,23 +258,38 @@ Kiểm bằng công cụ dev: giá trị `font-family` đã tính toán phải *
 
 ---
 
-## 9. Kiểm chứng ở pha F1
+## 9. Kiểm chứng
 
-> 📖 Danh sách nghiệm thu F1: đọc [`trien-khai/02-f1-design-token.md`](trien-khai/02-f1-design-token.md) §7.
+Đi **bằng tay** trên ứng dụng chạy thật, cả hai chế độ sáng và tối.
+
+- [ ] Mọi token trong `Design/` có mặt trong stylesheet toàn cục, **đúng tên**
+- [ ] Không token nào được thêm mà chưa có tên trong `Design/`
+- [ ] Tìm hex trong SCSS của `src/app` → **không kết quả** (luật F6)
+- [ ] Tìm `rgb(`/`rgba(` trong SCSS của `core/`, `shared/`, `platform/` → chỉ còn dạng đọc token pha alpha (luật F7)
+- [ ] Đổi một token màu thương hiệu → **cả** CSS của mình lẫn component thư viện đổi theo
+- [ ] Mở lần đầu, chưa từng chọn theme, trên máy đang để chế độ tối → giao diện **sáng**
+- [ ] Chọn "theo hệ điều hành" trên máy đang để chế độ tối → không mảng nào còn nền sáng
+- [ ] Tìm mã màu trong `core/theme/` → không kết quả; preset chỉ trỏ `var(--color-*)`
+- [ ] Chọn "sáng" tường minh khi hệ điều hành đang tối → giao diện sáng thật
+- [ ] Tải lại trang ở chế độ tối → **không có nháy trắng**
+- [ ] `font-family` đã tính toán phân giải ra đúng font đã khai (§8)
+- [ ] Tab bằng bàn phím qua một màn mẫu → thấy rõ trạng thái focus ở mọi control
+- [ ] Mọi cặp màu token đạt ngưỡng tương phản AA ở **cả hai** chế độ
+- [ ] Một nút và một bảng của thư viện UI render đúng màu token
 
 ---
 
 ## 10. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Hàng `✅ CÓ THẬT` đã đối chiếu với `src/` ngày 2026-11-05, neo ở cột *Ghi chú*. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| Hai tầng token gốc và ngữ nghĩa | ✅ sẽ có | §3.2 |
-| Bốn họ token: màu, chữ, khoảng cách, bóng và bo góc | ✅ sẽ có | Pha F1 |
-| Ba trạng thái sáng / tối / theo hệ điều hành, mặc định sáng | ✅ sẽ có | §4.1 — [`../../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md`](../../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md) |
-| Preset ánh xạ token vào thư viện UI | ✅ sẽ có | §7 — preset trỏ `var(--color-*)`, không giữ mã màu |
-| Cổng F6 và F7 | ✅ sẽ có | Bật ngay khi token vừa có, ở pha F1 |
+| Tầng ngữ nghĩa là bề mặt công khai, mã thô chỉ làm giá trị trong file khai token | ✅ CÓ THẬT (2026-11-05) | §3.2, [`DESIGN.md`](../../Design/DESIGN.md) §1 — `src/FE/src/styles/_tokens.scss`, chuỗi `--color-brand: #1a56b8;`. Vế *component không viết mã thô* do cổng F6, F7 canh |
+| Bốn họ token: màu, chữ, khoảng cách, bóng và bo góc | ✅ CÓ THẬT (2026-11-05) | Pha F1 — màu, bo góc, bóng ở `src/FE/src/styles/_tokens.scss` (chuỗi `--color-surface:`, `--radius-md:`, `--shadow-1:`); chữ ở `src/FE/src/styles/_typography.scss` (chuỗi `--fs-md:`); khoảng cách ở `src/FE/src/styles/_spacing.scss` (chuỗi `--sp-4:`) |
+| Ba trạng thái sáng / tối / theo hệ điều hành, mặc định sáng | ✅ CÓ THẬT (2026-11-05) | §4.1 — [`../../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md`](../../adr/0018-thang-trung-tinh-sang-va-theme-mac-dinh.md); `src/FE/src/app/core/theme/theme.service.ts`, chuỗi `export type ThemePreference`; script sớm ở `src/FE/src/index.html`, chuỗi `t === 'dark' ? 'dark' : 'light'`; khối theo hệ điều hành ở `src/FE/src/styles/_tokens.scss`, chuỗi `:root:not([data-theme='light'])` |
+| Preset ánh xạ token vào thư viện UI | ✅ CÓ THẬT (2026-11-05) | §7 — preset trỏ `var(--color-*)`, không giữ mã màu: `src/FE/src/app/core/theme/prime-preset.ts`, chuỗi `export const CORE_PRIME_PRESET = definePreset(AURA_SUBSET`; đăng ký ở `src/FE/src/app/app.config.ts`, chuỗi `darkModeSelector: false, cssLayer: true` |
+| Cổng F6 và F7 | ✅ CÓ THẬT (2026-11-05) | Bật ngay khi token vừa có, ở pha F1 — `scripts/fe-gate.sh`, chuỗi `section "F6 - ` và `section "F7 - `; canary và lỗ đã biết ở dòng F6, F7 của [`../../RULES-FE.md`](../../RULES-FE.md) |
 | Sinh token tự động từ nguồn Design | ❌ chưa | Điều kiện: số token vượt mức chép tay còn tin cậy được |
 | Nhiều bộ thương hiệu trên cùng một bản build | ❌ chưa | Điều kiện: có sản phẩm thứ hai chạy chung một lần triển khai |
 | Chế độ tương phản cao riêng | ❌ chưa | Điều kiện: có yêu cầu thật từ người dùng |
@@ -279,4 +310,3 @@ Kiểm bằng công cụ dev: giá trị `font-family` đã tính toán phải *
 | Bọc thư viện UI | [`05-component-library.md`](05-component-library.md) |
 | Tương phản màu và ngưỡng | [`15-accessibility.md`](15-accessibility.md) |
 | Cổng ép luật F6/F7 | [`trien-khai/05-gate.md`](trien-khai/05-gate.md) |
-| Đưa token vào code ở pha nào | [`trien-khai/02-f1-design-token.md`](trien-khai/02-f1-design-token.md) |

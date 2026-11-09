@@ -136,6 +136,92 @@ public partial class B4SupportTests
         FailureText.Describe(thrown).ShouldNotContain(nameof(FailureText_NeverIncludesTheStackTrace));
     }
 
+    // ---- FailureText.DescribeWithStack — B28 (docs/wiki-core/be/07-observability.md §5) --------
+
+    [Fact]
+    public void DescribeWithStack_FiltersTheMessage_OfEveryLayer()
+    {
+        var inner = new InvalidOperationException("password: Abc@12345 rejected");
+        var outer = new ApplicationException(
+            "token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N failed", inner);
+
+        var text = FailureText.DescribeWithStack(outer);
+
+        text.ShouldNotContain("Abc@12345");
+        text.ShouldNotContain("eyJhbGciOiJIUzI1NiJ9");
+    }
+
+    [Fact]
+    public void DescribeWithStack_KeepsTheStackFrames_OfEveryLayer()
+    {
+        var outer = BuildTwoLayerException();
+
+        var text = FailureText.DescribeWithStack(outer);
+
+        text.ShouldContain(nameof(ThrowInnerLayer));
+        text.ShouldContain(nameof(ThrowOuterLayer));
+        // Chỉ có trong ngăn xếp của tầng NGOÀI cùng (ngăn xếp tầng trong đã chứa cả hai tên ở trên).
+        text.ShouldContain(nameof(BuildTwoLayerException));
+    }
+
+    [Fact]
+    public void DescribeWithStack_WalksEveryBranch_OfAnAggregateException()
+    {
+        var aggregate = new AggregateException(
+            "hai việc song song đều lỗi",
+            Thrown(() => throw new InvalidOperationException("first branch")),
+            Thrown(() => throw new ArgumentException("second branch")));
+
+        var text = FailureText.DescribeWithStack(aggregate);
+
+        text.ShouldContain(nameof(InvalidOperationException));
+        text.ShouldContain("first branch");
+        text.ShouldContain(nameof(ArgumentException));
+        text.ShouldContain("second branch");
+    }
+
+    private static Exception BuildTwoLayerException()
+    {
+        try
+        {
+            ThrowOuterLayer();
+        }
+        catch (Exception ex)
+        {
+            return ex;
+        }
+
+        throw new InvalidOperationException("BuildTwoLayerException đã không ném ra như mong đợi.");
+    }
+
+    private static void ThrowOuterLayer()
+    {
+        try
+        {
+            ThrowInnerLayer();
+        }
+        catch (Exception inner)
+        {
+            throw new ApplicationException("outer boom", inner);
+        }
+    }
+
+    private static void ThrowInnerLayer() => throw new InvalidOperationException("inner boom");
+
+    private static Exception Thrown(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception ex)
+        {
+            return ex;
+        }
+
+        throw new InvalidOperationException("Thrown(): action đã không ném ra như mong đợi.");
+    }
+
     // ---- CoreMetrics: ảnh chụp outbox ----------------------------------------------------------
 
     [Fact]

@@ -8,7 +8,7 @@ verified: chua-doi-chieu
 
 > 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). **Luật chấm dưới đây đang có hiệu lực:** `src/BE` và `src/FE` đã có trên đĩa, nên đã có code thật để review.
 >
-> 🛑 File này **không** tự mang nhãn `📐`: §3.2 loại mọi mục mang `📐` khỏi tầm chấm, nên một nhãn `📐` ở đây sẽ vô hiệu hoá chính nó. Nội dung luật chấm chưa được đối chiếu toàn file với code, nên `verified:` giữ `chua-doi-chieu`.
+> 🛑 File này **không** tự mang nhãn `📐`: §3.2 miễn finding *code thiếu X* cho mục mang `📐`, nên một nhãn `📐` ở đây sẽ đọc thành *luật chấm chưa áp* và vô hiệu hoá chính nó. Nội dung luật chấm chưa được đối chiếu toàn file với code, nên `verified:` giữ `chua-doi-chieu`.
 >
 > File này **không nhắc lại quy ước** — quy ước nằm ở các file `be-*.md` và `fe-*.md` cạnh đây. Nó chỉ trả lời: *lệch khỏi quy ước thì chấm mức nào, và trường hợp nào lệch mà **không** phải lỗi.*
 
@@ -76,21 +76,23 @@ Ba nhóm dưới đây bị báo nhầm thường xuyên nhất. Báo nhầm kh�
 
 [`../wiki-core/`](../wiki-core/) mô tả *một core tốt gồm những gì* — nó có thể **vượt nhu cầu** của dự án hiện tại. Khoảng cách giữa nó và [`../quy-uoc/`](../quy-uoc/) là cố ý, không phải nợ.
 
-**Không phải finding:** code không có một thành phần mà `wiki-core/` mô tả, trong khi quyết định bỏ nó đã được ghi nhận — trong ADR, trong một mục "vì sao chưa làm" của chính file quy ước, hoặc trong bảng nợ ở [`../DEBT.md`](../DEBT.md).
+**Không phải finding:** code không có một thành phần mà `wiki-core/` mô tả, trong khi quyết định bỏ nó đã được ghi nhận — trong ADR, trong một mục "vì sao chưa làm" của chính file quy ước, hoặc ở một dòng `🕳️` của tệp `RULES-*.md` — mục lục ở [`../RULES.md`](../RULES.md).
 
 Ví dụ cụ thể theo các quyết định đã chốt: chỉ có hai pipeline behavior ([`../adr/0006-pipeline-behavior.md`](../adr/0006-pipeline-behavior.md)); chưa có tầng cache phân tán; chưa có message broker. Báo "thiếu behavior ghi log" là báo một thứ đã được quyết định là không làm.
 
-**Là finding:** code lệch khỏi `wiki-core/` **và** không có ghi nhận nào. Lúc đó thứ đáng báo không hẳn là code — mà là *thiếu ghi nhận*. Cách báo đúng: nêu khoảng cách, hỏi đây là chủ đích hay sót, và đề nghị ghi vào §9 của [`../RULES.md`](../RULES.md) nếu là chủ đích.
+**Là finding:** code lệch khỏi `wiki-core/` **và** không có ghi nhận nào. Lúc đó thứ đáng báo không hẳn là code — mà là *thiếu ghi nhận*. Cách báo đúng: nêu khoảng cách, hỏi đây là chủ đích hay sót; chủ đích thì đề nghị ghi nhận — ADR hay một dòng nhật ký, theo [`../adr/README.md`](../adr/README.md) §2.
 
 ### 3.2 Thứ đang mang nhãn `📐 ĐÍCH ĐẾN`
 
 Nhãn `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG` nghĩa là *chưa ai viết code cho phần này*. Báo "doc mô tả X, code không có X" cho một mục mang nhãn đó là báo lại chính nội dung của cái nhãn.
 
-Ở giai đoạn 1 điều này áp cho gần như toàn bộ `docs/` — chưa có `src/`. Ở giai đoạn 2, đọc nhãn ở **đầu mục** trước khi chấm mục đó.
+**Miễn trừ này chỉ phủ đúng một dạng finding: *code THIẾU X*.** Nó không phủ *code CÓ X mà trái luật của X*. Khi code của một phần mang `📐` xuất hiện — trọn vẹn hay chỉ một mảnh — mọi luật của phần đó chấm như luật thường, dù câu luật nằm dưới dòng `📐`, trong tệp `-chua-thi-cong` hay trong một bảng mà hàng trạng thái còn ghi *chưa có*. Nhãn nói *chưa ai dựng*, không nói *dựng thế nào cũng được*. Ví dụ: service đầu tiên thêm retry cho một `POST` là finding theo luật F52, dù hàm retry dùng chung còn `📐`.
+
+`src/` đã có trên đĩa (hiện trạng: [`../README.md`](../README.md) mục *Trạng thái repo*), nên đọc nhãn ở **đầu mục** trước khi chấm mục đó.
 
 **Là finding:** một mục mang nhãn `📐` nhưng ở chỗ khác lại có câu khẳng định nó đã tồn tại. Hai câu nói ngược nhau về cùng một thứ luôn là finding, bất kể câu nào đúng.
 
-**Giới hạn của miễn trừ này — đọc trước khi dùng nó.** Nhãn `📐` là nhãn **cấp tệp**, nên nó loại cả tệp khỏi tầm chấm. Một tệp giữ nhãn đó sau khi code tương ứng đã về sẽ tự loại mình khỏi mọi lượt review trong khi phần nó mô tả đang chạy thật. Với [`../contracts/`](../contracts/) và [`../Design/Components/`](../Design/Components/) thì đó là vi phạm có mã: luật **D42** ở [`../DEBT.md`](../DEBT.md) — [`../adr/0048-cam-nhan-dich-den-cap-file-khi-neo-tro-toi-code-that.md`](../adr/0048-cam-nhan-dich-den-cap-file-khi-neo-tro-toi-code-that.md). Với khu khác thì chưa có mã nào, và cũng chưa có neo nào để dò: gặp một tệp `📐` mà code của nó đã có, **báo finding** thay vì im lặng áp miễn trừ.
+**Giới hạn của miễn trừ này — đọc trước khi dùng nó.** Nhãn `📐` là nhãn **cấp tệp**, nên nó miễn finding *thiếu* cho cả tệp. Một tệp giữ nhãn đó sau khi code tương ứng đã về sẽ che mọi finding *thiếu* của phần đang chạy thật — nhánh bắt buộc bị bỏ, ràng buộc chưa ai viết. Với [`../contracts/`](../contracts/) và [`../Design/Components/`](../Design/Components/) thì đó là vi phạm có mã: luật **D42** ở [`../RULES-DOCS.md`](../RULES-DOCS.md) — [`../adr/0048-cam-nhan-dich-den-cap-file-khi-neo-tro-toi-code-that.md`](../adr/0048-cam-nhan-dich-den-cap-file-khi-neo-tro-toi-code-that.md). Với khu khác thì chưa có mã nào, và cũng chưa có neo nào để dò: gặp một tệp `📐` mà code của nó đã có, **báo finding** thay vì im lặng áp miễn trừ.
 
 ### 3.3 Sở thích cá nhân về đặt tên
 
@@ -118,7 +120,7 @@ Lý do khắt khe ở điểm này: góp ý đặt tên là loại góp ý dễ 
 
 Bằng chứng hợp lệ có đúng hai dạng:
 
-**Dạng 1 — đường dẫn kèm số dòng.** Trỏ vào một file có thật, đang được theo dõi trong repo. Không trỏ vào file bị `.gitignore` loại trừ ([`repo-artifact.md`](repo-artifact.md) §11), không trỏ vào file mang `kind: lich-su`.
+**Dạng 1 — neo tới một vị trí trong file**, theo [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §9 và [`../adr/0046-neo-trich-dan-vao-src-bang-chuoi-tim-duoc.md`](../adr/0046-neo-trich-dan-vao-src-bang-chuoi-tim-duoc.md): tới file dưới `src/` bằng đường dẫn kèm một chuỗi tìm được trong file, không số dòng; tới file dưới `docs/` bằng `file:dòng`. Trỏ vào một file có thật, đang được theo dõi trong repo. Không trỏ vào file bị `.gitignore` loại trừ ([`repo-artifact.md`](repo-artifact.md) §11), không trỏ vào file mang `kind: lich-su`.
 
 **Dạng 2 — kịch bản hỏng cụ thể.** Khi lỗi nằm ở tương tác giữa nhiều chỗ chứ không ở một dòng, bằng chứng là một chuỗi *input → điều gì xảy ra → output sai*:
 
@@ -166,7 +168,7 @@ Loại lỗi này đắt vì nó **không tự lộ ra**: người đọc báo c
 head -5 <đường-dẫn-file>   # đọc kind, scope, verified
 ```
 
-`kind` không phải `luat` → file đó không phải chuẩn. Nếu vẫn muốn dùng nội dung của nó, cách đúng là **đề nghị nâng nội dung đó thành luật** (thêm dòng vào [`../RULES.md`](../RULES.md) kèm cột "ép bằng gì"), không phải chấm code theo nó.
+`kind` không phải `luat` → file đó không phải chuẩn. Nếu vẫn muốn dùng nội dung của nó, cách đúng là **đề nghị nâng nội dung đó thành luật** (thêm dòng vào tệp `RULES-*.md` theo phạm vi, kèm cột "ép bằng gì" — mục lục ở [`../RULES.md`](../RULES.md)), không phải chấm code theo nó.
 
 Tương tự với `verified:`. Giá trị `chua-doi-chieu` nghĩa là **chưa ai mở source ra so với file này**. Nội dung vẫn có thể đúng, nhưng nó chưa được xác nhận — nên khi code và tài liệu lệch nhau, chưa chắc code sai. Ghi cả hai vế và hỏi, đừng mặc định tài liệu thắng.
 
@@ -174,7 +176,7 @@ Tương tự với `verified:`. Giá trị `chua-doi-chieu` nghĩa là **chưa a
 
 ## 6. Khuôn báo cáo review
 
-Dùng đúng khuôn này. Mục cố định, thứ tự cố định — người đọc quen khuôn thì đọc nhanh hơn và không bỏ sót mục nào.
+Dùng đúng khuôn này. Mục cố định, thứ tự cố định — người đọc quen khuôn thì đọc nhanh hơn và không bỏ sót mục nào. Đây là khuôn duy nhất: `core-reviewer` và các skill review dùng chung, không giữ bản riêng (người dùng chốt 2026-10-06). Mục không có nội dung thì ghi *Không có*, không xoá mục.
 
 ```markdown
 # Review — <phạm vi thay đổi>
@@ -195,20 +197,30 @@ Dùng đúng khuôn này. Mục cố định, thứ tự cố định — ngư�
 | Hiệu năng | | | | |
 | Đơn giản hoá | | | | |
 
+## Kết quả theo luật
+
+| # | Luật đã soát (mã nếu có) | Mức (§1) | Bằng chứng |
+| --- | --- | --- | --- |
+| 1 | | PASS / PARTIAL / MISSING | <neo như ô *Bằng chứng* của finding, hoặc kịch bản hỏng> |
+
 ## Finding
 
 ### 🔴 F-01 — <tiêu đề một dòng>
 
 - **Loại:** Bảo mật
-- **Bằng chứng:** `<đường-dẫn>:<dòng>`
+- **Bằng chứng:** tệp `src/`: `<đường-dẫn>` + chuỗi `<chuỗi tìm được trong tệp>` · tệp `docs/`: `<đường-dẫn>:<dòng>` · hoặc kịch bản hỏng (§4)
 - **Hiện trạng:** <code đang làm gì>
 - **Vì sao sai:** <hậu quả cụ thể, không phải "không đúng chuẩn">
-- **Chuẩn đối chiếu:** `<file kind: luat>` §<mục>
+- **Chuẩn đối chiếu:** `<file kind: luat>` §<mục> · mã luật nếu có
 - **Đề xuất sửa:** <cụ thể, sửa được ngay>
 
 ### 🟠 F-02 — <tiêu đề>
 
 ...
+
+## Ngoài phạm vi — chỉ 🔴
+
+- <lỗi 🔴 thấy ngoài phạm vi được giao: neo như ô *Bằng chứng* + một câu; không tính vào Kết luận>
 
 ## Cần xác minh
 
@@ -221,6 +233,10 @@ Dùng đúng khuôn này. Mục cố định, thứ tự cố định — ngư�
 | Quan sát | Vì sao không phải finding |
 | --- | --- |
 | | |
+
+## Lỗ mù của lượt này
+
+- <thứ không soát được, và vì sao>
 ```
 
 ### 6.1 Bốn ô hay bị viết sai
@@ -260,4 +276,4 @@ Cả ba đều thuộc phần việc của người review. Ngược lại, đ�
 
 Quy ước dùng làm chuẩn khi chấm: [`be-architecture.md`](be-architecture.md) · [`be-entity-domain.md`](be-entity-domain.md) · [`be-cqrs-handler.md`](be-cqrs-handler.md) · [`be-api-controller.md`](be-api-controller.md) · [`be-performance.md`](be-performance.md) · [`fe-architecture.md`](fe-architecture.md) · [`fe-api-client.md`](fe-api-client.md) · [`fe-ui-conventions.md`](fe-ui-conventions.md) · [`fe-routing-guard.md`](fe-routing-guard.md) · [`repo-artifact.md`](repo-artifact.md).
 
-Bảng luật kèm cột "ép bằng gì" và danh sách nợ: [`../RULES.md`](../RULES.md). Bài học từ sự cố đã xảy ra: [`../audit/`](../audit/).
+Bảng luật kèm cột "ép bằng gì": các tệp `RULES-*.md`, mục lục ở [`../RULES.md`](../RULES.md). Bài học từ sự cố đã xảy ra: [`../audit/`](../audit/).

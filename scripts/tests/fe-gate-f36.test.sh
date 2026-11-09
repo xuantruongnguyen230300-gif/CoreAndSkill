@@ -15,6 +15,9 @@
 #
 # Thoát 0 = mọi ca đúng kỳ vọng · 1 = có ca sai kỳ vọng · 2 = không chạy được.
 
+# T12:cap-xanh-do — mọi ca xanh đi kèm một ca đỏ dùng chung cơ chế dò (RULES-CHUNG.md T12);
+# cặp nào nằm ở đâu thì chú thích 'Cặp đỏ:' ngay trên ca xanh nói ra, hoặc ca đỏ cùng fixture đứng sát đó.
+
 set -uo pipefail
 
 T="$(cd "$(dirname "$0")" && pwd)"
@@ -57,11 +60,19 @@ sed -i 's/registerLocaleData/dangKyDuLieuLocale/g' "$DIR/$SEAM"
 cham F36 "seam thôi đăng ký dữ liệu locale (0 khớp ở mọi nơi) -> FAIL" do
 
 # --- không báo sai
+# Cặp đỏ: hai ca ngay dưới — cùng nội dung, cùng thư mục, chỉ bỏ đuôi .spec.
 dung_ban_sao; cam src/app/platform/zz/zz.page.spec.ts "registerLocaleData(localeVi); const x = LOCALE_ID;"
 cham F36 "*.spec.ts ngoài seam dùng hai chuỗi -> PASS (phạm vi là mã chạy thật)" xanh
 
+dung_ban_sao; cam src/app/platform/zz/zz.page.ts "registerLocaleData(localeVi); const x = LOCALE_ID;"
+cham F36 "cùng nội dung ấy ở zz.page.ts (không phải .spec) -> FAIL (cặp đỏ của ca spec)" do
+
+# Cặp đỏ: ca ngay dưới — cùng tệp core/config/zz.ts, chỉ đổi MA_LOCALE_IDX thành LOCALE_ID đứng riêng.
 dung_ban_sao; cam src/app/core/config/zz.ts "const MA_LOCALE_IDX = 3; export function dangKyLocale() {}"
 cham F36 "định danh chỉ CHỨA chuỗi (MA_LOCALE_IDX) không bị tính -> PASS" xanh
+
+dung_ban_sao; cam src/app/core/config/zz.ts "const x = LOCALE_ID;"
+cham F36 "cùng tệp core/config/zz.ts nhưng dùng LOCALE_ID đứng riêng -> FAIL (cặp đỏ của MA_LOCALE_IDX)" do
 
 # --- cổng không chạy được là ĐỎ, không phải xanh
 dung_ban_sao; rm -f "$DIR/$SEAM"

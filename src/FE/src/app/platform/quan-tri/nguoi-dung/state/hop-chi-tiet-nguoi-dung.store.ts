@@ -5,7 +5,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { finalize, merge } from 'rxjs';
 
 import { ApiFailureError } from '../../../../core/http/api-result.model';
-import { dichLoiChoMan } from '../../../../core/http/dich-loi';
+import { cauLoiKhongPhaiApi, dichLoiBatKy } from '../../../../core/http/dich-loi';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { BangMaGocVaoO, applyFormFailure } from '../../../../shared/forms/apply-form-failure';
 import { fieldErrorsText } from '../../../../shared/forms/field-errors-text';
@@ -37,18 +37,27 @@ export class HopChiTietNguoiDungStore {
   private readonly toast = inject(ToastService);
   private readonly fb = inject(NonNullableFormBuilder);
 
-  readonly hopDangMo = signal<LoaiHopChiTiet>(null);
-  readonly dangGui = signal(false);
-  readonly daGui = signal(false);
-  readonly loiHop = signal<string | null>(null);
-  readonly xungDot = signal(false);
+  private readonly _hopDangMo = signal<LoaiHopChiTiet>(null);
+  readonly hopDangMo = this._hopDangMo.asReadonly();
+  private readonly _dangGui = signal(false);
+  readonly dangGui = this._dangGui.asReadonly();
+  private readonly _daGui = signal(false);
+  readonly daGui = this._daGui.asReadonly();
+  private readonly _loiHop = signal<string | null>(null);
+  readonly loiHop = this._loiHop.asReadonly();
+  private readonly _xungDot = signal(false);
+  readonly xungDot = this._xungDot.asReadonly();
+  private readonly _hienThiXacNhanHuy = signal(false);
   /** Hỏi xác nhận khi bị đóng lúc còn thay đổi chưa lưu — dùng chung cho cả ba hộp form. */
-  readonly hienThiXacNhanHuy = signal(false);
+  readonly hienThiXacNhanHuy = this._hienThiXacNhanHuy.asReadonly();
+  private readonly _lanGuiSai = signal(0);
   /** Tăng mỗi lần bấm gửi mà form không hợp lệ — hộp lắng nghe để đưa focus về ô sai đầu tiên. */
-  readonly lanGuiSai = signal(0);
+  readonly lanGuiSai = this._lanGuiSai.asReadonly();
+  private readonly _hopXacNhanGo = signal<number | null>(null);
   /** Số vai trò sắp bị gỡ đang chờ xác nhận; `null` = không hỏi. */
-  readonly hopXacNhanGo = signal<number | null>(null);
-  readonly hienThiXacNhanKhoa = signal(false);
+  readonly hopXacNhanGo = this._hopXacNhanGo.asReadonly();
+  private readonly _hienThiXacNhanKhoa = signal(false);
+  readonly hienThiXacNhanKhoa = this._hienThiXacNhanKhoa.asReadonly();
   /** Yêu cầu gán đang chờ người dùng xác nhận gỡ — chốt lúc bấm, gửi đúng bản đó khi xác nhận. */
   private yeuCauCho: { nd: NguoiDung; tapDich: readonly string[]; xong: () => void } | null = null;
 
@@ -88,18 +97,18 @@ export class HopChiTietNguoiDungStore {
   moHopSua(nd: NguoiDung): void {
     this.xoaDauVetHop();
     this.formSua.reset({ email: nd.email ?? '', fullName: nd.fullName });
-    this.hopDangMo.set('sua');
+    this._hopDangMo.set('sua');
   }
 
   moHopDatLai(): void {
     this.xoaDauVetHop();
     this.formDatLai.reset({ tempPassword: '' });
-    this.hopDangMo.set('dat-lai');
+    this._hopDangMo.set('dat-lai');
   }
 
   moHopGanVaiTro(): void {
     this.xoaDauVetHop();
-    this.hopDangMo.set('gan-vai-tro');
+    this._hopDangMo.set('gan-vai-tro');
   }
 
   /**
@@ -107,14 +116,14 @@ export class HopChiTietNguoiDungStore {
    * trước để lại gì thì hộp mở sau mang theo cái đó. Mọi đường MỞ một hộp phải gọi hàm này trước.
    */
   private xoaDauVetHop(): void {
-    this.daGui.set(false);
-    this.loiHop.set(null);
-    this.xungDot.set(false);
+    this._daGui.set(false);
+    this._loiHop.set(null);
+    this._xungDot.set(false);
   }
 
   /** Đóng KHÔNG điều kiện và xoá mọi dấu vết của lần mở trước. */
   dongTatCa(): void {
-    this.hopDangMo.set(null);
+    this._hopDangMo.set(null);
     this.xoaDauVetHop();
   }
 
@@ -126,15 +135,15 @@ export class HopChiTietNguoiDungStore {
 
   // Dialog chỉ phát `dismissAttempted` khi `dirty` đang bật — nó KHÔNG tự đóng; tự đóng thì mất dữ liệu.
   onDismissAttempted(): void {
-    this.hienThiXacNhanHuy.set(true);
+    this._hienThiXacNhanHuy.set(true);
   }
 
   huyXacNhanHuy(): void {
-    this.hienThiXacNhanHuy.set(false);
+    this._hienThiXacNhanHuy.set(false);
   }
 
   xacNhanHuy(): void {
-    this.hienThiXacNhanHuy.set(false);
+    this._hienThiXacNhanHuy.set(false);
     this.dong();
   }
 
@@ -143,18 +152,18 @@ export class HopChiTietNguoiDungStore {
   guiSua(nd: NguoiDung, xong: () => void): void {
     // Chặn gửi hai lần (Enter ngầm ở form một ô, bấm đúp): hai POST cùng version → 409 giả.
     if (this.dangGui()) return;
-    this.daGui.set(true);
-    this.loiHop.set(null);
+    this._daGui.set(true);
+    this._loiHop.set(null);
     if (this.formSua.invalid) {
       this.formSua.markAllAsTouched();
-      this.lanGuiSai.update((n) => n + 1);
+      this._lanGuiSai.update((n) => n + 1);
       return;
     }
     const gt = this.formSua.getRawValue();
-    this.dangGui.set(true);
+    this._dangGui.set(true);
     this.service
       .suaThongTin(nd.id, { ...gt, version: nd.version })
-      .pipe(finalize(() => this.dangGui.set(false)))
+      .pipe(finalize(() => this._dangGui.set(false)))
       .subscribe({
         next: () => {
           this.dongTatCa();
@@ -169,20 +178,20 @@ export class HopChiTietNguoiDungStore {
   guiDatLai(nd: NguoiDung, xong: () => void): void {
     // Chặn gửi hai lần (Enter ngầm ở form một ô, bấm đúp): hai POST cùng version → 409 giả.
     if (this.dangGui()) return;
-    this.daGui.set(true);
-    this.loiHop.set(null);
+    this._daGui.set(true);
+    this._loiHop.set(null);
     if (this.formDatLai.invalid) {
       this.formDatLai.markAllAsTouched();
-      this.lanGuiSai.update((n) => n + 1);
+      this._lanGuiSai.update((n) => n + 1);
       return;
     }
-    this.dangGui.set(true);
+    this._dangGui.set(true);
     this.service
       .datLaiMatKhau(nd.id, {
         tempPassword: this.formDatLai.getRawValue().tempPassword,
         version: nd.version,
       })
-      .pipe(finalize(() => this.dangGui.set(false)))
+      .pipe(finalize(() => this._dangGui.set(false)))
       .subscribe({
         next: () => {
           this.dongTatCa();
@@ -207,13 +216,13 @@ export class HopChiTietNguoiDungStore {
     if (this.dangGui()) return;
     // Bấm Lưu là bắt đầu một lần gán MỚI: câu lỗi/xung đột của lần trước không được sống tiếp (giống
     // guiSua/guiDatLai xoá `loiHop` ở đầu) — nhất là khi hộp hỏi gỡ mở ra trước khi gửi gì.
-    this.loiHop.set(null);
-    this.xungDot.set(false);
+    this._loiHop.set(null);
+    this._xungDot.set(false);
     const dich = new Set(tapDich);
     const soGo = nd.roles.filter((r) => !dich.has(r.id)).length;
     if (soGo > 0) {
       this.yeuCauCho = { nd, tapDich, xong };
-      this.hopXacNhanGo.set(soGo);
+      this._hopXacNhanGo.set(soGo);
       return;
     }
     this.guiGanVaiTro(nd, tapDich, xong);
@@ -221,7 +230,7 @@ export class HopChiTietNguoiDungStore {
 
   huyXacNhanGo(): void {
     this.yeuCauCho = null;
-    this.hopXacNhanGo.set(null);
+    this._hopXacNhanGo.set(null);
   }
 
   xacNhanGoVaiTro(): void {
@@ -233,11 +242,11 @@ export class HopChiTietNguoiDungStore {
   private guiGanVaiTro(nd: NguoiDung, tapDich: readonly string[], xong: () => void): void {
     // Chặn gửi hai lần (Enter ngầm ở form một ô, bấm đúp): hai POST cùng version → 409 giả.
     if (this.dangGui()) return;
-    this.dangGui.set(true);
-    this.loiHop.set(null);
+    this._dangGui.set(true);
+    this._loiHop.set(null);
     this.service
       .ganVaiTro(nd.id, { roleIds: [...tapDich], version: nd.version })
-      .pipe(finalize(() => this.dangGui.set(false)))
+      .pipe(finalize(() => this._dangGui.set(false)))
       .subscribe({
         next: () => {
           this.dongTatCa();
@@ -255,26 +264,26 @@ export class HopChiTietNguoiDungStore {
   // ---- Khoá / mở khoá ----
   moXacNhanKhoa(): void {
     this.xoaDauVetHop();
-    this.hienThiXacNhanKhoa.set(true);
+    this._hienThiXacNhanKhoa.set(true);
   }
 
   huyXacNhanKhoa(): void {
     if (this.dangGui()) return;
-    this.hienThiXacNhanKhoa.set(false);
+    this._hienThiXacNhanKhoa.set(false);
     this.xoaDauVetHop();
   }
 
   xacNhanKhoa(nd: NguoiDung, xong: () => void): void {
     // Chặn gửi hai lần (Enter ngầm ở form một ô, bấm đúp): hai POST cùng version → 409 giả.
     if (this.dangGui()) return;
-    this.dangGui.set(true);
-    this.loiHop.set(null);
+    this._dangGui.set(true);
+    this._loiHop.set(null);
     this.service
       .khoa(nd.id, { version: nd.version })
-      .pipe(finalize(() => this.dangGui.set(false)))
+      .pipe(finalize(() => this._dangGui.set(false)))
       .subscribe({
         next: () => {
-          this.hienThiXacNhanKhoa.set(false);
+          this._hienThiXacNhanKhoa.set(false);
           this.toast.thanhCong(
             this.translate.instant('nguoiDung.thongBao.khoaThanhCong', {
               tenDangNhap: nd.userName,
@@ -286,7 +295,7 @@ export class HopChiTietNguoiDungStore {
           // Hộp xác nhận khoá không có chỗ hiện `xungDot`, và gửi lại cùng `version` cũ sẽ xung đột
           // mãi: cảnh báo, đóng hộp, tải lại để lấy version mới — giống mở khoá.
           if (this.laXungDot(err)) {
-            this.hienThiXacNhanKhoa.set(false);
+            this._hienThiXacNhanKhoa.set(false);
             this.canhBaoXungDot(xong);
             return;
           }
@@ -298,10 +307,10 @@ export class HopChiTietNguoiDungStore {
   moKhoa(nd: NguoiDung, xong: () => void): void {
     // Bấm đúp phát hai POST cùng `version`: bản đầu làm `version` đổi, bản hai nhận 409 GIẢ.
     if (this.dangGui()) return;
-    this.dangGui.set(true);
+    this._dangGui.set(true);
     this.service
       .moKhoa(nd.id, { version: nd.version })
-      .pipe(finalize(() => this.dangGui.set(false)))
+      .pipe(finalize(() => this._dangGui.set(false)))
       .subscribe({
         next: () => {
           this.toast.thanhCong(
@@ -339,23 +348,21 @@ export class HopChiTietNguoiDungStore {
   }
 
   private cauLoi(err: unknown): string | null {
-    return err instanceof ApiFailureError
-      ? dichLoiChoMan(this.translate, err)
-      : this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION');
+    return dichLoiBatKy(this.translate, err);
   }
 
   // ---- Lỗi dùng chung cho các hộp thoại ghi ----
   xuLyLoi(err: unknown, hop: LoaiHopChiTiet): void {
     if (!(err instanceof ApiFailureError)) {
-      this.loiHop.set(this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION'));
+      this._loiHop.set(cauLoiKhongPhaiApi(this.translate));
       return;
     }
     if (err.body?.error.code === 'CORE.CONCURRENCY.CONFLICT') {
-      this.xungDot.set(true);
+      this._xungDot.set(true);
       return;
     }
     // Mọi mã còn lại, KHÔNG lọc theo danh sách mã (fe-ui-conventions.md §6.2).
-    this.loiHop.set(this.cauKhuLoiChung(err, hop));
+    this._loiHop.set(this.cauKhuLoiChung(err, hop));
   }
 
   /**

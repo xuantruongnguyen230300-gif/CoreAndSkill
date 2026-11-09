@@ -1,27 +1,102 @@
-// Design/Components/DataTable.md §Kích thước, §Trạng thái. Preset PrimeNG (core/theme/prime-preset.ts)
-// lo phần khung `p-table`; file này chỉ thêm phần Core không có sẵn trong preset: viền khung,
-// dải sắp xếp, hiệu ứng "đang tải lại" (giữ dữ liệu cũ, phủ mờ).
+// Design/Components/DataTable.md §"Khung", §Kích thước, §Trạng thái, §"Cột hành động". Preset PrimeNG
+// (core/theme/prime-preset.ts) lo phần khung `p-table`; file này thêm phần Core không có sẵn trong
+// preset: viền khung bao cả khối, vùng cuộn duy nhất, tiêu đề cột dính, cột hành động, hiệu ứng
+// "đang tải lại" (giữ dữ liệu cũ, phủ mờ).
+@use 'spacing' as s;
 
-.data-table__khung {
-  overflow-x: auto;
+// Chuỗi flex lấp chiều cao (ListScreen.md §4): `flex: 1 1 0px` — cơ sở 0 TUYỆT ĐỐI (không `0%`), để
+// khi vùng chứa chưa có chiều cao xác định thì chiều cao nội dung của bảng KHÔNG góp vào cỡ
+// tối thiểu của cha; sàn của vùng cuộn mới là thứ cha thấy. `min-height` để mặc định `auto` ở host
+// và khung: cỡ tối thiểu tự tính = dải đầu + sàn vùng cuộn + dải phân trang, nên màn quá thấp thì
+// `main` cuộn chứ khung không bị ép thấp hơn sàn.
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0px;
+}
+
+.data-table {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0px;
   border: var(--border-w) solid var(--color-border-strong);
   border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  // `clip`, không `hidden`: `hidden` biến khung thành vùng cuộn nên cỡ tối thiểu tự tính về 0.
+  overflow: clip;
+}
+
+// Chỗ cắm đầu khung: slot trống thì không vẽ dải lẫn vạch (Angular không để lại nút nào cho
+// `<ng-content>` không khớp, nên `:empty` đúng).
+.data-table__dau {
+  &:empty {
+    display: none;
+  }
+
+  &:not(:empty) {
+    border-bottom: var(--border-w) solid var(--color-border-subtle);
+  }
+}
+
+// Vùng cuộn duy nhất của khung. `position: relative` để lớp phủ "đang tải lại" phủ đúng vùng nhìn
+// thấy chứ không trôi theo nội dung cuộn.
+.data-table__than {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0px;
+  // Sàn chỉ có khi trang cấp chiều cao: mixin `man-danh-sach` đặt `--data-table-scroll-h-floor` trên
+  // host của màn. Bảng con trong màn cuộn không có biến này → `auto` → khung cao theo nội dung.
+  min-height: var(--data-table-scroll-h-floor, auto);
+}
+
+// Đổi trang / sắp xếp: giữ dữ liệu cũ, phủ mờ + spinner — KHÔNG thay bằng skeleton (DataTable.md
+// §Trạng thái). Lớp phủ nhận con trỏ nên click không lọt xuống dữ liệu cũ; nó không nhận focus và không
+// inert vùng cuộn, nên bàn phím vẫn cuộn được và focus không bị bẫy.
+.data-table__tai-lai {
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--z-sticky) + 2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-scrim);
+  color: var(--color-text-muted);
+  font-size: var(--icon-lg);
+}
+
+.data-table__khung {
+  flex: 1 1 0px;
+  min-height: 0;
+  overflow: auto;
 
   &:focus-visible {
     outline: var(--border-w-strong) solid var(--color-focus);
     outline-offset: -2px;
   }
+}
 
-  // Đổi trang / sắp xếp: giữ dữ liệu cũ, phủ mờ — KHÔNG thay bằng skeleton (DataTable.md §Trạng thái).
-  &--tai-lai {
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: var(--color-scrim);
-      pointer-events: none;
-    }
+// Dải phân trang: vạch `subtle` phía trên; nền theo khung. Đệm của chính dải ở `Pagination`.
+.data-table__phan-trang {
+  border-top: var(--border-w) solid var(--color-border-subtle);
+}
+
+// Tiêu đề cột dính đỉnh vùng cuộn (§Trạng thái `default`).
+th {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+}
+
+// Dòng đổi nền khi rê chuột — con trỏ KHÔNG đổi vì dòng không bấm được (không `rowClick`).
+@media (hover: hover) {
+  .data-table__hang:hover,
+  .data-table__hang:hover > td.data-table__o-hanh-dong {
+    background: var(--color-surface-2);
   }
 }
 
@@ -49,4 +124,67 @@
 
 .data-table__o--end {
   text-align: right;
+}
+
+// ================================================= Cột hành động (DataTable.md §"Cột hành động")
+// Ghim mép phải, vừa khít nội dung. Nền ĐẶC theo nền dòng ở mọi trạng thái (nền khung; đổi theo dòng
+// lúc hover) để nội dung cuộn ngang trượt dưới cột, không nhìn xuyên qua.
+.data-table__o-hanh-dong {
+  position: sticky;
+  right: 0;
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+td.data-table__o-hanh-dong {
+  // Dưới tiêu đề cột: ô thân và `th` đều dính, `th` phải thắng ở góc giao.
+  z-index: calc(var(--z-sticky) - 1);
+  background: var(--color-surface);
+}
+
+th.data-table__o-hanh-dong {
+  z-index: calc(var(--z-sticky) + 1);
+}
+
+// Nghỉ: ẩn bằng `opacity` — dòng không nhảy, nút VẪN trong cây accessibility và thứ tự Tab. Không
+// `display: none`, không `visibility: hidden`. Hiện/ẩn TỨC THÌ, không transition.
+.data-table__hanh-dong {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  opacity: 0;
+
+  // Tab tới nút trong dòng thì dòng hiện; một nút giữ lớp nổi mở thì ô cũng phải hiện, vì `Menu`
+  // dựng qua portal nên focus rời dòng và nút neo sẽ biến mất ngay dưới menu nó vừa mở.
+  &:focus-within,
+  &:has([aria-expanded='true']) {
+    opacity: 1;
+  }
+}
+
+// Focus ở BẤT KỲ phần tử nào trong dòng (liên kết ở ô đầu, ô chọn…) cũng làm nút của dòng hiện.
+.data-table__hang:focus-within .data-table__hanh-dong {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .data-table__hang:hover .data-table__hanh-dong {
+    opacity: 1;
+  }
+}
+
+// Không có hover thì không còn đường nào khác để thấy nút.
+@media (hover: none) {
+  .data-table__hanh-dong {
+    opacity: 1;
+  }
+}
+
+// Dạng thẻ (< $bp-xs): `compact` đã gom về một nút ⋯, luôn hiện (§"Cột hành động").
+@include s.duoi-man-hinh(s.$bp-xs) {
+  .data-table__hanh-dong {
+    opacity: 1;
+  }
 }

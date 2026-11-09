@@ -14,11 +14,12 @@ verified: chua-doi-chieu
 
 | Mục | Có thật hôm nay | Sẽ thành |
 | --- | --- | --- |
-| §2 (ArchTest) | Project `CoreAndSkill.ArchTests` tồn tại và chạy thật; tên từng ArchTest đã có nằm ở cột *Ép bằng gì* của [`../../RULES.md`](../../RULES.md) — **đó là nguồn duy nhất**, đừng đếm lại ở đây | Phủ nốt các luật còn mang `📐`/`🕳️` ở `RULES.md` |
-| §4.2 | `Support/PostgresFixture.cs` + `Support/PostgresCollection.cs` (một container cho cả lượt chạy) và `Tenants/TenantProvisioningDatabaseTests.cs` có code thật. Quy ước `[Trait("Category", "RequiresDocker")]` được ép bằng ArchTest — luật **T9** ở [`../../RULES.md`](../../RULES.md) §8 | Nhóm test này **chưa từng chạy một lần nào** — môi trường hiện tại không có Docker daemon; CI là nơi chạy chúng lần đầu |
+| §2 (ArchTest) | Project `CoreAndSkill.ArchTests` tồn tại và chạy thật; tên từng ArchTest đã có nằm ở cột *Ép bằng gì* của [`../../RULES-BE.md`](../../RULES-BE.md) — **đó là nguồn duy nhất**, đừng đếm lại ở đây | Phủ nốt các luật còn mang `📐`/`🕳️` ở `RULES.md` |
+| §4.2 | `Support/PostgresFixture.cs` + `Support/PostgresCollection.cs` (một container cho cả lượt chạy) và `Tenants/TenantProvisioningDatabaseTests.cs` có code thật. Quy ước `[Trait("Category", "RequiresDocker")]` được ép bằng ArchTest — luật **T9** ở [`../../RULES.md`](../../RULES.md) §8. Cả nhóm `RequiresDocker` xanh ở máy: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Nhóm này xanh ở bước *Test DB* của job `backend-gate` trên CI Linux — CI chưa chạy với bản này (chưa push). Trạng thái CI mới nhất: [`../../README.md`](../../README.md) mục *Trạng thái repo* |
 | §4.3 | Cô lập bằng xoá dữ liệu giữa các test (`PostgresFixture.ResetAsync`) | Chuyển sang mỗi test một schema khi cần chạy song song |
-| §4.4 | Schema của test lấy từ migration của repo | — |
+| §4.4 | Schema của test là script SQL sinh từ migration của repo (`database/scripts/core/`), áp bằng `psql` theo thứ tự số — `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Support/PostgresFixture.cs`, chuỗi `LocateScriptsDirectory` | — |
 | §5 | Ngưỡng coverage ép thật bằng `coverlet.msbuild` — `Threshold` / `ThresholdType` = `line,branch` khai ở `src/BE/Tests/CoreAndSkill.Core.UnitTests/CoreAndSkill.Core.UnitTests.csproj`; con số nằm ở luật **T3**, không chép lại ở đây | Ngưỡng cho module khi có module |
+| §7 — báo test đỏ ở CI ([ADR-0121](../../adr/0121-loi-test-be-o-ci-hien-thanh-annotation-qua-githubactionstestlogger.md)), đối chiếu 2026-11-04 | Gói ghim ở `src/BE/Directory.Packages.props`, chuỗi `<PackageVersion Include="GitHubActionsTestLogger" Version="3.0.5" />`; tham chiếu khai một chỗ cho mọi project test (ADR-0121 quyết định 1) ở `src/BE/Tests/Directory.Build.props`, chuỗi `<PackageReference Include="GitHubActionsTestLogger" PrivateAssets="all" />` — không `.csproj` nào dưới `src/BE/Tests/` tự khai; hai bước `dotnet test` của job `backend-gate` mang chuỗi `--logger GitHubActions` (`.github/workflows/docs-gate.yml`). Chạy tay trên máy dev Windows với logger này, một nhóm test không cần Docker: dòng tổng kết của logger console vẫn in và khớp biểu thức của chốt chống xanh rỗng | CI chạy lần đầu sau thay đổi — **chưa chạy**: thay đổi chưa push. Chốt chống xanh rỗng của bước test DB (ADR-0121 quyết định 2) đọc được dòng tổng kết **trên CI** — chưa xác nhận |
 | Các mục còn lại | Không có gì | `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG` |
 
 ---
@@ -58,9 +59,9 @@ ArchTest biến luật thành thứ **hỏng build**. Đó là khác biệt gi�
 **Một điểm cần hiểu rõ:** ArchTest không kiểm code chạy đúng. Nó kiểm code có **hình dạng** đúng. Hai việc khác nhau, và cả hai đều cần.
 
 ### 2.2 Danh sách luật cần canh
-> 📖 **Tên, đường dẫn và trạng thái của từng ArchTest nằm ở [`../../RULES.md`](../../RULES.md) §3–§6 và §9 — nguồn duy nhất.** Mục này chỉ nói ArchTest phủ **những nhóm luật nào**, không liệt lại từng mã.
+> 📖 **Tên, đường dẫn và trạng thái của từng ArchTest nằm ở [`../../RULES-BE.md`](../../RULES-BE.md) §3–§6 và §9 — nguồn duy nhất.** Mục này chỉ nói ArchTest phủ **những nhóm luật nào**, không liệt lại từng mã.
 
-Chép tên test hay liệt kê lại từng mã luật ở đây là dựng nguồn thứ hai: `RULES.md` thêm một luật hay đổi một tên test thì sửa một chỗ không chạm chỗ kia, và tên test chính là thứ người sau `grep` để nối luật với cổng.
+Chép tên test hay liệt kê lại từng mã luật ở đây là dựng nguồn thứ hai: `RULES-BE.md` thêm một luật hay đổi một tên test thì sửa một chỗ không chạm chỗ kia, và tên test chính là thứ người sau `grep` để nối luật với cổng.
 
 | Nhóm mã | Chủ đề | Đọc ở |
 | --- | --- | --- |
@@ -72,10 +73,12 @@ Chép tên test hay liệt kê lại từng mã luật ở đây là dựng ngu�
 
 Hai luật đáng nói riêng: cả hai là **integration test**, không phải ArchTest, vì mỗi luật cần dựng app thật — không có cách nào đọc hình dạng code mà biết được hành vi lúc chạy đúng hay sai.
 
-| Luật | Vì sao là integration test | Tên test thật |
-| --- | --- | --- |
-| **E8** | App từ chối khởi động khi còn migration chưa áp vào DB | `DatabaseSchemaStartupCheckTests.TransientFailuresThenTheDatabaseComesUp_RetriesAtTheInterval_ThenRefusesToStartOnMissingMigrations` |
-| **M7** | Ranh giới *"không tìm thấy"* / *"cấm truy cập"* — cần hai đơn vị thật và một lượt gọi HTTP thật | `CrossTenantAccess_Returns_NotFound` (📐 chưa thi công) |
+| Luật | Vì sao là integration test |
+| --- | --- |
+| **E8** | App từ chối khởi động khi còn migration chưa áp vào DB — chỉ thấy được khi dựng host thật |
+| **M7** | Ranh giới *"không tìm thấy"* / *"cấm truy cập"* — cần hai đơn vị thật và một lượt gọi HTTP thật |
+
+> 📖 Tên test và trạng thái: hàng E8 ở [`../../RULES-BE.md`](../../RULES-BE.md) §4, hàng M7 ở cùng tệp §9.
 
 > 🚨 **Nhóm này từng vắng mặt hoàn toàn khỏi mục kiểm kê trên, và đó là lỗ nguy hiểm nhất trong cả file.** Đây là file duy nhất mà `test-engineer` được định tuyến tới; một luật không có tên ở đây là một luật không ai viết test. Mà M1–M7 canh đúng thứ rủi ro nhất của toàn hệ: **rò dữ liệu giữa hai đơn vị** — hỏng mà không có lỗi, không có ngoại lệ, chỉ là truy vấn trả về nhiều hơn đáng ra được thấy ([`../../RULES.md`](../../RULES.md) §9).
 >
@@ -139,25 +142,27 @@ Không có cổng thì mọi người biết là không có, và họ tự cẩn
 ### 3.2 Quy ước đặt tên
 
 ```text
-Detector_<TênLuật>_<HànhVi>
+Detector_<mã>_<HànhVi>
 ```
+
+`<mã>` là **mã luật** mà detector canh — mã ở cột đầu của tệp `RULES-*.md`, ví dụ `A14`; tên mô tả như `ProjectGraph` không thay được mã. Khuôn là của luật **T1** ở [`../../RULES-CHUNG.md`](../../RULES-CHUNG.md); lệnh đối chiếu detector với test kiểm nó ở [`../../RULES.md`](../../RULES.md) mục *Đối chiếu T1*.
 
 Mỗi detector cần **tối thiểu hai** meta-test:
 
-| Meta-test | Chứng minh điều gì |
-| --- | --- |
-| `Detector_<Luật>_Catches_RealViolation` | Đưa vào một vi phạm thật → detector **phải** báo đỏ |
-| `Detector_<Luật>_Ignores_<CaHợpLệ>` | Đưa vào một ca trông giống vi phạm nhưng hợp lệ → detector **phải** bỏ qua |
+| Meta-test | Chứng minh điều gì | Ví dụ |
+| --- | --- | --- |
+| `Detector_<mã>_Catches_*` | Đưa vào một vi phạm thật → detector **phải** báo đỏ | `Detector_A14_Catches_RealViolation` |
+| `Detector_<mã>_Ignores_*` | Đưa vào một ca trông giống vi phạm nhưng hợp lệ → detector **phải** bỏ qua | `Detector_A14_Ignores_CsprojWithoutVersionAttribute` |
 
 Thiếu vế thứ nhất: detector có thể luôn xanh vì nó không bao giờ tìm thấy gì. Thiếu vế thứ hai: detector báo đỏ oan, và người ta sẽ vô hiệu hoá nó — kết quả cuối cùng giống hệt việc không có cổng.
 
 ### 3.3 Ví dụ cụ thể — detector quét văn bản
 
-Giả sử detector canh luật "Core không được chứa chuỗi literal đặt tên tầng nghiệp vụ". Bộ meta-test tối thiểu:
+Giả sử detector canh luật A5 — "Core không được chứa chuỗi literal đặt tên tầng nghiệp vụ". Bộ meta-test tối thiểu:
 
 ```csharp
 [Fact] // Bắt được vi phạm thật
-public void Detector_BusinessNameLiteral_Catches_RealViolation()
+public void Detector_A5_Catches_RealViolation()
 {
     var src = """
         public sealed class Handler
@@ -169,14 +174,14 @@ public void Detector_BusinessNameLiteral_Catches_RealViolation()
 }
 
 [Fact] // Bỏ qua comment — chữ nằm trong comment không phải chuỗi
-public void Detector_BusinessNameLiteral_Ignores_Comment()
+public void Detector_A5_Ignores_Comment()
 {
     var src = "// ví dụ: một module DonHang sẽ khai ở đây\npublic sealed class Handler { }";
     Assert.Empty(Detector.Scan(src));
 }
 
 [Fact] // Bỏ qua định danh — tên biến/class không phải chuỗi literal
-public void Detector_BusinessNameLiteral_Ignores_Identifier()
+public void Detector_A5_Ignores_Identifier()
 {
     var src = "public sealed class DonHangHandler { }";
     Assert.Empty(Detector.Scan(src));
@@ -228,15 +233,23 @@ Khởi động một container PostgreSQL tốn vài giây. Nếu mỗi test cla
 
 Cách làm: một fixture ở phạm vi toàn bộ assembly test khởi động container, áp schema một lần, rồi mọi test class dùng chung.
 
-**Cần Docker daemon.** Container dựng qua Testcontainers (`Support/PostgresFixture.cs`), nên `dotnet test` chạy nhóm integration test cần Docker daemon đang chạy trên máy. CI luôn có Docker daemon. Máy dev không có Docker: nhóm test dùng `PostgresFixture` (ví dụ `TenantProvisioningDatabaseTests`) sẽ đỏ ngay ở bước khởi động container — đây không phải lỗi test, là môi trường thiếu điều kiện. Loại nhóm này bằng lối loại trừ **tường minh**, không lặng lẽ bỏ qua:
+**Cần Docker daemon.** Container dựng qua Testcontainers (`Support/PostgresFixture.cs`), nên `dotnet test` chạy nhóm integration test cần Docker daemon đang chạy trên máy. CI luôn có Docker daemon. Máy dev không có Docker daemon đang chạy — kể cả khi Docker Desktop có cài nhưng daemon không chạy mặc định: nhóm test dùng `PostgresFixture` (ví dụ `TenantProvisioningDatabaseTests`) sẽ đỏ ngay ở bước khởi động container — đây không phải lỗi test, là môi trường thiếu điều kiện. Loại nhóm này bằng lối loại trừ **tường minh**, không lặng lẽ bỏ qua:
 
 ```bash
-dotnet test --filter "Category!=RequiresDocker"
+cd src/BE && dotnet test CoreAndSkill.slnx --filter "Category!=RequiresDocker"
 ```
 
-Mọi test class dùng `PostgresFixture` mang `[Trait("Category", "RequiresDocker")]` để lệnh trên loại đúng nhóm. CI phải chạy đủ cả bộ, chia hai bước trong job `backend-gate` của [`docs-gate.yml`](../../../.github/workflows/docs-gate.yml): bước đầu dùng đúng lệnh trên như máy dev, bước sau chỉ chạy nhóm `RequiresDocker` và chạy cả khi bước đầu đỏ.
+Mọi test class dùng `PostgresFixture` mang `[Trait("Category", "RequiresDocker")]` để lệnh trên loại đúng nhóm. CI phải chạy đủ cả bộ, chia hai bước trong job `backend-gate` của [`docs-gate.yml`](../../../.github/workflows/docs-gate.yml): bước đầu cùng bộ lọc với lệnh trên nhưng build cấu hình Release, bước sau chỉ chạy nhóm `RequiresDocker` và chạy cả khi bước đầu đỏ.
 
-**Câu trên là luật T9, và nó có cổng** ([`../../RULES.md`](../../RULES.md) §8 — tên ArchTest ở cột *Ép bằng gì*). Cần cổng vì đây là loại lỗi không tự lộ: lớp mới quên `[Trait]` vẫn xanh trên CI (CI có Docker), và chỗ vỡ là máy dev không Docker — nơi thông báo lỗi nói về container chứ không nói về `[Trait]` còn thiếu, nên người đọc kết luận sai. Cổng bắt cả hai đường vào container: `[Collection]` của collection PostgreSQL, và `IClassFixture<PostgresFixture>`.
+Lệnh trên chạy cấu hình Debug. Tái hiện bước đầu của CI ở máy — cùng cấu hình Release, cùng bộ lọc, chạy trong `src/BE` — SDK ghim ở `src/BE/global.json` chỉ có hiệu lực khi thư mục hiện hành nằm dưới `src/BE` ([`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md) §3.2):
+
+```bash
+cd src/BE && dotnet test CoreAndSkill.slnx -c Release --filter "Category!=RequiresDocker"
+```
+
+Lệnh này vẫn chạy trên máy Windows, còn CI chạy Linux (`runs-on: ubuntu-latest`): xanh ở máy chưa chứng minh bước đó xanh trên CI.
+
+**Câu trên là luật T9, và nó có cổng** ([`../../RULES-BE.md`](../../RULES-BE.md) §8 — tên ArchTest ở cột *Ép bằng gì*). Cần cổng vì đây là loại lỗi không tự lộ: lớp mới quên `[Trait]` vẫn xanh trên CI (CI có Docker), và chỗ vỡ là máy dev không Docker — nơi thông báo lỗi nói về container chứ không nói về `[Trait]` còn thiếu, nên người đọc kết luận sai. Cổng bắt cả hai đường vào container: `[Collection]` của collection PostgreSQL, và `IClassFixture<PostgresFixture>`.
 
 ### 4.3 Cô lập dữ liệu giữa các test — ba cách
 
@@ -297,7 +310,7 @@ Vùng phải phủ dù coverage nói gì:
 | --- | --- |
 | `CreateUser_WhenEmailAlreadyExists_ReturnsConflictError` | `TestCreateUser1` |
 | `TransientFailuresThenTheDatabaseComesUp_RetriesAtTheInterval_ThenRefusesToStartOnMissingMigrations` | `MigrationTest` |
-| `Detector_RoleConstant_Catches_RealViolation` | `RoleTest` |
+| `Detector_A14_Catches_RealViolation` | `PackageVersionTest` |
 
 Phép thử: đọc **riêng tên test** trong báo cáo lỗi của CI, có biết luật nào vừa vỡ không? Không biết thì tên chưa đạt.
 
@@ -362,6 +375,7 @@ Dùng builder có giá trị mặc định hợp lệ, test chỉ khai **những
 | Giả lập | **NSubstitute** | Cú pháp gọn hơn hẳn khi giả lập interface, và interface là thứ duy nhất được phép giả lập ở đây (luật T8) |
 | Kiến trúc | **ArchUnitNET** | §2.4 |
 | Database thật | **Testcontainers** | §4 |
+| Báo test đỏ ở CI | **GitHubActionsTestLogger** — 🚧 đang thi công, hiện trạng ở bảng đầu tệp | Test đỏ hiện thành annotation đọc được không cần đăng nhập — [`../../adr/0121-loi-test-be-o-ci-hien-thanh-annotation-qua-githubactionstestlogger.md`](../../adr/0121-loi-test-be-o-ci-hien-thanh-annotation-qua-githubactionstestlogger.md) |
 
 > ⚠️ **Kiểm giấy phép trước khi thêm một thư viện test.** Một thư viện khẳng định phổ biến trong hệ .NET đã đổi sang giấy phép **thu phí cho dùng thương mại** kể từ một phiên bản chính; nâng cấp qua mốc đó biến một phụ thuộc miễn phí thành một khoản phải trả, và điều đó **không** hiện ra trong bất kỳ cổng nào. Đây là lý do chọn Shouldly, không phải vì cú pháp đẹp hơn.
 

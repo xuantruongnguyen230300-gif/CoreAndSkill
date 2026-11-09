@@ -28,7 +28,9 @@
           </a>
         }
         @if (loading()) {
-          <app-skeleton-loader variant="text" size="lg" width="half" />
+          <span class="page-header__skeleton"
+            ><app-skeleton-loader variant="text" size="lg" width="full"
+          /></span>
         } @else {
           <h1 [id]="headingId()" class="page-header__tieu-de">{{ title() }}</h1>
         }

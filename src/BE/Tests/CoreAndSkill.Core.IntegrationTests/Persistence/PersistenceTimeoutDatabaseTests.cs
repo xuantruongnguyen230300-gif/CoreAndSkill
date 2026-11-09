@@ -17,11 +17,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Persistence;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Luật E11 (docs/RULES.md §4), lớp 2 — nửa trên PostgreSQL thật của CoreExecutionStrategyTests. Ba điều lớp 1 (ngoại lệ
 // dựng bằng tay) không chứng minh được:
 //   1. Hết lock_timeout thật đi qua đúng đường ghi ma trận (PermissionMatrixService, khoá tư vấn) và ra 500 sau MỘT lần

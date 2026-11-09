@@ -64,6 +64,11 @@ export class MenuComponent {
   readonly open = input(false);
   /** Sự kiện gốc của phần tử đã mở menu — cần để PrimeNG định vị overlay. Xem ghi chú ở đầu file. */
   readonly anchorEvent = input<Event | null>(null);
+  /**
+   * Khác `null` → menu chọn MỘT giá trị (Menu.md §API): mọi mục `menuitemradio`, mục trùng khoá mang
+   * `aria-checked="true"` và nhận focus khi menu mở; chọn lại đúng mục đó không phát `selected`.
+   */
+  readonly selectedKey = input<string | null>(null);
 
   /** Phát khoá của mục được chọn. KHÔNG phát khi mục đang khoá (Menu.md §API). */
   readonly selected = output<string>();
@@ -96,6 +101,38 @@ export class MenuComponent {
     });
   }
 
+  /**
+   * PrimeNG dựng `<li role="menuitem">` cứng, không cho đổi vai trò theo mục. Menu chọn giá trị phải
+   * là `menuitemradio` + `aria-checked` (Menu.md §Accessibility) nên vá lên DOM ngay khi overlay hiện
+   * (`onShow` phát trước lúc PrimeNG focus danh sách), và đặt mục đang chọn làm mục có focus ảo.
+   * Thứ tự `li` khớp thứ tự `model()`; separator là `li role="separator"`, không mang
+   * `data-pc-section="item"`.
+   * Hỏng khi nào: PrimeNG đổi `data-pc-section="item"` ở bản nâng cấp major.
+   */
+  protected onShow(): void {
+    const khoaChon = this.selectedKey();
+    if (khoaChon === null) {
+      return;
+    }
+    const goc = this.primeMenu().containerViewChild()?.nativeElement as HTMLElement | undefined;
+    if (!goc) {
+      return;
+    }
+    const thuTu = [
+      ...this.items().filter((m) => !m.danger),
+      ...this.items().filter((m) => m.danger),
+    ];
+    const dsLi = Array.from(goc.querySelectorAll<HTMLElement>('li[data-pc-section="item"]'));
+    dsLi.forEach((li, i) => {
+      const dangChon = thuTu[i]?.key === khoaChon;
+      li.setAttribute('role', 'menuitemradio');
+      li.setAttribute('aria-checked', String(dangChon));
+      if (dangChon) {
+        this.primeMenu().focusedOptionIndex.set(li.id);
+      }
+    });
+  }
+
   protected onHide(): void {
     this.openChange.emit(false);
   }
@@ -107,9 +144,15 @@ export class MenuComponent {
       disabled: muc.disabled ?? false,
       tooltip: muc.disabled ? (muc.disabledReason ?? undefined) : undefined,
       tooltipPosition: 'left',
-      styleClass: muc.danger ? 'app-menu__muc--nguy-hiem' : undefined,
+      styleClass:
+        [
+          muc.danger ? 'app-menu__muc--nguy-hiem' : '',
+          muc.key === this.selectedKey() ? 'app-menu__muc--chon' : '',
+        ]
+          .filter(Boolean)
+          .join(' ') || undefined,
       command: () => {
-        if (muc.disabled) {
+        if (muc.disabled || muc.key === this.selectedKey()) {
           return;
         }
         this.selected.emit(muc.key);

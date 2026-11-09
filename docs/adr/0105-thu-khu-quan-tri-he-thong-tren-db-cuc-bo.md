@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0105 — Dev cần thử khu quản trị hệ thống thì dựng database cục bộ và dùng tài khoản vận hành của chính mình; không thêm lệnh tạo tài khoản vận hành, không dùng chung tài khoản vận hành trên DB dev chung
 
-> **Trạng thái:** Đã chấp nhận (2026-09-25)
+> **Trạng thái:** Đã chấp nhận (2026-09-25) · Sửa một phần bởi [ADR-0110](0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md) (2026-09-28) · Tạm hoãn một phần bởi [ADR-0110](0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md) (2026-09-28)
 
 ## Bối cảnh
 

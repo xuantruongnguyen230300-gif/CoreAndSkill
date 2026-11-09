@@ -16,7 +16,9 @@ verified: chua-doi-chieu
 > | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/AntiforgeryController.cs` có action `GetToken` — khớp route §2 | Như trên |
 > | §8 và §9 **không** có action nào dưới `src/BE` — đúng chủ đích; nhãn `📐` tại chỗ vẫn đúng | Chỉ dựng nếu quyết định ở ADR-0029 bị lật |
 > | Thân request, thân response, bảng lỗi của từng card: **chưa ai đối chiếu với handler** | Đối chiếu từng card rồi mới lật `verified:` |
+> | §3 nguồn của `tenantCode` phía FE (đối chiếu 2026-10-06): chế độ thường gửi mã của bản cài — token `TENANT_CODE` ở `src/FE/src/app/core/config/tenant-code.ts` — và ô mã đơn vị bị vô hiệu; chế độ vận hành (`?cheDo=van-hanh`) gửi mã gõ tay — `src/FE/src/app/platform/xac-thuc/pages/dang-nhap/dang-nhap.page.ts` có `tenantCode: this.cheDoVanHanh() ? tenantCode : this.maCauHinh,` | — |
 > | §10 Response 429, header và `messageParams.RetryAfterSeconds` cùng số (đối chiếu 2026-09-26): cả `src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreWebServiceCollectionExtensions.cs` lẫn `src/BE/Core/CoreAndSkill.Core.Web/ExceptionHandling/CoreExceptionHandler.cs` có `SecurityErrors.RateLimitExceeded.WithParams(("RetryAfterSeconds", retryAfterSeconds))`; test `LoginPartitionLimitExceeded_Returns429_WithRetryAfterSecondsEqualToTheHeader` | — |
+> | §10 tầng toàn cục đếm cả request bị 401/403 (đối chiếu 2026-09-30): `app.UseRateLimiter();` đứng ngay sau `UseCors`, trước `UseAuthentication` ở `src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreApplicationBuilderExtensions.cs`; canh bằng luật B26 ở [`../RULES-BE.md`](../RULES-BE.md) | — |
 >
 > Envelope, `ErrorType` → HTTP, khuôn mã lỗi, phân trang: [`README.md`](README.md). Định nghĩa
 > đầy đủ: [`../quy-uoc/be-api-controller.md`](../quy-uoc/be-api-controller.md). Card này không
@@ -150,7 +152,7 @@ Không có nhánh lỗi nghiệp vụ.
 
 | Field | Kiểu | Bắt buộc | Ghi chú |
 | --- | --- | --- | --- |
-| `tenantCode` | string | ✔ | **Mã đơn vị.** Ô nhập cùng cấp với ô tên đăng nhập, điền **trước** khi xác thực. Khuôn và cách chuẩn hoá: [`tenants.md`](tenants.md) §2 — BE chuẩn hoá về chữ HOA trước khi tra, nên người dùng gõ thường vẫn khớp |
+| `tenantCode` | string | ✔ | **Mã đơn vị**, gửi **trước** khi xác thực. FE lấy giá trị từ cấu hình của bản cài — khoá nhúng lúc build, bằng mã đơn vị nghiệp vụ đặt lúc cài; ở chế độ vận hành của trang đăng nhập thì lấy từ ô mã đơn vị người vận hành gõ tay ([`../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md`](../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md)). BE không phân biệt hai nguồn. Khuôn và cách chuẩn hoá: [`tenants.md`](tenants.md) §2 — BE chuẩn hoá về chữ HOA trước khi tra, nên mã gõ thường vẫn khớp |
 | `userName` | string | ✔ | Tên đăng nhập, **không** phải email |
 | `password` | string | ✔ | |
 
@@ -169,9 +171,12 @@ Request **không** có tuỳ chọn duy trì phiên: mọi phiên hết hạn sa
 > Sau khi đăng nhập, đơn vị đến từ claim trong phiếu, và **không** endpoint nào khác nhận
 > `tenantId`/`tenantCode` từ request (luật M2).
 
-**Tài khoản vận hành hệ thống cũng gõ mã đơn vị, như mọi người.** Mã của đơn vị hệ thống do người
-vận hành đặt qua cấu hình lúc cài đặt
-([`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)).
+**Tài khoản vận hành hệ thống gửi mã của đơn vị hệ thống, qua cùng endpoint.** Trên trang đăng
+nhập, liên kết *Quản trị hệ thống* chuyển sang chế độ vận hành — hiện ô mã đơn vị, người vận hành
+gõ tay. Mã của đơn vị hệ thống do người vận hành đặt qua cấu hình lúc cài đặt
+([`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md))
+và **không** nằm trong cấu hình FE
+([`../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md`](../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md)).
 Mã chỉ là điều kiện tra cứu: hệ thống nhận ra đơn vị hệ thống bằng cột `is_system`
 ([`../database/schema-core.md`](../database/schema-core.md) §1.3), không bằng mã.
 
@@ -243,9 +248,9 @@ Mã chỉ là điều kiện tra cứu: hệ thống nhận ra đơn vị hệ t
 | Khoá | Mã trong `fieldErrors` | Khi nào |
 | --- | --- | --- |
 | `TenantCode` | `CORE.VALIDATION.REQUIRED` | Rỗng |
-| `TenantCode` | `CORE.VALIDATION.MAX_LENGTH` — `messageParams` khoá `MaxLength` | Vượt trần độ dài — cùng trần với `code` ở [`tenants.md`](tenants.md) §2 |
+| `TenantCode` | `CORE.VALIDATION.MAX_LENGTH` — `messageParams` khoá `MaxLength` | Vượt **50** ký tự — cùng trần với `code` ở [`tenants.md`](tenants.md) §2 |
 | `UserName` | `CORE.VALIDATION.REQUIRED` | Rỗng |
-| `UserName` | `CORE.VALIDATION.MAX_LENGTH` — `messageParams` khoá `MaxLength` | Vượt trần độ dài; trần đi trong `messageParams`, card không chép |
+| `UserName` | `CORE.VALIDATION.MAX_LENGTH` — `messageParams` khoá `MaxLength` | Vượt **256** ký tự |
 | `Password` | `CORE.VALIDATION.REQUIRED` | Rỗng |
 
 ### Ghi chú
@@ -302,6 +307,8 @@ con số.
 
 Bổ sung mã `fieldErrors` 2026-09-16 — không đổi hình dạng request/response, `Status` giữ nguyên.
 Bổ sung sàn thời gian cho phản hồi trượt 2026-09-22 — không đổi hình dạng, `Status` giữ nguyên.
+Ghi nguồn của `tenantCode` phía FE 2026-10-06 — không đổi hình dạng request/response, `Status` giữ
+nguyên.
 
 ---
 
@@ -671,7 +678,7 @@ Ba tầng **cộng dồn**, mốc chặt hơn chạm trước:
 
 | Tầng | Áp cho | Kiểm ở đâu | Chặn được gì |
 | --- | --- | --- | --- |
-| Toàn cục theo IP | **Mọi** endpoint, kể cả endpoint không khai gì | `UseRateLimiter` | Quét/dò hàng loạt |
+| Toàn cục theo IP | **Mọi** endpoint, kể cả endpoint không khai gì — và kể cả request bị từ chối 401/403 ở phiên, token chống giả mạo hay trạng thái bắt buộc đổi mật khẩu: tầng này đứng trước các phép kiểm đó | `UseRateLimiter` | Quét/dò hàng loạt, vòng lặp gửi lại của client |
 | Riêng đăng nhập, theo IP | `POST /api/v1/core/auth/login` | `UseRateLimiter` | Dò mật khẩu từ một máy |
 | Riêng đăng nhập, theo **`LoginPartitionKey`** | `POST /api/v1/core/auth/login` | **Trong handler đăng nhập**, qua seam `ILoginAttemptLimiter` | Dò phân tán từ nhiều IP vào một tài khoản — tầng thứ hai **không** bắt được ca này |
 

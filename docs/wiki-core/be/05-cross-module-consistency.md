@@ -204,7 +204,7 @@ Ba câu đầu là kỹ thuật, câu thứ tư là thứ hay bị bỏ quên �
 | Domain event trong process | ✅ sẽ có | Không rời khỏi module đã phát |
 | Outbox trong schema `core` | ✅ sẽ có | Ghi cùng transaction với dữ liệu |
 | Tiến trình phát nền | ✅ sẽ có | Hosted service, quét theo nhịp |
-| Bảng đã-xử-lý cho bên nhận | ✅ sẽ có | Ràng buộc duy nhất trên định danh sự kiện |
+| **Bảng đã-xử-lý cho bên nhận** | ❌ chưa | Ràng buộc duy nhất trên định danh sự kiện. Chưa cần: bên nhận chạy lại chỉ gây trùng ở tác dụng **ngoài** DB (chú thích của `src/BE/Core/CoreAndSkill.Core.Infrastructure/Outbox/OutboxDispatcher.cs`, chuỗi `bên nhận có tác dụng NGOÀI DB`), và Core chưa gửi email nào — `IEmailSender` không có bản mặc định ([`../../RULES-BE.md`](../../RULES-BE.md) B27). Kích hoạt: dự án cắm bản cài `IEmailSender` thật |
 | Job đối soát định kỳ | 📐 nên có | Không có nó thì sự kiện mất sẽ không bao giờ lộ ra |
 | **Message broker** | ❌ chưa ở v1 | Điều kiện ở §7.3. Thêm broker **không** bỏ được Outbox |
 | **Saga / bù trừ nhiều bước** | ❌ chưa | Chỉ cần khi một nghiệp vụ trải qua nhiều module và phải quay lại từng bước. Chưa có ca nào |

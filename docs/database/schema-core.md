@@ -12,7 +12,7 @@ verified: chua-doi-chieu
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
 > | Schema đã có hai hiện thực trên đĩa: script DDL ở `database/scripts/core/` và model EF ở `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/Migrations/CoreDbContextModelSnapshot.cs`. Nhiều file trong `src/BE` trích file này làm chuẩn — đếm bằng `grep -rln schema-core src/BE --include=*.cs` | Từng mục lật sang nhãn đã đối chiếu, **riêng lẻ**, khi có người mở source ra so |
-> | 🛑 **Chưa có DDL nào dưới đây từng được áp lên một Postgres thật.** Nhóm integration test chạy trên Postgres chưa chạy lần nào — luật **T2** ở [`../RULES.md`](../RULES.md) mang `⏸️`: fixture có thật nhưng máy hiện tại không có Docker, và job CI backend chưa chạy | Áp lần đầu theo [`script-runbook.md`](script-runbook.md); tới lúc đó mọi kiểu cột, ràng buộc và index ở đây vẫn là **thiết kế chưa được database nào xác nhận** |
+> | 🛑 **Script ở `database/scripts/core/` mới chỉ được áp lên container test**: `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Support/PostgresFixture.cs` áp từng tệp bằng `psql` với `ON_ERROR_STOP=1`, tài khoản `postgres` — chuỗi `SuperUser = "postgres"`. Cả nhóm `RequiresDocker` xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` — luật **T2** ở [`../RULES-BE.md`](../RULES-BE.md) §8. CI chưa chạy với bản này; job CI backend đã chạy bước nào, kết quả ra sao: [`../README.md`](../README.md) mục *Trạng thái repo* | Áp lần đầu lên database ngoài container test theo [`script-runbook.md`](script-runbook.md). Postgres nhận script **không** chứng minh mô tả ở file này khớp script — từng mục vẫn chờ đối chiếu như hàng trên; quyền của tài khoản ứng dụng chưa database nào kiểm, vì test áp bằng `postgres` |
 >
 > **File chủ về schema `core`.** Ai sở hữu migration nào: [`migration-policy.md`](migration-policy.md).
 > Chạy script lên database thế nào: [`script-runbook.md`](script-runbook.md).
@@ -27,7 +27,7 @@ Một database PostgreSQL **15 trở lên**, nhiều schema. Sàn phiên bản d
 | --- | --- | --- |
 | `core` | `Core.Infrastructure` | Người dùng, vai trò, quyền, menu, thông báo, outbox, lịch sử script |
 | `<tên module>` | `Modules.<X>.Infrastructure` | Bảng nghiệp vụ của đúng module đó |
-| `public` | — | **Rỗng.** Không object nào của ứng dụng nằm ở đây |
+| `public` | — | **Không bảng nào.** Chỉ extension `unaccent` mà migration Core cài cho tìm không dấu — §3.9 |
 
 Luật ranh giới ở tầng code: [`../kien-truc-core-module.md`](../kien-truc-core-module.md) §5.
 
@@ -53,7 +53,7 @@ ALTER TABLE banhang.don_hang
 ```
 
 Luật E5 ở [`../RULES.md`](../RULES.md) §4 ép điều này bằng ArchTest
-`NoForeignKey_CrossesSchemaBoundary`. Database không còn đảm bảo id trần trỏ tới một dòng có thật; bù lại user **không bị xoá cứng** (§1.2).
+`NoForeignKey_CrossesSchemaBoundary` (📐 chưa viết — hàng E5 ở [`../RULES-BE.md`](../RULES-BE.md)). Database không còn đảm bảo id trần trỏ tới một dòng có thật; bù lại user **không bị xoá cứng** (§1.2).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`schema-core.md`](../wiki-core/be/ly-do/schema-core.md) §1.1
 
@@ -79,13 +79,13 @@ mang `tenant_id`.
 | --- | --- | --- | --- | --- |
 | `id` | `uuid` | NOT NULL | — | UUID v7, ứng dụng sinh (§3.1) |
 | `code` | `varchar(50)` | NOT NULL | — | **Mã đơn vị người dùng gõ ở form đăng nhập.** Chuẩn hoá về chữ HOA ở tầng ứng dụng trước khi ghi và trước khi tra |
-| `name` | `varchar(200)` | NOT NULL | — | Tên đơn vị, hiển thị |
+| `name` | `varchar(200)` | NOT NULL | — | Tên đơn vị, hiển thị. Collation `core.vi_vn` — §3.9 |
 | `is_active` | `boolean` | NOT NULL | `true` | Sai ⇒ **mọi tài khoản của đơn vị đó không đăng nhập được** |
 | `is_system` | `boolean` | NOT NULL | `false` | **Đơn vị hệ thống** — nơi tài khoản vận hành trú ([`../adr/0017-khu-quan-tri-he-thong.md`](../adr/0017-khu-quan-tri-he-thong.md)). Thiếu cột này thì mã lỗi `CORE.TENANT.SYSTEM_IMMUTABLE` ở [`../contracts/tenants.md`](../contracts/tenants.md) **không ai viết nổi** |
 | `created_at` · `created_by` · `updated_at` · `updated_by` | như §3.2 | NULL | — | Interceptor điền, qua interface audit — xem dưới |
 
 - **PK:** `pk_tenant (id)`
-- **Unique constraint:** `uq_tenant_code (code)` — unique **đầy đủ**, không lọc
+- **Unique index:** `uq_tenant_code` trên `(code)` — unique **đầy đủ**, không lọc. Tên mang tiền tố của unique constraint dù đối tượng là index: ngoại lệ có tên ở §2.2
 - **Unique index một phần:** `ux_tenant_is_system` trên `(is_system) WHERE is_system` — cho phép **nhiều nhất một** đơn vị hệ thống. Luật **M10**; database ép, không phải test.
 
 > **`Tenant` KHÔNG kế thừa `BaseEntity`, và đó là chủ đích** — cùng khuôn với `AppUser` (§4.1): tenant không bao giờ được xoá nên không có `is_deleted`; nó implement trực tiếp interface audit để interceptor điền bốn cột audit — [`../quy-uoc/be-entity-domain.md`](../quy-uoc/be-entity-domain.md) §1.4. Khoá duy nhất mang tiền tố `uq_`, không phải `ux_…_active` (§2.3).
@@ -93,11 +93,13 @@ mang `tenant_id`.
 #### Danh sách miễn trừ — bảng KHÔNG mang `tenant_id`
 
 Mỗi mục dưới đây là **dữ liệu dùng chung toàn hệ**, không thuộc đơn vị nào. Luật M4
-(`EveryBusinessEntity_IsTenantScoped_OrExempt`) đọc đúng danh sách này.
+(`EveryBusinessEntity_IsTenantScoped_OrExempt`, 📐 chưa viết — hàng M4 ở [`../RULES-BE.md`](../RULES-BE.md)) đọc đúng danh sách này.
 
 Hình thức thi công: danh sách đi vào `CoreAndSkill.ArchTests` dưới dạng một dictionary C# — khoá
 là `schema.table` lấy từ EF model, giá trị là lý do — cùng khuôn hai allowlist của luật S4 và M5.
-Ở giai đoạn 1, bảng dưới đây là chủ; việc chuyển chủ sang dictionary đó nằm trong
+Bảng dưới đây là chủ cho tới khi ArchTest `EveryBusinessEntity_IsTenantScoped_OrExempt` **lần đầu**
+chạy — trạng thái của nó ở hàng M4 của [`../RULES-BE.md`](../RULES-BE.md); lúc đó chủ chuyển sang
+dictionary, theo mục *Chuyển chủ sang code* của
 [`../adr/0030-dieu-kien-chuyen-giai-doan-2.md`](../adr/0030-dieu-kien-chuyen-giai-doan-2.md).
 
 | Bảng | Vì sao miễn trừ |
@@ -127,7 +129,7 @@ Không khai `ITenantScoped` nghĩa là **không có bộ lọc truy vấn toàn 
 | --- | --- |
 | `core.audit_log` (§9.4) | `tenant_id` của **từng dòng** do người ghi quyết định tường minh, không theo phạm vi đơn vị đang mở: thao tác xuyên đơn vị ghi hai dòng ở hai đơn vị trong **cùng** một lần lưu (§9.4 điểm 4). Khai `ITenantScoped` thì interceptor gán cả hai dòng về đơn vị đang mở. Neo: `src/BE/Core/CoreAndSkill.Core.Domain/Audit/AuditLog.cs` — `public sealed class AuditLog`, không kế thừa gì; factory `Record(` nhận `tenantId` bắt buộc |
 
-Miễn trừ này kéo theo một nghĩa vụ, và nó là thứ duy nhất đứng giữa bảng này với một lần rò dữ liệu: **mọi đường đọc `core.audit_log` tự lọc `tenant_id` tường minh.** Không bộ lọc nào làm hộ. Hôm nay chưa có đường đọc nào; cổng là nợ **B12** ở [`../DEBT.md`](../DEBT.md).
+Miễn trừ này kéo theo một nghĩa vụ, và nó là thứ duy nhất đứng giữa bảng này với một lần rò dữ liệu: **mọi đường đọc `core.audit_log` tự lọc `tenant_id` tường minh.** Không bộ lọc nào làm hộ. Hôm nay chưa có đường đọc nào; cổng của nó: dòng **B12** ở [`../RULES-BE.md`](../RULES-BE.md).
 
 > 🛑 **Danh sách này phải NGẮN.** Thêm một dòng vào bảng trên là một quyết định kiến trúc: nó phải nêu lý do **dữ liệu này có ý nghĩa như nhau với mọi đơn vị**.
 
@@ -186,6 +188,13 @@ một naming convention áp cho toàn model, khai **một lần** khi cấu hìn
 | Index thường | `ix_` | `ix_<bảng>_<cột…>` | `ix_menu_item_parent_id` |
 | Check constraint | `ck_` | `ck_<bảng>_<luật>` | `ck_notification_severity` |
 
+**Ngoại lệ có tên — đừng "sửa cho đồng bộ"** (người dùng chốt 2026-10-06, [`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md)):
+
+| Tên | Đối tượng thật | Khuôn đúng sẽ là | Vì sao giữ |
+| --- | --- | --- | --- |
+| `uq_tenant_code` | Unique **index** trên `core.tenant (code)` | `ux_tenant_code` | Code dịch lỗi trùng đọc đúng tên này — `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/UniqueViolations.cs`, chuỗi `TenantCode = "uq_tenant_code"`. Đổi tên cần migration, script mới và sửa code cùng lượt, không đổi được hành vi nào |
+| `ux_schema_script_history_script_name` | Unique **constraint** trên `core.schema_script_history (script_name)` | `uq_schema_script_history_script_name` | Bảng tạo ở `0001__core__initial.sql`, ngoài migration EF; đổi tên phải thêm script, không đổi được hành vi nào |
+
 > 🪤 **PostgreSQL cắt định danh ở 63 byte, âm thầm.** Kiểm trước khi đặt tên dài:
 >
 > ```sql
@@ -238,7 +247,20 @@ is_deleted  boolean      NOT NULL DEFAULT false
 | --- | --- | --- |
 | `created_at` / `created_by` | Interceptor EF, lúc `Added` | `created_by` giữ **tên đăng nhập**, không phải id |
 | `updated_at` / `updated_by` | Interceptor EF, lúc `Added` **và** `Modified` | Điền ngay từ lúc tạo (bằng đúng giá trị của `created_*`), **không** để `NULL`. Interceptor gán **cùng một** giá trị thời gian cho cả hai — phép thử "đã từng bị sửa" là `updated_at <> created_at` |
-| `is_deleted` | Ứng dụng | `NOT NULL DEFAULT false` |
+| `is_deleted` | Ứng dụng; câu `INSERT` viết tay được bỏ cột này | `NOT NULL DEFAULT false` — `DEFAULT` để seed bằng SQL tay của module khỏi phải ghi cột ([`../adr/0119-cot-ten-dung-collation-icu-core-vi-vn-tim-khong-dau-qua-unaccent-is-deleted-co-default-false.md`](../adr/0119-cot-ten-dung-collation-icu-core-vi-vn-tim-khong-dau-qua-unaccent-is-deleted-co-default-false.md)) |
+
+✅ **CÓ THẬT trong code và script** (đối chiếu 2026-10-06) — riêng `DEFAULT false` của `is_deleted`: khai một chỗ ở
+`src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/CoreColumnDefaults.cs`, chuỗi `.HasDefaultValue(false)`, gọi ở
+`CoreDbContext.cs` cùng thư mục, chuỗi `modelBuilder.ApplyBaseEntityColumnDefaults();`; script
+`database/scripts/core/0008__core__add-default-is-deleted.sql`, chuỗi `ALTER COLUMN is_deleted SET DEFAULT FALSE`. Lớp không
+database — ca `BaseEntityTables_IsDeletedColumn_DefaultsToFalse` của `ViVnCollationAndUnaccentTests` — xanh (`dotnet test`, 2026-10-06).
+🛑 **Mới chỉ áp lên container test** (bảng đầu file). Database mới tới `0007` vẫn mang `is_deleted boolean NOT NULL` không `DEFAULT`
+(`0001__core__initial.sql`) — câu `INSERT` tay bỏ cột dừng với `23502` cho tới khi áp `0008`. Ca *`INSERT` bỏ cột chạy
+được* trên PostgreSQL thật — `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Persistence/ViVnCollationDatabaseTests.cs`,
+chuỗi `InsertWithoutIsDeleted_UsesColumnDefaultFalse` — mang `RequiresDocker`, xanh: `dotnet test` 2026-11-03 ở máy
+Windows, Docker `postgres:18`; CI chưa chạy với bản này.
+Bảng của module chỉ mang `DEFAULT` này khi DbContext của module gọi cùng hàm ở cuối `OnModelCreating` (chú thích đầu
+`CoreColumnDefaults.cs`) — chưa module nào, chưa cổng nào kiểm.
 
 Chi tiết interceptor: [`../quy-uoc/be-entity-domain.md`](../quy-uoc/be-entity-domain.md).
 
@@ -367,7 +389,7 @@ CONSTRAINT fk_menu_item_tenant_id FOREIGN KEY (tenant_id) REFERENCES core.tenant
 **Vị trí trong index:** `tenant_id` đứng **đầu** mọi index đa cột trên bảng có nó. Ngoại lệ có chủ đích duy nhất là index của `outbox_message` (§8).
 
 > 🛑 **Mọi index duy nhất trên bảng có `tenant_id` phải GỒM `tenant_id`** — luật M3, ArchTest
-> `EveryUniqueIndex_OnTenantScoped_Includes_TenantId`. Cộng với §3.3, một unique index trên bảng vừa có `tenant_id` vừa có `is_deleted` phải gồm **ba**
+> `EveryUniqueIndex_OnTenantScoped_Includes_TenantId` (📐 chưa viết — hàng M3 ở [`../RULES-BE.md`](../RULES-BE.md)). Cộng với §3.3, một unique index trên bảng vừa có `tenant_id` vừa có `is_deleted` phải gồm **ba**
 > thứ: cột nghiệp vụ, `tenant_id`, và mệnh đề `WHERE is_deleted = false`.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`schema-core.md`](../wiki-core/be/ly-do/schema-core.md) §3.7
@@ -394,6 +416,43 @@ khoá ngoại tiếp theo, và không có gì báo. Điều file này giữ là 
 soi, nên **không ai xét nó có đáng tồn tại hay không**. Ca đang mở: `ix_audit_log_actor_tenant_id`
 (`database/scripts/core/0003__core__add-audit-log.sql:31`) nằm trên một cột mà §9.4 khai là `null`
 ở gần như mọi dòng. Quy ước này làm nó vô hình, không làm nó đúng — xem ADR-0042.
+
+### 3.9 Collation tiếng Việt và tìm không dấu
+
+Người dùng chốt 2026-10-06, [`../adr/0119-cot-ten-dung-collation-icu-core-vi-vn-tim-khong-dau-qua-unaccent-is-deleted-co-default-false.md`](../adr/0119-cot-ten-dung-collation-icu-core-vi-vn-tim-khong-dau-qua-unaccent-is-deleted-co-default-false.md).
+
+✅ **CÓ THẬT trong code và script** (đối chiếu 2026-10-06):
+
+- Collation và extension khai ở `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/CoreDbContext.cs`, chuỗi
+  `modelBuilder.HasCollation(CoreSchema.Name, CoreSchema.ViVnCollation, CoreSchema.ViVnLocale, "icu", deterministic: true)`;
+  ba cột gắn bằng `UseCollation(CoreSchema.QualifiedViVnCollation)` ở `AppUserConfiguration.cs`, `TenantConfiguration.cs`,
+  `AppRoleConfiguration.cs` dưới `Persistence/Configurations/`.
+- Script `database/scripts/core/0009__core__add-collation-vi-vn-and-unaccent.sql` — chuỗi `PROVIDER = icu`,
+  `CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA public`, `ALTER COLUMN full_name TYPE character varying(200) COLLATE core.vi_vn`.
+- `searchText` so qua `unaccent` ở cả ba dịch vụ truy vấn dưới `src/BE/Core/CoreAndSkill.Core.Infrastructure/` —
+  `Users/UserQueryService.cs`, chuỗi `EF.Functions.ILike(EF.Functions.Unaccent(u.FullName), EF.Functions.Unaccent(pattern)`;
+  `Tenants/TenantAdminQueryService.cs`, `Roles/RoleQueryService.cs` cùng khuôn. Danh sách vai trò sắp theo cột `name`,
+  không còn theo `normalized_name` — `RoleQueryService.cs`, chuỗi `roles.OrderBy(r => r.Name)`.
+- `ViVnCollationAndUnaccentTests` — kiểm mô hình EF, câu SQL sinh ra và nội dung hai script, không database — xanh
+  (`dotnet test`, 2026-10-06).
+
+🛑 **Mới chỉ áp lên container test** (bảng đầu file). Thứ tự sắp xếp tiếng Việt, `đ` khớp `d`, `=` vẫn phân biệt
+dấu đã đo trên PostgreSQL thật — ca sắp và ca tìm **chỉ trên `core.tenant`**: `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Persistence/ViVnCollationDatabaseTests.cs`
+mang `RequiresDocker`, xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18`; CI chưa chạy với bản này.
+Ảnh `postgres:18` có ICU và gói contrib — `0009` áp bằng `postgres` không lỗi. Cụm khác có hai thứ đó không, và
+chủ database không phải superuser tạo được extension không: chưa kiểm trên cụm nào — cách xử lý ở
+[`script-runbook.md`](script-runbook.md) §3.3, *Cụm phải có ICU và gói contrib*.
+
+| Thứ | Định nghĩa |
+| --- | --- |
+| Collation | `core.vi_vn` — `provider = icu`, `locale = 'vi-VN'`, deterministic. Migration Core tạo, không dựa vào tên do `initdb` nạp |
+| Cột mang collation | `core.app_user.full_name` · `core.tenant.name` · `core.app_role.name` |
+| Luật cho cột mới | Cột chữ do người dùng nhập bằng tiếng Việt mà API cho sắp xếp theo thì mang `core.vi_vn` — Core và module. Luật **E25** ([`../RULES-BE.md`](../RULES-BE.md) §4) |
+| Tìm không dấu | Extension `unaccent` ở schema `public`. `searchText` so `unaccent(cột) ILIKE unaccent(mẫu)` trên mọi cột nó khớp — không phân biệt hoa thường và dấu, `đ` khớp `d`. Không index: tìm kiếm quét cả bảng |
+
+- **So sánh bằng (`=`) vẫn phân biệt hoa thường và dấu** — collation deterministic chỉ đổi thứ tự sắp xếp.
+- **Sau mỗi lần nâng ICU** — đổi image Postgres, nâng hệ điều hành của cụm — Postgres báo lệch phiên bản collation: dựng lại index dùng `core.vi_vn`, rồi `ALTER COLLATION core.vi_vn REFRESH VERSION`.
+- Cụm Postgres phải build với ICU và có gói contrib; thiếu một trong hai thì migration hỏng.
 
 ---
 
@@ -438,17 +497,17 @@ thêm cột vào đây, tuyệt đối không dựng một bảng `user_profile`
 | `normalized_user_name` | `varchar(256)` | NULL | — | Identity |
 | `email` | `varchar(256)` | NULL | — | Identity |
 | `normalized_email` | `varchar(256)` | NULL | — | Identity |
-| `email_confirmed` | `boolean` | NOT NULL | `false` | Identity |
+| `email_confirmed` | `boolean` | NOT NULL | — | Identity |
 | `password_hash` | `text` | NULL | — | Identity |
 | `security_stamp` | `text` | NULL | — | Identity |
 | `concurrency_stamp` | `text` | NULL | — | Identity |
 | `phone_number` | `varchar(20)` | NULL | — | Identity — **nới kiểu so với cột gốc** theo §3.5: trần 20 ký tự là luật nghiệp vụ ([`../contracts/profile.md`](../contracts/profile.md) §2) |
-| `phone_number_confirmed` | `boolean` | NOT NULL | `false` | Identity |
-| `two_factor_enabled` | `boolean` | NOT NULL | `false` | Identity |
+| `phone_number_confirmed` | `boolean` | NOT NULL | — | Identity |
+| `two_factor_enabled` | `boolean` | NOT NULL | — | Identity |
 | `lockout_end` | `timestamptz` | NULL | — | Identity |
-| `lockout_enabled` | `boolean` | NOT NULL | `true` | Identity |
-| `access_failed_count` | `integer` | NOT NULL | `0` | Identity |
-| `full_name` | `varchar(200)` | NOT NULL | — | **Ta thêm** |
+| `lockout_enabled` | `boolean` | NOT NULL | — | Identity |
+| `access_failed_count` | `integer` | NOT NULL | — | Identity |
+| `full_name` | `varchar(200)` | NOT NULL | — | **Ta thêm.** Collation `core.vi_vn` — §3.9 |
 | `must_change_password` | `boolean` | NOT NULL | `true` | **Ta thêm** |
 | `preferred_language` | `varchar(10)` | NULL | — | **Ta thêm.** Ngôn ngữ ưa thích, người dùng tự đặt ở màn hồ sơ ([`../contracts/profile.md`](../contracts/profile.md)). Rỗng ⇒ dùng ngôn ngữ mặc định của hệ thống. Đây cũng là nguồn ngôn ngữ khi gửi thông báo ([`../wiki-core/be/12-notifications.md`](../wiki-core/be/12-notifications.md) §4.2) |
 | `is_system_operator` | `boolean` | NOT NULL | `false` | **Ta thêm.** Cờ vào khu quản trị hệ thống — [`../adr/0017-khu-quan-tri-he-thong.md`](../adr/0017-khu-quan-tri-he-thong.md). Không đi qua ma trận quyền, và luật M9 cấm gán vai trò nghiệp vụ cho tài khoản mang cờ này |
@@ -458,6 +517,8 @@ thêm cột vào đây, tuyệt đối không dựng một bảng `user_profile`
 | `created_by` | `varchar(100)` | NULL | — | **Ta thêm** |
 | `updated_at` | `timestamptz` | NULL | — | **Ta thêm** |
 | `updated_by` | `varchar(100)` | NULL | — | **Ta thêm** |
+
+> Năm cột Identity `NOT NULL` — `email_confirmed`, `phone_number_confirmed`, `two_factor_enabled`, `lockout_enabled`, `access_failed_count` — **không có `DEFAULT`** ở DDL — ✅ CÓ THẬT (đối chiếu 2026-10-06): `database/scripts/core/0001__core__initial.sql`, chuỗi `access_failed_count integer NOT NULL,`; không script sau nào đổi chúng. Identity luôn ghi chúng, và không câu `INSERT` tay nào tạo được tài khoản hợp lệ (cảnh báo về mật khẩu bên dưới), nên không thêm `DEFAULT` — người dùng chốt 2026-10-06, [`../adr/0119-cot-ten-dung-collation-icu-core-vi-vn-tim-khong-dau-qua-unaccent-is-deleted-co-default-false.md`](../adr/0119-cot-ten-dung-collation-icu-core-vi-vn-tim-khong-dau-qua-unaccent-is-deleted-co-default-false.md).
 
 - **PK:** `pk_app_user (id)`
 - **FK:** `fk_app_user_tenant_id → core.tenant (id) ON DELETE RESTRICT`
@@ -507,7 +568,7 @@ này bằng SQL tay** — thao tác khoá còn phải đổi `security_stamp` t�
 | --- | --- | --- | --- | --- |
 | `id` | `uuid` | NOT NULL | — | Identity |
 | `tenant_id` | `uuid` | NOT NULL | — | **Ta thêm** (§3.7) |
-| `name` | `varchar(256)` | NULL | — | Identity |
+| `name` | `varchar(256)` | NULL | — | Identity. Collation `core.vi_vn` — §3.9 |
 | `normalized_name` | `varchar(256)` | NULL | — | Identity |
 | `concurrency_stamp` | `text` | NULL | — | Identity |
 | `description` | `varchar(500)` | NULL | — | **Ta thêm** |
@@ -911,12 +972,12 @@ thật của quy trình vận hành — [`script-runbook.md`](script-runbook.md)
 | `owner` | `varchar(50)` | NOT NULL | — |
 | `applied_at` | `timestamptz` | NOT NULL | `now()` |
 | `applied_by` | `varchar(100)` | NOT NULL | — |
-| `duration_ms` | `integer` | NULL | — |
+| `duration_ms` | `integer` | NULL | — · **Luôn `NULL`**: khối ghi lịch sử ([`script-runbook.md`](script-runbook.md) §3.1) không ghi cột này, và không script nào tự đo (người dùng chốt 2026-10-06) |
 | `note` | `text` | NULL | — |
 
 - **PK:** `pk_schema_script_history (id)`
-- **Unique:** `ux_schema_script_history_script_name (script_name)` — unique **đầy đủ**, không lọc:
-  bảng này không có `is_deleted`
+- **Unique constraint:** `ux_schema_script_history_script_name (script_name)` — unique **đầy đủ**, không lọc:
+  bảng này không có `is_deleted`. Tên mang tiền tố của unique index dù đối tượng là constraint: ngoại lệ có tên ở §2.2
 - **Index:** `ix_schema_script_history_applied_at (applied_at DESC)`
 
 `checksum_sha256` là băm nội dung file lúc chạy. `owner` nhận `'core'` hoặc khoá module, để lọc được lịch sử theo bên sở hữu.
@@ -1086,7 +1147,7 @@ Quyền đọc tệp là quyền đọc **bản ghi chủ** ([`../contracts/file
 | `id` | `uuid` | NOT NULL | §3.1 — chính là `jobId` trả cho FE |
 | `tenant_id` | `uuid` | NOT NULL | §3.7 |
 | `type` | `varchar(50)` | NOT NULL | Loại việc, do luồng khởi tạo đặt |
-| `status` | `varchar(20)` | NOT NULL | `queued` · `running` · `succeeded` · `failed` · `cancelled` |
+| `status` | `varchar(20)` | NOT NULL | `queued` · `running` · `succeeded` · `failed` · `cancelled`; mặc định `queued` |
 | `created_by_user_id` | `uuid` | NOT NULL | Người khởi tạo — id trần, **không** FK; handler kiểm *"việc của chính người gọi"* bằng cột này |
 | `started_at` | `timestamptz` | NULL | |
 | `finished_at` | `timestamptz` | NULL | |
@@ -1119,7 +1180,7 @@ nó** mới nâng lên `core`.
 không?* Có → bảng mang `tenant_id` theo §3.7. Không → nó phải được **thêm vào danh sách miễn trừ
 ở §1.3 kèm lý do**, và đó là một quyết định kiến trúc, không phải một dòng bỏ qua.
 
-Luật E4 ép điều này bằng ArchTest `EveryMappedEntity_LivesInTheSchemaOfItsSide`. Mỗi bên một `DbContext` ([`migration-policy.md`](migration-policy.md) §1.2), mỗi `DbContext` đặt schema mặc định của **chính bên mình**; E4 bắt ca một entity `core` bị đăng ký nhầm vào `DbContext` của module.
+Luật E4 ép điều này bằng ArchTest `EveryMappedEntity_LivesInTheSchemaOfItsSide` (📐 chưa viết — hàng E4 ở [`../RULES-BE.md`](../RULES-BE.md)). Mỗi bên một `DbContext` ([`migration-policy.md`](migration-policy.md) §1.2), mỗi `DbContext` đặt schema mặc định của **chính bên mình**; E4 bắt ca một entity `core` bị đăng ký nhầm vào `DbContext` của module.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`schema-core.md`](../wiki-core/be/ly-do/schema-core.md) §10
 

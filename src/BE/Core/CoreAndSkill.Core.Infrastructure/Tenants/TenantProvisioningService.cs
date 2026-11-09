@@ -1,4 +1,5 @@
 using CoreAndSkill.Core.Application.Common.Interfaces;
+using CoreAndSkill.Core.Application.Common.Logging;
 using CoreAndSkill.Core.Application.Identity;
 using CoreAndSkill.Core.Application.Permissions;
 using CoreAndSkill.Core.Application.Tenants;
@@ -47,6 +48,8 @@ internal sealed class TenantProvisioningService(
 {
     public async Task<Result<TenantProvisioningResult>> CreateTenantAsync(CreateTenantInput input, CancellationToken ct)
     {
+        // Luật M16 — kiểm yêu cầu TRƯỚC mọi thứ khác: đây là lỗi lập trình, không cần transaction hay database để thấy.
+        EnsureSystemTenantAdminIsOperator(input);
         EnsureInsideTransaction();
 
         // Đơn vị của người gọi TRƯỚC khi service mở phạm vi nào — quyết định dòng audit có xuyên đơn vị hay không
@@ -60,6 +63,12 @@ internal sealed class TenantProvisioningService(
         var existingTenant = input.IsSystem
             ? await db.Tenants.FirstOrDefaultAsync(t => t.IsSystem, ct)
             : await db.Tenants.FirstOrDefaultAsync(t => t.Code == normalizedCode, ct);
+
+        // Mã đã thuộc một đơn vị KHÁC LOẠI (yêu cầu nghiệp vụ trùng mã đơn vị hệ thống) — không dùng lại: dùng lại là tạo
+        // tài khoản của yêu cầu vào đơn vị sai loại (luật M16). Trả trước mọi lệnh ghi.
+        if (existingTenant is not null && existingTenant.IsSystem != input.IsSystem)
+            return Result.Failure<TenantProvisioningResult>(
+                TenantProvisioningErrors.CodeDuplicate.WithParams(("Code", input.Code)));
 
         // Endpoint POST /system/tenants (docs/contracts/tenants.md §2): đơn vị đã có là CONFLICT
         // tường minh, không phải một no-op im lặng — khác hẳn ngữ nghĩa của core bootstrap.
@@ -87,7 +96,9 @@ internal sealed class TenantProvisioningService(
             }
             catch (TenantSeedException ex)
             {
-                logger.LogError(ex, "Nguồn seed đơn vị không hợp lệ — không ghi dòng nào cho đơn vị '{TenantCode}'.", normalizedCode);
+                logger.LogError(
+                    "Nguồn seed đơn vị không hợp lệ — không ghi dòng nào cho đơn vị '{TenantCode}'. {Failure}",
+                    normalizedCode, FailureText.DescribeWithStack(ex));
                 return Result.Failure<TenantProvisioningResult>(TenantProvisioningErrors.SeedFailed);
             }
 
@@ -98,12 +109,29 @@ internal sealed class TenantProvisioningService(
             tenant = createResult.Value;
             db.Tenants.Add(tenant);
             tenantWasCreated = true;
+
+            // Ghi dòng đơn vị NGAY, để vi phạm uq_tenant_code của lượt tạo đồng thời hiện ở đây — trước khi nó bị lẫn vào lệnh ghi
+            // của UserManager (AppUserStore chỉ dịch hai index của core.app_user). Lượt kia chưa commit thì phép tra trùng ở trên
+            // thấy "không trùng"; chỉ đúng ràng buộc này mới thành CODE_DUPLICATE, mọi lỗi lưu khác đi tiếp ra 500.
+            try
+            {
+                await db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException ex) when (UniqueViolations.IsOn(ex, UniqueViolations.TenantCode))
+            {
+                db.Entry(tenant).State = EntityState.Detached;
+                return Result.Failure<TenantProvisioningResult>(
+                    TenantProvisioningErrors.CodeDuplicate.WithParams(("Code", input.Code)));
+            }
         }
 
         // Mở phạm vi ngữ cảnh thực thi của đơn vị vừa tạo/đã có — allowlist luật A12. Từ đây
         // mọi ghi ITenantScoped (AppUser, AppRole, RolePermission, MenuItem…) được interceptor
         // gán đúng TenantId.
         using var scope = EnterTenantScope(tenant.Id);
+
+        // Luật M16 theo ĐƠN VỊ ĐÃ GIẢI (tạo mới hoặc dùng lại), không chỉ theo cờ của yêu cầu — ngay trước nhánh tạo tài khoản.
+        EnsureSystemTenantAdminIsOperator(tenant.IsSystem, input);
 
         var existingUser = await userManager.FindByNameAsync(input.AdminUserName);
         bool adminWasCreated;
@@ -134,7 +162,7 @@ internal sealed class TenantProvisioningService(
         {
             try
             {
-                await ApplySeedAsync(ct);
+                await ApplySeedAsync(tenant.IsSystem, ct);
             }
             catch (TenantSeedException ex)
             {
@@ -144,7 +172,9 @@ internal sealed class TenantProvisioningService(
                 // NGHIỆP VỤ báo lại được người vận hành (docs/contracts/tenants.md §2 CORE.TENANT.SEED_FAILED) — không phải
                 // 500: rollback sạch, không đơn vị nào "đã tạo nhưng thiếu seed" (ADR-0023 §1). Chỉ bắt ĐÚNG lỗi seed:
                 // InvalidOperationException của EF hay của một nguồn seed viết sai là lỗi hệ thống, đi ra thành 500.
-                logger.LogError(ex, "Seed đơn vị '{TenantCode}' thất bại giữa chừng — rollback toàn bộ.", tenant.Code);
+                logger.LogError(
+                    "Seed đơn vị '{TenantCode}' thất bại giữa chừng — rollback toàn bộ. {Failure}",
+                    tenant.Code, FailureText.DescribeWithStack(ex));
                 return Result.Failure<TenantProvisioningResult>(TenantProvisioningErrors.SeedFailed);
             }
         }
@@ -358,6 +388,21 @@ internal sealed class TenantProvisioningService(
     private Task<Tenant?> FindBusinessTenantAsync(Guid tenantId, CancellationToken ct)
         => db.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId && !t.IsSystem, ct);
 
+    // Luật M16 (ADR-0122 điểm 3) — mọi tài khoản của đơn vị hệ thống mang is_system_operator. Bất biến được ép Ở SERVICE, không
+    // trông vào chỗ gọi: yêu cầu tạo đơn vị hệ thống mà tài khoản đầu không mang cờ vận hành, hoặc mang cờ bypass, là lỗi LẬP
+    // TRÌNH (không người dùng nào dựng được yêu cầu đó — POST /system/tenants luôn IsSystem=false) nên ném, không trả Result.
+    internal static void EnsureSystemTenantAdminIsOperator(CreateTenantInput input)
+        => EnsureSystemTenantAdminIsOperator(input.IsSystem, input);
+
+    // Phép kiểm theo đơn vị thật: isSystemTenant lấy từ đơn vị đã giải, không từ yêu cầu.
+    private static void EnsureSystemTenantAdminIsOperator(bool isSystemTenant, CreateTenantInput input)
+    {
+        if (isSystemTenant && (!input.AdminIsSystemOperator || input.AdminHasPermissionBypass))
+            throw new InvalidOperationException(
+                "Tài khoản đầu của đơn vị hệ thống phải mang is_system_operator và không mang has_permission_bypass " +
+                "(luật M16, docs/adr/0122-don-vi-he-thong-duoc-seed-mot-muc-menu-toi-he-thong-don-vi-moi-tai-khoan-cua-no-mang-co-van-hanh.md).");
+    }
+
     // Chặn lời gọi ngoài transaction của người gọi — xem chú thích đầu lớp. Lỗi LẬP TRÌNH, không phải lỗi nghiệp
     // vụ, nên ném thay vì trả Result: không người dùng nào sửa được nó.
     private void EnsureInsideTransaction()
@@ -452,14 +497,19 @@ internal sealed class TenantProvisioningService(
                 _ => null,
             }));
 
-    // docs/wiki-core/be/17-multi-tenant.md §11.4 — bốn thứ theo thứ tự: vai trò, ánh xạ quyền, (tài
-    // khoản đã tạo ở trên), menu. Nhiều nguồn được GỘP — CoreTenantSeedSource của Core cùng nguồn của
+    // docs/wiki-core/be/17-multi-tenant.md §11.4 — bốn mục seed: vai trò, ánh xạ quyền, tài khoản
+    // quản trị, menu (số trong bảng là số mục, không phải thứ tự ghi; chỉ ràng buộc mục 1 trước mục 2;
+    // cả bốn mục chung một transaction — tài khoản đã tạo ở trên). Nhiều nguồn được GỘP — CoreTenantSeedSource của Core cùng nguồn của
     // từng module; một nguồn không khai vai trò/ánh xạ quyền thì phần đó không sinh dòng nào.
-    private async Task ApplySeedAsync(CancellationToken ct)
+    private async Task ApplySeedAsync(bool isSystemTenant, CancellationToken ct)
     {
         var roles = seedSources.SelectMany(s => s.GetRoles()).ToList();
         var rolePermissions = seedSources.SelectMany(s => s.GetRolePermissions()).ToList();
         var menuItems = seedSources.SelectMany(s => s.GetMenuItems()).ToList();
+
+        // ADR-0122 điểm 2: đơn vị hệ thống, và CHỈ nó, nhận thêm danh sách riêng của Core (mục "Đơn vị" tới /he-thong/don-vi).
+        if (isSystemTenant)
+            menuItems.AddRange(CoreTenantSeedSource.SystemTenantMenuItems);
 
         var roleIdsByName = new Dictionary<string, Guid>(StringComparer.Ordinal);
 

@@ -1,11 +1,19 @@
 // Design/Components/AuthField.md
+// Phần tử chủ `app-auth-field` mặc định `inline`; khe giữa các trường do AuthCard áp
+// (auth-card.component.scss) chỉ có nghĩa khi phần tử chủ là khối.
+:host {
+  display: block;
+}
+
+// Hai khe tách riêng (DESIGN.md §4): nhãn → ô `--sp-4` (margin-bottom của nhãn), ô → dòng
+// lỗi/gợi ý `--sp-3` (margin-top của dòng phụ). Không dùng `gap` chung vì hai khe khác bậc.
 .auth-field {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
 }
 
 .auth-field__nhan {
+  margin-bottom: var(--sp-4);
   font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
   color: var(--color-text);
@@ -24,13 +32,26 @@
   color: var(--color-text-muted);
 }
 
+// Icon dẫn chuyển `--color-text` khi ô nhận focus (AuthField.md §Trạng thái `focus-visible`).
+.auth-field__khung:has(.auth-field__input:focus-visible) .auth-field__icon {
+  color: var(--color-text);
+}
+
+// Ô nhập chữ có MỘT đường biên (DESIGN.md §2.6 *Ô nhập chữ*): màu nói hợp lệ/lỗi, độ dày nói có
+// focus hay không. Viền thật luôn `--border-w`; phần dày thêm vẽ vào PHÍA TRONG bằng bóng `inset`
+// nên hộp ô và vị trí chữ không đổi giữa bốn trạng thái. `--auth-field-vien-them` (độ dày cộng thêm) và
+// `--auth-field-vien-mau` gom trong biến để khối tự điền bên dưới ghép lại trong MỘT khai báo `box-shadow`.
 .auth-field__input {
+  --auth-field-vien-them: 0px;
+  --auth-field-vien-mau: var(--color-text);
+
   display: block;
   width: 100%;
   height: var(--size-control-lg);
   background: var(--color-surface);
   border: var(--border-w) solid var(--color-border-strong);
   border-radius: var(--radius-sm);
+  box-shadow: inset 0 0 0 var(--auth-field-vien-them) var(--auth-field-vien-mau);
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: var(--fs-md);
@@ -38,7 +59,12 @@
   transition: border-color var(--dur-fast) var(--ease-standard);
 
   &--co-icon {
-    padding-left: calc(var(--sp-5) + var(--icon-md) + var(--sp-4));
+    padding-left: var(--auth-field-pad-icon);
+  }
+
+  // Chừa chỗ nút hiện/ẩn (`--size-control-sm`, cách mép phải `--sp-4`) để mật khẩu dài không chạy xuống dưới nút.
+  &--co-nut {
+    padding-right: var(--auth-field-pad-reveal);
   }
 
   &--md {
@@ -50,10 +76,22 @@
     color: var(--color-text-muted);
   }
 
+  // Trung hoà vòng `:focus-visible` chung (styles.scss) CHO Ô NHẬP — dấu hiệu focus là đường biên.
   &:focus-visible {
-    outline: var(--border-w-strong) solid var(--color-focus);
-    outline-offset: 2px;
-    border-color: var(--color-brand);
+    outline: none;
+    border-color: var(--color-text);
+    --auth-field-vien-them: calc(var(--border-w-strong) - var(--border-w));
+  }
+
+  // Trình duyệt tự điền: giữ nền `--color-surface` và chữ `--color-text`. Chrome khai nền tự điền
+  // `!important` nên phủ bằng bóng `inset` đủ lớn; đường biên ghép chung một khai báo.
+  &:-webkit-autofill {
+    box-shadow:
+      inset 0 0 0 var(--auth-field-vien-them) var(--auth-field-vien-mau),
+      inset 0 0 0 100vmax var(--color-surface);
+    -webkit-text-fill-color: var(--color-text);
+    caret-color: var(--color-text);
+    filter: none; // Firefox tô ô tự điền bằng `filter` trong stylesheet trình duyệt
   }
 
   &:disabled {
@@ -61,11 +99,26 @@
     color: var(--color-text-disabled);
     cursor: not-allowed;
   }
+
+  // `disabled` thắng tự điền: ô đã điền rồi bị khoá khi form đang gửi mang nền và chữ `disabled`.
+  &:disabled:-webkit-autofill {
+    box-shadow: inset 0 0 0 100vmax var(--color-surface-3);
+    -webkit-text-fill-color: var(--color-text-disabled);
+    filter: none; // Firefox tô ô tự điền bằng `filter` trong stylesheet trình duyệt
+  }
 }
 
+// Ô lỗi: viền thật vẫn `--border-w`; `--border-w-strong` ở trạng thái nghỉ, `--border-w-accent`
+// khi có focus — luôn màu lỗi.
 .auth-field__khung--loi .auth-field__input {
-  border-width: var(--border-w-strong);
   border-color: var(--color-danger-border);
+  --auth-field-vien-mau: var(--color-danger-border);
+  --auth-field-vien-them: calc(var(--border-w-strong) - var(--border-w));
+
+  &:focus-visible {
+    border-color: var(--color-danger-border);
+    --auth-field-vien-them: calc(var(--border-w-accent) - var(--border-w));
+  }
 }
 
 .auth-field__nut-hien-an {
@@ -76,8 +129,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
   background: transparent;
   border: none;
   color: var(--color-text-muted);
@@ -88,19 +141,24 @@
     outline: var(--border-w-strong) solid var(--color-focus);
     outline-offset: 2px;
   }
+
+  &:disabled {
+    color: var(--color-text-disabled);
+    cursor: not-allowed;
+  }
 }
 
 .auth-field__loi {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  margin: 0;
+  margin: var(--sp-3) 0 0;
   color: var(--color-danger);
   font-size: var(--fs-xs);
 }
 
 .auth-field__goi-y {
-  margin: 0;
+  margin: var(--sp-3) 0 0;
   color: var(--color-text-muted);
   font-size: var(--fs-xs);
 }

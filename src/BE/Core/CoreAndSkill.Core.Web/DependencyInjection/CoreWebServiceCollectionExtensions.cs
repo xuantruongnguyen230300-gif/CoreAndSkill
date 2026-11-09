@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using System.Threading.RateLimiting;
@@ -30,24 +29,77 @@ namespace CoreAndSkill.Core.Web.DependencyInjection;
 
 public static class CoreWebServiceCollectionExtensions
 {
-    // Số lần / cửa sổ mặc định đã CHỐT — docs/quy-uoc/be-api-controller.md §6.1, §6.2. Đọc ở đây,
-    // dùng lại ở UseCoreAsync (bảng §8.1 be-api-controller.md — chuỗi/con số dùng chung khai một
-    // chỗ, không gõ tay ở hai nơi).
-    private const int LoginPermitLimit = 5;
-    private static readonly TimeSpan LoginWindow = TimeSpan.FromMinutes(1);
-    private const int GlobalPermitLimit = 200;
-    private static readonly TimeSpan GlobalWindow = TimeSpan.FromMinutes(1);
-    private const int GlobalSegmentsPerWindow = 6;
-    // Hàng rào 4 — docs/quy-uoc/be-api-controller.md §6.1: chặn một vòng lặp vẽ lại hỏng ở FE sinh
-    // hàng nghìn báo cáo mỗi phút, không phải chặn người dùng thật (vài lỗi rời rạc mỗi phiên).
-    private const int ClientErrorsPermitLimit = 20;
-    private static readonly TimeSpan ClientErrorsWindow = TimeSpan.FromMinutes(1);
+    private static void ConfigureRateLimiter(RateLimiterOptions options, IOptions<CoreRateLimitOptions> limits)
+    {
+        var limit = limits.Value;
+        var loginWindow = TimeSpan.FromSeconds(limit.LoginWindowSeconds);
+        var globalWindow = TimeSpan.FromSeconds(limit.GlobalWindowSeconds);
+        var clientErrorsWindow = TimeSpan.FromSeconds(limit.ClientErrorsWindowSeconds);
+
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+        // OnRejected dựng envelope TAY — status KHÔNG suy từ ErrorType.BusinessRule (422), mà
+        // đặt trực tiếp — be-api-controller.md §2.4, §6.1 hàng "OnRejected của rate limiter".
+        options.OnRejected = async (context, ct) =>
+        {
+            // Số giây lấy từ CHÍNH bộ đếm đã chặn, không giả định — docs/contracts/auth.md §10. Hai policy cửa sổ cố
+            // định (login, client-errors) gắn metadata RetryAfter vào lease bị từ chối; SlidingWindowRateLimiter thì
+            // KHÔNG gắn (TryGetMetadata trả false) — nên lease thiếu metadata chỉ có thể là của GlobalLimiter, limiter
+            // cửa sổ trượt duy nhất khai ở đây, và số giây là cửa sổ của chính nó.
+            var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var fromLease)
+                ? fromLease
+                : globalWindow;
+
+            // MỘT chuỗi cho cả header lẫn messageParams — hai nơi không thể lệch nhau (be-api-controller.md §6.3
+            // ràng buộc 6: màn tắt toast chỉ có envelope trong tay, không có header).
+            var retryAfterSeconds = RetryAfterSeconds.Format(retryAfter);
+
+            context.HttpContext.Response.Headers.RetryAfter = retryAfterSeconds;
+            context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            await context.HttpContext.Response.WriteAsJsonAsync(
+                Envelope.Failure(
+                    SecurityErrors.RateLimitExceeded.WithParams(("RetryAfterSeconds", retryAfterSeconds)),
+                    context.HttpContext.TraceIdentifier),
+                ct);
+        };
+
+        // Hàng rào 1 — theo IP, riêng đăng nhập — be-api-controller.md §6.1, §6.2.
+        options.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = limit.LoginPermitLimit,
+                Window = loginWindow,
+            }));
+
+        // Hàng rào 4 — riêng docs/contracts/client-errors.md, theo IP.
+        options.AddPolicy("client-errors", ctx => RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = limit.ClientErrorsPermitLimit,
+                Window = clientErrorsWindow,
+            }));
+
+        // Hàng rào 2 — giới hạn NỀN cho MỌI request, kể cả endpoint không khai policy nào.
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+            RateLimitPartition.GetSlidingWindowLimiter(
+                partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new SlidingWindowRateLimiterOptions
+                {
+                    PermitLimit = limit.GlobalPermitLimit,
+                    Window = globalWindow,
+                    SegmentsPerWindow = limit.GlobalSegmentsPerWindow,
+                }));
+    }
 
     // Core.Web: controller, envelope JSON, IExceptionHandler, cookie scheme, CORS, rate limit,
     // antiforgery — docs/quy-uoc/be-architecture.md §5.1.
     public static IServiceCollection AddCoreWeb(this IServiceCollection services, IHostEnvironment environment)
     {
-        // Swagger theo môi trường — be-api-controller.md §8.2 — vào ở pha có Swagger.
+        // Tài liệu OpenAPI chỉ ở Development — luật S29, be-api-controller.md §8.2, ADR-0118. Map ở UseCoreAsync.
+        if (environment.IsDevelopment())
+            services.AddOpenApi();
 
         // TimeProvider.System không tự đăng ký vào DI — cần khai tường minh cho mọi nơi cần đồng hồ
         // hệ thống (vd. DiagnosticsController, AuthController), để test thay được bằng FakeTimeProvider.
@@ -133,64 +185,10 @@ public static class CoreWebServiceCollectionExtensions
                     : ForwardedHeaders.None;
             });
 
-        services.AddRateLimiter(options =>
-        {
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-            // OnRejected dựng envelope TAY — status KHÔNG suy từ ErrorType.BusinessRule (422), mà
-            // đặt trực tiếp — be-api-controller.md §2.4, §6.1 hàng "OnRejected của rate limiter".
-            options.OnRejected = async (context, ct) =>
-            {
-                // Số giây lấy từ CHÍNH bộ đếm đã chặn, không giả định — docs/contracts/auth.md §10. Hai policy cửa sổ cố
-                // định (login, client-errors) gắn metadata RetryAfter vào lease bị từ chối; SlidingWindowRateLimiter thì
-                // KHÔNG gắn (TryGetMetadata trả false) — nên lease thiếu metadata chỉ có thể là của GlobalLimiter, limiter
-                // cửa sổ trượt duy nhất khai ở đây, và số giây là cửa sổ của chính nó.
-                var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var fromLease)
-                    ? fromLease
-                    : GlobalWindow;
-
-                // MỘT chuỗi cho cả header lẫn messageParams — hai nơi không thể lệch nhau (be-api-controller.md §6.3
-                // ràng buộc 6: màn tắt toast chỉ có envelope trong tay, không có header).
-                var retryAfterSeconds = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
-
-                context.HttpContext.Response.Headers.RetryAfter = retryAfterSeconds;
-                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                await context.HttpContext.Response.WriteAsJsonAsync(
-                    Envelope.Failure(
-                        SecurityErrors.RateLimitExceeded.WithParams(("RetryAfterSeconds", retryAfterSeconds)),
-                        context.HttpContext.TraceIdentifier),
-                    ct);
-            };
-
-            // Hàng rào 1 — theo IP, riêng đăng nhập — be-api-controller.md §6.1, §6.2.
-            options.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = LoginPermitLimit,
-                    Window = LoginWindow,
-                }));
-
-            // Hàng rào 4 — riêng docs/contracts/client-errors.md, theo IP.
-            options.AddPolicy("client-errors", ctx => RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = ClientErrorsPermitLimit,
-                    Window = ClientErrorsWindow,
-                }));
-
-            // Hàng rào 2 — giới hạn NỀN cho MỌI request, kể cả endpoint không khai policy nào.
-            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
-                RateLimitPartition.GetSlidingWindowLimiter(
-                    partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new SlidingWindowRateLimiterOptions
-                    {
-                        PermitLimit = GlobalPermitLimit,
-                        Window = GlobalWindow,
-                        SegmentsPerWindow = GlobalSegmentsPerWindow,
-                    }));
-        });
+        // Ngưỡng đọc TRỄ qua IOptions<CoreRateLimitOptions> (Core:RateLimit:*) — cùng khuôn với cookie ở dưới.
+        services.AddRateLimiter(_ => { });
+        services.AddOptions<RateLimiterOptions>()
+            .Configure<IOptions<CoreRateLimitOptions>>(ConfigureRateLimiter);
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, HttpContextCurrentUser>();

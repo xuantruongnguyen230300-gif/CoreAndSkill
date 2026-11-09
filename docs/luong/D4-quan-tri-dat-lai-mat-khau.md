@@ -1,12 +1,12 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-10-06
 ---
 
 # `D4` — Quản trị đặt lại mật khẩu cho người khác
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.**
+✅ **CÓ THẬT** — đối chiếu trọn tệp với `src/` ngày 2026-10-06, chỉ bằng đọc mã, không chạy ứng dụng. Neo từng bước ở mục *Đối chiếu với `src/`* cuối tệp.
 
 > Luồng này **chấm dứt mọi phiên đang mở** của người bị tác động. Đó là phần quan trọng nhất, không phải phần phụ — xem §3.
 
@@ -16,7 +16,7 @@ verified: chua-doi-chieu
 
 Quản trị đơn vị, từ màn chi tiết một người dùng.
 
-Luồng này **không** dành cho hai ca: đổi mật khẩu của **chính mình** (đi đường hồ sơ — `D2`, hoặc đổi mật khẩu tự nguyện ở [`../contracts/auth.md`](../contracts/auth.md) §6), và đặt lại cho tài khoản **mang cờ đặc quyền** (đi luồng `V4`).
+Luồng này **không** dành cho hai ca: đổi mật khẩu của **chính mình** (đi màn hồ sơ — đổi tự nguyện ở [`../contracts/auth.md`](../contracts/auth.md) §6; khi cờ buộc đổi mật khẩu đang bật thì đi luồng `D2`), và đặt lại cho tài khoản **mang cờ đặc quyền** (đi luồng `V4`).
 
 ## 2. Điều kiện trước
 
@@ -74,3 +74,20 @@ Khác luồng `V2`, `V3` và `V4` ở đúng điểm này: ở đó người tha
 Không còn câu riêng của luồng này. Kênh chuyển mật khẩu tạm (bước 5) là **quy trình vận hành ngoài phần mềm** — cờ buộc đổi mật khẩu là hàng rào duy nhất ([`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md)).
 
 > Câu *"có ghi nhật ký kiểm toán không"* **đã có lời đáp**: **có**. Danh sách thao tác phải ghi ở [`../wiki-core/be/10-data-retention.md`](../wiki-core/be/10-data-retention.md) §5.4 gồm *đổi mật khẩu*, không phân biệt người tự đổi hay quản trị đặt lại hộ.
+
+---
+
+## Đối chiếu với `src/`
+
+Neo của `D4`, đối chiếu 2026-10-06. Đường dẫn BE tính từ `src/BE/Core/`, FE từ `src/FE/src/app/platform/quan-tri/nguoi-dung/`.
+
+| Bước, ca | Neo bằng chuỗi |
+| --- | --- |
+| Bước 1 — route, khoá quyền riêng, thân mang mật khẩu tạm và `version` | `CoreAndSkill.Core.Web/Controllers/UsersController.cs`: `[HttpPost("{id:guid}/reset-password")]`, `[RequirePermission(CorePermissions.UserResetPassword)]`; `CoreAndSkill.Core.Application/Permissions/CorePermissions.cs`: `UserResetPassword = "core.user.reset-password"` |
+| Thiếu mật khẩu tạm | `CoreAndSkill.Core.Application/Users/ResetPasswordCommandValidator.cs`: `RuleFor(x => x.TempPassword).NotEmpty()` |
+| Bước 2 — Luật 5 trước tầng ghi | `CoreAndSkill.Core.Application/Users/ResetPasswordCommandHandler.cs`: `privilegeGuard.EnsureCanResetPasswordAsync(callerId, command.UserId, ct)` rồi `userAdmin.ResetPasswordAsync`; hai mã của Luật 5 ở `UserPrivilegeGuard.cs`: `UserErrors.CannotResetOwnPassword`, `UserErrors.ResetPasswordTargetForbidden` |
+| Bước 2–4 — so `version`, đặt mật khẩu tạm qua `UserManager`, bật cờ, đổi stamp | `CoreAndSkill.Core.Infrastructure/Identity/UserAdminService.cs`, hàm `ResetPasswordAsync`: `IdentityConcurrency.VersionMatches(user, version)`, `user.RequirePasswordChange();`, `userManager.AddPasswordAsync(user, tempPassword)`, `userManager.UpdateSecurityStampAsync(user)`. Cờ đặt trên đối tượng trước lời gọi mật khẩu và được lưu cùng lượt — cả lệnh nằm trong một transaction chỉ commit khi thành công (`CoreAndSkill.Core.Application/Common/Behaviors/TransactionBehavior.cs`: `return new TransactionOutcome<TResponse>(response, response.IsSuccess);`), nên ca `version` lệch không ghi gì |
+| Phiên đang mở của đích trượt ở request kế tiếp | `CoreAndSkill.Core.Web/DependencyInjection/CoreWebServiceCollectionExtensions.cs`: `var sessionValid = await identityService.IsSessionValidAsync(userId, stamp, ct);` |
+| Nhật ký kiểm toán cho lần đặt lại | `CoreAndSkill.Core.Infrastructure/Persistence/Interceptors/AuditLogInterceptor.cs`: `ValueChanged(entry, nameof(AppUser.PasswordHash))` ghi `AuditActionCodes.UserPasswordChange` |
+| Chính sách mật khẩu chung mọi môi trường | Khối `"Password"` chỉ có ở `src/BE/CoreAndSkill.Api/appsettings.json`; `appsettings.Development.json` không ghi đè |
+| FE — nút ở màn chi tiết, sau quyền riêng | `pages/chi-tiet/chi-tiet-nguoi-dung.page.html`: `*appHasPermission="'core.user.reset-password'"`, `<app-hop-dat-lai-mat-khau`; `services/nguoi-dung.service.ts`: `` `${this.duongDan}/${id}/reset-password` `` |

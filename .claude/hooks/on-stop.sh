@@ -6,9 +6,13 @@
 # Thứ tự, mỗi bước chỉ chạy khi bước trước không chặn:
 #   0. còn agent nền đang chạy  -> thoát, không làm gì: phiên đang CHỜ, chưa dừng
 #   1. cổng tài liệu            -> chỉ chạy khi có gì mới hơn lần xanh cuối;
-#                                  đỏ -> chặn, lặp tới khi xanh
-#   2. khối core-paths đọc lỗi  -> chặn một lần mỗi phiên (chỉ khi có src/)
-#   3. phiên đã chạm Core       -> đòi core-reviewer (chỉ khi có src/)
+#                                  đỏ -> chặn MỘT lần mỗi tập lỗi mỗi phiên; dừng
+#                                  lại mà tập lỗi y hệt -> không chặn, báo người
+#                                  dùng, đi tiếp các bước dưới (ADR-0111 qđ 5)
+#   2. khối core-paths đọc lỗi  -> chặn một lần mỗi phiên
+#   3. phiên đã chạm Core       -> đòi core-reviewer: chặn MỘT lần mỗi tập tệp Core
+#                                  chưa review mỗi phiên; dừng lại mà tập y hệt ->
+#                                  không chặn, báo người dùng (ADR-0114 qđ 6, 13)
 #   4. sửa src/                 -> NHẮC cổng build/test, không chặn; CI chặn
 #
 # Dấu chung ở .claude/.state/, dấu riêng của phiên ở .claude/.state/phien/<phiên>/
@@ -23,15 +27,40 @@ cd "$(dirname "$0")/../.." || exit 0
 STATE=".claude/.state"
 payload=$(cat 2>/dev/null || printf '{}')
 
-# Ky tu dieu khien THO trong chuoi JSON la khong hop le (RFC 8259). Harness tu
-# choi parse thi quyet dinh `block` bi bo — tuc LUOT KET THUC TRONG KHI CONG
-# DANG DO. Repo co file .md dung CRLF, va thong diep nhung noi dung lay tu file.
-json_escape() { printf '%s' "$1" | tr -d '\015' | tr '\011' ' ' | sed 's|\\|\\\\|g; s|"|\\"|g' | sed ':a;N;$!ba;s|\n|\\n|g'; }
-block() { printf '{"decision":"block","reason":"%s"}\n' "$(json_escape "$1")"; }
+# Ký tự điều khiển THÔ trong chuỗi JSON là không hợp lệ (RFC 8259: U+0000–U+001F
+# phải thoát). Harness từ chối parse thì quyết định `block` bị bỏ — tức LƯỢT KẾT
+# THÚC TRONG KHI CỔNG ĐANG ĐỎ. Thông điệp nhúng nội dung lấy từ tệp và từ đầu ra
+# cổng: CR của tệp CRLF, ESC lẻ không thành mã màu, byte rác trong nhật ký chạm Core.
+# Tab thành dấu cách, xuống dòng thành \n, mọi byte điều khiển còn lại (0x00–0x08,
+# 0x0B–0x1F) bị bỏ. LC_ALL=C: xử lý theo byte — byte dưới 0x20 không bao giờ nằm
+# trong một ký tự UTF-8 nhiều byte, nên bỏ nó không cắt hỏng chữ có dấu.
+json_escape() { printf '%s' "$1" | LC_ALL=C tr -d '\000-\010\013-\037' | LC_ALL=C tr '\011' ' ' | LC_ALL=C sed 's|\\|\\\\|g; s|"|\\"|g' | LC_ALL=C sed ':a;N;$!ba;s|\n|\\n|g'; }
+# SYSMSG: lời báo NGƯỜI DÙNG gom từ các bước (cổng đỏ, Core chưa review — tập đã chặn
+# một lần). Mọi JSON in ra từ đây mang nó theo trường systemMessage — kể cả lời chặn
+# của bước sau.
+SYSMSG=""
+them_sysmsg() {
+  if [ -n "$SYSMSG" ]; then
+    SYSMSG="$SYSMSG
 
-# Harness dat co nay khi hook Stop da chan mot lan trong chuoi hien tai. CHI dung
-# no cho nhung lan chan ma agent KHONG tu sua duoc (rc=2, khoi core-paths loi).
-# Cong do la mot su that, khong phai loi nhac — no chan lai du co da bat.
+$1"
+  else
+    SYSMSG=$1
+  fi
+}
+block() {
+  if [ -n "$SYSMSG" ]; then
+    printf '{"decision":"block","reason":"%s","systemMessage":"%s"}\n' "$(json_escape "$1")" "$(json_escape "$SYSMSG")"
+  else
+    printf '{"decision":"block","reason":"%s"}\n' "$(json_escape "$1")"
+  fi
+}
+
+# Harness đặt cờ này khi hook Stop đã chặn một lần trong chuỗi hiện tại. CHỈ dùng
+# nó cho những lần chặn mà agent KHÔNG tự sửa được (rc=2, khối core-paths lỗi).
+# Cổng đỏ KHÔNG dùng cờ này: cờ bật sau BẤT KỲ lần chặn nào, nên nó không trả lời
+# được "tập lỗi này đã chặn phiên này chưa" — dấu vân tay tập lỗi theo phiên (bước 1)
+# trả lời được.
 REPEAT=0
 case "$payload" in
   *'"stop_hook_active":true'*|*'"stop_hook_active": true'*) REPEAT=1 ;;
@@ -81,7 +110,7 @@ if [ "$need" -eq 1 ]; then
   gate_rc=$?
   if [ "$gate_rc" -eq 0 ]; then
     mv -f "$tmp" "$STATE/gate-green"
-    rm -f "$P/gate-unrunnable"
+    rm -f "$P/gate-unrunnable" "$P/gate-fail-fp"
   else
     rm -f "$tmp"
   fi
@@ -103,16 +132,57 @@ $raw
   fi
 
   if [ "$gate_rc" -ne 0 ]; then
-    fails=$(printf '%s' "$gate_out" | sed 's/\x1b\[[0-9;]*m//g' | grep 'FAIL' | head -20)
-    # Khong bao gio gui di mot danh sach trong.
-    [ -z "$fails" ] && fails=$(printf '%s' "$gate_out" | head -20)
-    block "Cổng tài liệu ĐỎ — không được kết thúc lượt khi cổng chưa xanh.
+    # Mỗi lỗi là ĐÚNG MỘT dòng `FAIL [§N] …` — check-docs.sh gộp danh sách tệp, lý do
+    # vào cùng dòng. Chỉ nhận dòng MỞ ĐẦU bằng FAIL: dòng OK/NOTE nhắc chữ "FAIL" không
+    # phải lỗi. LC_ALL=C + grep -a: một byte UTF-8 hỏng (tên tệp lạ) làm grep ở locale
+    # UTF-8 in "Binary file matches" thay cho chính các dòng lỗi.
+    plain=$(printf '%s\n' "$gate_out" | LC_ALL=C sed 's/\x1b\[[0-9;]*m//g')
+    fail_lines=$(printf '%s\n' "$plain" | LC_ALL=C grep -aE '^[[:space:]]*FAIL[[:space:]]')
+    if [ -n "$fail_lines" ]; then
+      nfail=$(printf '%s\n' "$fail_lines" | LC_ALL=C grep -ac .)
+      fails=$(printf '%s\n' "$fail_lines" | head -20)
+      [ "$nfail" -gt 20 ] && fails="$fails
+(+$((nfail - 20)) lỗi nữa)"
+      fp_src=$fail_lines
+    else
+      # Mã 1 mà không dòng FAIL nào: không bao giờ gửi đi một danh sách rỗng.
+      fails=$(printf '%s\n' "$plain" | head -20)
+      fp_src=$plain
+    fi
+
+    # Dấu vân tay TẬP lỗi của PHIÊN này (ADR-0111 quyết định 5): mỗi tập chặn một lần.
+    # Lỗi do phiên khác hay người dùng đang sửa gây ra thì phiên này không sửa được —
+    # chặn lặp vì nó là vòng không đáy, kể cả khi stop_hook_active đã bật. Băm TOÀN BỘ
+    # tập (không chỉ 20 dòng in ra), sắp theo byte: thêm, bớt hay đổi một lỗi bất kỳ là
+    # tập mới, chặn lại. Dấu chỉ còn giá trị khi MỚI HƠN HẲN mốc xanh: một lần xanh —
+    # do phiên nào chạy cũng vậy — xảy ra sau lần chặn thì tập cũ quay lại là lỗi mới.
+    # Hai mốc cùng tích tắc tính là cũ: hỏng theo hướng chặn thêm một lần.
+    fp=$(printf '%s\n' "$fp_src" | LC_ALL=C sort | cksum)
+    old_fp=""
+    if [ -f "$P/gate-fail-fp" ] && { [ ! -e "$STATE/gate-green" ] || [ "$P/gate-fail-fp" -nt "$STATE/gate-green" ]; }; then
+      old_fp=$(cat "$P/gate-fail-fp" 2>/dev/null)
+    fi
+
+    if [ -n "$old_fp" ] && [ "$old_fp" = "$fp" ]; then
+      # Đã chặn tập này một lần: không chặn nữa, nhưng người dùng phải thấy. Đi tiếp
+      # các bước dưới — lớp chặn core-reviewer vẫn xét như thường, và lời báo đi kèm
+      # mọi JSON.
+      them_sysmsg "Cổng tài liệu vẫn ĐỎ với đúng tập lỗi đã chặn một lần trong phiên này — hook không chặn lại (ADR-0111 quyết định 5), lượt kết thúc khi cổng còn đỏ.
+
+$fails
+
+Xem đủ: bash .claude/check-docs.sh. Job check-docs trên CI vẫn đỏ nếu lỗi còn tới lúc đẩy."
+    else
+      printf '%s' "$fp" > "$P/gate-fail-fp" 2>/dev/null
+      block "Cổng tài liệu ĐỎ — sửa trước khi kết thúc lượt.
 
 $fails
 
 Sửa các vi phạm trên rồi chạy lại: bash .claude/check-docs.sh
-Nếu một vi phạm là báo sai, ĐỪNG nới luật cho cổng xanh — sửa phép dò bằng một dấu hiệu máy đọc được, và ghi lý do."
-    exit 0
+Nếu một vi phạm là báo sai, ĐỪNG nới luật cho cổng xanh — sửa phép dò bằng một dấu hiệu máy đọc được, và ghi lý do.
+Vi phạm nằm ở tệp mà phiên này không đụng tới (phiên khác, người dùng đang sửa): đừng sửa hộ — nói với người dùng. Mỗi tập lỗi chỉ chặn một lần mỗi phiên: dừng lại mà tập lỗi y hệt thì hook không chặn nữa, chỉ báo người dùng; có lỗi mới thì chặn lại."
+      exit 0
+    fi
   fi
 fi
 
@@ -135,7 +205,7 @@ with_reminder() {
 # KHÔNG được kiểm là có chạm Core hay không — phải nói ra, không im lặng.
 # Dấu `.reported` của PHIÊN giữ "đã báo lỗi này cho phiên này"; on-edit viết lại
 # dấu lỗi mỗi lần đọc hỏng, nên lỗi còn nguyên thì lượt người dùng sau vẫn được báo.
-if [ -d src ] && [ -s "$STATE/core-paths-error" ] && [ "$REPEAT" -eq 0 ]; then
+if [ -s "$STATE/core-paths-error" ] && [ "$REPEAT" -eq 0 ]; then
   if [ ! -e "$P/core-paths-error.reported" ] || [ "$STATE/core-paths-error" -nt "$P/core-paths-error.reported" ]; then
     : > "$P/core-paths-error.reported"
     err=$(head -5 "$STATE/core-paths-error")
@@ -153,13 +223,11 @@ fi
 # touched-core mới bị chặn — phiên không đụng Core không bị việc của phiên khác
 # giữ lại. Việc Core dở dang của một phiên đã chết vẫn nằm trong nhật ký, nên
 # phiên kế tiếp chạm Core phải review cả phần đó.
-if [ ! -d src ]; then
-  # Giai đoạn 1: không có code để core-reviewer đối chiếu. Không nhắc.
-  rm -f "$STATE/core-touched" "$P/touched-core"
-elif [ -e "$P/touched-core" ]; then
+if [ -e "$P/touched-core" ]; then
   if [ ! -s "$STATE/core-touched" ]; then
     # Nhật ký đã được dọn — một lượt review mới hơn mọi file, hoặc người dùng tự xoá.
-    rm -f "$P/touched-core"
+    # Dấu vân tay đi theo: tập đã chặn không còn, lần chạm Core sau là việc mới.
+    rm -f "$P/touched-core" "$P/core-review-fp"
   else
     # LC_ALL=C: so sanh theo byte, khong bao gio thoat loi vi ky tu khong hop le.
     files=$(LC_ALL=C sort -u "$STATE/core-touched" 2>&1 | head -15)
@@ -171,18 +239,19 @@ $raw
 Hay bao lai cho nguoi dung thay vi bo qua.)"
     fi
 
-    # Chặn cứng (lặp tới khi có dấu review) CHỈ khi hook SubagentStop ghi dấu
-    # đó đã được gắn vào settings.json. Chưa gắn mà chặn cứng thì không lượt
-    # nào thoát ra được — không có gì ghi dấu review cả.
+    # Chặn cứng (theo tập tệp, dưới đây) CHỈ khi hook SubagentStop ghi dấu review
+    # đã được gắn vào settings.json. Chưa gắn mà chặn cứng thì không lượt nào thoát
+    # ra được — không có gì ghi dấu review cả.
     HARD=0
     case "$(cat .claude/settings.json 2>/dev/null)" in
       *'"SubagentStop"'*on-subagent-stop.sh*) HARD=1 ;;
     esac
 
-    how="Phiên chính gọi agent core-reviewer qua công cụ Agent, ba ràng buộc bắt buộc:
+    how="Phiên chính gọi /core-review (agent core-reviewer qua công cụ Agent). Lời giao đúng ba trường, không kèm gì khác: Phạm vi: BE|FE, phần đổi|toàn bộ. Vòng: n/2.
 1. Mỗi lượt MỘT phạm vi — BE hoặc FE, không bao giờ cả hai. Chạm cả hai thì hai lượt.
-2. KHÔNG gửi tóm tắt việc vừa làm — chỉ nói phạm vi cần soát.
-3. Không sửa gì trong lúc nó chạy.
+2. KHÔNG gửi tóm tắt việc vừa làm hay danh sách tệp — chỉ ba trường trên.
+3. Không sửa gì trong phạm vi đang soát lúc nó chạy.
+4. Phạm vi đã đủ hai vòng (2/2) thì KHÔNG gọi vòng ba: hỏi người dùng — sửa tiếp, chuyển thành issue hay chấp nhận — rồi dừng lại.
 Gọi nó chạy nền rồi kết thúc lượt: hook không chặn khi còn agent nền đang chạy."
 
     if [ "$HARD" -eq 1 ]; then
@@ -218,21 +287,53 @@ Gọi nó chạy nền rồi kết thúc lượt: hook không chặn khi còn ag
       done < <(LC_ALL=C sort -u "$STATE/core-touched")
 
       if [ -z "$pending" ]; then
-        rm -f "$STATE/core-touched" "$P/touched-core"
+        rm -f "$STATE/core-touched" "$P/touched-core" "$P/core-review-fp"
       else
+        pend_show=$(printf '%s' "$pending" | head -15)
+        npend=$(printf '%s' "$pending" | LC_ALL=C grep -ac .)
+        [ "$npend" -gt 15 ] && pend_show="$pend_show
+(+$((npend - 15)) tệp nữa)"
         diag=""
         [ -s "$STATE/subagent-stop-error.log" ] && diag="
 
-Đã chạy core-reviewer mà vẫn bị chặn: đọc .claude/.state/subagent-stop-error.log — hook SubagentStop không ghi được dấu review. Báo người dùng."
-        block "$(with_reminder "Core đã đổi sau lượt core-reviewer gần nhất. Hook chặn mỗi lần phiên kết thúc lượt mà không còn agent nền nào chạy, cho tới khi có một lượt review mới hơn các file dưới đây.
+Đã chạy core-reviewer mà vẫn còn tệp chưa review: đọc .claude/.state/subagent-stop-error.log — hook SubagentStop không ghi được dấu review. Báo người dùng."
+
+        # Dấu vân tay TẬP tệp Core chưa review của PHIÊN này (ADR-0114 quyết định 6,
+        # 13): mỗi tập chặn một lần. Băm ĐƯỜNG DẪN, không băm mtime — sửa thêm một tệp
+        # đã có trong tập không làm tập mới; thêm một tệp là tập mới, chặn lại. Băm
+        # TOÀN BỘ tập (không chỉ 15 dòng in ra), sắp theo byte. Dấu chỉ còn giá trị
+        # khi MỚI HƠN HẲN dấu core-reviewed: một lượt review — dù vòng nào — xảy ra sau
+        # lần chặn thì tập còn lại là việc của vòng kế, chặn lại. Hai mốc cùng tích
+        # tắc tính là cũ: hỏng theo hướng chặn thêm một lần. Không dùng
+        # stop_hook_active: cờ đó bật sau BẤT KỲ lần chặn nào, kể cả của cổng tài liệu.
+        cfp=$(printf '%s' "$pending" | LC_ALL=C sort -u | cksum)
+        old_cfp=""
+        if [ -f "$P/core-review-fp" ] && { [ ! -e "$STATE/core-reviewed" ] || [ "$P/core-review-fp" -nt "$STATE/core-reviewed" ]; }; then
+          old_cfp=$(cat "$P/core-review-fp" 2>/dev/null)
+        fi
+
+        if [ -n "$old_cfp" ] && [ "$old_cfp" = "$cfp" ]; then
+          # Đã chặn tập này một lần: không đòi vòng review nữa — có thể phạm vi đã đủ
+          # hai vòng (.claude/CLAUDE.md §11). Người dùng phải thấy; nhật ký và cờ giữ
+          # nguyên, nên phiên kế tiếp chạm Core gặp lại tập này. Đi tiếp bước 4.
+          them_sysmsg "Core vẫn còn tệp chưa qua core-reviewer — đúng tập đã chặn một lần trong phiên này; hook không chặn lại (ADR-0114 quyết định 6), lượt kết thúc khi Core chưa review.
 
 File chưa được review:
-$(printf '%s' "$pending" | head -15)
+$pend_show
+
+Soát: /core-review BE hoặc /core-review FE. Bỏ qua review là quyết định của người dùng: xoá .claude/.state/core-touched.$diag"
+        else
+          printf '%s' "$cfp" > "$P/core-review-fp" 2>/dev/null
+          block "$(with_reminder "Core đã đổi sau lượt core-reviewer gần nhất. Hook chặn MỘT lần cho tập tệp dưới đây trong phiên này: dừng lại với đúng tập này thì hook không chặn nữa, chỉ báo người dùng; có tệp Core mới chưa review, hoặc có lượt review mới rồi sửa tiếp, thì chặn lại.
+
+File chưa được review:
+$pend_show
 
 $how
 
 Không tự tạo, sửa hay xoá file nào trong .claude/.state/ để qua hook. Bỏ qua lượt review là quyết định của người dùng: người dùng tự xoá .claude/.state/core-touched.$diag")"
-        exit 0
+          exit 0
+        fi
       fi
     else
       # Chưa gắn hook SubagentStop: nhắc đúng một lần. Xoá dấu TRƯỚC khi chặn —
@@ -255,8 +356,17 @@ fi
 # vì nó là biến hook thành thứ người ta tắt đi. CI là nơi chặn.
 if [ -n "$reminder" ]; then
   rm -f "$P/src-touched"
-  printf '{"systemMessage":"%s"}\n' "$(json_escape "$reminder")"
+  msg=$reminder
+  [ -n "$SYSMSG" ] && msg="$SYSMSG
+
+$reminder"
+  printf '{"systemMessage":"%s"}\n' "$(json_escape "$msg")"
   exit 0
+fi
+
+# Cổng đỏ với tập lỗi đã chặn một lần: không chặn, nhưng không im lặng.
+if [ -n "$SYSMSG" ]; then
+  printf '{"systemMessage":"%s"}\n' "$(json_escape "$SYSMSG")"
 fi
 
 exit 0

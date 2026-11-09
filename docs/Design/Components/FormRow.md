@@ -28,11 +28,11 @@ Component: `src/FE/src/app/shared/components/form-row/form-row.component.ts` —
 | Không vẽ vòng focus ở mức vùng chứa | Đúng — không có `:focus`/`:focus-visible` nào trên `.form-row` | — |
 | `default` | Nhãn `--fs-sm` `--fw-medium` `--color-text`; gợi ý `--fs-xs` `--color-text-muted` — khớp spec | — |
 | `layout` | Input khai đủ ba giá trị | **`inline` và `group` không render gì.** Không có class nào theo `layout()` trong template, và `.form-row` luôn là `flex-direction: column` — tức luôn là `stacked`. Riêng `group` còn là một khoảng trống về ngữ nghĩa: §Accessibility đòi `<fieldset>` + `<legend>`, template luôn dùng `<label>` |
-| Khe nhãn → ô | `--sp-5`, đúng spec | — |
+| Khe nhãn → ô | `--sp-5` — `form-row.component.scss` § `.form-row` khai `gap: var(--sp-5)` | ⚠️ **Lệch** từ 2026-10-05: spec đổi sang `--sp-4` cho mọi form ([`../DESIGN.md`](../DESIGN.md) §4) |
 | Khe ô → dòng gợi ý/lỗi | — | **Đang là `--sp-5`, spec khai `--sp-3`.** `.form-row` dùng **một** `gap` cho cả hai khe, nên khe thứ hai không đặt riêng được |
 | `disabled` | Nhãn chuyển `--color-text-disabled`; vùng chứa không đổi nền, đúng spec | **Dòng gợi ý chưa chuyển** `--color-text-disabled` — spec đòi "nhãn **và gợi ý**"; `.form-row--disabled` chỉ chạm `.form-row__nhan`. Và `disabled` **không được truyền xuống ô**: §API khai "Truyền xuống ô", nhưng ô vào qua `<ng-content>` nên `FormRow` không chạm tới được — trang phải tự đặt `disabled` cho cả hai |
 
-Chưa đối chiếu: §Responsive (lưới hai cột, `inline` tự chuyển thành `stacked` dưới `$bp-md` — đều là luật của vùng chứa form, không có gì tương ứng trong SCSS của component), bảng "lúc nào hiện lỗi" (luật của trang gọi, không phải của component), và tầng i18n của `label`/`hint`/`error` (chuỗi do nơi gọi truyền vào).
+Chưa đối chiếu: §Responsive (lưới hai cột, `inline` tự chuyển thành `stacked` dưới `$bp-md` — đều là luật của vùng chứa form, không có gì tương ứng trong SCSS của component), bảng "lúc nào hiện lỗi" (luật của trang gọi và của ô, không phải của component — hai dòng *đang gõ lần đầu* và *ô tự nhận focus lúc mở* đã neo vào code ở §"Ba quyết định về hiển thị lỗi", các dòng còn lại chưa so), và tầng i18n của `label`/`hint`/`error` (chuỗi do nơi gọi truyền vào).
 
 ---
 
@@ -62,7 +62,7 @@ Gói một ô nhập cùng nhãn, dấu bắt buộc, gợi ý và chỗ hiện 
 
 | Khoản | Giá trị |
 | --- | --- |
-| Khe nhãn → ô | `--sp-5` |
+| Khe nhãn → ô | `--sp-4` — cùng bậc ở mọi form, kể cả [`AuthField.md`](./AuthField.md) ([`../DESIGN.md`](../DESIGN.md) §4) |
 | Khe ô → dòng gợi ý/lỗi | `--sp-3` |
 | Khe giữa hai `FormRow` | `--sp-6` |
 | Khe giữa hai nhóm trường | `--sp-7` |
@@ -99,10 +99,16 @@ Gói một ô nhập cùng nhãn, dấu bắt buộc, gợi ý và chỗ hiện 
 | Người dùng đã rời trường (`blur`) | ✅ Có | Đây là lúc họ coi như đã điền xong trường đó |
 | Người dùng bấm submit | ✅ Có, **mọi** trường | Kèm cuộn tới trường lỗi đầu tiên và đặt focus vào đó |
 | Trường **đã từng** báo lỗi, người dùng đang sửa | ✅ Kiểm lại theo từng ký tự | Lúc này phản hồi tức thì là hữu ích: nó xác nhận họ đang sửa đúng hướng |
+| **Mọi** ô tự nhận focus lúc mở (màn xác thực, ô nhập đầu của `Dialog`, ô nhập đầu của `Drawer` `edit`); người dùng rời ô hoặc chuyển sang cửa sổ khác **khi chưa sửa gì** | 🛑 Không — ô đó chỉ báo *bắt buộc* khi đã được sửa, hoặc khi bấm gửi (chốt 2026-10-08, mở rộng cùng ngày cho mọi ô tự nhận focus) | Người dùng không chọn vào ô này, màn đặt họ vào đó. Rời đi khi chưa gõ là chưa bắt đầu điền, không phải đã điền xong; báo "bắt buộc" lúc đó là báo một lỗi họ chưa mắc. Chuyển cửa sổ cũng làm ô mất focus, nên không tách được hai ca này. Ô đã được sửa thì theo các dòng trên |
 
 Nhánh thứ tư là nhánh hay bị bỏ quên và là nhánh làm form dễ chịu hẳn.
 
-**`FormRow` không tự áp bảng này.** Nó vẽ đúng chuỗi `error` nhận vào. Bảng được thi công ở hàm `fieldErrorText` của cơ chế form: hàm trả `null` cho tới khi control đã chạm (`touched` — người dùng đã rời ô) hoặc form đã gửi một lần, và từ đó trả câu lỗi đã dịch mỗi khi giá trị đổi — [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.5.
+Luật áp cho **mọi** ô tự nhận focus lúc mở, không riêng màn xác thực: ô đầu của [`Dialog.md`](./Dialog.md) §Accessibility, dòng *Focus lúc mở*, và ô đầu của [`Drawer.md`](./Drawer.md) `edit` (§Accessibility, dòng *Focus khi mở*). Phạm vi của luật là chỉ báo **bắt buộc** (ô rỗng): lỗi định dạng khi đã gõ thì theo các dòng trên. Hôm nay hai màn xác thực tự đặt focus vào ô lúc mở ([`AuthCard.md`](./AuthCard.md) §Accessibility, dòng *Focus ban đầu*); `Dialog` và `Drawer` `edit` cũng đặt focus lúc mở qua cùng một hàm gắn cờ — hiện trạng từng nơi ở bảng đầu [`AuthField.md`](./AuthField.md), [`Dialog.md`](./Dialog.md), [`Drawer.md`](./Drawer.md).
+
+**`FormRow` không tự áp bảng này.** Nó vẽ đúng chuỗi `error` nhận vào. Bảng được thi công ở hàm `fieldErrorText` của cơ chế form: hàm trả `null` cho tới khi control đã chạm (`touched` — người dùng đã rời ô) hoặc form đã gửi một lần, và từ đó trả câu lỗi đã dịch mỗi khi giá trị đổi — [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.5. Hai dòng của bảng đứng trên chỗ đánh dấu `touched`, không trên `fieldErrorText` (đọc mã 2026-10-08):
+
+- Dòng *đang gõ lần đầu*: gõ không làm control `touched` — `src/FE/src/app/shared/components/input/input.component.ts` và `auth-field.component.ts` § `doiGia` chỉ gọi `onChange`, `onTouched` chỉ gọi từ § `chamVao` gắn vào `(blur)`. Ca `đang gõ lần đầu (sai định dạng), chưa rời ô → chưa touched, chưa báo lỗi` (`input.component.cham.spec.ts`).
+- Dòng *ô tự nhận focus lúc mở*: thi công là cờ cộng chặn `touched`, theo [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.5 đoạn *Ô tự đặt focus lúc mở*. Cờ do `src/FE/src/app/shared/forms/focus-luc-mo.ts` § `datFocusLucMo` gắn; § `chamVao` của `Input` và `AuthField` chỉ gọi `onTouched` khi § `roiOLaCham` trả `true` — ô mang cờ mà control chưa `dirty` thì không. `fieldErrorText` không đổi (`shared/forms/field-error-text.ts` § `(!control.touched && !formSubmitted)`). Ca kiểm: `focus-luc-mo.spec.ts`; `input.component.cham.spec.ts` (`ô tự nhận focus lúc mở, rời ô khi chưa gõ → không touched, không aria-invalid`, `… gõ rồi xoá hết rồi rời ô → touched, báo lỗi`, `… bấm gửi (markAllAsTouched) → touched`); `auth-field.component.cham.spec.ts`; e2e `src/FE/e2e/man/01-dang-nhap.spec.ts` ca `ô tên đăng nhập tự nhận focus: Tab rời ô khi chưa gõ → không dòng lỗi, không aria-invalid` (người soạn chưa chạy test).
 
 **Một ô nhận nhiều mã lỗi cùng lúc** — BE trả hơn một mã cho cùng một trường trong `fieldErrors` — thì dòng lỗi hiện câu của **mã đầu tiên theo thứ tự BE trả**. Người dùng sửa xong lỗi đó, hoặc gửi lại, thì mã kế tiếp còn lại hiện ra. Không gộp nhiều câu vào một dòng: dòng lỗi thay chỗ gợi ý và phải giữ chiều cao ổn định (quyết định 1). `error` vẫn là **một** chuỗi; chọn mã nào là việc của `fieldErrorText` ở cùng mục §6.5.
 
@@ -112,7 +118,7 @@ Nhánh thứ tư là nhánh hay bị bỏ quên và là nhánh làm form dễ ch
 | --- | --- |
 | Màu | `--color-text`, `--color-text-muted`, `--color-text-disabled`, `--color-danger` |
 | Chữ | `--fs-xs`, `--fs-sm`, `--fw-medium`, `--fw-regular`, `--lh-snug`, `--lh-normal` |
-| Khoảng cách | `--sp-3`, `--sp-5`, `--sp-6`, `--sp-7` |
+| Khoảng cách | `--sp-3`, `--sp-4`, `--sp-5`, `--sp-6`, `--sp-7` |
 | Kích thước | `--icon-sm` |
 | Điểm ngắt | `$bp-md`, `$bp-xs` |
 
@@ -137,7 +143,7 @@ Lưới ở bảng trên là lớp tiện ích `form-grid`, khai một lần ở
 | Gợi ý | `id` là `<controlId>-hint`; ô trỏ tới nó qua `aria-describedby` |
 | Lỗi | `id` là `<controlId>-error`; ô trỏ tới qua `aria-describedby` **và** mang `aria-invalid="true"` |
 | Thông báo lỗi động | Vùng lỗi mang `role="alert"` để trình đọc màn hình đọc lên ngay khi nó xuất hiện. 🛑 Không đặt `role="alert"` sẵn trên một vùng rỗng luôn tồn tại — nhiều trình đọc sẽ đọc lại mọi thay đổi trong đó, kể cả khi chỉ là xoá chữ |
-| Submit lỗi | Đặt focus vào trường lỗi **đầu tiên**, và có một tóm tắt lỗi ở đầu form khi có từ hai lỗi trở lên |
+| Submit lỗi | Đặt focus vào trường lỗi **đầu tiên**, và có một tóm tắt lỗi ở đầu form khi có từ hai lỗi trở lên. **Ngoại lệ — form trong [`AuthCard.md`](./AuthCard.md): không có tóm tắt lỗi** (chốt 2026-10-08) — chỗ đầu form ở đó là khu lỗi của khung, dành riêng cho lỗi không thuộc ô nào; đặt thêm một khối tóm tắt cùng chỗ là trộn hai loại lỗi mà [`AuthCard.md`](./AuthCard.md) §Trạng thái dòng `error` cố ý tách. Focus về trường lỗi đầu tiên vẫn giữ |
 | Chữ | Nhãn, gợi ý, thông báo lỗi qua i18n — [`../../RULES.md`](../../RULES.md) §7 F8 |
 
 **Tóm tắt lỗi ở đầu form không phải trang trí.** Người dùng trình đọc màn hình bấm submit và không thấy gì thay đổi — họ không "nhìn thấy" năm ô viền đỏ. Một khối tóm tắt có `role="alert"`, liệt kê từng lỗi kèm liên kết nhảy tới trường, là cách duy nhất họ biết chuyện gì vừa xảy ra. Khối đó là [`NoticeBanner.md`](./NoticeBanner.md) vai `danger` — thân qua slot chứa danh sách liên kết, hành vi đặt focus vào trường đã khai ở §Accessibility của file đó; không có component riêng.

@@ -195,8 +195,19 @@ public static class CoreInfrastructureServiceCollectionExtensions
     {
         // Lưu trữ tệp — docs/wiki-core/be/14-file-storage.md. Singleton: không giữ state theo request
         // (đường dẫn gốc đọc từ options, đồng hồ từ TimeProvider).
-        services.AddSingleton<IValidateOptions<CoreFileOptions>, CoreFileOptionsValidator>();
-        services.AddSingleton<IFileStorage, LocalFileStorage>();
+        //
+        // IFileStorage là seam dự án thay được (ADR-0106): dự án đăng ký bản của mình TRƯỚC AddCore thì Core giữ nó.
+        // Nhận biết bằng sự có mặt của một đăng ký IFileStorage tại đây — một điều kiện duy nhất, đọc một lần, dùng cho cả
+        // LocalFileStorage lẫn phép kiểm Core:File:RootPath (ADR-0107). Các khoá còn lại của CoreFileOptions vẫn bị kiểm
+        // vô điều kiện (ValidateDataAnnotations ở AddCoreOptions).
+        var projectOwnsFileStorage = services.Any(d => d.ServiceType == typeof(IFileStorage));
+        if (!projectOwnsFileStorage)
+        {
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<CoreFileOptions>, CoreFileOptionsValidator>());
+             services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<CoreFileOptions>, CoreFileRootPathRequiredValidator>());
+            services.TryAddSingleton<IFileStorage, LocalFileStorage>();
+        }
+
         services.AddScoped<IFileRepository, EfFileRepository>();
 
         // Việc chạy nền theo jobId — docs/quy-uoc/be-cqrs-handler.md §10.3.

@@ -14,11 +14,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Persistence;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Hai hành vi chỉ chứng minh được trên PostgreSQL thật, là nửa còn lại của CoreDbContextResilienceTests và
 // SearchTextLikeEscapingTests (không cần Docker):
 //   1. docs/quy-uoc/be-performance.md §7.2 — kết nối Scoped DÙNG CHUNG bị máy chủ cắt giữa transaction: UnitOfWork

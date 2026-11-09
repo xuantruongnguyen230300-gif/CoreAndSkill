@@ -9,23 +9,13 @@ Ba tài sản gắn chặt với nhau:
 | **`docs/`** | **Nguồn tri thức duy nhất.** Kiến trúc, quy ước code, hợp đồng API, schema, thiết kế giao diện. Code và agent đều phải phục tùng. | [`docs/README.md`](docs/README.md) |
 | **`.claude/`** | Bộ agent và skill: phân tích nghiệp vụ như BA, code như senior, review độc lập, sinh test, viết tài liệu. | [`.claude/README.md`](.claude/README.md) |
 | **`spec/`** | Nghiệp vụ theo từng feature — không đi theo Core sang dự án khác. | [`spec/README.md`](spec/README.md) |
-| **`src/`** | Source Core và các module. Đã có trên đĩa, **chưa vào git** — xem Trạng thái. | — |
+| **`src/`** | Source Core và các module. | Trạng thái: [`docs/README.md`](docs/README.md) mục *Trạng thái repo* |
 
 ---
 
-## ⚠️ Trạng thái: 🚧 ĐÃ CHỐT — ĐANG THI CÔNG
+## ⚠️ Trạng thái
 
-**`src/` đã có trên đĩa nhưng chưa vào git.** Tám điều kiện chuyển sang giai đoạn 2 ở [`docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md`](docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md) đã đạt — điều kiện 3 hoãn hợp lệ theo cơ chế thay thế ở [`docs/adr/0035-hoan-dieu-kien-3-den-pr-cham-core-dau-tien.md`](docs/adr/0035-hoan-dieu-kien-3-den-pr-cham-core-dau-tien.md) (chứng minh ở PR đầu tiên chạm một đường dẫn `core-paths`, chưa xảy ra). `architect` đối chiếu tám điều kiện ngày 2026-09-16; nhãn này lật cùng đợt.
-
-Điều kiện chuyển sang giai đoạn 2, và ai lật nhãn trạng thái: [`docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md`](docs/adr/0030-dieu-kien-chuyen-giai-doan-2.md).
-
-**Nguồn duy nhất của mục này** — cái gì có trên đĩa, cái gì trong git, cổng nào vì thế chưa chạy: [`docs/README.md`](docs/README.md) mục *Trạng thái repo*. Dưới đây chỉ là hệ quả cho người mới mở repo.
-
-Hệ quả cần biết khi đọc:
-
-- Mọi mô tả kiến trúc trong `docs/` vẫn mang nhãn `📐 ĐÍCH ĐẾN — CHƯA THI CÔNG` hoặc `verified: chua-doi-chieu` cho tới khi có người đối chiếu trực tiếp đúng file đó với `src/` — **riêng lẻ, không hàng loạt**. Nhãn ở mục này chỉ nói *quyết định chuyển giai đoạn đã chốt*, không xác nhận nội dung từng file đã đối chiếu.
-- Lớp 3 chặn Core (hook `Stop` khi có `src/`) **chưa được thử bằng payload thật** — chỉ chứng minh sống ở PR đầu tiên chạm Core, xem ADR-0035.
-- Nhóm skill sinh code (`/core-new-module`…) cố ý chưa viết: một skill scaffold cần một module mẫu đã chạy được để sao chép.
+Nhãn giai đoạn của repo, cái gì có trên đĩa, cái gì trong git, job CI nào đã chạy và ra sao: [`docs/README.md`](docs/README.md) mục *Trạng thái repo* — **nguồn duy nhất**, tệp này không chép lại ([`.claude/CLAUDE.md`](.claude/CLAUDE.md) §5).
 
 ---
 
@@ -48,6 +38,7 @@ Lý do của từng lựa chọn, kèm phương án đã loại và cái giá ph
 | Bạn là | Đọc theo thứ tự |
 | --- | --- |
 | Người mới vào dự án | [`docs/README.md`](docs/README.md) → [`docs/kien-truc-core-module.md`](docs/kien-truc-core-module.md) → khu `quy-uoc/` của phần bạn làm |
+| Người muốn chạy DB, BE, FE trên máy mình | [`docs/quy-uoc/chay-may-dev.md`](docs/quy-uoc/chay-may-dev.md) |
 | Người sắp viết code BE | [`docs/quy-uoc/be-architecture.md`](docs/quy-uoc/be-architecture.md) → [`be-cqrs-handler.md`](docs/quy-uoc/be-cqrs-handler.md) → [`be-api-controller.md`](docs/quy-uoc/be-api-controller.md) |
 | Người sắp viết code FE | [`docs/quy-uoc/fe-architecture.md`](docs/quy-uoc/fe-architecture.md) → [`fe-ui-conventions.md`](docs/quy-uoc/fe-ui-conventions.md) → [`docs/Design/DESIGN.md`](docs/Design/DESIGN.md) |
 | Người muốn biết luật nào bị ép bằng gì | [`docs/RULES.md`](docs/RULES.md) |
@@ -64,13 +55,17 @@ Cổng chạy được trên máy bất kỳ lúc nào, từ gốc repo:
 bash .claude/check-docs.sh
 ```
 
-Nó kiểm những gì máy kiểm được: đường dẫn trích dẫn có tồn tại, link có resolve, trích dẫn `file:dòng` có nằm trong file, tuyên bố hoàn thành có kèm ngày, `.claude/` có lẫn tri thức không, mọi file có khai đủ ba khoá phân loại không.
+Nó kiểm những gì máy kiểm được. Danh sách mục nằm ở chính script — đọc bằng lệnh, đừng chép tay:
+
+```bash
+grep -n '^section ' .claude/check-docs.sh
+```
 
 CI chạy cổng này trên mỗi pull request — xem [`.github/workflows/docs-gate.yml`](.github/workflows/docs-gate.yml).
 
 > ⚠️ **PASS không có nghĩa là tài liệu ĐÚNG.** Cổng không đọc hiểu nội dung. Ba loại lỗi nó không bao giờ bắt được — văn xuôi tả thứ không tồn tại, sơ đồ chép sai, ngày đúng nhưng nội dung sai — liệt kê ở [`.claude/CLAUDE.md`](.claude/CLAUDE.md) §8.
 
-Cổng backend và frontend **đã có** trong [`.github/workflows/docs-gate.yml`](.github/workflows/docs-gate.yml), bật theo điều kiện `src/BE` / `src/FE` có mặt trong cây checkout. Vì `src/` chưa vào git nên chúng **chưa chạy lần nào** — đừng trích kết quả của chúng như thể đã có.
+Cổng backend và frontend nằm cùng tệp workflow đó. Job nào đã chạy, kết quả ra sao: [`docs/README.md`](docs/README.md) mục *Trạng thái repo* — đừng trích kết quả của chúng từ chỗ khác.
 
 ---
 

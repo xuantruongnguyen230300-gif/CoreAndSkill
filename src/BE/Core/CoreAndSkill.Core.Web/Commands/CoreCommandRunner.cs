@@ -68,7 +68,7 @@ public static class CoreCommandRunner
         {
             await Console.Error.WriteLineAsync("Cấu hình Core:Bootstrap:* thiếu hoặc không hợp lệ. Không ghi dòng nào:");
             foreach (var error in errors)
-                await Console.Error.WriteLineAsync($"  - {error}");
+                await Console.Error.WriteLineAsync($"  - {error ?? "Giá trị không hợp lệ."}");
             Environment.ExitCode = 1;
             return;
         }
@@ -92,7 +92,9 @@ public static class CoreCommandRunner
 
         if (systemResult.IsFailure)
         {
-            await ReportFailureAsync("Lỗi tạo đơn vị hệ thống", systemResult.Error!, OperatorAccountKeys);
+            await Console.Error.WriteLineAsync(
+                $"Lỗi tạo đơn vị hệ thống: {DescribeError(systemResult.Error!)}");
+            await ReportFieldErrorsAsync(systemResult.Error!, OperatorAccountKeys);
             Environment.ExitCode = 1;
             return;
         }
@@ -115,7 +117,9 @@ public static class CoreCommandRunner
 
         if (firstResult.IsFailure)
         {
-            await ReportFailureAsync("Lỗi tạo đơn vị nghiệp vụ đầu tiên", firstResult.Error!, AdminAccountKeys);
+            await Console.Error.WriteLineAsync(
+                $"Lỗi tạo đơn vị nghiệp vụ đầu tiên: {DescribeError(firstResult.Error!)}");
+            await ReportFieldErrorsAsync(firstResult.Error!, AdminAccountKeys);
             Environment.ExitCode = 1;
             return;
         }
@@ -146,7 +150,9 @@ public static class CoreCommandRunner
 
         if (result.IsFailure)
         {
-            await ReportFailureAsync("Lỗi", result.Error!, OperatorAccountKeys);
+            await Console.Error.WriteLineAsync(
+                $"Lỗi: {DescribeError(result.Error!)}");
+            await ReportFieldErrorsAsync(result.Error!, OperatorAccountKeys);
             Environment.ExitCode = 1;
             return;
         }
@@ -179,7 +185,9 @@ public static class CoreCommandRunner
             var all = await replay.ReplayAllDeadAsync(CancellationToken.None);
             if (all.IsFailure)
             {
-                await ReportFailureAsync("Lỗi", all.Error!, NoConfigKeys);
+                await Console.Error.WriteLineAsync(
+                    $"Lỗi: {DescribeError(all.Error!)}");
+                await ReportFieldErrorsAsync(all.Error!, NoConfigKeys);
                 Environment.ExitCode = 1;
                 return;
             }
@@ -198,7 +206,9 @@ public static class CoreCommandRunner
         var one = await replay.ReplayAsync(id, CancellationToken.None);
         if (one.IsFailure)
         {
-            await ReportFailureAsync("Lỗi", one.Error!, NoConfigKeys);
+            await Console.Error.WriteLineAsync(
+                $"Lỗi: {DescribeError(one.Error!)}");
+            await ReportFieldErrorsAsync(one.Error!, NoConfigKeys);
             Environment.ExitCode = 1;
             return;
         }
@@ -237,37 +247,40 @@ public static class CoreCommandRunner
 
     private static readonly IReadOnlyDictionary<string, string> NoConfigKeys = new Dictionary<string, string>(StringComparer.Ordinal);
 
+    // Phần "<mã> — <câu>" của dòng lỗi; nhãn tiếng Việt đứng trước nó ở chỗ gọi (hình dạng 7).
+    private static string DescribeError(Error error)
+        => $"{error.Code} — {MessageTemplateRenderer.Render(error.MessageTemplate, error.Params)}";
+
     // Mã gốc KHÔNG nói lỗi nằm ở ô nào (ADMIN_CREATE_FAILED gộp tên đăng nhập, email và mật khẩu) — lý do nằm ở fieldErrors, nên
     // in cả mã lẫn khoá của từng lỗi, kèm tham số (MinLength của chính sách mật khẩu…). Không tham số nào mang mật khẩu:
-    // IdentityErrorMapper chỉ đặt tên đăng nhập, email và ngưỡng chính sách vào đó.
-    private static async Task ReportFailureAsync(string what, Error error, IReadOnlyDictionary<string, string> configKeyByField)
+    // IdentityErrorMapper chỉ đặt tên đăng nhập, email và ngưỡng chính sách vào đó. Dòng đầu ("<việc>: <mã> — <câu>") in
+    // ở từng chỗ gọi (docs/quy-uoc/be-cqrs-handler.md §7.2 hình dạng 7 — literal viết thẳng ở đối số của Console.*, không
+    // truyền qua tham số của hàm phụ này).
+    private static async Task ReportFieldErrorsAsync(Error error, IReadOnlyDictionary<string, string> configKeyByField)
     {
-        await Console.Error.WriteLineAsync(
-            $"{what}: {error.Code} — {MessageTemplateRenderer.Render(error.MessageTemplate, error.Params)}");
-
         foreach (var (field, fieldErrors) in error.FieldErrors)
         {
-            var where = configKeyByField.TryGetValue(field, out var configKey)
-                ? $"{field} (khoá {CoreBootstrapOptions.SectionName}:{configKey})"
-                : field;
-
             foreach (var fieldError in fieldErrors)
             {
                 var parameters = fieldError.Params.Count == 0
                     ? string.Empty
                     : $" ({string.Join(", ", fieldError.Params.Select(p => $"{p.Key}={p.Value}"))})";
-                await Console.Error.WriteLineAsync($"  - {where}: {fieldError.Code}{parameters}");
+
+                await Console.Error.WriteLineAsync(
+                    $"  - {(configKeyByField.TryGetValue(field, out var configKey) ? $"{field} (khoá {CoreBootstrapOptions.SectionName}:{configKey})" : field)}: {fieldError.Code}{parameters}");
             }
         }
     }
 
-    private static bool TryValidate(CoreBootstrapOptions options, out IReadOnlyList<string> errors)
+    // Dự phòng ("Giá trị không hợp lệ.") in ở chỗ gọi (RunBootstrapAsync), không ở đây: literal viết thẳng ở đối số
+    // của Console.Error.WriteLineAsync — hình dạng 7, docs/quy-uoc/be-cqrs-handler.md §7.2.
+    private static bool TryValidate(CoreBootstrapOptions options, out IReadOnlyList<string?> errors)
     {
         var context = new ValidationContext(options);
         var results = new List<ValidationResult>();
         var isValid = Validator.TryValidateObject(options, context, results, validateAllProperties: true);
 
-        errors = results.Select(r => r.ErrorMessage ?? "Giá trị không hợp lệ.").ToList();
+        errors = results.Select(r => r.ErrorMessage).ToList();
         return isValid;
     }
 }

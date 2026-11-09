@@ -2,7 +2,12 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { TranslateLoader, TranslationObject, provideTranslateLoader, provideTranslateService } from '@ngx-translate/core';
+import {
+  TranslateLoader,
+  TranslationObject,
+  provideTranslateLoader,
+  provideTranslateService,
+} from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
 
 import { InputComponent } from './input.component';
@@ -31,7 +36,11 @@ describe('InputComponent — ControlValueAccessor', () => {
       imports: [HostComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideTranslateService({ lang: 'vi', fallbackLang: 'vi', loader: provideTranslateLoader(FakeTranslateLoader) }),
+        provideTranslateService({
+          lang: 'vi',
+          fallbackLang: 'vi',
+          loader: provideTranslateLoader(FakeTranslateLoader),
+        }),
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(HostComponent);

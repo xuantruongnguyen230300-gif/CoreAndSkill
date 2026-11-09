@@ -20,8 +20,11 @@
 #      dừng trước byte đó, và phần còn lại của dòng dính vào sau \1.
 # Ở đây: đi qua từng chuỗi JSON trọn vẹn (bỏ qua cặp thoát \x) và đếm độ sâu
 # ngoặc — chỉ nhận khoá ở độ sâu 1, không phụ thuộc thứ tự khoá.
+#
+# Tham số thứ hai `num` (dùng qua top_num): giá trị phải là số JSON không âm; in phần
+# chữ số nguyên đứng đầu (12.7 -> 12). Giá trị không bắt đầu bằng chữ số: thoát 1.
 top_str() {
-  LC_ALL=C awk -v want="$1" '
+  LC_ALL=C awk -v want="$1" -v kind="${2:-str}" '
     function skip_ws(k) { while (k <= n && index(" \t\r\n", substr(s, k, 1)) > 0) k++; return k }
     function str_end(k,   d) { # k = vị trí dấu nháy mở; trả vị trí dấu nháy đóng, 0 nếu cụt
       k++
@@ -43,6 +46,13 @@ top_str() {
           k = skip_ws(j + 1)
           if (depth == 1 && substr(s, k, 1) == ":" && substr(s, i + 1, j - i - 1) == want) {
             k = skip_ws(k + 1)
+            if (kind == "num") {
+              m = k
+              while (m <= n && index("0123456789", substr(s, m, 1)) > 0) m++
+              if (m == k) exit 1
+              printf "%s", substr(s, k, m - k)
+              exit 0
+            }
             if (substr(s, k, 1) != "\"") exit 1
             m = str_end(k); if (m == 0) exit 1
             printf "%s", substr(s, k + 1, m - k - 1)
@@ -58,6 +68,9 @@ top_str() {
       exit 1
     }'
 }
+
+# top_num <khoá>  (stdin: payload JSON) — như top_str, cho giá trị số.
+top_num() { top_str "$1" num; }
 
 # phien_dir  (stdin: payload JSON)
 # In thư mục trạng thái RIÊNG của phiên, tính từ gốc repo. Khoá là `session_id`

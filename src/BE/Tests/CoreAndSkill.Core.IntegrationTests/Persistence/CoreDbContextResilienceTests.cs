@@ -20,7 +20,7 @@ namespace CoreAndSkill.Core.IntegrationTests.Persistence;
 //
 // ĐIỂM MÙ: lỗi tạm thời ở đây là ngoại lệ Npgsql do test ném, không phải một kết nối đứt thật. Kết nối đứt giữa
 // transaction trên PostgreSQL thật (kết nối Scoped dùng chung phải mở lại được) là việc của
-// PersistenceResilienceDatabaseTests (RequiresDocker, chưa chạy).
+// PersistenceResilienceDatabaseTests (RequiresDocker).
 public sealed class CoreDbContextResilienceTests
 {
     [Fact]

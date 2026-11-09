@@ -6,13 +6,15 @@ namespace CoreAndSkill.Core.Application.Configuration;
 //
 // RootPath KHÔNG có giá trị mặc định và KHÔNG nằm ở appsettings.json: mỗi môi trường một chỗ, và
 // thiếu hay không dùng được thì tiến trình KHÔNG khởi động (luật A8, §4 của be-architecture.md) — đó
-// là lúc rẻ nhất để phát hiện, chứ không phải ở lần tải tệp đầu tiên. Phép kiểm sâu hơn (thư mục có
-// thật, ghi được, không nằm trong thư mục ứng dụng) ở CoreFileOptionsValidator, Core.Infrastructure.
+// là lúc rẻ nhất để phát hiện, chứ không phải ở lần tải tệp đầu tiên. Nhưng chỉ khi bản lưu hiệu lực là
+// LocalFileStorage của Core (ADR-0106, ADR-0107): dự án thay IFileStorage thì không đọc khoá này. Vì vậy
+// KHÔNG có [Required] ở đây — cả phép kiểm thiếu khoá lẫn thư mục hợp lệ (có thật, ghi được, không nằm
+// trong thư mục ứng dụng) ở CoreFileOptionsValidator, đăng ký cùng điều kiện với LocalFileStorage.
+// Các khoá còn lại giữ kiểm vô điều kiện.
 public sealed class CoreFileOptions
 {
     public const string SectionName = "Core:File";
 
-    [Required(AllowEmptyStrings = false)]
     public string RootPath { get; init; } = default!;
 
     // Trần dung lượng MỘT tệp, dùng ở cả tầng máy chủ web (UploadSizeLimitAttribute) lẫn tầng ứng

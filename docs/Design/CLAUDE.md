@@ -46,7 +46,7 @@ Lý do rất cụ thể — chia đôi khu này sẽ phá đúng thứ nó sinh 
 
 Phép thử một dòng cho `Components/`: **xoá phần nghiệp vụ khỏi spec mà spec vẫn còn nghĩa → component Core. Spec sụp → component nghiệp vụ, không thuộc thư mục này.** Một ô số liệu "có nhãn, giá trị, biến động, dùng cho dashboard chỉ số" sụp ngay khi bỏ chữ "chỉ số"; một `Card` thì không.
 
-Ranh giới với `spec/`: `spec/<feature>/ui-spec.md` giữ **luật hiển thị theo nghiệp vụ** (trường nào bắt buộc, giá trị nào tô đỏ, ai thấy nút nào). Nó **không** khai màu, không khai khoảng cách, không khai trạng thái component — những thứ đó ở đây.
+Ranh giới với `spec/`: `spec/<feature>/ui-spec.md` giữ **luật hiển thị theo nghiệp vụ** (trường nào bắt buộc, giá trị nào tô đỏ, ai thấy nút nào). Nó **không** khai màu, không khai khoảng cách, không khai trạng thái component — những thứ đó ở đây. Chia từng mục: [`../OWNERSHIP.md`](../OWNERSHIP.md) §7.
 
 ---
 
@@ -77,11 +77,16 @@ Mỗi file trong khu này mở đầu bằng **đúng một** nhãn, ngay dướ
 
 Ba nhãn này **chính là** ba nhãn của [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §4, không phải một hệ nhãn thứ hai. Đừng phát minh nhãn mới.
 
+**Miễn nhãn: tệp dưới `Templates/`.** Nhãn đo *"đã có code hiện thực hoá chưa"*; một khuôn tài liệu không có code nào để hiện thực hoá, nên khái niệm đó không áp được và tệp khuôn **không mang** nhãn nào ở §2 (người dùng duyệt 2026-10-06, câu Q69). Hai hệ quả:
+
+- Spec sinh ra từ khuôn vẫn mang nhãn cấp tệp riêng, như mọi spec khác trong khu này.
+- Nhãn đã có sẵn ở một khuôn thì **gỡ khi tệp đó được mở ra sửa lần tới**, không gỡ hàng loạt.
+
 ### Nhãn dán theo từng tệp, không dán theo giai đoạn của repo
 
 Nhãn cấp tệp khai **thứ có thật của riêng tệp đó**. Bốn luật cứng:
 
-- 🛑 **`📐` bị cấm khi một neo khai trong chính tệp trỏ tới code có thật.** Với `Components/<Tên>.md` thì neo đó là **tên component**: có tệp component cùng tên ở dạng kebab dưới `src/FE/src/app/` thì spec không được mang `📐`. Luật D42 ở [`../DEBT.md`](../DEBT.md), ép bằng mục §27 của [`../../.claude/check-docs.sh`](../../.claude/check-docs.sh).
+- 🛑 **`📐` bị cấm khi một neo khai trong chính tệp trỏ tới code có thật.** Với `Components/<Tên>.md` thì neo đó là **tên component**: có tệp component cùng tên ở dạng kebab dưới `src/FE/src/app/` thì spec không được mang `📐`. Luật D42 ở [`../RULES-DOCS.md`](../RULES-DOCS.md), ép bằng mục §27 của [`../../.claude/check-docs.sh`](../../.claude/check-docs.sh).
 - 🛑 **Nhãn không lật hàng loạt.** Một đợt code về, một lần build xanh, một quyết định chuyển giai đoạn — không cái nào thay được việc mở đúng tệp đó ra đối chiếu ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §4). Tệp chưa ai đối chiếu thì `📐` và `chua-doi-chieu` là giá trị **đúng**, không phải nợ.
 - 🛑 **Câu khẳng định hiện trạng phải neo được.** Viết *"component này hiện trông thế này"* thì phải trả lời được *"kiểm bằng gì"*, theo khuôn neo ở §3. Không neo được thì đừng viết câu đó.
 - ✅ **Mục `Normalize on redesign` chỉ mở cho tệp đã có code thật.** Mục đó là danh sách *"cái đang chạy xấu ở chỗ nào"*, nên nó vô nghĩa với một tệp còn mang `📐` — chỗ để ngỏ của những tệp ấy ghi vào mục `Cần chốt` kèm câu hỏi cụ thể phải trả lời trước khi dựng.
@@ -89,7 +94,7 @@ Nhãn cấp tệp khai **thứ có thật của riêng tệp đó**. Bốn luậ
 Đọc nhãn cấp tệp của cả khu bằng lệnh, không chép danh sách vào tài liệu ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §6):
 
 ```bash
-grep -m1 -oE '^(📐|🚧|✅) ' docs/Design/Components/*.md docs/Design/Screens/*.md
+LC_ALL=C grep -m1 -oE '^(📐|🚧|✅) ' docs/Design/Components/*.md docs/Design/Screens/*.md
 ```
 
 ---
@@ -115,7 +120,7 @@ grep -rn '^\.btn' src/FE/src
 
 **Vì sao không dùng số dòng:** trong một stylesheet vài trăm dòng thì *mọi* số nhỏ hơn độ dài file đều "nằm trong file", nên một cổng kiểu D7 ([`../RULES.md`](../RULES.md) §1) cho qua cả trích dẫn đã trôi. Đổi tên selector thì grep biết ngay; đổi số dòng thì không ai biết. Cùng một lý do với việc neo test bằng **tên ca kiểm** thay vì `file:dòng` đã áp ở [`../RULES.md`](../RULES.md) §3.
 
-Đây là luật toàn repo, không phải quy ước riêng khu này: **D41** ở [`../DEBT.md`](../DEBT.md), chốt ở [`../adr/0046-neo-trich-dan-vao-src-bang-chuoi-tim-duoc.md`](../adr/0046-neo-trich-dan-vao-src-bang-chuoi-tim-duoc.md). Nó phủ chiều `docs/` → `src/`; trích dẫn `docs/` → `docs/` vẫn dùng số dòng được và vẫn do D7 ép.
+Đây là luật toàn repo, không phải quy ước riêng khu này: **D41** ở [`../RULES-DOCS.md`](../RULES-DOCS.md), chốt ở [`../adr/0046-neo-trich-dan-vao-src-bang-chuoi-tim-duoc.md`](../adr/0046-neo-trich-dan-vao-src-bang-chuoi-tim-duoc.md). Nó phủ chiều `docs/` → `src/`; trích dẫn `docs/` → `docs/` vẫn dùng số dòng được và vẫn do D7 ép.
 
 ### Hai điều cấm tuyệt đối
 
@@ -224,8 +229,9 @@ Bắt buộc; thiếu mục nào là spec chưa xong:
 
 ```bash
 ls docs/Design/Components/*.md | wc -l
-grep -c 'spec xong, chưa dựng' docs/Design/COMPONENTS.md
 ```
+
+> 📖 Đếm trạng thái thi công từng component: [`COMPONENTS.md`](./COMPONENTS.md) §3 — không đếm bằng chuỗi trong mục lục (mục lục cố ý không có cột trạng thái).
 
 - **Không chép secret, khoá API, thông tin đăng nhập** vào bất kỳ spec, prompt pack, hay hướng dẫn chụp màn hình nào.
 - **Trước khi coi một thay đổi là xong:**
@@ -263,7 +269,7 @@ PASS trước khi dựng một màn = lệnh không in dòng nào thuộc file s
 docs/Design/
   CLAUDE.md        file này — luật riêng khu Design
   DESIGN.md        hệ thống thiết kế nền: token màu, chữ, khoảng cách, chuyển động, theme
-  COMPONENTS.md    mục lục component Core + bảng trạng thái
+  COMPONENTS.md    mục lục component Core (không có cột trạng thái — đọc nhãn cấp tệp ở `Components/`)
   Icons.md         bộ icon, quy tắc chọn, accessibility cho icon
   Templates/       khuôn để người sau viết spec mới đúng dạng
   Components/      một file một component Core

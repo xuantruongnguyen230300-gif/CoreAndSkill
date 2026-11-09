@@ -9,23 +9,25 @@ namespace CoreAndSkill.Core.Infrastructure.Files;
 // tiên; và thư mục đặt sai chỗ (trong thư mục ứng dụng: triển khai lại là mất sạch tệp; trong thư mục
 // phục vụ tĩnh: ai đoán được đường dẫn là tải được) phải bị từ chối ngay.
 //
-// [Required] của CoreFileOptions chỉ bắt được "thiếu khoá"; phần còn lại cần chạm hệ thống tệp nên
-// nằm ở Infrastructure, không ở Application.
+// "Thiếu khoá" do CoreFileRootPathRequiredValidator kiểm (CoreFileOptions không có [Required], ADR-0107); phần
+// cần chạm hệ thống tệp nằm ở đây, Infrastructure, không ở Application. Cả hai chỉ đăng ký khi Core thêm LocalFileStorage.
 internal sealed class CoreFileOptionsValidator(IHostEnvironment environment) : IValidateOptions<CoreFileOptions>
 {
+    // Trả ngay ở lỗi ĐẦU TIÊN gặp (không gom hết rồi báo một lượt): mỗi literal phải là đối số TRỰC TIẾP của
+    // ValidateOptionsResult.Fail(...) — hình dạng 8, docs/quy-uoc/be-cqrs-handler.md §7.2 — nên không gom vào
+    // List<string> rồi mới Fail(list) như trước. Người vận hành sửa xong lỗi này, chạy lại, thấy lỗi kế (nếu còn).
     public ValidateOptionsResult Validate(string? name, CoreFileOptions options)
     {
-        var failures = new List<string>();
         var raw = options.RootPath;
 
-        // Khoá thiếu đã có thông báo từ ValidateDataAnnotations; tránh nói hai lần.
+        // Khoá thiếu có thông báo riêng từ CoreFileRootPathRequiredValidator; tránh nói hai lần.
         if (string.IsNullOrWhiteSpace(raw))
             return ValidateOptionsResult.Success;
 
         if (!Path.IsPathFullyQualified(raw))
         {
-            failures.Add("Core:File:RootPath phải là đường dẫn tuyệt đối — đường dẫn tương đối phụ thuộc thư mục chạy lệnh.");
-            return ValidateOptionsResult.Fail(failures);
+            return ValidateOptionsResult.Fail(
+                "Core:File:RootPath phải là đường dẫn tuyệt đối — đường dẫn tương đối phụ thuộc thư mục chạy lệnh.");
         }
 
         var root = Path.GetFullPath(raw);
@@ -36,23 +38,22 @@ internal sealed class CoreFileOptionsValidator(IHostEnvironment environment) : I
         {
             if (!string.IsNullOrEmpty(forbidden) && IsSameOrInside(root, Path.GetFullPath(forbidden)))
             {
-                failures.Add(
+                return ValidateOptionsResult.Fail(
                     "Core:File:RootPath không được nằm trong thư mục ứng dụng hoặc thư mục phục vụ tĩnh — " +
                     "triển khai lại sẽ mất sạch tệp, và tệp trong thư mục phục vụ tĩnh tải được không qua kiểm quyền.");
-                break;
             }
         }
 
         if (!Directory.Exists(root))
         {
-            failures.Add("Core:File:RootPath trỏ tới thư mục không tồn tại — tạo nó trước khi khởi động (Core không tự tạo).");
-        }
-        else if (!IsWritable(root))
-        {
-            failures.Add("Core:File:RootPath là thư mục tiến trình không ghi được.");
+            return ValidateOptionsResult.Fail(
+                "Core:File:RootPath trỏ tới thư mục không tồn tại — tạo nó trước khi khởi động (Core không tự tạo).");
         }
 
-        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+        if (!IsWritable(root))
+            return ValidateOptionsResult.Fail("Core:File:RootPath là thư mục tiến trình không ghi được.");
+
+        return ValidateOptionsResult.Success;
     }
 
     private static bool IsSameOrInside(string candidate, string container)
@@ -83,4 +84,14 @@ internal sealed class CoreFileOptionsValidator(IHostEnvironment environment) : I
             return false;
         }
     }
+}
+
+// Thiếu khoá Core:File:RootPath — thay cho [Required] trên CoreFileOptions (ADR-0107): attribute nằm trên lớp dùng chung
+// nên chặn khởi động cả khi dự án đã thay IFileStorage. Đăng ký CÙNG điều kiện với LocalFileStorage.
+internal sealed class CoreFileRootPathRequiredValidator : IValidateOptions<CoreFileOptions>
+{
+    public ValidateOptionsResult Validate(string? name, CoreFileOptions options)
+        => string.IsNullOrWhiteSpace(options.RootPath)
+            ? ValidateOptionsResult.Fail("Core:File:RootPath là bắt buộc — thiếu khoá thì tiến trình không khởi động.")
+            : ValidateOptionsResult.Success;
 }

@@ -17,7 +17,19 @@ internal sealed class RoleAdminService(RoleManager<AppRole> roleManager, CoreDbC
             return Result.Failure<Guid>(RoleErrors.NameDuplicate.WithParams(("Name", name)));
 
         var role = AppRole.NewRole(name);
-        var identityResult = await roleManager.CreateAsync(role);
+        // Lượt tạo cùng tên chạy đồng thời: lượt kia chưa commit nên phép tra trùng ở trên thấy "không trùng", và lệnh INSERT
+        // vỡ RoleNameIndex. Chỉ đúng index này thành NAME_DUPLICATE; mọi lỗi lưu khác đi tiếp ra 500.
+        IdentityResult identityResult;
+        try
+        {
+            identityResult = await roleManager.CreateAsync(role);
+        }
+        catch (DbUpdateException ex) when (UniqueViolations.IsOn(ex, UniqueViolations.NormalizedNameIndex))
+        {
+            db.Entry(role).State = EntityState.Detached;
+            return Result.Failure<Guid>(RoleErrors.NameDuplicate.WithParams(("Name", name)));
+        }
+
         if (!identityResult.Succeeded)
             throw new InvalidOperationException(
                 "CreateAsync thất bại ngoài dự kiến — dữ liệu đã qua validator trước khi tới đây: " +
@@ -50,7 +62,18 @@ internal sealed class RoleAdminService(RoleManager<AppRole> roleManager, CoreDbC
             return Result.Failure(CommonErrors.ConcurrencyConflict);
 
         role.Name = name;
-        var identityResult = await roleManager.UpdateAsync(role);
+        IdentityResult identityResult;
+        try
+        {
+            identityResult = await roleManager.UpdateAsync(role);
+        }
+        catch (DbUpdateException ex) when (UniqueViolations.IsOn(ex, UniqueViolations.NormalizedNameIndex))
+        {
+            // Đổi tên đồng thời trùng tên một vai trò vừa commit — cùng lý do với CreateAsync.
+            db.Entry(role).State = EntityState.Detached;
+            return Result.Failure(RoleErrors.NameDuplicate.WithParams(("Name", name)));
+        }
+
         if (!identityResult.Succeeded)
         {
             var conflict = IdentityConcurrency.DetectConflict(identityResult);

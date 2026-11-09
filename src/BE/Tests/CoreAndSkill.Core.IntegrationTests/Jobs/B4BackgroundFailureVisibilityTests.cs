@@ -24,7 +24,7 @@ namespace CoreAndSkill.Core.IntegrationTests.Jobs;
 //
 // Test này chạy KHÔNG cần Docker: host dùng chuỗi kết nối không tới được (CoreWebApplicationFactory mặc định), nên
 // mọi truy vấn DB của dịch vụ nền ném ngoại lệ — đúng nhánh cần kiểm. Nhánh "DB tới được nhưng dòng lỗi" là việc của
-// OutboxDatabaseTests (RequiresDocker, chưa chạy).
+// OutboxDatabaseTests (RequiresDocker).
 //
 // ĐIỂM MÙ còn lại: kiểm log qua một ILogger thu thập tay, không qua pipeline log của host — nên bộ này không nói
 // được dòng log có ra tới đích thật hay không.
@@ -41,7 +41,9 @@ public sealed class B4BackgroundFailureVisibilityTests : IDisposable
 
     private sealed class CollectingLogger<T> : ILogger<T>
     {
-        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+        // State: các cặp tên/giá trị có cấu trúc của lời gọi log ({Step}, {Failure}, …) — để khẳng định TRƯỜNG,
+        // không phải chữ trong câu đã định dạng.
+        public List<(LogLevel Level, string Message, IReadOnlyList<KeyValuePair<string, object?>> State)> Entries { get; } = [];
 
         public IDisposable? BeginScope<TState>(TState state)
             where TState : notnull => null;
@@ -49,8 +51,15 @@ public sealed class B4BackgroundFailureVisibilityTests : IDisposable
         public bool IsEnabled(LogLevel logLevel) => true;
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-            => Entries.Add((logLevel, formatter(state, exception)));
+            => Entries.Add((
+                logLevel,
+                formatter(state, exception),
+                state as IReadOnlyList<KeyValuePair<string, object?>> ?? []));
     }
+
+    // Giá trị của trường có cấu trúc `Step` (enum hay chuỗi đều so qua ToString()); null nếu dòng log không có trường đó.
+    private static string? StepOf(IReadOnlyList<KeyValuePair<string, object?>> state)
+        => state.FirstOrDefault(p => p.Key == "Step").Value?.ToString();
 
     // Tên chỉ số đọc ra từ chính instrument, không gõ lại chuỗi — đổi tên bên Core thì khẳng định đi
     // theo, chứ không lặng lẽ đếm 0 trên một cái tên đã chết.
@@ -134,9 +143,9 @@ public sealed class B4BackgroundFailureVisibilityTests : IDisposable
 
         await service.RunOnceAsync(CancellationToken.None);
 
-        logger.Entries.ShouldContain(e => e.Level == LogLevel.Error && e.Message.Contains("dọn tệp tạm", StringComparison.Ordinal));
+        logger.Entries.ShouldContain(e => e.Level == LogLevel.Error && StepOf(e.State) == "PurgeTemp");
         logger.Entries.ShouldContain(
-            e => e.Level == LogLevel.Error && e.Message.Contains("đối soát", StringComparison.Ordinal),
+            e => e.Level == LogLevel.Error && StepOf(e.State) == "Reconcile",
             "bước sau vẫn phải chạy (và hỏng vì DB không tới được)");
     }
 

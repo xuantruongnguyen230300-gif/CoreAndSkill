@@ -1,9 +1,11 @@
 <p-menu
   #primeMenu
   [popup]="true"
+  appendTo="body"
   [model]="model()"
   [ariaLabel]="ariaLabel()"
   [styleClass]="'app-menu app-menu--' + size()"
+  (onShow)="onShow()"
   (onHide)="onHide()"
 >
   @if (header()) {

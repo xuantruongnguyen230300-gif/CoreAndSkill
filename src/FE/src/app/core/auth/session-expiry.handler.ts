@@ -3,7 +3,10 @@ import { Router } from '@angular/router';
 
 import { CORE_ROUTES } from '../config/core-routes';
 import { AuthService } from './auth.service';
-import { KHOA_BAO_TAB_PHIEN_KET_THUC, TabSessionBroadcastService } from './tab-session-broadcast.service';
+import {
+  KHOA_BAO_TAB_PHIEN_KET_THUC,
+  TabSessionBroadcastService,
+} from './tab-session-broadcast.service';
 
 /**
  * Ba đường dẫn tới hết phiên quy về MỘT lớp: `errorInterceptor` gọi ở nhánh 401 (fe-api-client.md §2.2),

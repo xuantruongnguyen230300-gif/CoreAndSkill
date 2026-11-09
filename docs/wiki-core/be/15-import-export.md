@@ -11,8 +11,8 @@ verified: chua-doi-chieu
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
 > | Bộ đọc/ghi CSV và Excel bằng thư viện chuẩn của .NET, không gói NuGet: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tabular/` (`CsvTabularWriter.cs`, `XlsxTabularWriter.cs`, `XlsxTabularSource.cs`); vô hiệu hoá công thức, số dòng theo tệp gốc, chặn XXE và tệp nén bom đã có test (`XlsxTabularTests.cs`, `CsvTabularTests.cs`); ghi Excel qua thân phản hồi HTTP thật đã có test (`Export_Xlsx_ReturnsARealZipPackage_WithTheSpreadsheetContentType`) | Chọn thư viện bảng tính nếu cần tính năng mà bản viết tay không có — **quyết định kiến trúc, chưa chốt** |
-> | Xuất người dùng: `ExportUsersCommandHandler.cs` — đếm trước, cùng chỗ dựng truy vấn với danh sách (`UserQueryService.cs`, `FilterAndOrder`), ghi nhật ký kiểm toán. Việc xuất khớp bộ lọc đang xem chỉ được chứng minh ở `ExportUsersDatabaseTests.cs` (`RequiresDocker`) — **chưa chạy** | Chạy được ở CI có Docker |
-> | Nhập: `StartImportCommandHandler.cs` (đếm dòng, trần, không tạo việc khi vượt) và `ImportJobExecutor.cs` (lưu từng dòng, huỷ theo dõi sau **mọi** dòng — `EfImportRowWriter.cs`). Dòng lỗi giữa tệp không nằm trong DB: chỉ được chứng minh ở `ImportJobDatabaseTests.cs` (`RequiresDocker`) — **chưa chạy** | Chạy được ở CI có Docker |
+> | Xuất người dùng: `ExportUsersCommandHandler.cs` — đếm trước, cùng chỗ dựng truy vấn với danh sách (`UserQueryService.cs`, `FilterAndOrder`), ghi nhật ký kiểm toán. Việc xuất khớp bộ lọc đang xem chỉ được chứng minh ở `ExportUsersDatabaseTests.cs` (`RequiresDocker`), xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Lớp đó xanh trên CI — CI chưa chạy với bản này |
+> | Nhập: `StartImportCommandHandler.cs` (đếm dòng, trần, không tạo việc khi vượt) và `ImportJobExecutor.cs` (lưu từng dòng, huỷ theo dõi sau **mọi** dòng — chuỗi `rowWriter.DiscardTrackedChanges();`, thực hiện ở `EfImportRowWriter.cs` chuỗi `context.ChangeTracker.Clear();`). Dòng lỗi giữa tệp không nằm trong DB: chỉ được chứng minh ở `ImportJobDatabaseTests.cs` (`RequiresDocker`), xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Lớp đó xanh trên CI — CI chưa chạy với bản này |
 > | Lưu từng dòng là "lô cỡ 1" (đổi tốc độ lấy việc một dòng hỏng không kéo dòng khác); chưa có đường nhập lô lớn | `architect` xét nếu số dòng thật đòi tốc độ hơn |
 >
 > Lưu trữ file vật lý: [`14-file-storage.md`](14-file-storage.md). Bảo mật khi nhận file: [`09-security-beyond-auth.md`](09-security-beyond-auth.md) §9.
@@ -238,12 +238,12 @@ Tệp mẫu nên có: dòng tiêu đề đúng tên cột, một dòng ví dụ,
 | --- | --- | --- |
 | Interface đọc theo dòng | ✅ sẽ có | Trả chuỗi dòng, không nạp cả tệp |
 | Interface ghi dạng bảng | ✅ sẽ có | Dùng chung cho CSV và bảng tính |
-| **Huỷ thay đổi đang theo dõi sau mỗi dòng lỗi** | 📐 **bắt buộc** | §4.2 — kèm test có dòng lỗi nằm giữa |
+| **Huỷ thay đổi đang theo dõi sau mỗi dòng lỗi** — bắt buộc | ✅ CÓ THẬT (đối chiếu 2026-10-05) — code: `src/BE/Core/CoreAndSkill.Core.Application/Import/ImportJobExecutor.cs`, chuỗi `rowWriter.DiscardTrackedChanges();` (sau mọi dòng); `src/BE/Core/CoreAndSkill.Core.Infrastructure/Import/EfImportRowWriter.cs`, chuỗi `context.ChangeTracker.Clear();` | §4.2. Test có dòng lỗi nằm giữa: `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Import/ImportJobDatabaseTests.cs`, chuỗi `MiddleErrorRow_IsNotInTheDatabase_AndTheRowsAroundItAre` — nhóm `RequiresDocker`; kết quả chạy chưa đối chiếu |
 | Báo cáo kết quả theo dòng, kèm mã lỗi | ✅ sẽ có | Số dòng theo tệp gốc |
 | Chính sách nhập lại theo khoá nghiệp vụ | ✅ sẽ có | Quyết định tường minh cho từng luồng |
 | Xuất theo bộ lọc đang xem, dùng chung chỗ dựng truy vấn | ✅ sẽ có | |
 | Ghi theo luồng, đọc theo lô | ✅ sẽ có | |
-| Vô hiệu hoá công thức trong tệp xuất | 📐 **bắt buộc** | §5.4 |
+| Vô hiệu hoá công thức trong tệp xuất — bắt buộc | ✅ CÓ THẬT (đối chiếu 2026-10-05) — CSV: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tabular/CsvTabularWriter.cs`, chuỗi `NeutralizeFormula`; Excel: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tabular/XlsxTabularWriter.cs`, chuỗi `"inlineStr"` | §5.4. Test: `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Tabular/CsvTabularTests.cs`, chuỗi `Write_NeutralisesCellsThatWouldBeReadAsFormulas`; `XlsxTabularTests.cs` cùng thư mục, chuỗi `Write_EveryCellIsAnInlineString_SoAFormulaLookingValueCanNeverBeEvaluated`; lượt này không chạy test |
 | Tệp mẫu sinh từ định nghĩa cột | ✅ sẽ có | Không dùng tệp tĩnh chép tay |
 | Quyền xuất là quyền riêng + ghi nhật ký kiểm toán | ✅ sẽ có | |
 | **Nhập luôn chạy nền** sau khi qua trần `Core:Import:MaxRows` | ✅ sẽ có | §6; theo dõi qua [`../../contracts/jobs.md`](../../contracts/jobs.md); chống trùng theo khoá tự nhiên ([`../../contracts/exports.md`](../../contracts/exports.md) §2) |

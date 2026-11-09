@@ -68,7 +68,7 @@ namespace CoreAndSkill.ArchTests;
 //     cả hai khả năng thay vì chỉ dặn "mở rộng bộ đọc" — lời dặn đó, với một chuỗi dữ liệu, đẩy
 //     người sửa thẳng tới việc gỡ lớp quét;
 //   • chỉ đọc database/scripts/core/. Script của module nằm ở database/scripts/modules/ và đi cùng
-//     cổng của module đó (nợ B9, docs/RULES.md §10).
+//     cổng của module đó (nợ B9, docs/RULES-BE.md).
 public class PermissionScriptParityTests
 {
     private const string PermissionTable = "core.permission";

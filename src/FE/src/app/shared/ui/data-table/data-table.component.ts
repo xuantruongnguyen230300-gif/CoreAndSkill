@@ -1,14 +1,20 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   TemplateRef,
   computed,
+  inject,
   input,
+  linkedSignal,
   output,
+  signal,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
+import { TranslatePipe } from '@ngx-translate/core';
 import { TableModule } from 'primeng/table';
 
+import { TRUY_VAN_DUOI_BP_XS } from '../../../core/theme/diem-ngat';
 import { PaginationComponent } from '../pagination/pagination.component';
 
 /** Chữ ký đầy đủ ở quy-uoc/fe-ui-conventions.md §9 — DataTable dùng thẳng, không mở rộng. */
@@ -26,6 +32,18 @@ export interface DataColumnDef<T = unknown> {
   readonly value?: (row: T) => string;
 }
 
+/** Ngữ cảnh của `rowActionsTemplate`: `compact` là `true` dưới `$bp-xs` (DataTable.md §"Cột hành động"). */
+export interface RowActionsContext<T> {
+  readonly $implicit: T;
+  readonly compact: boolean;
+}
+
+/** Câu của vùng báo kết quả: khoá i18n + tham số (DataTable.md §"Vùng báo kết quả"). */
+interface CauKetQua {
+  readonly khoa: string;
+  readonly tham?: { tu: number; den: number; tong: number };
+}
+
 export type DataTableViewState = 'idle' | 'loading' | 'error' | 'empty' | 'empty-filtered';
 
 /**
@@ -40,7 +58,7 @@ export type DataTableViewState = 'idle' | 'loading' | 'error' | 'empty' | 'empty
 @Component({
   selector: 'app-data-table',
   standalone: true,
-  imports: [NgTemplateOutlet, TableModule, PaginationComponent],
+  imports: [NgTemplateOutlet, TableModule, PaginationComponent, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './data-table.component.html',
   styleUrl: './data-table.component.scss',
@@ -66,9 +84,27 @@ export class DataTableComponent<T> {
   );
   readonly loadingTemplate = input<TemplateRef<unknown> | null>(null);
   readonly errorTemplate = input<TemplateRef<unknown> | null>(null);
+  /** Ô của cột hành động, một lần mỗi dòng; `null` = không có cột (DataTable.md §"Cột hành động"). */
+  readonly rowActionsTemplate = input<TemplateRef<RowActionsContext<T>> | null>(null);
+  /** Tên cột hành động, ĐÃ dịch, ẩn thị giác trong `th`. Bắt buộc khác rỗng khi có `rowActionsTemplate`. */
+  readonly rowActionsLabel = input('');
 
   readonly pageChange = output<{ page: number; pageSize: number }>();
   readonly sortChange = output<{ sortBy: string; sortDescending: boolean }>();
+
+  /**
+   * Dưới `$bp-xs` (dạng thẻ) màn nhận `compact: true` để gom hành động về một nút ⋯. Theo dõi bằng
+   * `matchMedia` — giá trị này phải vào ngữ cảnh template nên CSS thuần không đủ.
+   */
+  protected readonly compact = signal(false);
+
+  constructor() {
+    const mql = window.matchMedia(TRUY_VAN_DUOI_BP_XS);
+    this.compact.set(mql.matches);
+    const khiDoi = (e: MediaQueryListEvent): void => this.compact.set(e.matches);
+    mql.addEventListener('change', khiDoi);
+    inject(DestroyRef).onDestroy(() => mql.removeEventListener('change', khiDoi));
+  }
 
   protected readonly dangTai = computed(
     () => this.state() === 'loading' && this.rows().length === 0,
@@ -80,12 +116,64 @@ export class DataTableComponent<T> {
     () => this.state() === 'empty' || this.state() === 'empty-filtered',
   );
 
+  /**
+   * Câu cho vùng `role="status"`. Đổi khi `state` rời `'loading'`; đang `'loading'` thì giữ câu cũ
+   * (`aria-busy` đã báo). `linkedSignal` để có giá trị ngay từ lần vẽ đầu.
+   */
+  protected readonly cauKetQua = linkedSignal<
+    { state: DataTableViewState; page: number; pageSize: number; tong: number },
+    CauKetQua | null
+  >({
+    source: () => ({
+      state: this.state(),
+      page: this.page(),
+      pageSize: this.pageSize(),
+      tong: this.totalRecords(),
+    }),
+    computation: (nguon, truoc) => {
+      switch (nguon.state) {
+        case 'loading':
+          return truoc?.value ?? null;
+        case 'error':
+          return { khoa: 'chung.bang.khongTaiDuoc' };
+        case 'empty':
+        case 'empty-filtered':
+          return { khoa: 'chung.bang.khongCoKetQua' };
+        case 'idle': {
+          const dau = (nguon.page - 1) * nguon.pageSize;
+          return {
+            khoa: 'chung.bang.ketQua',
+            tham: {
+              tu: nguon.tong === 0 ? 0 : dau + 1,
+              den: Math.min(dau + nguon.pageSize, nguon.tong),
+              tong: nguon.tong,
+            },
+          };
+        }
+      }
+    },
+  });
+
   protected readonly tieuDeBang = computed(() => this.caption());
 
   /**
    * Cột hợp lệ (fe-ui-conventions.md §9): mỗi cột có ĐÚNG MỘT trong `cell`/`value`. Ném lỗi lúc
    * dựng cột chứ không vẽ ô rỗng — một cột thiếu cả hai là lỗi lập trình, im lặng thì không ai thấy.
    */
+  /** Có cột hành động khi màn truyền template; thiếu tên cột thì ném lỗi như cột thiếu `cell`/`value`. */
+  protected readonly coCotHanhDong = computed(() => {
+    if (this.rowActionsTemplate() === null) return false;
+    if (this.rowActionsLabel() === '') {
+      throw new Error('DataTable: rowActionsLabel bắt buộc khác rỗng khi có rowActionsTemplate.');
+    }
+    return true;
+  });
+
+  /** Số cột của `colspan` ở thân bảng: cột hành động tính vào. */
+  protected readonly soCot = computed(
+    () => this.cotHopLe().length + (this.coCotHanhDong() ? 1 : 0),
+  );
+
   protected readonly cotHopLe = computed<readonly DataColumnDef<T>[]>(() => {
     for (const cot of this.columns()) {
       const coCell = cot.cell !== undefined;
@@ -106,7 +194,13 @@ export class DataTableComponent<T> {
    * PrimeNG vẽ slot đó trong một `<div>` NGOÀI `<table>`, nên một `<caption>` đặt ở đó là phần tử
    * lạc chỗ và không đặt tên cho bảng.
    */
-  protected readonly ptBang = computed(() => ({ table: { 'aria-label': this.tieuDeBang() } }));
+  protected readonly ptBang = computed(() => ({
+    table: { 'aria-label': this.tieuDeBang() },
+    // Khung `.data-table__khung` là vùng cuộn DUY NHẤT. Bản PrimeNG đang cài cho `tableContainer`
+    // `overflow: auto` — thành vùng cuộn thứ hai và `th` dính đỉnh tính theo nó (không cuộn dọc nên
+    // không bao giờ dính). `visible` trả vai trò cuộn cho khung.
+    tableContainer: { style: { overflow: 'visible' } },
+  }));
 
   /**
    * `[value]` của `p-table` đòi mảng có thể sửa — `rows()` là readonly. `error` thì thân bảng là

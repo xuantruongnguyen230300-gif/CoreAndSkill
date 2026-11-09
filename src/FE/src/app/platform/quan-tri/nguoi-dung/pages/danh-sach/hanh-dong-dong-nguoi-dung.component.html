@@ -1,0 +1,121 @@
+<ng-template #mau let-nd let-compact="compact">
+  @if (coSua() && !compact) {
+    <app-icon-button
+      icon="pencil"
+      size="sm"
+      variant="ghost"
+      [ariaLabel]="'nguoiDung.hanhDong.suaDong' | translate: { tenDangNhap: nd.userName }"
+      (clicked)="moSua(nd)"
+    />
+  }
+  @let muc = mucMenu(nd, compact);
+  @if (muc.length > 0) {
+    <app-icon-button
+      icon="ellipsis-v"
+      size="sm"
+      variant="ghost"
+      haspopup="menu"
+      [expanded]="mucMoMenuId() === nd.id"
+      [ariaLabel]="'nguoiDung.menu.moMenu' | translate: { tenDangNhap: nd.userName }"
+      (click)="onMoMenu($event, nd)"
+    />
+    <app-menu
+      [open]="mucMoMenuId() === nd.id"
+      [anchorEvent]="suKienMoMenu()"
+      [items]="muc"
+      size="sm"
+      [header]="nd.userName"
+      [ariaLabel]="'nguoiDung.menu.moMenu' | translate: { tenDangNhap: nd.userName }"
+      (selected)="onChonMenu($event, nd)"
+      (openChange)="onDongMenu(nd.id)"
+    />
+  }
+</ng-template>
+
+<app-hop-sua-nguoi-dung
+  [hienThi]="hop.hopDangMo() === 'sua'"
+  [tenDangNhap]="tenDangNhap()"
+  [form]="hop.formSua"
+  [loiTruong]="hop.loiSua()"
+  [xungDot]="hop.xungDot()"
+  [loiChung]="hop.loiHop()"
+  [dangGui]="hop.dangGui()"
+  [lanGuiSai]="hop.lanGuiSai()"
+  (submitted)="guiSua()"
+  (closed)="dongHop()"
+  (dismissAttempted)="hop.onDismissAttempted()"
+  (thuLai)="thuLaiSauXungDot()"
+/>
+
+<app-hop-gan-vai-tro
+  [hienThi]="hop.hopDangMo() === 'gan-vai-tro'"
+  [tenDangNhap]="tenDangNhap()"
+  [dirty]="ganVaiTro.dirty()"
+  [vaiTro]="{
+    options: ganVaiTro.timVaiTro.options(),
+    loading: ganVaiTro.timVaiTro.loading(),
+    error: ganVaiTro.timVaiTro.error(),
+    selected: ganVaiTro.dangChon(),
+  }"
+  [heThongCuaMinh]="ganVaiTro.heThongCuaMinh()"
+  [xungDot]="hop.xungDot()"
+  [loiChung]="hop.loiHop()"
+  [dangGui]="hop.dangGui()"
+  (submitted)="guiGanVaiTro()"
+  (closed)="dongHop()"
+  (dismissAttempted)="hop.onDismissAttempted()"
+  (thuLai)="thuLaiSauXungDot()"
+  (timKiem)="ganVaiTro.timKiem($event)"
+  (chon)="ganVaiTro.chon($event)"
+/>
+
+<app-confirm-dialog
+  [open]="hop.hopXacNhanGo() !== null"
+  severity="warning"
+  [title]="
+    'nguoiDung.goVaiTro.tieuDe'
+      | translate: { soLuong: hop.hopXacNhanGo(), tenDangNhap: tenDangNhap() }
+  "
+  [message]="'nguoiDung.goVaiTro.moTa' | translate"
+  [confirmLabel]="'nguoiDung.goVaiTro.xacNhan' | translate"
+  (confirmed)="hop.xacNhanGoVaiTro()"
+  (cancelled)="hop.huyXacNhanGo()"
+/>
+
+<app-hop-dat-lai-mat-khau
+  [hienThi]="hop.hopDangMo() === 'dat-lai'"
+  [tenDangNhap]="tenDangNhap()"
+  [form]="hop.formDatLai"
+  [loiMatKhau]="hop.loiMatKhau()"
+  [xungDot]="hop.xungDot()"
+  [loiChung]="hop.loiHop()"
+  [dangGui]="hop.dangGui()"
+  [lanGuiSai]="hop.lanGuiSai()"
+  (submitted)="guiDatLai()"
+  (closed)="dongHop()"
+  (dismissAttempted)="hop.onDismissAttempted()"
+  (thuLai)="thuLaiSauXungDot()"
+/>
+
+<app-confirm-dialog
+  [open]="hop.hienThiXacNhanKhoa()"
+  severity="warning"
+  [title]="'nguoiDung.khoa.tieuDe' | translate: { tenDangNhap: tenDangNhap() }"
+  [message]="'nguoiDung.khoa.moTa' | translate"
+  [confirmLabel]="'nguoiDung.khoa.xacNhan' | translate"
+  [loading]="hop.dangGui()"
+  [error]="hop.loiHop()"
+  (confirmed)="xacNhanKhoa()"
+  (cancelled)="hop.huyXacNhanKhoa()"
+/>
+
+<!-- Dùng chung cho các hộp form phía trên — chỉ một hộp mở tại một thời điểm (hopDangMo). -->
+<app-confirm-dialog
+  [open]="hop.hienThiXacNhanHuy()"
+  severity="ask"
+  [title]="'chung.roiTrang.tieuDe' | translate"
+  [message]="'chung.roiTrang.moTa' | translate"
+  [confirmLabel]="'chung.roiTrang.xacNhan' | translate"
+  (confirmed)="hop.xacNhanHuy()"
+  (cancelled)="hop.huyXacNhanHuy()"
+/>

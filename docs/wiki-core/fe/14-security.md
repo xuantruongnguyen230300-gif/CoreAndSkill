@@ -1,14 +1,14 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-05
 ---
 
 # 14. Bảo mật phía Frontend
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu cả tệp 2026-11-05, chỉ bằng đọc mã và cấu hình — chưa chạy bản cài, chưa build production). Hạng mục có thật và hạng mục chưa: bảng ở §9, bảng *có thật hôm nay → sẽ thành* ngay dưới nó. CSP của bản cài Compose: §4.2.
 >
-> Xác thực và phiên: [`07-auth-identity.md`](07-auth-identity.md). Bảo mật phía BE: [`../be/09-security-beyond-auth.md`](../be/09-security-beyond-auth.md). Header bảo mật đặt ở đâu: [`17-phuc-vu-va-trien-khai.md`](17-phuc-vu-va-trien-khai.md) §5.
+> Xác thực và phiên: [`07-auth-identity.md`](07-auth-identity.md). Bảo mật phía BE: [`../be/09-security-beyond-auth.md`](../be/09-security-beyond-auth.md). Header bảo mật đặt ở đâu: [`17-phuc-vu-va-trien-khai.md`](17-phuc-vu-va-trien-khai.md) §6.
 
 ---
 
@@ -106,6 +106,15 @@ CSP là lớp phòng thủ **thứ hai**: khi có một lỗ XSS, CSP hạn ch�
 | **Phải khai origin của API** | FE và API ở **hai origin khác nhau** ([`../../adr/0015-fe-va-api-khac-nguon.md`](../../adr/0015-fe-va-api-khac-nguon.md)), nên chỉ thị điều khiển đích kết nối phải liệt kê origin của API. Quên nó thì **mọi lời gọi API bị trình duyệt chặn** ngay khi CSP chuyển sang chế độ chặn — và triệu chứng là app trắng, không phải một lỗi mạng dễ đọc |
 | **Script nội tuyến duy nhất được phép là script theme** | `index.html` có đúng một script nội tuyến — đặt `data-theme` trước paint; `script-src` cho phép nó qua **hash** `'sha256-…'`, **không** `'unsafe-inline'`. Nội dung script và luật đi kèm: [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §3.5 |
 
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** — CSP của bản cài Compose. Đối chiếu lại 2026-11-05, chỉ bằng đọc tệp: cú pháp `Caddyfile` chưa ai kiểm, chưa ai chạy `docker compose up`, chưa ai dựng bản build production để xem báo cáo thật.
+>
+> | Có thật hôm nay (neo bằng chuỗi) | Sẽ thành |
+> | --- | --- |
+> | CSP ở chế độ **chỉ báo cáo** — chưa chặn gì: `Caddyfile` gốc repo, khối `{$FE_DOMAIN}`, chuỗi `Content-Security-Policy-Report-Only`. Origin API có trong đích kết nối — chuỗi `connect-src 'self' https://{$API_DOMAIN}` | Chế độ chặn — header `Content-Security-Policy` — sau khi chạy chỉ báo cáo trên môi trường thật và xử hết hai chỗ dưới (§9) |
+> | Script theme qua hash — chuỗi `'sha256-PGsMMZ3YEJKrUJodh0N2JT66JKMsRAiQF2sgvtmprFI='`; khớp script nội tuyến trong `src/FE/src/index.html` (tính lại 2026-11-05 bằng script trên byte của tệp: khớp; tệp xuống dòng LF) | Script đổi thì tính lại hash — luật ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §3.5. Hash tính trên byte: cùng script mà xuống dòng CRLF cho hash khác, và `.gitattributes` không ghim xuống dòng cho `.html` |
+> | Style nội tuyến được phép — chuỗi `style-src 'self' 'unsafe-inline'`: đang nới đúng chỗ dòng đầu bảng trên cảnh báo | Chỗ phải quyết trước khi chặn thật — giữ nới hay xử: thẻ `<style>` nội tuyến — Angular chèn style của component lúc chạy, và chèn CSS quan trọng khi build tối ưu. Chưa chốt |
+> | Build tối ưu — cấu hình `production` của `src/FE/angular.json` không tắt `optimization` — theo mặc định của Angular đổi thẻ `<link>` của bundle style thành `media="print"` kèm thuộc tính `onload="this.media='all'"` | Chỗ phải xử trước khi chặn thật: thuộc tính sự kiện là script nội tuyến, hash của script theme không phủ nó — chặn thật thì bundle style không bao giờ áp. Chưa thấy tận mắt vì chưa ai build production. Cách xử: chưa chốt |
+
 ### 4.3 Ba header đi kèm
 
 Cùng đặt ở tầng phục vụ: chặn trình duyệt tự đoán kiểu nội dung; kiểm soát việc nhúng ứng dụng vào khung của trang khác; và kiểm soát thông tin nguồn gửi kèm khi đi ra ngoài.
@@ -132,7 +141,7 @@ Với dòng thứ hai bên phải: cần gọi dịch vụ bên thứ ba có tí
 
 ### 5.3 Ép bằng máy
 
-Luật S6 của [`../../RULES.md`](../../RULES.md) quét secret ở CI, và phạm vi quét phải bao gồm **thư mục build ra**, không chỉ mã nguồn. Một giá trị chỉ xuất hiện sau khi build (do nội suy lúc build) sẽ không bị quét mã nguồn phát hiện.
+Luật S6 ở [`../../RULES-BE.md`](../../RULES-BE.md) §6 phủ cả mã nguồn lẫn **thư mục build ra**. Một giá trị chỉ xuất hiện sau khi build (do nội suy lúc build) sẽ không bị quét mã nguồn phát hiện. CI quét lịch sử git; thư mục build thì quét ở **bước dựng bản cài**, không ở CI — bản build của CI dùng tệp bản cài giả, giá trị thật chỉ vào bundle lúc dựng bản cài ([`../../adr/0120-https-ket-thuc-o-caddy-trong-compose-header-chia-doi-postgres-quan-tri-cum-rieng-quet-bundle-fe-khi-dung-ban-cai.md`](../../adr/0120-https-ket-thuc-o-caddy-trong-compose-header-chia-doi-postgres-quan-tri-cum-rieng-quet-bundle-fe-khi-dung-ban-cai.md) quyết định 4). Bước quét: [`17-phuc-vu-va-trien-khai.md`](17-phuc-vu-va-trien-khai.md) §8 bước 2b.
 
 **Lịch sử Git cũng là bề mặt lộ.** Một secret đã commit rồi xoá vẫn nằm trong lịch sử. Cách xử lý duy nhất đúng là **thu hồi và cấp lại** secret đó, không phải xoá dòng code.
 
@@ -206,22 +215,29 @@ Khi bản vá đòi nâng major mà thư viện UI chưa sẵn sàng: xử lý b
 
 ## 9. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Đối chiếu với `src/` ngày 2026-11-05, chỉ bằng đọc mã và cấu hình: hàng ghi ✅ CÓ THẬT có neo ở cột *Ghi chú*; hàng ghi 🚧 có bảng *có thật hôm nay → sẽ thành* ngay dưới bảng. Ý nghĩa ký hiệu: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| Không dùng API bỏ qua kiểm tra bảo mật của Angular | ✅ sẽ có | §3.2 |
-| Kiểm đường dẫn quay lại sau đăng nhập | ✅ sẽ có | §3.4 — chống chuyển hướng mở |
-| Bốn header bảo mật đặt ở proxy | ✅ sẽ có | [`17-phuc-vu-va-trien-khai.md`](17-phuc-vu-va-trien-khai.md) §6 |
-| Quét secret trên **thư mục build ra** | ✅ sẽ có | Luật S6 — §5.3 |
-| `localStorage` chỉ giữ tuỳ chọn hiển thị, bọc chống lỗi | ✅ sẽ có | §6 |
-| Quét lỗ hổng phụ thuộc trong CI | ✅ sẽ có | §7 |
+| Không dùng API bỏ qua kiểm tra bảo mật của Angular | ✅ CÓ THẬT 2026-11-05 | §3.2. Đối chiếu bằng tìm chuỗi: không tệp nào dưới `src/FE/src/app` (trừ `.spec.ts`) chứa `bypassSecurityTrust`, `DomSanitizer` hay `[innerHTML]` |
+| Kiểm đường dẫn quay lại sau đăng nhập | ✅ CÓ THẬT 2026-11-05 | §3.4 — chống chuyển hướng mở. Neo: `src/FE/src/app/platform/xac-thuc/pages/dang-nhap/dang-nhap.page.ts` (chuỗi `returnUrl.startsWith('/') && !returnUrl.startsWith('//')`); cùng chuỗi ở `src/FE/src/app/platform/xac-thuc/pages/doi-mat-khau-bat-buoc/doi-mat-khau-bat-buoc.page.ts` |
+| Bốn header bảo mật đặt ở proxy | ✅ CÓ THẬT 2026-11-05 | [`17-phuc-vu-va-trien-khai.md`](17-phuc-vu-va-trien-khai.md) §6. Neo: `Caddyfile` gốc repo, khối `{$FE_DOMAIN}` — chuỗi `X-Content-Type-Options "nosniff"`, `X-Frame-Options "DENY"`, `Referrer-Policy "strict-origin-when-cross-origin"`, `Content-Security-Policy-Report-Only` (CSP còn chỉ báo cáo — §4.2). Chỉ đọc tệp, chưa chạy Caddy |
+| Quét secret trên **thư mục build ra** | 🚧 đang thi công | Luật S6 — §5.3. Bảng dưới |
+| `localStorage` chỉ giữ tuỳ chọn hiển thị, bọc chống lỗi | ✅ CÓ THẬT 2026-11-05 | §6. Mọi chỗ đọc/ghi `localStorage` đều nằm trong `try`: `src/FE/src/app/core/theme/theme.service.ts` (chuỗi `raw = localStorage.getItem(KHOA_LUU_THEME);`), `src/FE/src/app/core/auth/tab-session-broadcast.service.ts` (chuỗi `localStorage.setItem(KHOA_BAO_TAB_PHIEN_KET_THUC`), script theme của `src/FE/src/index.html` (chuỗi `t = localStorage.getItem('theme');`) |
+| Quét lỗ hổng phụ thuộc trong CI | 🚧 đang thi công | §7. Bảng dưới |
 | CSP ở chế độ chặn | ❌ chưa | Điều kiện: đã chạy chế độ chỉ báo cáo trên môi trường thật và xử hết báo cáo (§4.2) |
 | Làm sạch HTML do người dùng nhập | ❌ chưa | Điều kiện: có trình soạn thảo đa dạng thức — và làm ở **BE**, không ở client (§3.2) |
 | Ghim băm cho tài nguyên bên thứ ba | ❌ chưa | Điều kiện: có tài nguyên nạp từ nguồn ngoài |
 | Giữ token hoặc dữ liệu người dùng trong `localStorage` | ❌ loại, không hoãn `K40` | §6.2 |
 | Tải dữ liệu đầy đủ rồi lọc theo quyền ở client | ❌ loại, không hoãn `K41` | §2 — dữ liệu đã ở trong trình duyệt là đã lộ |
 | Coi kiểm quyền ở FE là lớp bảo vệ | ❌ loại, không hoãn `K42` | §1 — phép thử ở cuối §1 |
+
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** — các hàng ghi 🚧 ở bảng trên (đối chiếu 2026-11-05, chỉ bằng đọc tệp):
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | Quét secret: job `gitleaks` ở `.github/workflows/docs-gate.yml` chỉ quét lịch sử git (chuỗi `git --config .gitleaks.toml --redact`). Thư mục build chỉ được quét bằng tay, ở bước 2b của [`17-phuc-vu-va-trien-khai.md`](17-phuc-vu-va-trien-khai.md) §8 — [`../../adr/0120-https-ket-thuc-o-caddy-trong-compose-header-chia-doi-postgres-quan-tri-cum-rieng-quet-bundle-fe-khi-dung-ban-cai.md`](../../adr/0120-https-ket-thuc-o-caddy-trong-compose-header-chia-doi-postgres-quan-tri-cum-rieng-quet-bundle-fe-khi-dung-ban-cai.md) QC5 | Bước quét nằm trong script dựng bản cài |
+> | Quét lỗ hổng phụ thuộc: bước `0b. npm audit — lỗ hổng mức high` của `.github/workflows/docs-gate.yml` (chuỗi `npm audit --audit-level=high --omit=dev`). Chưa chạy trên CI lần nào: lần chạy ghi ở [`../../README.md`](../../README.md) mục *Trạng thái repo* là trên commit `ac807bd`, chưa có bước này | Bước chạy xanh trên CI |
 
 > Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 
@@ -236,4 +252,4 @@ Khi bản vá đòi nâng major mà thư viện UI chưa sẵn sàng: xử lý b
 | Header bảo mật và reverse proxy | [`17-phuc-vu-va-trien-khai.md`](17-phuc-vu-va-trien-khai.md) |
 | Không rò rỉ qua báo cáo lỗi | [`10-observability.md`](10-observability.md) §4.1 |
 | Cái gì được commit | [`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md) |
-| Luật S6 | [`../../RULES.md`](../../RULES.md) §6 |
+| Luật S6 | [`../../RULES-BE.md`](../../RULES-BE.md) §6 |

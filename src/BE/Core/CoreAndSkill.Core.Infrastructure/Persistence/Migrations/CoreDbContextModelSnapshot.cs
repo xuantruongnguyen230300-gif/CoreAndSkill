@@ -19,9 +19,11 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("core")
+                .HasAnnotation("Npgsql:CollationDefinition:core.vi_vn", "vi-VN,vi-VN,icu,True")
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("CoreAndSkill.Core.Domain.Audit.AuditLog", b =>
@@ -126,7 +128,9 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                         .HasColumnName("created_by");
 
                     b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
+                        .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
                     b.Property<string>("OriginalName")
@@ -215,7 +219,9 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                         .HasColumnName("finished_at");
 
                     b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
+                        .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
                     b.Property<short>("Progress")
@@ -314,7 +320,9 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                         .HasColumnName("icon");
 
                     b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
+                        .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
                     b.Property<string>("LabelKey")
@@ -394,7 +402,9 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                         .HasColumnName("created_by");
 
                     b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
+                        .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
                     b.Property<Guid>("MenuItemId")
@@ -461,7 +471,9 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                         .HasColumnName("created_by");
 
                     b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
+                        .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
                     b.Property<string>("LinkRoute")
@@ -529,7 +541,9 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                         .HasColumnName("created_by");
 
                     b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
+                        .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
                     b.Property<Guid>("NotificationId")
@@ -700,7 +714,9 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                         .HasColumnName("display_order");
 
                     b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
+                        .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
                     b.Property<bool>("IsSystem")
@@ -767,7 +783,9 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                         .HasColumnName("display_order");
 
                     b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
+                        .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
                     b.Property<string>("Key")
@@ -825,7 +843,9 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                         .HasColumnName("created_by");
 
                     b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
+                        .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
                     b.Property<Guid>("PermissionId")
@@ -907,7 +927,8 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
-                        .HasColumnName("name");
+                        .HasColumnName("name")
+                        .UseCollation("core.vi_vn");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -968,7 +989,8 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                     b.Property<string>("Name")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
-                        .HasColumnName("name");
+                        .HasColumnName("name")
+                        .UseCollation("core.vi_vn");
 
                     b.Property<string>("NormalizedName")
                         .HasMaxLength(256)
@@ -1073,7 +1095,8 @@ namespace CoreAndSkill.Core.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
-                        .HasColumnName("full_name");
+                        .HasColumnName("full_name")
+                        .UseCollation("core.vi_vn");
 
                     b.Property<bool>("HasPermissionBypass")
                         .ValueGeneratedOnAdd()

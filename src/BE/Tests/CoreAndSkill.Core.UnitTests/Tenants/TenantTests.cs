@@ -61,6 +61,20 @@ public class TenantTests
         tenant.IsActive.ShouldBeTrue();
     }
 
+    // Đối xứng với Deactivate_OnSystemTenant_Fails (docs/contracts/tenants.md §3): bật lại đơn vị hệ thống không đổi gì, nên
+    // bị chặn — để lời gọi không ghi nhật ký "bật lại" cho một việc không xảy ra.
+    [Fact]
+    public void Activate_OnSystemTenant_Fails()
+    {
+        var tenant = Tenant.Create("HETHONG", "Đơn vị hệ thống", isSystem: true).Value;
+
+        var result = tenant.Activate();
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error!.Code.ShouldBe(TenantErrors.SystemImmutable.Code);
+        tenant.IsActive.ShouldBeTrue();
+    }
+
     [Fact]
     public void Create_GeneratesNonEmptyId()
     {

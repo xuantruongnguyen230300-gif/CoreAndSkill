@@ -15,11 +15,13 @@ verified: chua-doi-chieu
 > | Năm luật bảo vệ tài khoản quản trị ở §2 là **luật đối chiếu được**, và **chưa ai đối chiếu** — nhãn cũ từng miễn trừ chúng khỏi tầm chấm | Một lượt soi năm luật đó vào handler, trước khi khép pha |
 > | Luật 4 **đã khớp** (đối chiếu 2026-09-24, [ADR-0085](../adr/0085-khoa-tai-khoan-mang-co-bypass-luon-bi-chan.md)): `src/BE/Core/CoreAndSkill.Core.Application/Users/UserPrivilegeGuard.cs` hàm `EnsureCanLockAsync(` chặn trước khi xét vai trò khi đích mang một trong hai cờ (chú thích `Đích mang cờ bypass HOẶC là tài khoản vận hành hệ thống: luôn chặn`), rồi tính `callerCountsAsSystemRoleHolder` có `HasPermissionBypassAsync(callerId, ct)`; `LockUserCommandHandler.cs` cùng thư mục gọi `EnsureNotLockingSelf(` trước. Các ca `EnsureCanLockAsync_` trong `UserPrivilegeGuardTests` xanh (`dotnet test`, 2026-09-24) | — |
 > | §5 tên dành riêng **đã khớp** (đối chiếu 2026-09-25, [ADR-0090](../adr/0090-ten-dang-nhap-system-la-ten-danh-rieng-chan-o-duong-tao.md)): `src/BE/Core/CoreAndSkill.Core.Application/Users/CreateUserCommandValidator.cs` gọi `.NotReservedUserName()`; `CreateUserReservedUserNameEndpointTests` xanh (`dotnet test`, 2026-09-25, host không database) | — |
-> | §5, §6 ghi đồng thời ([ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md)) — đối chiếu 2026-09-25: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Identity/AppUserStore.cs` bắt `DbUpdateException` qua `AppUserUniqueIndexes.Translate(`; `AppUserUniqueViolationTests` và `AppUserUniqueIndexesTests` xanh (`dotnet test`, 2026-09-25, không Docker) | `AppUserUniqueViolationDatabaseTests` chạy trên PostgreSQL thật — **chưa chạy lần nào** (cần Docker). Xanh thì gỡ chữ *Đang thi công* ở hai ghi chú §5, §6 |
+> | §5, §6 ghi đồng thời ([ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md)) — đối chiếu 2026-09-25: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Identity/AppUserStore.cs` bắt `DbUpdateException` qua `AppUserUniqueIndexes.Translate(`; `AppUserUniqueViolationTests` và `AppUserUniqueIndexesTests` xanh (`dotnet test`, 2026-09-25, không Docker); `AppUserUniqueViolationDatabaseTests` (PostgreSQL thật) xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Lớp đó xanh trên CI — CI chưa chạy với bản này |
 > | §5 `DUPLICATE_ROLE_ENTRY` **đã khớp** (đối chiếu 2026-09-24): `src/BE/Core/CoreAndSkill.Core.Application/Users/CreateUserCommandHandler.cs` gọi `UserRoleAssignmentRules.EnsureNoDuplicateRoleIds(command.RoleIds)` trước mọi phép kiểm khác, không còn `Distinct()`; `CreateUserCommandHandlerTests` xanh (`dotnet test`, 2026-09-24) | — |
+> | §3 `searchText` không phân biệt dấu — đối chiếu 2026-10-06, **chỉ điểm này**: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Users/UserQueryService.cs` đưa cả ba cột và mẫu qua `EF.Functions.Unaccent(` — chuỗi `EF.Functions.ILike(EF.Functions.Unaccent(u.FullName), EF.Functions.Unaccent(pattern)`. `ViVnCollationAndUnaccentTests` xanh (`dotnet test`, 2026-10-06, không database — chỉ kiểm câu SQL sinh ra) | Script `0009` áp lên database ngoài container test — **chưa ai áp**; kết quả tìm không dấu trên PostgreSQL thật chưa đo |
 > | Thân request/response và bảng lỗi của bảy card: **chưa ai đối chiếu** | Đối chiếu từng card rồi mới lật `verified:` |
 > | §7 `version` và nhật ký `core.user.role_assign` — đối chiếu 2026-09-24, **chỉ hai điểm**: `src/BE/Core/CoreAndSkill.Core.Application/Users/AssignUserRolesCommand.cs` mang `string? Version`; `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/Interceptors/AuditLogInterceptor.cs` gọi `CollectUserRoleChangesAsync(` rồi ghi `AuditActionCodes.UserRoleAssign` cho từng thay đổi; mục *Thứ tự lỗi* (đối chiếu 2026-09-24): `src/BE/Core/CoreAndSkill.Core.Application/Users/AssignUserRolesCommandHandler.cs` trả `Result.Failure(CommonErrors.ConcurrencyConflict)` sau `UserErrors.NotFound`, trước `UserErrors.RoleNotFound`. **Chưa đối chiếu:** hai test của S21 | Đối chiếu nốt phần còn lại theo ADR-0083 |
 > | §7 ràng buộc 2–3 (phép so-và-đổi token) **đã khớp**, đối chiếu 2026-09-25: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Identity/UserAdminService.cs` — `AssignRolesAsync` gọi `TryClaimAccountVersionAsync(` trước mọi lần đọc hay ghi `db.UserRoles`, kể cả khi tập vai trò không đổi; hàm đó là **một** câu `ExecuteUpdateAsync` lọc `u.ConcurrencyStamp == version` và đặt stamp mới. Thời hạn chờ khoá cũng đã khớp: trong chính hàm đó, `await LockTimeout.SetForCurrentTransactionAsync(db, ct);` đứng trước `ExecuteUpdateAsync` | Chưa test nào chứng minh thời hạn chờ trên PostgreSQL thật (cần Docker) |
+> | §8 *Thứ tự kiểm ở `lock`* — đối chiếu 2026-10-06 bằng đọc code, không chạy test: `src/BE/Core/CoreAndSkill.Core.Application/Users/LockUserCommandHandler.cs` gọi `EnsureNotLockingSelf(` rồi `EnsureCanLockAsync(` trước `userAdmin.LockAsync(`; phép tra đích (`FindByIdAsync(`) và phép so `version` (`VersionMatches(`) nằm trong `SetLockoutAsync(` ở `src/BE/Core/CoreAndSkill.Core.Infrastructure/Identity/UserAdminService.cs` | — |
 >
 > Envelope, `ErrorType` → HTTP, phân trang: [`README.md`](README.md). Cơ chế phiên và CSRF:
 > [`auth.md`](auth.md). Cấu trúc bảng:
@@ -208,7 +210,7 @@ Danh sách người dùng, có phân trang, lọc, sắp xếp.
 | --- | --- | --- | --- |
 | `page` · `pageSize` · `sortBy` · `sortDescending` | | | Theo quy ước chung, [`README.md`](README.md) §8 |
 | `sortBy` allowlist | | `userName` | `userName`, `fullName`, `email`, `createdAt` |
-| `searchText` | string | — | Khớp một phần trên `userName`, `fullName`, `email`; không phân biệt hoa thường. Tối đa 200 ký tự |
+| `searchText` | string | — | Khớp một phần trên `userName`, `fullName`, `email`; không phân biệt hoa thường **và dấu** — `nguyen` khớp `Nguyễn`, `d` khớp `đ` ([ADR-0119](../adr/0119-cot-ten-dung-collation-icu-core-vi-vn-tim-khong-dau-qua-unaccent-is-deleted-co-default-false.md)). Tối đa 200 ký tự |
 | `roleId` | uuid | — | Lọc theo vai trò |
 | `status` | enum | — | `active` \| `locked` |
 
@@ -264,13 +266,13 @@ một quy tắc nghiệp vụ vào hai nơi, và hai đồng hồ (máy chủ v�
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.USER.ROLE_NOT_FOUND` | `BusinessRule` | 422 | `roleId` không tồn tại |
+| `CORE.USER.ROLE_NOT_FOUND` | `BusinessRule` | 422 | `roleId` không tồn tại. `messageParams`: `{ "RoleId": "…" }` |
 
 **Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | `page < 1`, `pageSize` ngoài `1..200`, `sortBy` ngoài allowlist, `searchText` quá dài. `fieldErrors` mang khoá `Page` / `PageSize` / `SortBy` / `SearchText` |
+| `CORE.VALIDATION.FAILED` | `page < 1`, `pageSize` ngoài `1..200`, `sortBy` ngoài allowlist, `searchText` quá dài, `status` ngoài `active` \| `locked`. `fieldErrors` mang khoá `Page` / `PageSize` / `SortBy` / `SearchText` / `Status` |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.FORBIDDEN` | Thiếu `core.user.read` |
 
@@ -357,7 +359,7 @@ Kèm header `Location: /api/v1/core/users/0192f3c3-4a5b-7c31-9a4e-6b1f2d3c4e5f`.
 | `CORE.USER.DUPLICATE_ROLE_ENTRY` | `Validation` | 400 | Cùng một `roleId` xuất hiện từ hai lần trở lên. Chặn ở **handler**, trước mọi phép kiểm khác — cùng luật và cùng lý do với §7 |
 | `CORE.USER.USERNAME_DUPLICATED` | `Conflict` | 409 | `userName` đã tồn tại. `messageParams`: `{ "UserName": "…" }` |
 | `CORE.USER.EMAIL_DUPLICATED` | `Conflict` | 409 | `email` đã tồn tại. `messageParams`: `{ "Email": "…" }` |
-| `CORE.USER.ROLE_NOT_FOUND` | `BusinessRule` | 422 | Một `roleId` không tồn tại |
+| `CORE.USER.ROLE_NOT_FOUND` | `BusinessRule` | 422 | Một `roleId` không tồn tại. `messageParams`: `{ "RoleId": "…" }` — `roleId` vắng mặt đầu tiên theo thứ tự payload |
 | `CORE.USER.ROLE_ESCALATION_FORBIDDEN` | `Forbidden` | 403 | Luật 1 §2 |
 | `CORE.USER.CREATE_FAILED` | `BusinessRule` | 422 | Identity từ chối (mật khẩu không đạt chính sách…). Lý do ở `fieldErrors` |
 
@@ -381,7 +383,7 @@ thành công" mà đăng nhập vào không làm được gì. `TransactionBehav
 **Ghi vai trò phải KIỂM kết quả.** `UserManager.AddToRolesAsync` trả `IdentityResult`; bỏ qua giá
 trị trả về nghĩa là thất bại im lặng.
 
-**Hai lượt tạo cùng `userName` hoặc cùng `email` chạy đồng thời** có thể cùng lọt phép kiểm trước. Lượt sau nhận `CORE.USER.CREATE_FAILED` kèm `fieldErrors["UserName"]` mã `CORE.USER.USERNAME_DUPLICATED` (hoặc `["Email"]` mã `CORE.USER.EMAIL_DUPLICATED`), có `messageParams` — cùng hình dạng như khi Identity từ chối; không bao giờ 500. **Đang thi công** — code đã có, test trên PostgreSQL thật chưa chạy (bảng đầu file); [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md).
+**Hai lượt tạo cùng `userName` hoặc cùng `email` chạy đồng thời** có thể cùng lọt phép kiểm trước. Lượt sau nhận `CORE.USER.CREATE_FAILED` kèm `fieldErrors["UserName"]` mã `CORE.USER.USERNAME_DUPLICATED` (hoặc `["Email"]` mã `CORE.USER.EMAIL_DUPLICATED`), có `messageParams` — cùng hình dạng như khi Identity từ chối; không bao giờ 500. Trạng thái test: bảng đầu file; [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md).
 
 **Tên dành riêng — định nghĩa gốc.** Tên đăng nhập `system` — giá trị của `SystemActor.UserName`
 (`src/BE/Core/CoreAndSkill.Core.Application/Identity/SystemActor.cs`) — là danh tính Core ghi vào
@@ -430,7 +432,7 @@ mọi bản ghi audit đang tham chiếu tới.
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
 | `CORE.USER.NOT_FOUND` | `NotFound` | 404 | |
-| `CORE.USER.EMAIL_DUPLICATED` | `Conflict` | 409 | Email đã thuộc người khác |
+| `CORE.USER.EMAIL_DUPLICATED` | `Conflict` | 409 | Email đã thuộc người khác. `messageParams`: `{ "Email": "…" }` |
 | `CORE.USER.UPDATE_FAILED` | `BusinessRule` | 422 | Identity từ chối. Lý do ở `fieldErrors` |
 
 **Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
@@ -446,7 +448,7 @@ mọi bản ghi audit đang tham chiếu tới.
 
 ### Ghi chú — sửa email đồng thời
 
-Hai lượt đổi sang cùng một `email` chạy đồng thời có thể cùng lọt phép kiểm trước. Lượt sau nhận `CORE.USER.UPDATE_FAILED` kèm `fieldErrors["Email"]` mã `CORE.USER.EMAIL_DUPLICATED`, có `messageParams` — cùng hình dạng như khi Identity từ chối; không bao giờ 500. **Đang thi công** — code đã có, test trên PostgreSQL thật chưa chạy (bảng đầu file); [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md).
+Hai lượt đổi sang cùng một `email` chạy đồng thời có thể cùng lọt phép kiểm trước. Lượt sau nhận `CORE.USER.UPDATE_FAILED` kèm `fieldErrors["Email"]` mã `CORE.USER.EMAIL_DUPLICATED`, có `messageParams` — cùng hình dạng như khi Identity từ chối; không bao giờ 500. Trạng thái test: bảng đầu file; [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md).
 
 ### Ghi chú — vì sao TÁCH vai trò khỏi endpoint này
 
@@ -500,7 +502,7 @@ Tài khoản đích mang `has_permission_bypass` **vẫn gán vai trò được*
 | --- | --- | ---: | --- |
 | `CORE.USER.DUPLICATE_ROLE_ENTRY` | `Validation` | 400 | Cùng một `roleId` xuất hiện từ hai lần trở lên |
 | `CORE.USER.NOT_FOUND` | `NotFound` | 404 | |
-| `CORE.USER.ROLE_NOT_FOUND` | `BusinessRule` | 422 | Một `roleId` không tồn tại |
+| `CORE.USER.ROLE_NOT_FOUND` | `BusinessRule` | 422 | Một `roleId` không tồn tại. `messageParams`: `{ "RoleId": "…" }` — `roleId` vắng mặt đầu tiên theo thứ tự payload |
 | `CORE.USER.ROLE_ESCALATION_FORBIDDEN` | `Forbidden` | 403 | Luật 1 §2 — áp cho **cả** vai trò được thêm **và** vai trò bị gỡ |
 | `CORE.USER.SELF_SYSTEM_ROLE_REMOVAL_FORBIDDEN` | `BusinessRule` | 422 | Luật 2 §2 |
 
@@ -637,6 +639,8 @@ tiếp, **chặn thì không trễ**. Đó là hướng an toàn.
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 | `CORE.AUTH.FORBIDDEN` | Thiếu `core.user.lock` |
 | `CORE.CONCURRENCY.CONFLICT` | `version` thiếu, hoặc lệch với bản ghi `{id}` trong database — một thao tác khác đã ghi xong sau khi FE đọc. Không ghi gì |
+
+**Thứ tự kiểm ở `lock`:** Luật 3 rồi Luật 4 (§2) chạy **trước** phép tra đích và phép so `version`. Vì vậy tự khoá mình, hay khoá một đích Luật 4 che, nhận mã của luật đó kể cả khi `version` cũng lệch.
 
 > **Thao tác hỏng là LỖI, không phải `200` kèm `data: false`.** Trả 200 cho một thao tác thất bại
 > buộc FE kiểm hai thứ (status code **và** giá trị `data`) cho mỗi lời gọi, và cái thứ hai luôn bị

@@ -1,32 +1,45 @@
-<div class="toolbar" [class.toolbar--sm]="size() === 'sm'">
-  <div class="toolbar__hang">
-    <div class="toolbar__tim" role="search">
-      <label class="sr-only" for="toolbar-tim">{{ searchLabel() }}</label>
-      <i class="pi pi-search toolbar__tim-icon" aria-hidden="true"></i>
-      <input
-        id="toolbar-tim"
-        type="text"
-        class="toolbar__tim-input"
-        [value]="searchValue()"
-        [disabled]="disabled()"
-        [placeholder]="searchLabel()"
-        (input)="onSearchInput($any($event.target).value)"
-      />
-      @if (loading()) {
-        <i class="pi pi-spinner pi-spin toolbar__tim-loading" aria-hidden="true"></i>
-      }
-    </div>
-
-    @if (variant() === 'full') {
-      <div class="toolbar__khu-loc">
-        <ng-content select="[toolbarFilters]" />
-      </div>
+<div
+  class="toolbar"
+  [class.toolbar--sm]="size() === 'sm'"
+  [class.toolbar--attached]="placement() === 'attached'"
+>
+  <div class="toolbar__tim" role="search">
+    <label class="sr-only" [attr.for]="idOTim">{{ searchLabel() }}</label>
+    <i class="pi pi-search toolbar__tim-icon" aria-hidden="true"></i>
+    <input
+      [id]="idOTim"
+      type="text"
+      class="toolbar__tim-input"
+      [value]="searchValue()"
+      [disabled]="disabled()"
+      [placeholder]="searchLabel()"
+      (input)="onSearchInput($any($event.target).value)"
+    />
+    @if (loading()) {
+      <i class="pi pi-spinner pi-spin toolbar__tim-loading" aria-hidden="true"></i>
     }
-
-    <div class="toolbar__hanh-dong">
-      <ng-content select="[toolbarActions]" />
-    </div>
   </div>
+
+  @if (variant() === 'full') {
+    <app-button
+      class="toolbar__nut-loc"
+      variant="secondary"
+      icon="filter"
+      [size]="size()"
+      [disabled]="disabled()"
+      haspopup="dialog"
+      [expanded]="filterPanelOpen()"
+      [controls]="filterPanelId()"
+      [ariaLabel]="activeFilterCount() > 0 ? filterAriaLabel() : null"
+      (clicked)="filterPanelToggled.emit(!filterPanelOpen())"
+      >{{ filterLabel() }}
+      @if (activeFilterCount() > 0) {
+        <app-badge variant="neutral" size="sm" aria-hidden="true">{{
+          activeFilterCount()
+        }}</app-badge>
+      }
+    </app-button>
+  }
 
   @if (readonlyChips().length > 0 || chips().length > 0) {
     <div class="toolbar__chips">
@@ -58,4 +71,8 @@
       }
     </div>
   }
+
+  <div class="toolbar__hanh-dong">
+    <ng-content select="[toolbarActions]" />
+  </div>
 </div>

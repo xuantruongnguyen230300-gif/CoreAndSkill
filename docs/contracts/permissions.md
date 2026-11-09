@@ -315,8 +315,8 @@ mỗi lần lưu.
 | --- | --- | ---: | --- | --- |
 | `CORE.PERMISSION.ENTRIES_INCOMPLETE` | `Validation` | 400 | `entries` thiếu bất kỳ quyền nào của danh mục (kể cả `[]`) | `Entries` |
 | `CORE.PERMISSION.DUPLICATE_ENTRY` | `Validation` | 400 | Cùng một `permissionId` xuất hiện từ hai lần trở lên. `messageParams.PermissionId` là id lặp đầu tiên theo thứ tự payload | `Entries` |
-| `CORE.PERMISSION.NOT_FOUND` | `BusinessRule` | 422 | `permissionId` không tồn tại. `messageParams` nêu đích danh id lạ | — |
-| `CORE.PERMISSION.ROLE_NOT_FOUND` | `BusinessRule` | 422 | `roleId` không tồn tại. `messageParams` nêu đích danh id lạ | — |
+| `CORE.PERMISSION.NOT_FOUND` | `BusinessRule` | 422 | `permissionId` không tồn tại. `messageParams.PermissionId` nêu đích danh một id lạ | — |
+| `CORE.PERMISSION.ROLE_NOT_FOUND` | `BusinessRule` | 422 | `roleId` không tồn tại. `messageParams.RoleId` nêu đích danh một id lạ | — |
 | `CORE.PERMISSION.SYSTEM_ROLE_CANNOT_LOSE_WRITE` | `BusinessRule` | 422 | Payload gỡ `core.permission.write` khỏi một vai trò `is_system` | — |
 | `CORE.PERMISSION.VERSION_MISMATCH` | `Conflict` | 409 | `version` thiếu hoặc lệch với trạng thái database | — |
 
@@ -393,8 +393,8 @@ khi tạo đơn vị cũng thuộc diện.
    về `false`) và **không** xoá cứng dòng `RolePermission` qua `ChangeTracker`: interceptor ném ngoại lệ, lượt
    `SaveChanges` hỏng. Ngoại lệ có tên: entry `Deleted` mà vai trò chủ cũng `Deleted` trong cùng lượt, và cascade
    ở database khi xoá cứng vai trò — dòng `core.role.delete` đóng chuỗi nhật ký của vai trò đó
-   ([ADR-0054](../adr/0054-o-ma-tran-chi-doi-bang-them-dong-va-xoa-mem.md)). 📐 Chưa thi công — luật S18 ở
-   [`../RULES.md`](../RULES.md) §6.
+   ([ADR-0054](../adr/0054-o-ma-tran-chi-doi-bang-them-dong-va-xoa-mem.md)). Ép bằng gì và trạng thái: hàng S18 ở
+   [`../RULES-BE.md`](../RULES-BE.md) §6.
 
 | Cột ([`../database/schema-core.md`](../database/schema-core.md) §9.4) | Giá trị |
 | --- | --- |
@@ -422,7 +422,8 @@ Người đọc bảng gặp dòng có `after_value` rỗng thì hiểu là **kh
 >
 > Hình dạng dòng được test không database canh (`PermissionMatrixAuditShapeTests`); luật 3 do ArchTest
 > `RolePermission_IsNeverWritten_BypassingChangeTracker` canh. Test trên PostgreSQL thật — nhánh hỏi database,
-> `actor_user_id` qua HTTP, `PUT` không đổi ô nào — **có, chưa chạy**: luật S17 ở [`../RULES.md`](../RULES.md) §6.
+> `actor_user_id` qua HTTP, `PUT` không đổi ô nào — **có, xanh ở máy** (`dotnet test` 2026-11-03, Windows, Docker
+> `postgres:18`), CI chưa chạy với bản này: luật S17 ở [`../RULES.md`](../RULES.md) §6.
 
 ---
 

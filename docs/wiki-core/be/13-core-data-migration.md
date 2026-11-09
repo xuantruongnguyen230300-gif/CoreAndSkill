@@ -10,7 +10,7 @@ verified: chua-doi-chieu
 >
 > Chính sách sở hữu migration ở dạng luật: [`../../database/migration-policy.md`](../../database/migration-policy.md). Thứ tự chạy script và cách phát hiện DB lệch model: [`../../database/script-runbook.md`](../../database/script-runbook.md). Lược đồ bảng `core`: [`../../database/schema-core.md`](../../database/schema-core.md).
 >
-> File này giữ **lý do và các đánh đổi**.
+> File này giữ **lý do và các đánh đổi**, và là file chủ của quy trình đổi lược đồ phá vỡ (§4).
 
 ---
 
@@ -119,17 +119,37 @@ Ba thứ bắt buộc:
 
 Khi hệ thống đã có dữ liệu và người dùng thật, một thay đổi lược đồ phá vỡ tương thích sẽ làm hỏng phiên bản ứng dụng đang chạy trong khoảng thời gian giữa lúc áp lược đồ và lúc mã mới lên.
 
+Khoảng đó luôn có, kể cả khi hệ thống chỉ chạy một instance: script áp **trước**, bản build mới lên **sau** ([`18-trien-khai-va-van-hanh.md`](18-trien-khai-va-van-hanh.md) §4). Đổi tên cột trong một lượt biến khoảng đó thành lỗi 500 hàng loạt; với nhiều instance hoặc rolling deploy, nó dài bằng cả đợt deploy.
+
 Cách chuẩn là chia thành các bước, mỗi bước tương thích với cả mã cũ lẫn mã mới.
 
-### Ví dụ: đổi tên một cột
+### Quy trình đổi lược đồ phá vỡ — định nghĩa gốc
 
-| Bước | Việc | Mã cũ còn chạy? |
-| --- | --- | --- |
-| 1 | Thêm cột mới, cho phép rỗng | ✅ |
-| 2 | Mã mới ghi **cả hai** cột, đọc cột mới | ✅ |
-| 3 | Chuyển dữ liệu cũ sang cột mới | ✅ |
-| 4 | Mã ngừng ghi cột cũ | ✅ |
-| 5 | Xoá cột cũ | — |
+Áp cho đổi tên cột, đổi kiểu cột, tách một cột thành hai — mọi thay đổi mà bản build đang chạy không còn đọc, ghi được trên lược đồ mới. Đổi tên bảng đi cùng khuôn, bảng mới đứng ở chỗ cột mới.
+
+Mỗi bước là **một lần phát hành**: áp script của bước, rồi triển khai bản build của bước. Chỉ sang bước kế khi đạt điều kiện ở cột cuối; không gộp hai bước vào một lần phát hành.
+
+Ví dụ minh hoạ — đổi cột `name` của `core.menu_item` thành `label_key`:
+
+| Bước | Script — áp trước | Bản build — lên sau | Sang bước kế khi |
+| --- | --- | --- | --- |
+| **1. Mở rộng** | `ADD COLUMN label_key varchar(200) NULL` | Mọi đường ghi điền **cả** `name` **và** `label_key`. Mọi đường đọc vẫn đọc `name` | Bản build này đã lên **mọi** instance. Còn một instance chạy bản build cũ là còn dòng mới thiếu `label_key`, kể cả ở đoạn job bước 2 đã đi qua |
+| **2. Chuyển dữ liệu** | — | Không đổi đường đọc, đường ghi. Job backfill theo lô điền `label_key` cho dòng cũ — §5.3, không nằm trong migration | Câu kiểm dưới bảng ra `0` |
+| **3. Chuyển đọc** | Cột mới phải không rỗng thì `ALTER COLUMN label_key SET NOT NULL` | Mọi đường đọc chuyển sang `label_key`. **Vẫn ghi cả hai** | Bản build này đã ổn định trên production qua ít nhất một chu kỳ phát hành. Sang bước 4 là bỏ đường lui về bản build bước 1: từ bước 4 dòng mới có `name` rỗng, và bản đó đọc ra rỗng mà không lỗi nào báo |
+| **4. Ngừng dùng cột cũ** | Cột cũ đang không rỗng thì `ALTER COLUMN name DROP NOT NULL` — thiếu nó, bản build bước này hỏng mọi lệnh thêm dòng | Bỏ đường ghi `name` **và bỏ ánh xạ** `name` khỏi entity | Bản build này đã lên **mọi** instance — instance còn ánh xạ `name` hỏng ngay khi script bước 5 áp |
+| **5. Thu hẹp** | `DROP COLUMN name` | Không đổi | Bước cuối. **Không hoàn tác được**: dữ liệu cột cũ mất |
+
+**Câu kiểm của bước 2.** SQL thô trên cả bảng, không qua bộ lọc đơn vị hay xoá mềm — dòng đã xoá mềm cũng phải có giá trị, vì khôi phục nó là đọc nó:
+
+```sql
+SELECT count(*) FROM core.menu_item WHERE label_key IS NULL AND name IS NOT NULL;
+```
+
+Chạy ngay trước khi áp script bước 3, không chỉ lúc job vừa xong: một lần quay lui về bản build cũ trong lúc job chạy lại sinh dòng thiếu. Cột mới phải không rỗng thì script bước 3 là lớp chặn thứ hai — còn một dòng rỗng là `SET NOT NULL` hỏng, script không áp được.
+
+**Quay lui.** Ở mọi bước có bản build mới, quay lui là triển khai lại bản build đang chạy trước đó, không đụng DB ([`18-trien-khai-va-van-hanh.md`](18-trien-khai-va-van-hanh.md) §4 bước 5): bảng trên giữ cho bản đó vẫn chạy được trên script vừa áp. Lùi quá một bước thì không được bảo đảm — đó là lý do của điều kiện ở bước 3.
+
+**Ánh xạ EF ở bước 4–5.** EF nạp entity bằng mọi cột đang ánh xạ và ghi mọi cột đó khi thêm dòng — nên bước 4 phải bỏ ánh xạ, không chỉ bỏ đường ghi. Bỏ ánh xạ thì `dotnet ef migrations add` sinh `DropColumn` ngay ở bước 4: sửa migration đó chỉ còn lệnh bỏ `NOT NULL`, rồi viết tay `DropColumn` vào migration của bước 5 — model không đổi nên lệnh sinh ra một migration rỗng. Snapshot đã khớp model từ bước 4, nên luật E10 vẫn xanh.
 
 Chậm hơn "đổi tên cột" một dòng, nhưng không có khoảng thời gian nào hệ thống hỏng.
 
@@ -139,11 +159,14 @@ Chậm hơn "đổi tên cột" một dòng, nhưng không có khoảng thời g
 | --- | --- | --- |
 | Thêm cột cho phép rỗng | ✅ | |
 | Thêm cột **không rỗng** có giá trị mặc định | ⚠️ | Trên bảng lớn có thể viết lại toàn bộ bảng và khoá lâu; kiểm tra hành vi của phiên bản DB đang dùng |
+| Thêm cột **không rỗng** không có giá trị mặc định | ❌ | Luôn hỏng khi bảng đã có dữ liệu. Thêm cho phép rỗng → backfill theo lô (§5.3) → `SET NOT NULL` |
 | Thêm chỉ mục | ⚠️ | Dùng chế độ tạo không khoá bảng trên môi trường thật |
-| Xoá cột | ❌ | Chỉ sau khi chắc chắn không mã nào còn đọc |
-| Đổi tên cột / bảng | ❌ | Dùng quy trình năm bước ở trên |
+| Xoá cột | ❌ | Chỉ sau khi chắc chắn không mã nào còn đọc, không bản build nào còn ánh xạ — bước 4, 5 của quy trình ở trên |
+| Đổi tên cột / bảng | ❌ | Dùng quy trình ở trên |
+| Đổi kiểu cột (`ALTER COLUMN … TYPE`) | ❌ | Trên bảng lớn, Postgres viết lại toàn bộ bảng và giữ khoá `ACCESS EXCLUSIVE` suốt thời gian đó — không ai đọc được, không riêng ghi. Dùng quy trình ở trên, bước 1 thêm một cột mới **tên khác** |
+| Nới `varchar(n)` lên số lớn hơn | ✅ | Chỉ đổi metadata, không viết lại bảng — được làm thẳng ([`../../database/schema-core.md`](../../database/schema-core.md) §3.5) |
 | Thu hẹp kiểu dữ liệu | ❌ | Có thể mất dữ liệu |
-| Thêm ràng buộc không rỗng | ❌ | Chỉ sau khi đã lấp hết giá trị rỗng |
+| Thêm ràng buộc không rỗng | ❌ | Chỉ sau khi đã lấp hết giá trị rỗng. `SET NOT NULL` vẫn quét toàn bảng để kiểm, nhưng không viết lại bảng |
 
 ---
 
@@ -162,7 +185,7 @@ Dữ liệu mà **hệ thống không chạy được nếu thiếu**: danh mụ
 | **Ghi có điều kiện** — `INSERT … ON CONFLICT … DO NOTHING` | Migration có thể chạy trên DB đã có dữ liệu |
 | **Không xoá tự động** những mục không còn trong danh sách | Một khoá quyền biến mất làm mọi dòng phân quyền trỏ tới nó thành rác âm thầm. Đánh dấu ngừng dùng, dọn bằng một bước có chủ đích |
 | Định danh **cố định**, không sinh ngẫu nhiên | Sinh ngẫu nhiên thì mỗi môi trường một giá trị, và không tham chiếu chéo được |
-| Test CI đối chiếu **hai chiều** hằng số khoá trong code ↔ dòng seed trong migration — luật B7, phủ cả khoá của module | Khoá có trong code mà thiếu trong DB thì deny-by-default trả 403 cho mọi người, kể cả tài khoản đủ quyền |
+| Test CI đối chiếu **hai chiều** hằng số khoá trong code ↔ dòng seed trong migration — luật B7, chỉ phủ khoá của Core; khoá của module chưa có cổng, luật B9 ([`../../RULES-BE.md`](../../RULES-BE.md)) | Khoá có trong code mà thiếu trong DB thì deny-by-default trả 403 cho mọi người, kể cả tài khoản đủ quyền |
 | Tiến trình ứng dụng **không** ghi danh mục, lúc khởi động hay lúc chạy; tài khoản DB của ứng dụng chỉ `SELECT` trên hai bảng — luật M13 | Hướng đã khoá, lý do ở §8 |
 
 Dòng cuối rẻ khi làm từ đầu và rất đắt khi sửa sau — lúc đó dữ liệu thật đã trỏ vào các định danh khác nhau ở mỗi môi trường.
@@ -176,7 +199,7 @@ Hai đơn vị và hai tài khoản đầu tiên, để có người đăng nh�
 | **Không** nằm trong migration | Một migration tạo tài khoản có mật khẩu biết trước là một cửa sau đi theo mọi lần triển khai |
 | Là một **lệnh riêng**, chạy có chủ đích khi cài đặt, gọi service tạo đơn vị dùng chung | Người vận hành quyết định thời điểm và mật khẩu; endpoint tạo đơn vị về sau đi đúng đường đó — [`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md) |
 | Máy dev và bản thật dùng **cùng một** lệnh; không có tệp `.sql` dữ liệu riêng cho dev | Đường cài đặt thật được chạy mỗi ngày trên máy dev, thay vì chỉ chạy một lần trên bản cài thật |
-| Mã, tên đơn vị và thông tin tài khoản đọc từ cấu hình và `user-secrets`; thiếu một giá trị thì lệnh dừng, **không ghi dòng nào** | Không có đường code nào chứa sẵn mật khẩu, nên không cần rào theo môi trường — [`../../adr/0022-seed-dev-khong-co-duong-code-rieng.md`](../../adr/0022-seed-dev-khong-co-duong-code-rieng.md) |
+| Mã, tên đơn vị và thông tin tài khoản đọc từ hệ cấu hình — máy dev có sẵn trong `appsettings.Development.json` ([`../../adr/0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md`](../../adr/0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md)); thiếu một giá trị thì lệnh dừng, **không ghi dòng nào** | Không có **đường code** nào chứa sẵn mật khẩu — mật khẩu đi qua hệ cấu hình, nên mã không cần nhánh rẽ theo môi trường ([`../../adr/0022-seed-dev-khong-co-duong-code-rieng.md`](../../adr/0022-seed-dev-khong-co-duong-code-rieng.md)). Mật khẩu bootstrap của máy dev là giá trị dev công khai trong `appsettings.Development.json`; tệp đó được rào khỏi gói publish bằng luật S23 vế (e) ([`../../RULES-BE.md`](../../RULES-BE.md)). Phần còn hở — lệnh chạy từ máy dev vào database trên máy khác mà không đè hai mật khẩu — thuộc luật S28 ([`../../RULES-BE.md`](../../RULES-BE.md)) |
 | Chạy lại không nhân đôi | Lệnh chạy lại được sau một lần hỏng giữa chừng mà không cần dọn tay |
 | Cả tài khoản vận hành lẫn tài khoản quản trị đơn vị bắt buộc đổi mật khẩu ở lần đăng nhập đầu | Mật khẩu ban đầu nằm trong kho cấu hình của máy chạy lệnh — [`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md) §3 |
 | Ghi vào nhật ký kiểm toán | |
@@ -287,9 +310,10 @@ Mất quyền truy cập tài khoản quản trị **không** đi cửa này: qu
 | Mỗi module sở hữu migration của mình | ✅ sẽ có | Luật E6 — ngoại lệ có tên duy nhất: khoá quyền của module ([`../../database/migration-policy.md`](../../database/migration-policy.md) §1) |
 | Lịch sử migration tách riêng theo phía | ✅ sẽ có | Không trộn vào một bảng lịch sử chung |
 | Cấm khoá ngoại vật lý xuyên schema | 📐 luật | Luật E5 |
+| Thay đổi lược đồ phá vỡ đi theo quy trình ở §4 — không đổi tên, đổi kiểu, xoá cột trong một lượt | 📐 luật | Chưa có cổng — người review migration canh, câu hỏi 3 ở §6.1 |
 | App từ chối khởi động khi còn migration chưa áp | ✅ sẽ có | Luật E8 |
 | Áp lược đồ chạy tay, có đường dẫn và thứ tự cố định | ✅ sẽ có | [`../../database/script-runbook.md`](../../database/script-runbook.md) |
-| Seed danh mục quyền bằng migration — khoá Core ở migration Core, khoá module ở migration module | ✅ sẽ có | Định danh cố định, `ON CONFLICT … DO NOTHING`, không xoá tự động, test hai chiều (B7). Menu sinh theo đơn vị qua `ITenantSeedSource` — [`17-multi-tenant.md`](17-multi-tenant.md) §11.4 |
+| Seed danh mục quyền bằng migration — khoá Core ở migration Core, khoá module ở migration module | ✅ sẽ có | Định danh cố định, `ON CONFLICT … DO NOTHING`, không xoá tự động, test hai chiều — B7 cho khoá Core, B9 cho khoá module. Menu sinh theo đơn vị qua `ITenantSeedSource` — [`17-multi-tenant.md`](17-multi-tenant.md) §11.4 |
 | Lệnh bootstrap riêng cho hai đơn vị và hai tài khoản đầu tiên, dùng chung cho dev và bản thật | ✅ sẽ có | Không nằm trong migration. [`../../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../../adr/0023-dich-vu-tao-don-vi-dung-chung.md) |
 | **Tiến trình ứng dụng ghi danh mục quyền vào DB lúc khởi động hoặc lúc chạy** | ❌ loại, không hoãn `K52` | Bốn lý do: tiến trình ứng dụng phải có quyền ghi vào bảng danh mục; nhiều tiến trình đồng bộ đua nhau; lỗi đồng bộ bị nuốt thành cảnh báo; khoá có trong code mà không vào DB. Dòng danh mục vào DB bằng migration — §5.1 |
 | **Job đối soát tham chiếu xuyên schema** | ❌ chưa | Cần khi có module thứ hai |

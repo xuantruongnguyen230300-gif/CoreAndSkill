@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import {
   TranslateLoader,
   TranslateService,
@@ -13,6 +14,7 @@ import { Observable, firstValueFrom, from, of, throwError } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { CORE_BRANDING } from '../../../../core/config/core-branding';
 import { CORE_ROUTES } from '../../../../core/config/core-routes';
+import { TENANT_CODE } from '../../../../core/config/tenant-code';
 import { ApiFailure, ApiFailureError } from '../../../../core/http/api-result.model';
 import { DangNhapPage } from './dang-nhap.page';
 
@@ -67,6 +69,7 @@ describe('DangNhapPage — lỗi 422 không gắn được vào ô nào vẫn ph
           },
         },
         { provide: CORE_BRANDING, useValue: { name: 'X', shortName: 'X' } },
+        { provide: TENANT_CODE, useValue: 'DV' },
         provideTranslateService({
           lang: 'vi',
           fallbackLang: 'vi',
@@ -181,7 +184,7 @@ class ViJsonThatLoader extends TranslateLoader {
  * `messageParams.MaxLength` (contracts/auth.md §3, khuôn của `UserName`). Câu phải hiện DƯỚI ô mã
  * đơn vị, có con số, không rơi vào khu lỗi chung.
  */
-describe('DangNhapPage — TenantCode vượt trần độ dài (CORE.VALIDATION.MAX_LENGTH)', () => {
+describe('DangNhapPage (chế độ vận hành) — TenantCode vượt trần độ dài (CORE.VALIDATION.MAX_LENGTH)', () => {
   let fixture: ComponentFixture<DangNhapPage>;
   let auth: jasmine.SpyObj<AuthService>;
   let page: PageTest;
@@ -192,7 +195,7 @@ describe('DangNhapPage — TenantCode vượt trần độ dài (CORE.VALIDATION
       imports: [DangNhapPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideRouter([]),
+        provideRouter([{ path: 'dang-nhap', component: DangNhapPage }]),
         { provide: AuthService, useValue: auth },
         {
           provide: CORE_ROUTES,
@@ -204,6 +207,7 @@ describe('DangNhapPage — TenantCode vượt trần độ dài (CORE.VALIDATION
           },
         },
         { provide: CORE_BRANDING, useValue: { name: 'X', shortName: 'X' } },
+        { provide: TENANT_CODE, useValue: 'DV' },
         provideTranslateService({
           lang: 'vi',
           fallbackLang: 'vi',
@@ -212,9 +216,13 @@ describe('DangNhapPage — TenantCode vượt trần độ dài (CORE.VALIDATION
       ],
     }).compileComponents();
     await firstValueFrom(TestBed.inject(TranslateService).use('vi'));
-    fixture = TestBed.createComponent(DangNhapPage);
-    page = fixture.componentInstance as unknown as PageTest;
-    fixture.detectChanges();
+    // Ô mã đơn vị chỉ có ở chế độ vận hành (?cheDo=van-hanh).
+    const harness = await RouterTestingHarness.create();
+    page = (await harness.navigateByUrl(
+      '/dang-nhap?cheDo=van-hanh',
+      DangNhapPage,
+    )) as unknown as PageTest;
+    fixture = harness.fixture as unknown as ComponentFixture<DangNhapPage>;
     page.form.setValue({ tenantCode: 'X'.repeat(51), userName: 'an', password: 'x' });
   });
 
@@ -259,5 +267,80 @@ describe('DangNhapPage — TenantCode vượt trần độ dài (CORE.VALIDATION
       .toContain('Vượt quá 50 ký tự.');
     expect(page.loiChung()).toBeNull();
     expect(el.textContent).not.toContain('loi.CORE.VALIDATION.MAX_LENGTH');
+  });
+});
+
+/**
+ * AuthCard.md §Accessibility, dòng *Focus sau khi gửi hỏng*: khoá form làm phần tử đang focus mất
+ * focus; sau khi mở khoá vì lỗi máy chủ, trang trả focus về đúng phần tử đó; không được thì ô đầu
+ * tiên đang báo lỗi; không ô nào lỗi thì ô đầu tiên của form. Ba nhánh của `traFocus` (còn nhận được /
+ * không còn / không có gì giữ focus) cũng được khoá riêng ở `tra-focus-sau-khi-mo-form.spec.ts`.
+ */
+describe('DangNhapPage — focus sau khi gửi hỏng', () => {
+  let fixture: ComponentFixture<DangNhapPage>;
+  let auth: jasmine.SpyObj<AuthService>;
+  let page: PageTest;
+  const o = (id: string) => (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(id)!;
+
+  beforeEach(async () => {
+    auth = jasmine.createSpyObj<AuthService>('AuthService', ['dangNhap', 'phaiDoiMatKhau']);
+    await TestBed.configureTestingModule({
+      imports: [DangNhapPage],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
+        { provide: AuthService, useValue: auth },
+        {
+          provide: CORE_ROUTES,
+          useValue: {
+            dangNhap: '/dang-nhap',
+            doiMatKhauBatBuoc: '/d',
+            khongCoQuyen: '/k',
+            sauDangNhap: '/',
+          },
+        },
+        { provide: CORE_BRANDING, useValue: { name: 'X', shortName: 'X' } },
+        { provide: TENANT_CODE, useValue: 'DV' },
+        provideTranslateService({
+          lang: 'vi',
+          fallbackLang: 'vi',
+          loader: provideTranslateLoader(FakeTranslateLoader),
+        }),
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(DangNhapPage);
+    page = fixture.componentInstance as unknown as PageTest;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    page.form.setValue({ tenantCode: 'DV', userName: 'an', password: 'x' });
+  });
+
+  async function guiRoiLoi(code: string, fieldErrors: ApiFailure['error']['fieldErrors']) {
+    auth.dangNhap.and.returnValue(throwError(() => loiApi(code, fieldErrors)));
+    page.gui();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
+
+  it('Enter ở ô mật khẩu rồi lỗi máy chủ → focus về đúng ô mật khẩu', async () => {
+    o('#dang-nhap-mat-khau').focus();
+    await guiRoiLoi('CORE.AUTH.INVALID_CREDENTIALS', null);
+    expect(document.activeElement).toBe(o('#dang-nhap-mat-khau'));
+  });
+
+  it('không phần tử nào giữ focus lúc khoá, có ô báo lỗi → focus về ô lỗi đầu tiên', async () => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    await guiRoiLoi('CORE.VALIDATION.FAILED', {
+      Password: [{ code: 'CORE.VALIDATION.REQUIRED', messageParams: null }],
+    });
+    expect(document.activeElement).toBe(o('#dang-nhap-mat-khau'));
+  });
+
+  it('không phần tử nào giữ focus lúc khoá, không ô nào lỗi → focus về ô đầu tiên của form', async () => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    await guiRoiLoi('CORE.AUTH.INVALID_CREDENTIALS', null);
+    expect(document.activeElement).toBe(o('#dang-nhap-ten-dang-nhap'));
   });
 });

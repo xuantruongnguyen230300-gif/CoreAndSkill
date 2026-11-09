@@ -1,0 +1,5 @@
+// Liên kết chuyển chế độ là `<a app-button>` (Button.md §Liên kết mang hình thức nút) — hình thức
+// nằm trong ButtonComponent; ở đây chỉ còn vị trí trong cột của AuthCard.
+a[app-button] {
+  align-self: center;
+}

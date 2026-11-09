@@ -76,13 +76,20 @@ internal sealed class OutboxDispatcher(
 
         // Mỗi dòng tự bắt lỗi phát của nó và ghi lần thử hỏng (DispatchOneAsync) — một dòng hỏng không dừng lô. Ngoại lệ
         // duy nhất đi ra khỏi vòng này là không GHI được lần thử hỏng: dừng lượt (xem chú thích đầu lớp).
+        // Chỉ đếm dòng đã xử lý: dòng `Skipped` (phiên khác đang giữ khoá, hoặc đã xử lý xong) không tính, nếu không vòng
+        // `while (… > 0)` của nhịp quay liên tục tới khi phiên kia nhả khoá.
+        var processed = 0;
         foreach (var row in due)
-            await DispatchOneAsync(row, ct);
+        {
+            if (await DispatchOneAsync(row, ct))
+                processed++;
+        }
 
-        return due.Count;
+        return processed;
     }
 
-    private async Task DispatchOneAsync(PendingRow row, CancellationToken ct)
+    // Trả true khi dòng đã được xử lý (đúng hay hỏng), false khi bị bỏ qua vì không lấy được khoá.
+    private async Task<bool> DispatchOneAsync(PendingRow row, CancellationToken ct)
     {
         using var context = executionContextScope.Enter(row.TenantId, row.TriggeredByUserId, row.TriggeredByUserName);
 
@@ -95,21 +102,21 @@ internal sealed class OutboxDispatcher(
         {
             // Pha khoá / lưu / commit — ngoài khối bắt quanh bên nhận. Không ghi lần thử hỏng ở đây thì attempt_count giữ
             // nguyên, dòng mãi đứng đầu lô và không bao giờ thành `dead`.
-            attempt = StoreFailure(ex);
+            attempt = Classify(ex);
         }
 
         switch (attempt.Kind)
         {
             case AttemptKind.Skipped:
-                return;
+                return false;
 
             case AttemptKind.Done:
                 CoreMetrics.OutboxDispatched.Add(1);
-                return;
+                return true;
 
             default:
                 await RecordFailureAsync(row.Id, attempt, ct);
-                return;
+                return true;
         }
     }
 
@@ -170,9 +177,11 @@ internal sealed class OutboxDispatcher(
             }
             catch (Exception ex) when (!innerCt.IsCancellationRequested)
             {
-                // Lỗi tạm thời: giao dịch quay lại (rất có thể nó đã hỏng — vd. PostgreSQL đánh dấu
-                // giao dịch bị huỷ sau một lỗi DB), ghi lần thử hỏng ở giao dịch KHÁC.
-                return new TransactionOutcome<Attempt>(Attempt.Transient(FailureText.Describe(ex)), ShouldCommit: false);
+                // Giao dịch quay lại (rất có thể nó đã hỏng — vd. PostgreSQL đánh dấu
+                // giao dịch bị huỷ sau một lỗi DB), ghi lần thử hỏng ở giao dịch KHÁC. Giữ `ex` tới
+                // Attempt: last_error (cột DB) dùng Describe (một tầng), dòng log ở RecordFailureAsync
+                // dùng DescribeWithStack (B28 vế 3) — docs/wiki-core/be/07-observability.md §5.
+                return new TransactionOutcome<Attempt>(Classify(ex), ShouldCommit: false);
             }
 
             message.MarkDone(timeProvider.GetUtcNow());
@@ -180,22 +189,30 @@ internal sealed class OutboxDispatcher(
         }, ct);
     }
 
-    // Lỗi ở pha khoá / lưu / commit — ngoài bên nhận. VĨNH VIỄN khi máy chủ đã trả lời và từ chối bằng một mã mà phân loại
-    // tạm thời của Npgsql — chính phân loại CoreExecutionStrategy dựa vào — coi là không tạm thời (vi phạm ràng buộc 23xxx,
-    // dữ liệu sai 22xxx): chạy lại y như cũ sẽ bị từ chối y như cũ (§2.4). Còn lại TẠM THỜI, cùng cách bộ phát xếp ngoại lệ
-    // của bên nhận: lỗi tạm thời mà chiến lược thử lại đã dùng hết lượt, hết thời hạn chờ, commit không rõ kết quả (nếu thật
-    // ra đã commit thì lần sau dòng không còn `pending` và không bị phát lại), lỗi không đến từ máy chủ.
+    // MỘT phân loại cho mọi ngoại lệ của lần phát — bên nhận lẫn pha khoá / lưu / commit (B30, quyết định 2026-10-04).
+    // Có PostgresException trong chuỗi lỗi (máy chủ đã trả lời): tạm thời khi Npgsql `IsTransient` hoặc là 57014
+    // (statement_timeout, Npgsql không xếp là tạm thời); còn lại VĨNH VIỄN — vi phạm ràng buộc 23xxx, dữ liệu sai 22xxx:
+    // chạy lại y như cũ sẽ bị từ chối y như cũ (§2.4). Không có PostgresException (lỗi bên nhận, TaskCanceledException vì
+    // HttpClient.Timeout, commit không rõ kết quả, lỗi không đến từ máy chủ): TẠM THỜI. Đường request (CoreExecutionStrategy,
+    // ADR-0053) có phân loại riêng, không đổi.
     //
-    // last_error mang câu trả lời của máy chủ khi có, không mang câu chung "see the inner exception" của lớp bọc
-    // DbUpdateException — người đọc dòng `dead` cần biết ràng buộc nào đã từ chối.
-    private static Attempt StoreFailure(Exception exception)
+    // last_error mang câu trả lời của máy chủ khi có (SqlState nằm trong đó), không mang câu chung "see the inner exception" của
+    // lớp bọc DbUpdateException. Attempt giữ nguyên `exception` (toàn bộ chuỗi lỗi) để RecordFailureAsync log kèm ngăn xếp —
+    // B28 vế 3 (docs/wiki-core/be/07-observability.md §5).
+    private static Attempt Classify(Exception exception)
     {
         PostgresException? rejection = null;
         for (var current = exception; current is not null && rejection is null; current = current.InnerException)
             rejection = current as PostgresException;
 
         var error = FailureText.Describe(rejection ?? exception);
-        return rejection is { IsTransient: false } ? Attempt.Permanent(error) : Attempt.Transient(error);
+        var transient = rejection is null
+            || rejection.IsTransient
+            || rejection.SqlState == PostgresErrorCodes.QueryCanceled;
+
+        return transient
+            ? Attempt.Transient(error, exception)
+            : Attempt.Permanent(error, exception);
     }
 
     // Scope MỚI, không dùng lại scope của lần phát: DbContext ở đó có thể còn giữ thực thể vừa bị từ chối, và kết nối có
@@ -237,11 +254,13 @@ internal sealed class OutboxDispatcher(
             CoreMetrics.BackgroundJobFailed.Add(1);
             logger.LogError(
                 "Sự kiện outbox {OutboxId} chuyển sang dead: {Failure} — cần người can thiệp (core outbox-replay --id).",
-                id, attempt.Error);
+                id, attempt.Exception is not null ? FailureText.DescribeWithStack(attempt.Exception) : attempt.Error);
         }
         else
         {
-            logger.LogWarning("Phát sự kiện outbox {OutboxId} hỏng, sẽ thử lại: {Failure}", id, attempt.Error);
+            logger.LogWarning(
+                "Phát sự kiện outbox {OutboxId} hỏng, sẽ thử lại: {Failure}",
+                id, attempt.Exception is not null ? FailureText.DescribeWithStack(attempt.Exception) : attempt.Error);
         }
     }
 
@@ -270,15 +289,17 @@ internal sealed class OutboxDispatcher(
         Transient,
     }
 
-    private sealed record Attempt(AttemptKind Kind, string? Error)
+    // `Exception` chỉ có mặt khi Attempt dựng từ một ngoại lệ thật (Classify) — null khi dựng từ Result.Error của bên nhận (NoHandler, handler trả lỗi): không có ngoại
+    // lệ nào để giữ ngăn xếp. RecordFailureAsync đọc trường này để chọn DescribeWithStack hay Error cho log.
+    private sealed record Attempt(AttemptKind Kind, string? Error, Exception? Exception = null)
     {
         public static Attempt Skipped { get; } = new(AttemptKind.Skipped, null);
 
         public static Attempt Done { get; } = new(AttemptKind.Done, null);
 
-        public static Attempt Permanent(string error) => new(AttemptKind.Permanent, error);
+        public static Attempt Permanent(string error, Exception? exception = null) => new(AttemptKind.Permanent, error, exception);
 
-        public static Attempt Transient(string error) => new(AttemptKind.Transient, error);
+        public static Attempt Transient(string error, Exception? exception = null) => new(AttemptKind.Transient, error, exception);
     }
 }
 

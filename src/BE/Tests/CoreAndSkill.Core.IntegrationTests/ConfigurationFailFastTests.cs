@@ -41,6 +41,16 @@ public class ConfigurationFailFastTests
     // Luật S19 (ADR-0058, 02-identity-auth.md §4.2): sàn phải > 0 (0 là tắt sàn trong im lặng) và không vượt 5000.
     [InlineData("Core:Identity:Login:FailureFloorMs", "0", "FailureFloorMs")]
     [InlineData("Core:Identity:Login:FailureFloorMs", "5001", "FailureFloorMs")]
+    // Ngưỡng rate limit (Core:RateLimit:*): ngoài miền thì không khởi động.
+    [InlineData("Core:RateLimit:LoginPermitLimit", "0", "LoginPermitLimit")]
+    [InlineData("Core:RateLimit:LoginPermitLimit", "101", "LoginPermitLimit")] // trần 100 lần/phút (quyết định 2026-10-06)
+    [InlineData("Core:RateLimit:LoginWindowSeconds", "0", "LoginWindowSeconds")]
+    [InlineData("Core:RateLimit:LoginWindowSeconds", "59", "LoginWindowSeconds")] // cửa sổ tối thiểu 60 giây
+    [InlineData("Core:RateLimit:GlobalPermitLimit", "0", "GlobalPermitLimit")]
+    [InlineData("Core:RateLimit:GlobalWindowSeconds", "3601", "GlobalWindowSeconds")]
+    [InlineData("Core:RateLimit:GlobalSegmentsPerWindow", "0", "GlobalSegmentsPerWindow")]
+    [InlineData("Core:RateLimit:ClientErrorsPermitLimit", "-1", "ClientErrorsPermitLimit")]
+    [InlineData("Core:RateLimit:ClientErrorsWindowSeconds", "0", "ClientErrorsWindowSeconds")]
     // Luật E8 — thời gian chờ database lúc khởi động (DatabaseSchemaStartupCheck).
     [InlineData("Core:SchemaCheck:ConnectWaitSeconds", "-1", "ConnectWaitSeconds")]
     [InlineData("Core:SchemaCheck:ConnectRetryIntervalSeconds", "0", "ConnectRetryIntervalSeconds")]
@@ -55,6 +65,20 @@ public class ConfigurationFailFastTests
         var exception = Should.Throw<Exception>(() => factory.CreateClient());
 
         CollectMessages(exception).ShouldContain(m => m.Contains(expectedInMessage, StringComparison.Ordinal));
+    }
+
+    // Biên hợp lệ của hàng rào 1: đúng trần 100 và đúng sàn 60 vẫn khởi động được.
+    [Fact]
+    public void LoginRateLimit_AtTheBoundaries_StartsNormally()
+    {
+        using var factory = new CoreWebApplicationFactory(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:Core"] = CoreWebApplicationFactory.UnreachableConnectionString,
+            ["Core:RateLimit:LoginPermitLimit"] = "100",
+            ["Core:RateLimit:LoginWindowSeconds"] = "60",
+        });
+
+        Should.NotThrow(() => factory.CreateClient().Dispose());
     }
 
     // docs/quy-uoc/repo-artifact.md §6.2, be-architecture.md §4.2 — tệp appsettings.json gốc đi theo artifact lên máy chủ nên
@@ -89,7 +113,7 @@ public class ConfigurationFailFastTests
             environment: "Development");
 
         factory.Services.GetRequiredService<IOptions<CoreAuthOptions>>().Value.AllowedOrigins
-            .ShouldBe(["https://localhost:4200"]);
+            .ShouldBe(["https://localhost:4200", "https://localhost:7100"]); // 7100: origin của trang Scalar, chỉ ở máy dev (ADR-0118)
     }
 
     // docs/quy-uoc/be-api-controller.md §7.5 — hai cookie hệ thống không được trùng tên. Trùng thì cookie antiforgery ghi

@@ -69,7 +69,7 @@ internal sealed class OutboxDispatcherHostedService(
             {
                 logger.LogError(
                     "Nhịp phát outbox lỗi (lần liên tiếp thứ {Failures}): {Failure} — outbox nằm nguyên trong bảng chờ, không mất dữ liệu.",
-                    _consecutiveFailures, FailureText.Describe(ex));
+                    _consecutiveFailures, FailureText.DescribeWithStack(ex));
             }
         }
     }

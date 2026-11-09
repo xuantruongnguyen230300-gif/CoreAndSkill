@@ -9,7 +9,7 @@ namespace CoreAndSkill.Core.Application.Maintenance;
 // giữ của chính nó trong options riêng (module khai cho cleaner của module), kèm ValidateOnStart và luật ngưỡng > 0, rồi
 // tự tính mốc cắt bằng TimeProvider. Core không có ngưỡng mặc định nào — bảng gợi ý theo loại dữ liệu ở
 // docs/wiki-core/be/10-data-retention.md §3 cho thấy các loại cần những khoảng khác hẳn nhau. Cleaner chưa có ngưỡng khai
-// tường minh thì KHÔNG được đăng ký (luật B13, docs/RULES.md §10).
+// tường minh thì KHÔNG được đăng ký (luật B13, docs/RULES-BE.md).
 //
 // v1 KHÔNG có hiện thực nào đăng ký — job xoá cứng theo chính sách lưu giữ cần quyết định NGHIỆP VỤ trước (thời hạn
 // lưu bao lâu, ai quyết), docs/wiki-core/be/10-data-retention.md §3, §8. Cơ chế (job nền, log bắt đầu/kết thúc, chạy

@@ -1,3 +1,4 @@
+using CoreAndSkill.Core.Application.Common;
 using CoreAndSkill.Core.Application.Common.Cqrs;
 
 namespace CoreAndSkill.Core.Application.Users;
@@ -8,4 +9,4 @@ public sealed record CreateUserCommand(
     string Email,
     string FullName,
     string TempPassword,
-    IReadOnlyList<Guid> RoleIds) : ICommand<Guid>;
+    IReadOnlyList<Guid> RoleIds) : ICommand<CreatedIdDto>;

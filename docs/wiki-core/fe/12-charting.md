@@ -1,16 +1,16 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-05
 ---
 
 # 12. Biểu đồ
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG**, và với riêng chủ đề này còn thêm một tầng nữa: **Core cấp component biểu đồ, nhưng KHÔNG gắn sẵn thư viện biểu đồ nào vào bundle khởi động**. Xem §2.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG** (đối chiếu cả tệp 2026-11-05, chỉ bằng đọc mã: `src/FE/src/app/shared/ui/` chưa có `chart`, `src/FE/package.json` chưa có thư viện biểu đồ) — **trừ bảng màu biểu đồ**, đã có trong token: hàng ✅ CÓ THẬT ở §10. Với riêng chủ đề này còn thêm một tầng nữa: **Core cấp component biểu đồ, nhưng KHÔNG gắn sẵn thư viện biểu đồ nào vào bundle khởi động**. Xem §2.
 >
 > 📖 Component: [`../../Design/Components/Chart.md`](../../Design/Components/Chart.md) · Giá trị màu: [`../../Design/DESIGN.md`](../../Design/DESIGN.md) §2.8 · Quyết định và ba ràng buộc: [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md).
 >
-> File này tồn tại để trả lời trước một câu hỏi chắc chắn sẽ được hỏi — *"vẽ biểu đồ bằng gì"* — và để câu trả lời không phải là một quyết định vội vàng lúc đang gấp.
+> Câu *"vẽ biểu đồ bằng gì"* đã có trả lời ở `Chart.md`, mục *Nền*. File này giữ lý lẽ quanh câu trả lời đó: vì sao thư viện không vào bundle khởi động (§2), hỏi gì khi xét lại lựa chọn (§3), và phần tiếp cận (§4).
 
 ---
 
@@ -26,7 +26,7 @@ Biểu đồ đáng có khi câu hỏi của người dùng là về **hình d�
 | "Ba nhóm này chênh nhau nhiều không?" | Biểu đồ |
 | "Bản ghi số 4712 có gì?" | Một màn chi tiết |
 
-**Ba dòng đầu và dòng cuối chiếm phần lớn nhu cầu của một hệ quản trị.** Đó là lý do một Core cho hệ quản trị không cần biểu đồ, trong khi một sản phẩm phân tích thì cần ngay từ đầu.
+**Ba dòng đầu và dòng cuối chiếm phần lớn nhu cầu của một hệ quản trị.** Đó là lý do màn của một Core cho hệ quản trị không cần biểu đồ, trong khi một sản phẩm phân tích thì cần ngay từ đầu.
 
 Cạm bẫy thường gặp: đưa biểu đồ vào một màn tổng quan vì màn tổng quan "trông phải có biểu đồ". Một biểu đồ không trả lời câu hỏi nào là chỗ chiếm màn hình và tốn bảo trì.
 
@@ -36,7 +36,7 @@ Cạm bẫy thường gặp: đưa biểu đồ vào một màn tổng quan vì 
 
 ### 2.1 Không màn Core nào cần
 
-Các màn Core là: đăng nhập, đổi mật khẩu, danh sách người dùng, ma trận phân quyền, và một trang đích. Không màn nào trong số đó có câu hỏi về hình dạng dữ liệu.
+Các màn Core là các route khai ở `src/FE/src/app/app.routes.ts` và các tệp `*.routes.ts` dưới `src/FE/src/app/platform/` (đối chiếu 2026-11-05). Không màn nào trong số đó có câu hỏi về hình dạng dữ liệu.
 
 ### 2.2 THƯ VIỆN biểu đồ không vào bundle khởi động
 
@@ -67,6 +67,8 @@ Lập luận thường gặp là: cài sẵn thì module đầu tiên khỏi ph�
 
 > 🔄 **Mục này đã đổi phạm vi cùng §2.2.** Nó từng nói cả chỗ đặt *component*; [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md) lật vế đó — component ở Core, tại [`../../Design/Components/Chart.md`](../../Design/Components/Chart.md). Điều kiện dưới đây chỉ còn áp cho **thư viện**.
 
+Thư viện đã chọn: component biểu đồ của PrimeNG cho biến thể `line` ([`../../Design/Components/Chart.md`](../../Design/Components/Chart.md) mục *Nền*). Nó vẽ bằng `chart.js`, gói phải thêm vào phụ thuộc lúc cài (`Chart.md` §Cần chốt, câu 4).
+
 Cài khi màn **đầu tiên** dùng biến thể `line` thật sự cần, và khi đó:
 
 - Phụ thuộc được cài kèm lý do ghi ngay cạnh chỗ khai.
@@ -77,7 +79,7 @@ Cài khi màn **đầu tiên** dùng biến thể `line` thật sự cần, và 
 
 ## 3. Chọn thư viện thế nào — tiêu chí, không phải tên
 
-Khi tới lúc phải chọn, hỏi theo thứ tự này. Ba câu đầu thường đã loại được phần lớn ứng viên.
+Lựa chọn đã có (§2.4) và nó đỗ câu 1. Bảng dưới là các câu phải hỏi lại nếu xét đổi thư viện, theo thứ tự này — ba câu đầu thường đã loại được phần lớn ứng viên. Câu 4 và 5 là cái giá của lựa chọn hiện tại: PrimeNG vẽ trên canvas, màu nạp bằng script (`Chart.md` mục *Nền*).
 
 | # | Câu hỏi | Vì sao hỏi trước |
 | --- | --- | --- |
@@ -185,6 +187,8 @@ Ba ràng buộc nếu có mức thay đổi: nói rõ **so với kỳ nào**; **
 
 Đường phát triển đúng thường là: **con số → bảng → biểu đồ**, thêm bậc sau khi bậc trước không đủ. Nhảy thẳng tới bậc cuối là cách thêm chi phí trước khi biết có cần không.
 
+Ô số liệu là component của **module**, không của Core: nó trượt phép thử ở [`../../Design/CLAUDE.md`](../../Design/CLAUDE.md) §1, và trang chủ Core cũng không có ô nào ([`../../Design/Screens/04-trang-chu.md`](../../Design/Screens/04-trang-chu.md)).
+
 ---
 
 ## 9. Kiểm chứng — dùng khi biểu đồ đầu tiên ra đời
@@ -202,15 +206,14 @@ Ba ràng buộc nếu có mức thay đổi: nói rõ **so với kỳ nào**; **
 
 ## 10. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Đối chiếu với `src/` ngày 2026-11-05, chỉ bằng đọc mã: hàng ghi ✅ CÓ THẬT có neo ở cột *Ghi chú*; hàng ghi 📐 là đích đến đã có đặc tả ở `docs/Design/`, chưa thi công — không phải nợ. Ý nghĩa ký hiệu: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| Ô số liệu dựng bằng HTML và token | ✅ sẽ có | §8 — thứ thường được cần thay vì biểu đồ |
-| Cài thư viện biểu đồ, sau lớp bọc `shared/ui/chart` | ❌ chưa | Điều kiện: màn đầu tiên dùng biến thể `line` thật sự cần (§2.4). Tiêu chí chọn ở §3 |
-| Component biểu đồ **thuộc Core** | ✅ đã có | [`../../Design/Components/Chart.md`](../../Design/Components/Chart.md). Điều kiện cấp bởi [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md), **đi trước** ngưỡng hai module — cái giá ghi ở mục *Hệ quả tiêu cực* của ADR |
-| Hai lớp bù tiếp cận cho biểu đồ | ✅ đã có | `Chart.md` bắt buộc bảng số liệu tương đương ngay ở mục *Khi nào dùng*, và bắt nhãn số hiện rõ cho ba màu dưới ngưỡng tương phản (§4.1) |
-| Bảng màu biểu đồ trong hệ token | ✅ đã có | [`../../Design/DESIGN.md`](../../Design/DESIGN.md) §2.8 — `--chart-1`…`--chart-8`, thang mức độ, dải hai chiều, đã chạy qua phép kiểm bằng máy ở cả hai theme (§4.3) |
+| Cài thư viện biểu đồ, sau lớp bọc `shared/ui/chart` | ❌ chưa | Điều kiện: màn đầu tiên dùng biến thể `line` thật sự cần (§2.4). Thư viện đã chọn ở `Chart.md` — component biểu đồ của PrimeNG |
+| Component biểu đồ **thuộc Core** | 📐 đích đến — chưa thi công | [`../../Design/Components/Chart.md`](../../Design/Components/Chart.md) mang nhãn 📐, code chưa có. Điều kiện cấp bởi [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md), **đi trước** ngưỡng hai module — cái giá ghi ở mục *Hệ quả tiêu cực* của ADR |
+| Hai lớp bù tiếp cận cho biểu đồ | 📐 đích đến — chưa thi công | `Chart.md` bắt buộc bảng số liệu tương đương ngay ở mục *Khi nào dùng*, và bắt nhãn số hiện rõ cho ba màu dưới ngưỡng tương phản (§4.1); code chưa có |
+| Bảng màu biểu đồ trong hệ token | ✅ CÓ THẬT 2026-11-05 | [`../../Design/DESIGN.md`](../../Design/DESIGN.md) §2.8 — `--chart-1`…`--chart-8`, thang mức độ, dải hai chiều, đã chạy qua phép kiểm bằng máy ở cả hai theme (§4.3). Neo: `src/FE/src/styles/_tokens.scss` — chuỗi `--chart-1:` ở cả khối `:root` lẫn `@mixin dark-tokens` |
 | Kéo và thu phóng biểu đồ | ❌ chưa | Điều kiện: giảm số điểm và đổi loại biểu đồ đều không đủ (§5) |
 | Thư viện biểu đồ trong **bundle khởi động** | ❌ loại, không hoãn `K33` | §2.2, §2.3 — mọi biến thể trừ `line` vẽ bằng HTML/CSS, nên cài sẵn là bắt mọi dự án trả giá cho thứ phần lớn không bật. ADR-0019 ràng buộc 1 |
 | Biểu đồ không trả lời câu hỏi nào | ❌ loại, không hoãn `K34` | §1 — chiếm màn hình và tốn bảo trì |

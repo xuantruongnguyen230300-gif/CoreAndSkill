@@ -14,8 +14,12 @@ verified: chua-doi-chieu
 > | `src/BE/Core/CoreAndSkill.Core.Web/Controllers/TenantsController.cs` có action `GetList`, `Create`, `SetActive`, `RecoveryResetPassword`, `CreateAdmin` — khớp route §1–§4 và §6 | Gọi thử thật, thay ví dụ bằng response thật, rồi mới lật `Status:` |
 > | Cả controller mang `RequireSystemOperator` ở mức lớp — khớp dòng `Quyền:` của mọi card | — |
 > | Hai dòng nhật ký xuyên đơn vị ở §5, thân request/response, bảng lỗi: **chưa ai đối chiếu với handler** | Đối chiếu từng card rồi mới lật `verified:` |
+> | §1 `searchText` không phân biệt dấu — đối chiếu 2026-10-06, **chỉ điểm này**: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/TenantAdminQueryService.cs`, chuỗi `EF.Functions.ILike(EF.Functions.Unaccent(t.Name), EF.Functions.Unaccent(pattern)`. `ViVnCollationAndUnaccentTests` xanh (`dotnet test`, 2026-10-06, không database). Tìm không dấu trên PostgreSQL thật — `ViVnCollationDatabaseTests` (nhóm `RequiresDocker`), chuỗi `TenantSearch_IgnoresDiacriticsAndCase` — xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Lớp đó xanh trên CI — CI chưa chạy với bản này. Script `0009` áp lên database ngoài container test — **chưa ai áp** |
 > | §2, §6 tên dành riêng (đối chiếu 2026-09-25, [ADR-0090](../adr/0090-ten-dang-nhap-system-la-ten-danh-rieng-chan-o-duong-tao.md)): `CreateTenantCommandValidator.cs` và `CreateTenantAdminCommandValidator.cs` dưới `src/BE/Core/CoreAndSkill.Core.Application/Tenants/` gọi `.NotReservedUserName()`; `TenantValidatorsTests` xanh (`dotnet test`, 2026-09-25). **Chưa có test đi qua HTTP** cho hai card này | Một ca endpoint cho mỗi card, cùng khuôn `CreateUserReservedUserNameEndpointTests` |
 > | §4 không gỡ khoá và dòng `RECOVERY_RESET_FAILED` của bảng lỗi — đối chiếu 2026-09-25, **chỉ hai điểm này**: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/TenantProvisioningService.cs` hàm `RecoveryResetAdminPasswordAsync(` gọi `ResetPasswordWritesAsync(`, hàm đó gọi `RemovePasswordAsync(`, `AddPasswordAsync(`, `RequirePasswordChange(`, `UpdateSecurityStampAsync(` và trả `false` ở lệnh ghi đầu tiên hỏng; thân hai hàm không có `SetLockoutEndDateAsync`, `ClearAdminLock`, `ResetAccessFailedCountAsync` — khớp [ADR-0087](../adr/0087-khoi-phuc-quan-tri-khong-go-khoa.md). Ca ghi hỏng: `PasswordResetWriteFailureTests` xanh (`dotnet test`, 2026-09-25) | — |
+> | Đối chiếu 2026-10-06, **chỉ ba điểm này**. §2 trùng `code` khi tạo đồng thời: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/TenantProvisioningService.cs` có `catch (DbUpdateException ex) when (UniqueViolations.IsOn(ex, UniqueViolations.TenantCode))` trả `TenantProvisioningErrors.CodeDuplicate`. §3: `src/BE/Core/CoreAndSkill.Core.Domain/Tenants/Tenant.cs` — cả `Deactivate()` lẫn `Activate()` trả `TenantErrors.SystemImmutable` khi `IsSystem`. §6 trần độ dài: `CreateTenantAdminCommandValidator.cs` (cùng thư mục với hai validator ở hàng trên) có `.MaximumLength(256)` cho `UserName`, `Email` và `.MaximumLength(200)` cho `FullName`. `TenantCodeUniqueViolationTests`, `TenantTests`, `TenantValidatorsTests` xanh (`dotnet test`, 2026-10-06, không Docker). Ca đồng thời trên PostgreSQL thật — `TenantCodeAndRoleNameUniqueViolationDatabaseTests` (nhóm `RequiresDocker`), chuỗi `CreateTenant_WhileAnotherCreateOfTheSameCodeCommits_IsCodeDuplicate_AndWritesNothing` — xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Lớp đó xanh trên CI — CI chưa chạy với bản này |
+> | §2 `code` trùng mã đơn vị hệ thống (đối chiếu 2026-10-08, **chỉ điểm này**): `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/TenantProvisioningService.cs` trả `TenantProvisioningErrors.CodeDuplicate` khi `existingTenant.IsSystem != input.IsSystem`, trước mọi lệnh ghi và trước phép kiểm `input.FailIfExists`; `src/BE/Core/CoreAndSkill.Core.Application/Tenants/TenantProvisioningErrors.cs` khai `CodeDuplicate` với `ErrorType.Conflict`. `CreateTenant_BusinessRequestWithSystemTenantCode_ReturnsCodeDuplicate_AndAddsNoAccount` (nhóm `RequiresDocker`) xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Xanh trên CI — CI chưa chạy với bản này; ca đi qua HTTP — chưa có |
+> | §4 trần độ dài `userName` (đối chiếu 2026-10-06, **chỉ điểm này**): `RecoveryResetTenantAdminPasswordCommandValidator.cs` (cùng thư mục với hai validator ở hàng trên) có `.MaximumLength(256).WithErrorCode(CommonErrors.MaxLength.Code)` cho `UserName`; `CommonErrors.MaxLength` mang mã `CORE.VALIDATION.MAX_LENGTH`. `TenantValidatorsTests` xanh, gồm `RecoveryResetTenantAdminPasswordCommandValidator_UserNameOver256_IsMaxLength` (`dotnet test`, 2026-10-06). **Chưa có test đi qua HTTP** | — |
 >
 > Quyết định nền: [`../adr/0017-khu-quan-tri-he-thong.md`](../adr/0017-khu-quan-tri-he-thong.md). Service tạo đơn vị dùng chung: [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md). Khôi phục tài khoản quản trị đơn vị: [`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md). Vòng đời đơn vị và seed: [`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §10, §11.4. Envelope và mã lỗi: [`README.md`](README.md).
 
@@ -36,7 +40,7 @@ Danh sách đơn vị, có phân trang theo khuôn chung ([`README.md`](README.m
 | --- | --- | --- |
 | `page` · `pageSize` · `sortBy` · `sortDescending` | | Theo quy ước chung, [`README.md`](README.md) §8 |
 | `sortBy` allowlist | `name` (tăng dần) | `code`, `name`, `createdAt` |
-| `searchText` | — | Khớp một phần trên `code`, `name`; không phân biệt hoa thường. Tối đa 200 ký tự |
+| `searchText` | — | Khớp một phần trên `code`, `name`; không phân biệt hoa thường **và dấu** — `d` khớp `đ` ([ADR-0119](../adr/0119-cot-ten-dung-collation-icu-core-vi-vn-tim-khong-dau-qua-unaccent-is-deleted-co-default-false.md)). Tối đa 200 ký tự |
 
 ### Response 200
 
@@ -96,9 +100,9 @@ Tạo một đơn vị qua **service tạo đơn vị dùng chung** — cùng se
 
 | Field | Bắt buộc | Ghi chú |
 | --- | --- | --- |
-| `code` | ✅ | Mã đơn vị người dùng gõ ở màn đăng nhập ([`auth.md`](auth.md) §3). **Khuôn:** chỉ gồm chữ HOA `A`–`Z`, chữ số `0`–`9`, `-` và `_`; ký tự đầu phải là chữ hoặc số; tối đa **50** ký tự — trần của cột `core.tenant.code` ([`../database/schema-core.md`](../database/schema-core.md) §1.3). **Chuẩn hoá về chữ HOA trước khi kiểm khuôn, trước khi lưu và trước khi so trùng** — `syt-hn` và `SYT-HN` là một mã, và `CORE.TENANT.CODE_DUPLICATE` so trên bản đã chuẩn hoá. Biểu thức kiểm sau chuẩn hoá: `^[A-Z0-9][A-Z0-9_-]{0,49}$`. FE kiểm cùng khuôn ở ô nhập, nhưng BE mới là chỗ quyết |
-| `name` | ✅ | Tên hiển thị |
-| `adminUserName` · `adminEmail` · `adminFullName` | ✅ | Tài khoản quản trị đầu tiên của đơn vị. Tạo qua `UserManager`, mang **hai** cờ: `must_change_password` **và** `has_permission_bypass` ([`../database/schema-core.md`](../database/schema-core.md) §4.1). Cờ thứ hai là thứ cho quản trị đơn vị dựng được vai trò và cấp quyền: khi không nguồn seed nào khai bộ vai trò mặc định (seam `ITenantSeedSource`, [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)), đơn vị vừa tạo **không có vai trò nào**, và thiếu cờ thì quản trị đăng nhập được nhưng **không làm được gì**. Cờ chỉ được đặt lúc **tạo** tài khoản (luật M12), qua service tạo đơn vị: lệnh bootstrap, endpoint này, và §6 |
+| `code` | ✅ | Mã gửi làm `tenantCode` khi đăng nhập ([`auth.md`](auth.md) §3). Người dùng của đơn vị nghiệp vụ **không gõ** mã này: FE lấy nó từ cấu hình của bản cài; chỉ chế độ vận hành của trang đăng nhập có ô gõ tay ([ADR-0116](../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md)). Cấu hình bản cài mang **một** mã nghiệp vụ, nên đơn vị tạo ở đây với mã khác thì người dùng của nó không đăng nhập được ở chế độ thường — bản cài nhiều đơn vị nghiệp vụ cần ADR mới (QC5 của ADR đó). **Khuôn:** chỉ gồm chữ HOA `A`–`Z`, chữ số `0`–`9`, `-` và `_`; ký tự đầu phải là chữ hoặc số; tối đa **50** ký tự — trần của cột `core.tenant.code` ([`../database/schema-core.md`](../database/schema-core.md) §1.3). **Chuẩn hoá về chữ HOA trước khi kiểm khuôn, trước khi lưu và trước khi so trùng** — `syt-hn` và `SYT-HN` là một mã, và `CORE.TENANT.CODE_DUPLICATE` so trên bản đã chuẩn hoá. Biểu thức kiểm sau chuẩn hoá: `^[A-Z0-9][A-Z0-9_-]{0,49}$`. FE kiểm cùng khuôn ở ô nhập, nhưng BE mới là chỗ quyết |
+| `name` | ✅ | Tên hiển thị. Tối đa 200 ký tự |
+| `adminUserName` · `adminEmail` · `adminFullName` | ✅ | Tối đa lần lượt 256 · 256 · 200 ký tự. Tài khoản quản trị đầu tiên của đơn vị. Tạo qua `UserManager`, mang **hai** cờ: `must_change_password` **và** `has_permission_bypass` ([`../database/schema-core.md`](../database/schema-core.md) §4.1). Cờ thứ hai là thứ cho quản trị đơn vị dựng được vai trò và cấp quyền: khi không nguồn seed nào khai bộ vai trò mặc định (seam `ITenantSeedSource`, [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)), đơn vị vừa tạo **không có vai trò nào**, và thiếu cờ thì quản trị đăng nhập được nhưng **không làm được gì**. Cờ chỉ được đặt lúc **tạo** tài khoản (luật M12), qua service tạo đơn vị: lệnh bootstrap, endpoint này, và §6 |
 | `adminTempPassword` | ✅ | Mật khẩu tạm của tài khoản quản trị đầu tiên — **người vận hành tự gõ**. Chính sách mật khẩu áp như mọi tài khoản (luật S9). **Không** xuất hiện trong response, log hay `messageParams` |
 
 ### Response 200
@@ -109,7 +113,7 @@ Tạo một đơn vị qua **service tạo đơn vị dùng chung** — cùng se
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.TENANT.CODE_DUPLICATE` | `Conflict` | 409 | `code` đã tồn tại |
+| `CORE.TENANT.CODE_DUPLICATE` | `Conflict` | 409 | `code` đã tồn tại — kể cả khi đó là mã của đơn vị hệ thống: đơn vị hệ thống không bao giờ được dùng lại làm đơn vị nghiệp vụ, không thêm tài khoản nào vào nó (luật M16). `messageParams.Code` là `code` như request gửi, chưa chuẩn hoá về chữ HOA |
 | `CORE.TENANT.ADMIN_CREATE_FAILED` | `BusinessRule` | 422 | Identity từ chối tài khoản quản trị đầu tiên — `adminTempPassword` không đạt chính sách, hoặc tên đăng nhập/email không hợp lệ. Lý do ở `fieldErrors`, khoá `AdminTempPassword` / `AdminUserName` / `AdminEmail` |
 | `CORE.TENANT.SEED_FAILED` | `BusinessRule` | 422 | Seed hỏng giữa chừng. **Không dòng nào được ghi** — không đơn vị, không tài khoản, không nhật ký. `code` vẫn còn trống: gửi lại sau khi sửa nguyên nhân không vướng `CORE.TENANT.CODE_DUPLICATE` |
 
@@ -117,13 +121,13 @@ Tạo một đơn vị qua **service tạo đơn vị dùng chung** — cùng se
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | Thiếu field; `code` sai khuôn hoặc quá 50 ký tự (khuôn ở bảng Request); `name` rỗng; `adminUserName` là tên dành riêng (`fieldErrors["AdminUserName"]` mã `CORE.USER.USERNAME_RESERVED`, không `messageParams` — [`users.md`](users.md) §5, *Tên dành riêng*). `fieldErrors` mang khoá theo field request: `Code` / `Name` / `AdminUserName` / `AdminEmail` / `AdminFullName` / `AdminTempPassword` |
+| `CORE.VALIDATION.FAILED` | Thiếu field; `code` sai khuôn hoặc quá 50 ký tự (khuôn ở bảng Request); `name` rỗng; `name`, `adminUserName`, `adminEmail`, `adminFullName` quá trần ở bảng Request; `adminEmail` sai định dạng (mã `CORE.VALIDATION.FORMAT`); `adminUserName` là tên dành riêng (`fieldErrors["AdminUserName"]` mã `CORE.USER.USERNAME_RESERVED`, không `messageParams` — [`users.md`](users.md) §5, *Tên dành riêng*). `fieldErrors` mang khoá theo field request: `Code` / `Name` / `AdminUserName` / `AdminEmail` / `AdminFullName` / `AdminTempPassword` |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
 | `CORE.AUTH.FORBIDDEN` | Không mang cờ vận hành |
 
-**Hai lượt tạo cùng `code` chạy đồng thời:** lượt sau hôm nay nhận **500**, không nhận `CORE.TENANT.CODE_DUPLICATE`. Ràng buộc `uq_tenant_code` nằm ngoài phạm vi [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md) — mở rộng sang nó là câu hỏi mở của ADR đó, chờ người dùng. Tài khoản quản trị đầu tiên thuộc một đơn vị vừa tạo, nên hai lượt không va nhau ở tên đăng nhập hay email.
+**Hai lượt tạo cùng `code` chạy đồng thời** có thể cùng lọt phép kiểm trước. Lượt sau nhận `CORE.TENANT.CODE_DUPLICATE` như ca trùng thường — `messageParams.Code` là `code` như request gửi —, không nhận 500. Nguyên tắc 1–2 của [ADR-0089](../adr/0089-trung-unique-khi-ghi-dong-thoi-dich-o-kho-identity.md) mở rộng sang `uq_tenant_code` ([`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md), dòng 2026-10-06). Code và test không database đã có; test trên PostgreSQL thật xanh ở máy, CI chưa chạy với bản này (bảng đầu file). Tài khoản quản trị đầu tiên thuộc một đơn vị vừa tạo, nên hai lượt không va nhau ở tên đăng nhập hay email.
 
 ---
 
@@ -155,7 +159,7 @@ Ngưng hoạt động hoặc bật lại một đơn vị. Thân request mang đ
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
 | `CORE.TENANT.NOT_FOUND` | `NotFound` | 404 | Không có đơn vị đó |
-| `CORE.TENANT.SYSTEM_IMMUTABLE` | `BusinessRule` | 422 | Không được ngưng hoạt động **đơn vị hệ thống** |
+| `CORE.TENANT.SYSTEM_IMMUTABLE` | `BusinessRule` | 422 | Không được ngưng hoạt động **hoặc bật lại** **đơn vị hệ thống** — cả `isActive: false` lẫn `isActive: true` |
 
 **Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
 
@@ -195,7 +199,7 @@ Mở lại **cửa quản trị** của một đơn vị: đặt mật khẩu t�
 
 | Field | Bắt buộc | Ghi chú |
 | --- | --- | --- |
-| `userName` | ✅ | Tên đăng nhập của tài khoản đích **trong đơn vị `{id}`** |
+| `userName` | ✅ | Tối đa 256 ký tự — cùng trần với `userName` ở §6. Tên đăng nhập của tài khoản đích **trong đơn vị `{id}`** |
 | `tempPassword` | ✅ | Mật khẩu tạm — **người vận hành tự gõ**. Chính sách mật khẩu áp như mọi tài khoản (luật S9). **Không** xuất hiện trong response, log hay `messageParams` |
 
 ### Response 200
@@ -220,7 +224,7 @@ Mở lại **cửa quản trị** của một đơn vị: đặt mật khẩu t�
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | Thiếu `userName` hoặc `tempPassword`. Kèm `fieldErrors["UserName"]` / `["TempPassword"]` |
+| `CORE.VALIDATION.FAILED` | Thiếu `userName` hoặc `tempPassword`; `userName` quá trần ở bảng Request (`fieldErrors["UserName"]` mã `CORE.VALIDATION.MAX_LENGTH`). Kèm `fieldErrors["UserName"]` / `["TempPassword"]` |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |
@@ -283,7 +287,7 @@ Tạo một tài khoản quản trị **mới** cho đơn vị `{id}`, mang `has
 
 | Field | Bắt buộc | Ghi chú |
 | --- | --- | --- |
-| `userName` · `email` · `fullName` | ✅ | Tài khoản tạo qua `UserManager` **trong phạm vi đơn vị `{id}`**; `userName` duy nhất trong đơn vị đó ([`../database/schema-core.md`](../database/schema-core.md) §4.1) |
+| `userName` · `email` · `fullName` | ✅ | Tối đa lần lượt 256 · 256 · 200 ký tự — cùng trần với `adminUserName` · `adminEmail` · `adminFullName` ở §2. Tài khoản tạo qua `UserManager` **trong phạm vi đơn vị `{id}`**; `userName` duy nhất trong đơn vị đó ([`../database/schema-core.md`](../database/schema-core.md) §4.1) |
 | `tempPassword` | ✅ | Mật khẩu tạm — **người vận hành tự gõ**. Chính sách mật khẩu áp như mọi tài khoản (luật S9). **Không** xuất hiện trong response, log hay `messageParams` |
 
 ### Response 200
@@ -305,7 +309,7 @@ Tạo một tài khoản quản trị **mới** cho đơn vị `{id}`, mang `has
 
 | `code` | Khi nào |
 | --- | --- |
-| `CORE.VALIDATION.FAILED` | Thiếu field; `userName` là tên dành riêng (`fieldErrors["UserName"]` mã `CORE.USER.USERNAME_RESERVED`, không `messageParams` — [`users.md`](users.md) §5, *Tên dành riêng*). Kèm `fieldErrors["UserName"]` / `["Email"]` / `["FullName"]` / `["TempPassword"]` |
+| `CORE.VALIDATION.FAILED` | Thiếu field; `userName`, `email`, `fullName` quá trần ở bảng Request (mã `CORE.VALIDATION.MAX_LENGTH`); `email` sai định dạng (mã `CORE.VALIDATION.FORMAT`); `userName` là tên dành riêng (`fieldErrors["UserName"]` mã `CORE.USER.USERNAME_RESERVED`, không `messageParams` — [`users.md`](users.md) §5, *Tên dành riêng*). Kèm `fieldErrors["UserName"]` / `["Email"]` / `["FullName"]` / `["TempPassword"]` |
 | `CORE.AUTH.NOT_AUTHENTICATED` | Chưa đăng nhập |
 | `CORE.AUTH.CSRF_REJECTED` | Thiếu hoặc sai `X-XSRF-TOKEN` |
 | `CORE.AUTH.ORIGIN_REJECTED` | Header `Origin` ngoài allowlist |

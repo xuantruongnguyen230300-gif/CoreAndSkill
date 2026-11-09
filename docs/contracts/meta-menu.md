@@ -15,7 +15,7 @@ verified: chua-doi-chieu
 > | §2 và §3 **không** có action nào dưới `src/BE` — đúng chủ đích; nhãn `📐` tại chỗ vẫn đúng | Chỉ dựng khi có quyết định mở phạm vi v1 |
 > | Thứ tự mảng của §1 khớp `src/BE/Core/CoreAndSkill.Core.Infrastructure/Menu/MenuQueryService.cs` — chuỗi `.OrderBy(m => m.ParentId is null ? 0 : 1)` (đối chiếu 2026-09-23) | — |
 > | Mục `trang-chu` của ví dụ §1 có thật trong nguồn seed của Core: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/CoreTenantSeedSource.cs` — chuỗi `new("trang-chu", "menu.trang-chu", "pi-home", "/trang-chu"` (đối chiếu 2026-09-23; **trước** ngày này nguồn seed không gửi mục đó). Cả tập mục Core seed được ghim bằng `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Tenants/CoreTenantSeedMenuTests.cs` — chuỗi `CoreSeedMenu_MatchesTheContract` | — |
-> | **Không** mục nào của nguồn seed Core trỏ vào khu quản trị hệ thống (`/he-thong/…`) — ba bước lọc ở §1.4 không đọc được cờ `is_system_operator`, nên mục như vậy hôm nay hiện sai người dù khai cách nào. Cổng chặn: cùng tệp test, chuỗi `CoreSeedMenu_HasNoItemPointingIntoTheSystemOperatorArea` (đối chiếu 2026-09-23) | **Không đổi ở v1** — [`../adr/0079-khu-he-thong-khong-nhan-duong-vao-nhin-thay-duoc-o-v1.md`](../adr/0079-khu-he-thong-khong-nhan-duong-vao-nhin-thay-duoc-o-v1.md) chốt: khu đó không nhận đường vào nhìn thấy được, đường vào là URL gõ thẳng, và cổng trên giữ nguyên với nghĩa mới là *thi hành quyết định*. Sáu điều kiện kích hoạt để xét lại nằm ở cuối ADR đó; có cơ chế rồi thì cổng và card này sửa cùng lượt |
+> | Nguồn seed **dùng chung** của Core không có mục nào trỏ vào `/he-thong/…` — cùng tệp test, chuỗi `CoreSeedMenu_HasNoItemPointingIntoTheSystemOperatorArea`. Mục `he-thong-don-vi` (§1.7) đi trong danh sách riêng: `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/CoreTenantSeedSource.cs`, chuỗi `new("he-thong-don-vi", "menu.he-thong-don-vi", "pi-building", "/he-thong/don-vi", null, 100, null, null)`; `src/BE/Core/CoreAndSkill.Core.Infrastructure/Tenants/TenantProvisioningService.cs` ghép nó dưới `if (isSystemTenant)`, chuỗi `menuItems.AddRange(CoreTenantSeedSource.SystemTenantMenuItems);`. Test không Docker của luật M17 xanh (`dotnet test`, 2026-10-08); test PostgreSQL thật `SystemTenantMenuDatabaseTests` (nhóm `RequiresDocker`) xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Lớp đó xanh trên CI — CI chưa chạy với bản này. Bản cài đã bootstrap trước lượt này chỉ có mục sau khi người dùng chạy script bù ([`../database/script-runbook.md`](../database/script-runbook.md) §11) |
 > | Sáu luật lọc menu ở §1.1–§1.6 và các field khác của thân response §1: **chưa ai đối chiếu với handler** | Đối chiếu rồi mới lật `verified:` |
 >
 > Envelope, `ErrorType` → HTTP, khuôn mã lỗi: [`README.md`](README.md). Bảng dữ liệu:
@@ -192,6 +192,26 @@ Hệ quả phải giữ nguyên, không "dọn cho sạch": dữ liệu menu c�
 database**. Lắp module trở lại thì mục cũ hiện lại — đúng thứ ta muốn. Dọn dữ liệu thừa là việc
 vận hành, không phải điều kiện để menu hiển thị đúng.
 
+### 1.7 Đơn vị hệ thống nhận thêm đúng một mục
+
+Ngoài các mục mọi đơn vị nhận, **đơn vị hệ thống — và chỉ nó —** có thêm một mục gốc tới màn đơn vị
+([`../adr/0122-don-vi-he-thong-duoc-seed-mot-muc-menu-toi-he-thong-don-vi-moi-tai-khoan-cua-no-mang-co-van-hanh.md`](../adr/0122-don-vi-he-thong-duoc-seed-mot-muc-menu-toi-he-thong-don-vi-moi-tai-khoan-cua-no-mang-co-van-hanh.md)).
+Shape response không đổi; phần tử đó trong mảng:
+
+```json
+{ "id": "…", "parentId": null, "code": "he-thong-don-vi", "labelKey": "menu.he-thong-don-vi",
+  "icon": "pi-building", "route": "/he-thong/don-vi", "displayOrder": 100 }
+```
+
+- Mã và route do ADR-0122 chốt — mã không đổi sau khi đã dùng, script bù dữ liệu nhận ra dòng bằng nó. Nhãn, icon,
+  vị trí: [`../Design/Screens/00-khung-ung-dung.md`](../Design/Screens/00-khung-ung-dung.md), bảng *Quyết định bố cục*.
+  `displayOrder` 100 lớn hơn mọi mục gốc của nguồn dùng chung, nên mục đứng cuối cây.
+- Không quyền, không vai trò ⇒ bước 3 của §1.4: hiện cho **mọi** tài khoản của đơn vị hệ thống. Tập đó đúng bằng tập
+  tài khoản vận hành nhờ luật M16; đơn vị nghiệp vụ không bao giờ nhận mục này — luật M17
+  ([`../RULES-BE.md`](../RULES-BE.md) §9).
+- FE không rẽ nhánh theo `isSystemOperator`: mục đến như mọi mục khác. Chặn thật vẫn là guard của tuyến và cờ trên
+  endpoint — §1.4, khung *Menu là HIỂN THỊ*.
+
 ---
 
 ## 2. Quản trị menu — 📐 chưa có endpoint
@@ -200,7 +220,7 @@ vận hành, không phải điều kiện để menu hiển thị đúng.
 sách mục qua seam `ITenantSeedSource`, và dữ liệu vào database lúc **tạo đơn vị**, qua service tạo
 đơn vị dùng chung
 ([`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)).
-Lắp module mới vào bản cài đã có đơn vị: chạy `core seed-tenant-defaults` — seed idempotent cho mọi đơn vị ([`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §3, bảng *Lệnh của runner*).
+Lắp module mới vào bản cài đã có đơn vị: lệnh `core seed-tenant-defaults` (📐 **chưa thi công** — runner chưa có động từ này, gõ hôm nay nhận *Lệnh không xác định*) — seed idempotent cho mọi đơn vị ([`../quy-uoc/be-architecture.md`](../quy-uoc/be-architecture.md) §3, bảng *Lệnh của runner*).
 
 **Không có `POST`/`PUT`/`DELETE` cho mục menu ở v1.** Lý do:
 

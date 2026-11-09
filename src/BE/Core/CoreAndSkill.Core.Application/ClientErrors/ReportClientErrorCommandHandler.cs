@@ -44,7 +44,9 @@ internal sealed class ReportClientErrorCommandHandler(
             clientAddress.RemoteIpAddress?.ToString() ?? "(unknown)",
             SensitiveTextRedactor.Redact(clientAddress.UserAgent) ?? "(unknown)",
             SensitiveTextRedactor.Redact(command.Message),
-            stack ?? "(không có stack)");
+            // "(no stack)" — không phải "{Stack}" (template, hình dạng 2 của §7.2), mà GIÁ TRỊ truyền vào chỗ giữ đó; cùng
+            // khuôn với "(none)"/"(unknown)" phía trên trong CÙNG lời gọi, nên giữ tiếng Anh thay vì "(không có stack)".
+            stack ?? "(no stack)");
 
         return Task.FromResult(Result.Success());
     }

@@ -14,11 +14,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Users;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // PUT /api/v1/core/users/{id}/roles qua HTTP tới PostgreSQL thật — docs/contracts/users.md §7 mục "Ghi chú — đồng thời",
 // docs/adr/0082-gan-vai-tro-dung-token-cua-tai-khoan.md. `version` là concurrency_stamp của TÀI KHOẢN đích.
 //
@@ -160,7 +155,7 @@ public sealed class UserRoleAssignmentDatabaseTests(PostgresFixture db) : IAsync
             roleIds = Array.Empty<Guid>(),
         });
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
-        return (await ReadEnvelope(response)).Data.GetGuid();
+        return (await ReadEnvelope(response)).Data.GetProperty("id").GetGuid();
     }
 
     // `version` lấy từ GET chi tiết — đúng đường FE lấy token (card §7: "token nhận từ GET gần nhất").
@@ -185,7 +180,7 @@ public sealed class UserRoleAssignmentDatabaseTests(PostgresFixture db) : IAsync
     {
         var response = await client.PostAsJsonAsync(RolesUrl, new { name });
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
-        return (await ReadEnvelope(response)).Data.GetGuid();
+        return (await ReadEnvelope(response)).Data.GetProperty("id").GetGuid();
     }
 
     // Đọc THẲNG qua Npgsql — độc lập với bộ lọc và interceptor của chính code đang test.

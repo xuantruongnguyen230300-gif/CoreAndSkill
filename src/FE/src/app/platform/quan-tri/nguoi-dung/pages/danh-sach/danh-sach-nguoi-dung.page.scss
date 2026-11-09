@@ -1,15 +1,15 @@
-.danh-sach-nguoi-dung__loc {
-  display: flex;
-  gap: var(--sp-4);
-  flex-wrap: wrap;
+@use 'spacing' as s;
+
+:host {
+  @include s.man-danh-sach;
 }
 
 .danh-sach-nguoi-dung__vai-tro-rong {
   color: var(--color-text-muted);
 }
 
-.danh-sach-nguoi-dung__loi-tim {
-  padding: var(--sp-3);
-  color: var(--color-danger);
-  font-size: var(--fs-xs);
+// Liên kết ở ô tên đăng nhập: màu link của DESIGN.md §2 (`--color-brand`), không dùng màu mặc định
+// của trình duyệt (xanh đậm trên nền tối không đạt tương phản).
+.danh-sach-nguoi-dung__lien-ket {
+  color: var(--color-brand);
 }

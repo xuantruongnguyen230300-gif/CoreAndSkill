@@ -1,14 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { filter, map } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { maCommitNgan } from '../../core/config/phien-ban';
 import { CORE_BRANDING } from '../../core/config/core-branding';
 import { CORE_ROUTES } from '../../core/config/core-routes';
 import { MenuNode } from '../../core/menu/menu.model';
 import { MenuStore } from '../../core/menu/menu.store';
+import { ThemePreference, ThemeService } from '../../core/theme/theme.service';
 import { UnsavedChangesService } from '../../core/unsaved-changes/unsaved-changes.service';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
 import { NavItem, SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
@@ -18,7 +20,8 @@ import { UiMenuItem } from '../../shared/ui/types';
 /**
  * Design/Screens/00-khung-ung-dung.md. Tầng SMART — inject phiên và menu, truyền xuống
  * `Sidebar`/`Topbar` (dumb, `shared/components/`) qua `input()` (fe-architecture.md §2.3, không
- * ngoại lệ). ADR-0037: `mode`/`sidebarMode` cố định `'expanded'` ở F2 — biến thể collapsed/drawer,
+ * ngoại lệ). Khung cao đúng `100dvh`, `main` là vùng cuộn dọc; màn danh sách tự lấp chiều cao `main`
+ * (xem shell.component.scss). `Topbar` không mang tiêu đề trang. ADR-0037: `mode`/`sidebarMode` cố định `'expanded'` ở F2 — biến thể collapsed/drawer,
  * flyout menu tài khoản, nút theme và `LanguageSwitcher` hoãn tới F3 (bảng "đã có → còn thiếu" ở
  * Sidebar.md/Topbar.md). Hành vi CỐT LÕI vẫn đủ: menu lọc theo quyền từ server, `aria-current`
  * cho mục đang chọn, đăng xuất, liên kết hồ sơ.
@@ -39,9 +42,18 @@ export class ShellComponent {
   private readonly routes = inject(CORE_ROUTES);
   private readonly translate = inject(TranslateService);
   private readonly unsavedChanges = inject(UnsavedChangesService);
+  private readonly themeService = inject(ThemeService);
+
+  /** Giá trị đang áp — Topbar chỉ nhận qua input, không tự đọc service (Topbar.md §API). */
+  protected readonly theme = this.themeService.preference;
+
+  /** Câu đọc lên qua vùng `aria-live` sau khi đổi giao diện (Topbar.md §Nút theme, Trợ năng). */
+  protected readonly thongBaoTheme = signal('');
 
   protected readonly nguoiDung = computed(() => this.auth.nguoiDung());
   protected readonly namHienTai = new Date().getFullYear();
+  /** 7 ký tự đầu mã commit lúc build; `null` → `Footer` ẩn phần phiên bản (Footer.md §Phiên bản hiển thị). */
+  protected readonly maCommit = maCommitNgan();
 
   /** Cập nhật đúng lúc điều hướng xong — cùng nhịp với tiêu đề tuyến (CoreTitleStrategy). */
   protected readonly activeRoute = toSignal(
@@ -52,11 +64,8 @@ export class ShellComponent {
     { initialValue: this.router.url },
   );
 
-  protected readonly tieuDeTuyen = computed<string | null>(() => {
-    this.activeRoute();
-    const khoa = this.khoaTieuDeTuyenHienTai();
-    return khoa ? this.translate.instant(khoa) : null;
-  });
+  /** `main` đã cuộn khỏi đỉnh → Topbar vẽ bóng (Topbar.md §Kích thước). Đọc từ vùng cuộn thật. */
+  protected readonly daCuon = signal(false);
 
   /** `Sidebar` nhận cây menu đã dịch — Sidebar.md §API: "label là chuỗi ĐÃ dịch". */
   protected readonly navItems = computed<readonly NavItem[]>(() =>
@@ -85,7 +94,7 @@ export class ShellComponent {
   ]);
 
   constructor() {
-    // Nạp menu MỘT LẦN lúc khung dựng — không nạp lại mỗi lần đổi route (03-f2-auth-routing.md §2).
+    // Nạp menu MỘT LẦN lúc khung dựng — không nạp lại mỗi lần đổi route (docs/wiki-core/fe/07-auth-identity.md §2.1).
     // `authGuard` đã đảm bảo có người dùng tại đây.
     const id = this.auth.nguoiDung()?.id;
     if (id) {
@@ -101,6 +110,21 @@ export class ShellComponent {
     if (key === 'ho-so') {
       void this.router.navigate(['/ho-so']);
     }
+  }
+
+  /** Áp + lưu là việc của ; xong mới đọc câu thông báo (Topbar.md §Nút theme). */
+  protected khiDoiTheme(theme: ThemePreference): void {
+    this.themeService.setPreference(theme);
+    const khoa = {
+      light: 'khung.theme.daChuyenSang',
+      dark: 'khung.theme.daChuyenToi',
+      system: 'khung.theme.daChuyenTheoHeThong',
+    }[theme];
+    this.thongBaoTheme.set(this.translate.instant(khoa));
+  }
+
+  protected khiCuon(evt: Event): void {
+    this.daCuon.set((evt.target as HTMLElement).scrollTop > 0);
   }
 
   protected thuLaiTaiMenu(): void {
@@ -131,22 +155,24 @@ export class ShellComponent {
     });
   }
 
-  private khoaTieuDeTuyenHienTai(): string | null {
-    let snap = this.router.routerState.snapshot.root;
-    while (snap.firstChild) {
-      snap = snap.firstChild;
-    }
-    return snap.title ?? null;
-  }
-
   private sangNavItem(muc: MenuNode): NavItem {
     return {
       id: muc.id,
       label: this.translate.instant(muc.labelKey),
-      icon: muc.icon ?? undefined,
+      icon: tenIconTran(muc.icon),
       route: muc.route ?? undefined,
       children:
         muc.children.length > 0 ? muc.children.map((con) => this.sangNavItem(con)) : undefined,
     };
   }
+}
+
+/**
+ * Máy chủ trả icon mang sẵn tiền tố `pi-` (contracts/meta-menu.md §1.3); input `icon` của mọi
+ * component nhận TÊN TRẦN (Design/Icons.md §5) — shell là chỗ cắt để Sidebar ghép lớp như các
+ * component khác. Nhận cả hai dạng nên đổi hợp đồng sau này không vỡ.
+ */
+export function tenIconTran(icon: string | null | undefined): string | undefined {
+  const ten = icon?.trim().replace(/^(pi\s+)?pi-/, '');
+  return ten ? ten : undefined;
 }

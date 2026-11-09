@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # Quản trị vai trò — màn hình
 
-🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Màn đã dựng ở `src/FE` và thuộc pha F3 ([04-f3-man-quan-tri.md](../../wiki-core/fe/trien-khai/04-f3-man-quan-tri.md)). Mới đối chiếu **đúng một khoản** — ca xung đột đồng thời khi đổi tên — chỉ bằng đọc mã; bảng "Có thật hôm nay → sẽ thành" ngay dưới. Phần còn lại của file chưa ai mở source ra so, vẫn là đích đến; `verified: chua-doi-chieu` giữ nguyên.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Màn đã dựng ở `src/FE` và thuộc pha F3. Mới đối chiếu **đúng một khoản** — ca xung đột đồng thời khi đổi tên — chỉ bằng đọc mã; bảng "Có thật hôm nay → sẽ thành" ngay dưới. Phần còn lại của file chưa ai mở source ra so, vẫn là đích đến; `verified: chua-doi-chieu` giữ nguyên.
 
 Quản trị đơn vị xem, tìm vai trò của đơn vị hiện hành; tạo, đổi tên, xoá vai trò — bước 1–2 của [P1](../../luong/P1-tao-vai-tro-va-gan-quyen.md); cấp quyền đi tiếp sang [12-ma-tran-phan-quyen.md](./12-ma-tran-phan-quyen.md). Một màn, hai hộp thoại, một hộp xác nhận. Nghiệp vụ: [roles.md](../../contracts/roles.md) — không chép lại. Bố cục theo [ListScreen.md](../Templates/ListScreen.md) §2.
 
@@ -24,6 +24,7 @@ Quản trị đơn vị xem, tìm vai trò của đơn vị hiện hành; tạo,
 | Khoá nút Tải lại | Có — `vi.json` khối `vaiTro` › `hanhDong` › `taiLai`: "Tải lại" | — (đủ; dòng ở bảng Câu chữ) |
 | Bấm Tải lại — giá trị ô "Tên vai trò" | Có — `hop-vai-tro.store.ts` § `taiLaiSauXungDot`: `GET` chi tiết (`chiTiet(vt.id)`), rồi `dangSua.set(moi)` lấy `version` mới và `this.form.reset({ name: moi.name })` nạp tên từ máy chủ, bỏ tên đang nhập, đưa form về chưa sửa (không `dirty`). Đối chiếu 2026-09-22 | — (đủ) |
 | Bấm Tải lại — focus | Có — store tăng `lanNapLai` khi nạp xong; `danh-sach-vai-tro.page.ts` có `effect` đọc `this.hop.lanNapLai()` rồi `afterNextRender` gọi `focus()` trên `input` trong `#oTen` — tức `<app-input` mang `id="vai-tro-ten"` ở `danh-sach-vai-tro.page.html`. Đối chiếu 2026-09-22, chỉ đọc mã, chưa chạy thử | — (đủ) |
+| Bố cục theo quyết định 2026-10-08 — nút ở `Toolbar`, khối danh sách liền, cột hành động dùng chung | **Có** (đọc mã 2026-10-08, FE-2): `danh-sach-vai-tro.page.html` mở `<app-page-header` chỉ với `[title]` và `[description]`; `<app-toolbar dataTableTop variant="search" placement="attached"` nằm trong `app-data-table`, nhận `[readonlyChips]="chipDonVi()"`; hai nút (liên kết `routerLink="/quan-tri/phan-quyen"` rồi nút `variant="primary" icon="plus"` "Thêm vai trò") ở nhóm hành động của `Toolbar`, nút chính đứng cuối; cột hành động là `[rowActionsTemplate]` (nút `ghost` `haspopup="menu"`), không còn cột thường `key: 'hanhDong'` | Hình thức thật chưa đo trên trình duyệt; các khoản khác của sơ đồ chưa so (xem lỗ mù dưới) |
 
 **Chưa đối chiếu (lỗ mù):** mọi khoản khác của file — bố cục, `Toolbar`, cột, menu hàng và lý do khoá, hộp tạo, `ConfirmDialog` xoá, bảng mã lỗi ngoài dòng xung đột, câu chữ ngoài dòng Tải lại, §Responsive, §Icon, token trong SCSS, và mọi thứ chỉ thấy khi chạy ứng dụng.
 
@@ -35,32 +36,41 @@ Quản trị đơn vị xem, tìm vai trò của đơn vị hiện hành; tạo,
 
 ```text
 - Khung ứng dụng — 00-khung-ung-dung.md
-  - main — đệm --layout-page-pad (dưới $bp-md: --layout-page-pad-sm); không cuộn
-    - PageHeader biến thể default
-      - tiêu đề + mô tả
-      - nhóm hành động: Button primary "Thêm vai trò" (chỉ hiện khi có core.role.write)
-                        <a routerLink> "Ma trận phân quyền" → /quan-tri/phan-quyen — mượn hình thức Button secondary
-                            (điều hướng là liên kết, không phải nút — Button.md); chỉ hiện khi có core.permission.read
-    - Toolbar biến thể search, cỡ md — không có trường lọc; hàng chip có vì readonlyChips khác rỗng
-      - ô tìm → searchText (card §1: tìm trên name, không phân biệt hoa thường)
-      - readonlyChips — một chip đơn vị hiện hành: nhãn mang tenantName của phiên (auth.md §5),
-          lockReason nói vì sao không gỡ được
-    - khung DataTable biến thể paged — thân bảng là vùng cuộn duy nhất
-      - cột (theo response GET /roles):
-        - Tên vai trò — name, sortable, priority high
-        - Loại — isSystem → Badge neutral "Vai trò hệ thống"; false → ô ghi dấu gạch (Table.md: không để ô rỗng trơn)
-        - Số người dùng — userCount, căn phải, không sortable (không có trong allowlist)
-        - Ngày tạo — createdAt, sortable, priority low
-        - Hành động — IconButton ghost cỡ sm pi-ellipsis-v mở Menu anchored cỡ sm, header = tên vai trò
-            mục "Đổi tên"
-            mục "Xoá" (danger)
-          (cột chỉ hiện khi có core.role.write)
-      - emptyTemplate: EmptyState cỡ compact — biến thể theo ca (mục Trạng thái)
-      - loadingTemplate: SkeletonLoader group dạng hàng
-      - errorTemplate: EmptyState `error` cỡ compact, nút secondary "Thử lại"
-    - dải phân trang — do DataTable vẽ ở biến thể paged, màn không tự đặt Pagination (Templates/ListScreen.md vùng 6); Pagination biến thể full, cỡ md
-  - Footer
+  - main — đệm --layout-page-pad (dưới $bp-md: --layout-page-pad-sm); màn lấp đúng chiều cao main nên
+           main không cuộn — chỉ thân bảng cuộn; màn quá thấp thì main cuộn (ListScreen.md §4)
+    - PageHeader biến thể default — tiêu đề + mô tả; KHÔNG nút
+    - khối danh sách = khung DataTable biến thể paged (DataTable.md §"Khung") — ăn toàn bộ chiều cao còn lại
+      - đầu khung: Toolbar biến thể search, cỡ md, placement="attached" — không có trường lọc nên không có nút lọc;
+          hàng chip có vì readonlyChips khác rỗng
+        - ô tìm → searchText (card §1: tìm trên name, không phân biệt hoa thường); trần --toolbar-search-w-max
+        - nhóm hành động, trái → phải:
+            <a routerLink> "Ma trận phân quyền" → /quan-tri/phan-quyen — a[app-button] secondary
+                (điều hướng là liên kết, không phải nút — Button.md); chỉ hiện khi có core.permission.read
+            Button primary "Thêm vai trò" — nhãn đầy đủ, cuối nhóm, đầu phải hàng; chỉ hiện khi có core.role.write
+        - readonlyChips — một chip đơn vị hiện hành: nhãn mang tenantName của phiên (auth.md §5),
+            lockReason nói vì sao không gỡ được
+      - vùng cuộn — th dính đỉnh; dòng đổi nền khi rê chuột
+        - cột (theo response GET /roles):
+          - Tên vai trò — name, sortable, priority high
+          - Loại — isSystem → Badge neutral "Vai trò hệ thống"; false → ô ghi dấu gạch (Table.md: không để ô rỗng trơn)
+          - Số người dùng — userCount, căn phải, không sortable (không có trong allowlist)
+          - Ngày tạo — createdAt, sortable, priority low
+          - cột hành động dùng chung (rowActionsTemplate — DataTable.md §"Cột hành động"); tên cột ẩn "Hành động";
+              chỉ vẽ khi có core.role.write
+            - IconButton ghost cỡ sm pi-ellipsis-v ⋯ → Menu anchored cỡ sm, header = tên vai trò
+                mục "Đổi tên"
+                mục "Xoá" (danger)
+            - compact (dạng thẻ, < $bp-xs): cùng một nút ⋯
+        - emptyTemplate: EmptyState cỡ compact — biến thể theo ca (mục Trạng thái)
+        - loadingTemplate: SkeletonLoader group dạng hàng
+        - errorTemplate: EmptyState `error` cỡ compact, nút secondary "Thử lại"
+      - dải phân trang — do DataTable vẽ ở đáy, trong khung (Templates/ListScreen.md vùng 6); Pagination biến thể full, cỡ md
 ```
+
+| Quyết định bố cục (2026-10-08) | Căn cứ |
+| --- | --- |
+| Liên kết "Ma trận phân quyền" sang nhóm hành động của `Toolbar`, đứng **trước** nút chính — màn danh sách không còn nút ở `PageHeader`, và đây là liên kết sang màn liên quan của chính danh sách | [Toolbar.md](../Components/Toolbar.md) §Khi nào dùng · [PageHeader.md](../Components/PageHeader.md) §Khi nào dùng |
+| Cột hành động giữ đúng một nút ⋯ — hai mục, không mục nào dùng đủ thường để thành nút riêng | [DataTable.md](../Components/DataTable.md) §"Cột hành động", dòng "Khuôn nút trong ô" |
 
 Tham số URL và dây: `page`, `pageSize`, `sortBy` (`name` · `createdAt`), `sortDescending`, `searchText` ([contracts/README.md](../../contracts/README.md) §8 · [fe-architecture.md](../../quy-uoc/fe-architecture.md) §2.8). Mặc định sắp theo `name` tăng dần. Đổi từ khoá thì về trang 1.
 
@@ -99,7 +109,7 @@ Câu không ghi nguồn: người dùng duyệt 2026-09-15 ([Screen.md](../Templ
 | Nhãn ô tìm (ẩn) | Tìm theo tên vai trò | `vaiTro.timKiem.nhan` |
 | Chip đơn vị hiện hành · `Tooltip` lý do khoá chip | Như [10-nguoi-dung.md](./10-nguoi-dung.md) | `chung.loc.donViHienHanh` · `chung.loc.lyDoDonVi` |
 | `<caption>` bảng (ẩn) | Danh sách vai trò | `vaiTro.bang.caption` |
-| Cột | Tên vai trò · Loại · Số người dùng · Ngày tạo · Hành động | `vaiTro.cot.ten` · `vaiTro.cot.loai` · `vaiTro.cot.soNguoiDung` · `vaiTro.cot.ngayTao` · `vaiTro.cot.hanhDong` |
+| Cột — "Hành động" là tên cột hành động, ẩn thị giác | Tên vai trò · Loại · Số người dùng · Ngày tạo · Hành động | `vaiTro.cot.ten` · `vaiTro.cot.loai` · `vaiTro.cot.soNguoiDung` · `vaiTro.cot.ngayTao` · `vaiTro.cot.hanhDong` |
 | Badge loại | Vai trò hệ thống | `vaiTro.loai.heThong` |
 | `aria-label` nút mở menu hàng | Hành động cho vai trò {{ten}} | `vaiTro.menu.moMenu` |
 | Mục menu | Đổi tên · Xoá | `vaiTro.menu.doiTen` · `vaiTro.menu.xoa` |
@@ -156,7 +166,7 @@ Mã lỗi → chỗ hiện (câu sống ở `loi.<mã>`, [fe-ui-conventions.md](
 | --- | --- |
 | ≥ `$bp-lg` | Đủ năm cột; cột hành động ghim phải |
 | `$bp-md` … `$bp-lg` | Ẩn "Ngày tạo" (`priority: low`) — chấp nhận mất ở khổ này; hiện lại ở dạng thẻ dưới `$bp-xs` |
-| < `$bp-md` | Giữ "Tên vai trò", "Số người dùng", cột hành động; "Loại" thành `Badge` đứng sau tên trong cùng ô. `PageHeader` đưa nhóm nút xuống hàng dưới |
+| < `$bp-md` | Giữ "Tên vai trò", "Số người dùng", cột hành động; "Loại" thành `Badge` đứng sau tên trong cùng ô. `Toolbar` xuống dòng: ô tìm, rồi nhóm hành động |
 | < `$bp-xs` | `DataTable` dạng thẻ — mọi trường thành nhãn trường, không mất trường nào. Hộp thoại dính đáy theo `Dialog` |
 
 ### Icon
@@ -173,4 +183,4 @@ Không còn.
 
 ## Điểm mở rộng cho dự án hạ nguồn
 
-Theo [ListScreen.md](../Templates/ListScreen.md) §5 và seam `CORE_SCREEN_EXT` khoá `roles` ([fe-architecture.md](../../quy-uoc/fe-architecture.md) §2.7): màn nhận thêm **cột dạng chữ** — tiêu đề là khoá i18n, ô là chuỗi đã định dạng, không sắp xếp được — nối **sau** "Ngày tạo" và **trước** cột "Hành động", vì cột hành động luôn đứng cuối ([DataTable.md](../Components/DataTable.md) §Responsive); cột thêm không chứa liên kết hay `Badge`. Trường lọc, mục thêm vào menu hàng, nút vào `Toolbar`: **chưa có** điểm mở rộng, hoãn theo [ADR-0057](../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md). Không bớt cột nào.
+Theo [ListScreen.md](../Templates/ListScreen.md) §5 và seam `CORE_SCREEN_EXT` khoá `roles` ([fe-architecture.md](../../quy-uoc/fe-architecture.md) §2.7): màn nhận thêm **cột dạng chữ** — tiêu đề là khoá i18n, ô là chuỗi đã định dạng, không sắp xếp được — nối **sau** "Ngày tạo" và **trước** cột hành động, vì cột hành động do `DataTable` vẽ và luôn đứng cuối ([DataTable.md](../Components/DataTable.md) §"Cột hành động"); cột thêm không chứa liên kết hay `Badge`. Trường lọc, mục thêm vào menu hàng, nút vào `Toolbar`: **chưa có** điểm mở rộng, hoãn theo [ADR-0057](../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md). Không bớt cột nào.

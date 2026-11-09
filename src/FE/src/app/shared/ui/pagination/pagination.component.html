@@ -1,9 +1,10 @@
 <nav class="pagination" [attr.aria-label]="ariaLabel()">
   @if (totalRecords() > 0) {
-    <span class="pagination__khoang" aria-live="polite">{{
+    <span class="pagination__khoang">{{
       'chung.phanTrang.khoang' | translate: thamSoKhoang()
     }}</span>
     <p-paginator
+      appendTo="body"
       [class.pagination__paginator--disabled]="disabled() || loading()"
       [first]="first()"
       [rows]="pageSize()"

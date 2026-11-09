@@ -17,21 +17,23 @@ Component: `src/FE/src/app/shared/components/input/input.component.ts` — selec
 | Khoản | Đã có | Còn thiếu |
 | --- | --- | --- |
 | `ControlValueAccessor` | Có — `implements ControlValueAccessor`, tự gán `ngControl.valueAccessor`, đủ `writeValue`/`registerOnChange`/`registerOnTouched`/`setDisabledState` | — |
-| `error` suy từ control | Có, đúng luật spec: getter `loi` trả `invalid === true && touched === true`; ô không gắn control không có trạng thái này | — |
+| `error` suy từ control | Có, đúng luật spec: getter `loi` trả `invalid === true && touched === true`; ô không gắn control không có trạng thái này. `touched` chỉ đặt lúc rời ô (đọc mã 2026-10-08): `input.component.ts` § `doiGia` không gọi `onTouched`; § `chamVao` gắn vào `(blur)` gọi `onTouched` khi § `roiOLaCham(event.target, this.ngControl?.control ?? null)` trả `true` — ô mang cờ ô tự nhận focus mà control chưa `dirty` thì rời ô không `touched` ([`FormRow.md`](./FormRow.md) bảng *Lỗi hiện khi nào*). Ca kiểm ở `input.component.cham.spec.ts`, khối `InputComponent — khi nào control thành touched` (người soạn chưa chạy test) | — |
 | `type` | Ba biến thể: `text`, `password`, `select` | **`number`, `textarea`, `search` chưa có.** Kiểu của input thu hẹp còn `'text' \| 'password' \| 'select'`, nên ba giá trị kia không biên dịch được ở nơi gọi. Chú thích trong chính component khai đây là cắt bớt có chủ đích cho F2 |
 | `size` | Đủ ba cỡ `.input--sm`/`.input--md`/`.input--lg` theo `--size-control-*` | — |
+| Cỡ nút hiện/ẩn mật khẩu | Có (đọc mã 2026-10-08): `input.component.scss` § `.nut-hien-an` đặt `width` và `height` bằng `var(--size-control-sm)` — không còn số trần | — |
+| Đệm phải chừa chỗ nút hiện/ẩn | Khớp §Biến thể dòng `password`, đọc qua token (đọc mã 2026-10-08): `input.component.scss` § `.input--co-nut` đặt `padding-right: var(--input-pad-reveal)`; token khai ở `src/FE/src/styles/_spacing.scss` § `--input-pad-reveal: var(--auth-field-pad-reveal)`, đúng bí danh của [`../DESIGN.md`](../DESIGN.md) §6.5 | Chưa đo trên trình duyệt |
 | `width` | Input khai đủ `'full' \| 'md' \| 'sm'`, có `.input--full` | **`md` và `sm` không render gì** — template chỉ gắn `.input--full`, hai giá trị kia không có class nào và không có quy tắc nào trong SCSS |
 | `revealable` cho `password` | Có — nút `.nut-hien-an`, `pi-eye`/`pi-eye-slash`, `aria-label` qua i18n (`xacThuc.matKhau.hien`/`.an`), trạng thái hiện/ẩn do component tự giữ đúng như spec §API | — |
 | `options` + `SegmentOption` | Có, dùng lại đúng kiểu spec chỉ định | — |
-| `placeholder`, `readonly`, `autocomplete`, `inputmode`, `describedBy`, `id` | Có, gắn thẳng lên phần tử gốc | — |
+| `placeholder`, `readonly`, `autocomplete`, `inputmode`, `describedBy`, `id` | Có, gắn thẳng lên phần tử gốc. `placeholder` gắn bằng thuộc tính HTML (đọc mã 2026-10-06): `input.component.html` § `[attr.placeholder]="placeholder()"`, nên `null` thì `<input>` không mang thuộc tính. Ca kiểm `placeholder = null → <input> không mang thuộc tính placeholder` | Chưa đo trên trình duyệt — không màn nào trong lưới Playwright `src/FE/e2e/` đợt 2026-10-06 dùng `app-input` |
 | `disabled` (ca không gắn control) | Vô hiệu hoá **chỉ** đến qua `setDisabledState` | Không có input `disabled` — ca ô tìm của `Toolbar` (ô không gắn control) chưa vô hiệu hoá được |
 | `valueChange` | — | **Không có output nào.** Ca không gắn control hiện không báo được giá trị ra ngoài; `value` vào được nhưng không có đường ra |
 | `loading` | — | Chưa có input `loading`, chưa có spinner ở vị trí `suffix`, chưa đặt `aria-busy` |
 | `prefix` / `suffix` | — | Chưa có |
 | `default` | Có, đúng token spec: `--color-surface`, `--border-w` + `--color-border-strong`, `--color-text`, `--radius-sm`, placeholder `--color-text-muted` | — |
-| `focus-visible` | Có **cả hai** dấu hiệu spec đòi: vòng `--color-focus` với `outline-offset: 2px` **và** viền chuyển `--color-brand` | — |
+| `focus-visible` | Một dấu hiệu theo [`../DESIGN.md`](../DESIGN.md) §2.6 *Ô nhập chữ* (đọc mã 2026-10-06): `input.component.scss` § `&:focus-visible` đặt `outline: none`, viền `--color-text`, phần dày thêm vẽ vào trong bằng bóng `inset` tới `--border-w-strong`; ô lỗi có focus — § `.input--error` — giữ `--color-danger-border`, dày `--border-w-accent`. Ca kiểm `ô hợp lệ có focus: không outline ngoài, 2px màu --color-text`, `ô lỗi có focus: 3px, vẫn --color-danger-border`, `kích thước hộp ô bằng nhau ở bốn trạng thái` | Chưa đo trên trình duyệt — cùng lý do dòng `placeholder`. Khuôn này đã đo ở [`AuthField.md`](./AuthField.md); `Input` là tệp SCSS riêng nên số đo đó không thay được |
 | `error` | Có: `.input--error` đặt `--border-w-strong` + `--color-danger-border`, nền giữ nguyên, `aria-invalid`, `aria-describedby` | — |
-| `hover` | Có khối `@media (hover: hover)` đúng chỗ | ⚠️ **Không đổi gì trên thực tế** — trạng thái nghỉ đã là `--color-border-strong` và hover đặt lại đúng token đó. Spec đòi "viền đậm thêm một bậc"; thang xám hiện không có bậc nào trên `--color-border-strong` để bước lên |
+| `hover` | Đọc mã 2026-10-06 trên cây làm việc, chưa commit: `input.component.scss` không còn khối `&:hover` nào — chú thích § `Không có khối` nêu lý do. Viền vì thế giữ nguyên khi hover, ở cả ô hợp lệ lẫn ô lỗi | Con trỏ không khai trong tệp — để trình duyệt tự chọn. Chưa đo trên trình duyệt |
 | `disabled` | Có nền `--color-surface-3`, chữ `--color-text-disabled`, `cursor: not-allowed` | Chưa đặt `border-color: var(--color-border)` mà spec khai — viền giữ nguyên `--color-border-strong` của trạng thái nghỉ. Nút hiện/ẩn của `password` cũng chưa bị `disabled` kèm |
 
 Chưa đối chiếu: §Responsive, §Token dùng (chưa soát từng token một), bàn phím ảo trên di động (đo trên thiết bị thật), và việc `id` có thật sự trùng `controlId` của `FormRow` ở từng trang gọi — mới so hợp đồng của component, chưa mở các trang gọi ra so.
@@ -59,7 +61,7 @@ Một hợp đồng hình thức **duy nhất** cho mọi ô nhập liệu, đ�
 | --- | --- | --- |
 | `text` | `<input type="text">` | Mặc định |
 | `number` | `<input type="text" inputmode="decimal">` | Căn phải nội dung. Không dùng `type="number"` — nó không nhận dấu phân cách. Tự định dạng phân cách hàng nghìn khi blur, bỏ định dạng khi focus; giá trị đi qua form control là số, không phải chuỗi đã định dạng |
-| `password` | `<input type="password">` | Có nút hiện/ẩn ở vị trí `suffix` khi `revealable` bật (mặc định). Hợp đồng của nút — `type="button"`, nhãn đổi theo trạng thái, thứ tự Tab, vòng focus riêng, vùng bấm, trạng thái nhấn và vô hiệu hoá — dùng chung với [`AuthField.md`](./AuthField.md) §Accessibility, không khai lại ở đây. Icon theo [`../Icons.md`](../Icons.md) §5 dòng Hiện/Ẩn mật khẩu; đệm phải chừa chỗ nút tính bằng `calc()` từ bậc `--sp-*` và `--icon-md` như [`AuthField.md`](./AuthField.md) §Kích thước, bằng token riêng của `Input` |
+| `password` | `<input type="password">` | Có nút hiện/ẩn ở vị trí `suffix` khi `revealable` bật (mặc định). Hợp đồng của nút — `type="button"`, nhãn đổi theo trạng thái, thứ tự Tab, vòng focus riêng, vùng bấm, trạng thái nhấn và vô hiệu hoá — dùng chung với [`AuthField.md`](./AuthField.md) §Accessibility, không khai lại ở đây. Icon theo [`../Icons.md`](../Icons.md) §5 dòng Hiện/Ẩn mật khẩu; đệm phải chừa chỗ nút cùng hình học với đệm phải `password` ở [`AuthField.md`](./AuthField.md) §Kích thước — nút cách mép phải `--sp-4`, vùng bấm `--size-control-sm`, chữ dừng cách nút `--sp-4` — bằng token riêng của `Input`, `--input-pad-reveal` ([`../DESIGN.md`](../DESIGN.md) §6.5; chốt 2026-10-08, trước đó câu này ghi `--icon-md` thay cho vùng bấm của nút) |
 | `select` | `<select>` | Có mũi tên chỉ xuống ở mép phải; đệm phải nới thêm để chữ không đè lên mũi tên |
 | `textarea` | `<textarea>` | Cao tối thiểu ba dòng; chỉ cho kéo giãn theo chiều dọc |
 | `search` | `<input type="search">` | Có icon `pi-search` dẫn và nút xoá khi có nội dung |
@@ -90,9 +92,9 @@ Ba công tắc, dùng được với mọi biến thể:
 
 | Trạng thái | Xử lý | Áp dụng |
 | --- | --- | --- |
-| `default` | Nền `--color-surface`; viền `--border-w` `--color-border-strong`; chữ `--color-text`; `--radius-sm`. Placeholder dùng `--color-text-muted` | Có |
-| `hover` | Viền đậm thêm một bậc trong thang xám; nền không đổi. Bọc trong `@media (hover: hover)` | Có |
-| `focus-visible` | `outline: var(--border-w-strong) solid var(--color-focus)`, `outline-offset: 2px`; viền chuyển `--color-brand`. Ô nhập là chỗ duy nhất trong hệ dùng **cả hai** dấu hiệu — vòng ngoài cho người dùng bàn phím, viền đổi màu cho người dùng chuột đã bấm vào ô | Có |
+| `default` | Nền `--color-surface`; viền `--border-w` `--color-border-strong`; chữ `--color-text`; `--radius-sm`. Placeholder dùng `--color-text-muted`. Ô trình duyệt vừa tự điền **giữ nguyên** nền và chữ này — [`../DESIGN.md`](../DESIGN.md) §2.6 *Ô nhập chữ* | Có |
+| `hover` | Chỉ áp khi ô không có focus. Ô hợp lệ: chỉ đổi con trỏ sang `text`; viền giữ `--border-w` `--color-border-strong`, nền không đổi. Ô đang lỗi: không đổi gì — giữ `--border-w-strong` `--color-danger-border`. Luật ở [`../DESIGN.md`](../DESIGN.md) §2.6 *Ô nhập chữ*, dòng `hover`. Bọc trong `@media (hover: hover)` | Có |
+| `focus-visible` | **Một** dấu hiệu theo [`../DESIGN.md`](../DESIGN.md) §2.6 *Ô nhập chữ*: đường biên tối lên và dày lên tại chỗ — `--border-w-strong` màu `--color-text`; không vòng ngoài, không khoảng hở, không màu xanh. Ô đang lỗi thì giữ `--color-danger-border` và dày `--border-w-accent`. Nút hiện/ẩn của `password` giữ vòng focus riêng của nút | Có |
 | `active` | **Không áp dụng.** Ô nhập không có trạng thái "đang bị nhấn" phân biệt được với focus | — |
 | `disabled` | Nền `--color-surface-3`; chữ `--color-text-disabled`; viền `--color-border`; `cursor: not-allowed`. Thuộc tính `disabled` thật; nút hiện/ẩn của `password` cũng `disabled`. **Giá trị không được gửi lên khi submit** — đó là điểm khác cốt lõi với `readonly` | Có |
 | `loading` | Ô bị vô hiệu hoá tạm; hiện spinner ở vị trí `suffix`; `aria-busy="true"`. Chỉ dùng khi bản thân ô đang chờ dữ liệu (danh sách gợi ý, kiểm tra trùng), **không** dùng khi cả form đang gửi — lúc đó khoá ở nút submit | Có |
@@ -115,10 +117,10 @@ Dùng `disabled` cho một trường chỉ để hiển thị (mã bản ghi t�
 
 | Nhóm | Token |
 | --- | --- |
-| Màu | `--color-surface`, `--color-surface-3`, `--color-text`, `--color-text-muted`, `--color-text-disabled`, `--color-border`, `--color-border-strong`, `--color-brand`, `--color-danger-border`, `--color-focus` |
+| Màu | `--color-surface`, `--color-surface-3`, `--color-text`, `--color-text-muted`, `--color-text-disabled`, `--color-border`, `--color-border-strong`, `--color-danger-border`, `--color-focus` (chỉ vòng focus của nút hiện/ẩn) |
 | Chữ | `--fs-xs`, `--fs-sm`, `--fs-md`, `--fw-regular`, `--lh-snug`, `--lh-normal` |
 | Khoảng cách | `--sp-3`, `--sp-4`, `--sp-5` |
-| Hình dạng | `--radius-sm`, `--border-w`, `--border-w-strong` |
+| Hình dạng | `--radius-sm`, `--border-w`, `--border-w-strong`, `--border-w-accent` |
 | Kích thước | `--size-control-sm`, `--size-control-md`, `--size-control-lg`, `--icon-sm`, `--icon-md` |
 | Chuyển động | `--dur-fast`, `--ease-standard` |
 
@@ -142,7 +144,7 @@ Dùng `disabled` cho một trường chỉ để hiển thị (mã bản ghi t�
 | `inputmode` | Đặt cho ô số và ô điện thoại, để di động hiện bàn phím số |
 | Lỗi | `aria-invalid="true"` suy từ control: `invalid && touched` (§API dự kiến); `aria-describedby` = `describedBy` trang truyền, trỏ tới id của dòng lỗi. Chỉ đổi viền là không đủ — [`../DESIGN.md`](../DESIGN.md) §2.7 |
 | Bắt buộc | `required` **và** dấu hiệu nhìn thấy được ở nhãn. Chỉ có dấu sao mà không có `required` thì trình đọc màn hình không biết |
-| Focus | `outline` + `outline-offset` ≥ 2px, và viền đổi màu |
+| Focus | Một dấu hiệu, ≥ 3:1 với nền ô và nền quanh ô — [`../DESIGN.md`](../DESIGN.md) §2.6 *Ô nhập chữ* |
 | `readonly` | Vẫn nhận Tab. Người dùng bàn phím phải đọc được nội dung |
 | Nút hiện/ẩn (`password`) | Theo [`AuthField.md`](./AuthField.md) §Accessibility |
 | Chữ | Placeholder, nhãn, thông báo lỗi đều qua i18n — [`../../RULES.md`](../../RULES.md) §7 F8 |

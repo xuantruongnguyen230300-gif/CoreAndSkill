@@ -10,6 +10,7 @@ import { fieldErrorText } from '../../../../shared/forms/field-error-text';
 import { DonViService } from '../services/don-vi.service';
 import { LoiTruongTaoDonVi, TaoDonViForm, TenTruongTaoDonVi } from '../models/don-vi-hop.model';
 import { DonVi } from '../models/don-vi.model';
+import { cauLoiKhongPhaiApi } from '../../../../core/http/dich-loi';
 
 /** Khuôn mã đơn vị — cùng biểu thức với BE, kiểm SAU khi chuẩn hoá về chữ hoa (tenants.md §2). */
 const MA_DON_VI_PATTERN = /^[A-Z0-9][A-Z0-9_-]{0,49}$/;
@@ -36,19 +37,26 @@ export class TaoDonViStore {
       Validators.maxLength(50),
       Validators.pattern(MA_DON_VI_PATTERN),
     ]),
-    name: this.fb.control('', [Validators.required]),
+    // Trần 200 theo contracts/tenants.md §2 — chặn sớm; BE vẫn là nguồn phán quyết cuối.
+    name: this.fb.control('', [Validators.required, Validators.maxLength(200)]),
     adminUserName: this.fb.control('', [Validators.required]),
     adminEmail: this.fb.control('', [Validators.required, Validators.email]),
     adminFullName: this.fb.control('', [Validators.required, Validators.maxLength(200)]),
     adminTempPassword: this.fb.control('', [Validators.required]),
   });
-  readonly hienThi = signal(false);
-  readonly dangLuu = signal(false);
-  readonly daGui = signal(false);
-  readonly loiChung = signal<string | null>(null);
-  readonly hienThiXacNhanHuy = signal(false);
+  private readonly _hienThi = signal(false);
+  readonly hienThi = this._hienThi.asReadonly();
+  private readonly _dangLuu = signal(false);
+  readonly dangLuu = this._dangLuu.asReadonly();
+  private readonly _daGui = signal(false);
+  readonly daGui = this._daGui.asReadonly();
+  private readonly _loiChung = signal<string | null>(null);
+  readonly loiChung = this._loiChung.asReadonly();
+  private readonly _hienThiXacNhanHuy = signal(false);
+  readonly hienThiXacNhanHuy = this._hienThiXacNhanHuy.asReadonly();
+  private readonly _lanGuiSai = signal(0);
   /** Tăng mỗi lần bấm gửi mà form không hợp lệ — hộp lắng nghe để đưa focus về ô sai đầu tiên. */
-  readonly lanGuiSai = signal(0);
+  readonly lanGuiSai = this._lanGuiSai.asReadonly();
 
   /** Nhịp đổi trạng thái của form (giá trị, chạm, lỗi): control không phải signal, cần nó để `loiTruong` tính lại. */
   private readonly nhipForm = signal(0);
@@ -93,26 +101,26 @@ export class TaoDonViStore {
       adminFullName: '',
       adminTempPassword: '',
     });
-    this.daGui.set(false);
-    this.loiChung.set(null);
-    this.hienThi.set(true);
+    this._daGui.set(false);
+    this._loiChung.set(null);
+    this._hienThi.set(true);
   }
 
   dongHop(): void {
     if (this.dangLuu()) return;
-    this.hienThi.set(false);
+    this._hienThi.set(false);
   }
 
   onDismissAttempted(): void {
-    this.hienThiXacNhanHuy.set(true);
+    this._hienThiXacNhanHuy.set(true);
   }
 
   huyXacNhanHuy(): void {
-    this.hienThiXacNhanHuy.set(false);
+    this._hienThiXacNhanHuy.set(false);
   }
 
   xacNhanHuy(): void {
-    this.hienThiXacNhanHuy.set(false);
+    this._hienThiXacNhanHuy.set(false);
     this.dongHop();
   }
 
@@ -121,21 +129,21 @@ export class TaoDonViStore {
     // Chặn gửi hai lần (Enter ngầm, bấm đúp): lần hai sẽ nhận CODE_DUPLICATE giả.
     if (this.dangLuu()) return;
     this.chuanHoaMa();
-    this.daGui.set(true);
-    this.loiChung.set(null);
+    this._daGui.set(true);
+    this._loiChung.set(null);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.lanGuiSai.update((n) => n + 1);
+      this._lanGuiSai.update((n) => n + 1);
       return;
     }
     const gt = this.form.getRawValue();
-    this.dangLuu.set(true);
+    this._dangLuu.set(true);
     this.service
       .tao(gt)
-      .pipe(finalize(() => this.dangLuu.set(false)))
+      .pipe(finalize(() => this._dangLuu.set(false)))
       .subscribe({
         next: (dv) => {
-          this.hienThi.set(false);
+          this._hienThi.set(false);
           thanhCong(dv);
         },
         error: (err: unknown) => this.xuLyLoi(err),
@@ -144,12 +152,12 @@ export class TaoDonViStore {
 
   private xuLyLoi(err: unknown): void {
     if (!(err instanceof ApiFailureError)) {
-      this.loiChung.set(this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION'));
+      this._loiChung.set(cauLoiKhongPhaiApi(this.translate));
       return;
     }
     // Mọi mã, KHÔNG lọc theo danh sách mã (fe-ui-conventions.md §6.2): CODE_DUPLICATE xuống ô mã;
     // `fieldErrors` xuống ô, mã chưa hiện ở ô nào lên banner; không mã nào → câu của mã gốc — gồm
     // SEED_FAILED, hộp và nội dung giữ nguyên để gửi lại (Design/Screens/20-don-vi.md).
-    this.loiChung.set(applyFormFailure(this.form, err, this.translate, MA_GOC_VAO_O));
+    this._loiChung.set(applyFormFailure(this.form, err, this.translate, MA_GOC_VAO_O));
   }
 }

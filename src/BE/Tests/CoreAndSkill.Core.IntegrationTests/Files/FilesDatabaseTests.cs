@@ -11,11 +11,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Files;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Tệp trên PostgreSQL THẬT — docs/wiki-core/be/14-file-storage.md §3-§5. B4FilesEndpointTests (không DB) đã chứng minh
 // hợp đồng HTTP; ở đây là những thứ chỉ DB thật mới chứng minh được: bộ lọc đơn vị và xoá mềm trong EfFileRepository,
 // cột created_by do interceptor đóng dấu (cơ sở của quy tắc "chưa gắn thì chỉ người tải lên đọc"), và job đối soát
@@ -124,7 +119,12 @@ public sealed class FilesDatabaseTests(PostgresFixture db) : IAsyncLifetime
         var stranger = _tenantA with { AdminUserId = Guid.NewGuid(), AdminUserName = "nguoi.la" };
 
         var byUploader = await _host.AsAsync(_tenantA, sp => sp.GetRequiredService<ISender>().Send(new GetFileQuery(id)));
+        // FileDownload.Content là luồng ĐÃ MỞ mà người nhận đóng (docs/adr/0068-nhanh-tai-tep-di-qua-handlefile.md quyết
+        // định 4). Gọi thẳng handler thì test là người nhận. Để luồng mở thì lúc huỷ factory, việc xoá thư mục gốc kho tệp
+        // vỡ trên Windows (FileShare.Read không cho xoá tệp đang mở); Linux xoá được tệp đang mở nên lỗi rò không lộ ở CI.
+        await using var uploaderContent = byUploader.IsSuccess ? byUploader.Value.Content : null;
         var byStranger = await _host.AsAsync(stranger, sp => sp.GetRequiredService<ISender>().Send(new GetFileQuery(id)));
+        await using var strangerContent = byStranger.IsSuccess ? byStranger.Value.Content : null; // chỉ khi có lỗi rò quyền
 
         byUploader.IsSuccess.ShouldBeTrue();
         byStranger.IsFailure.ShouldBeTrue();

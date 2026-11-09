@@ -1,0 +1,71 @@
+# Caddy của bản cài Compose — ADR-0120 (docs/adr/0120-https-ket-thuc-o-caddy-trong-compose-header-chia-doi-postgres-quan-tri-cum-rieng-quet-bundle-fe-khi-dung-ban-cai.md) QC1.
+# Tên miền và email ACME đọc từ .env qua docker-compose.yml — repo không mang tên miền của bản cài nào.
+# Bảng chia vai header: docs/wiki-core/be/09-security-beyond-auth.md §6. Middleware Core đã đặt nosniff và
+# no-store cho phản hồi API; ở đây CHỈ đặt nửa của proxy (HSTS, CSP, Referrer-Policy).
+#
+# Bản cài trong mạng nội bộ (không tên miền công khai): thêm vào từng khối site chỉ thị
+# `tls /certs/<tệp chứng chỉ> /certs/<tệp khoá>` và gắn hai tệp (NGOÀI repo) vào container. Gia hạn là việc tay.
+
+{
+	email {$ACME_EMAIL}
+}
+
+# Origin API. HTTP -> HTTPS do Caddy tự chuyển hướng. Caddy tự đặt X-Forwarded-For/Proto/Host; app chỉ tin chúng
+# từ dải KnownNetworks của mạng `edge` (docker-compose.yml).
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# API không phục vụ trang: chính sách chặn hết, gồm cấm nhúng khung.
+		Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+		Referrer-Policy "no-referrer"
+	}
+
+	reverse_proxy api:8080
+}
+
+# Origin FE — tệp tĩnh của FE (docs/wiki-core/fe/17-phuc-vu-va-trien-khai.md §2, §3, §6, §8).
+# Thư mục gốc /srv/fe là thư mục máy chủ gắn vào container (docker-compose.yml, biến FE_WWW_DIR). Triển khai CHÉP
+# đè nội dung build vào đó, KHÔNG xoá trước: tệp băm của bản trước còn nằm lại để người đang mở app cũ vẫn tải được
+# nhánh lazy chưa tải (§3.3); dọn tệp cũ là việc làm sau, có chủ đích. Quay lui = chép lại artifact của bản trước (§8).
+# CSP đang ở chế độ CHỈ BÁO CÁO (docs/wiki-core/fe/14-security.md §4.2): chưa chặn gì, chỉ hiện báo cáo ở console.
+# Hash 'sha256-…' là của script theme nội tuyến trong index.html — đổi một ký tự trong script đó thì tính lại.
+{$FE_DOMAIN} {
+	encode zstd gzip
+
+	root * /srv/fe
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'sha256-PGsMMZ3YEJKrUJodh0N2JT66JKMsRAiQF2sgvtmprFI='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://{$API_DOMAIN}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		X-Content-Type-Options "nosniff"
+		# frame-ancestors của CSP chỉ báo cáo ở chế độ trên không chặn được nhúng khung — header này chặn thật.
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	# Tệp có mã băm 8 ký tự trong tên (esbuild: main-, chunk-, styles-, tài nguyên trong media/): nội dung đổi thì tên đổi.
+	@hashed path_regexp ^/.+-[A-Z0-9]{8}\.(js|css|woff2?|ttf|svg|png|jpe?g|webp)$
+	# Tệp dịch: tên không đổi khi nội dung đổi — không được cache dài (§3.2).
+	@i18n path /i18n/*
+	# Font tự chứa trong public/fonts: tên không băm, cache ngắn.
+	@fonts path /fonts/*
+	# Đường dẫn của app: không phải tệp thật VÀ không có đuôi tệp. Tệp tĩnh thiếu (có đuôi) rơi xuống file_server → 404,
+	# không trả HTML với mã 200 (§2.3). API ở origin riêng nên không có tiền tố API nào ở đây.
+	@spa {
+		not file
+		not path_regexp \.[A-Za-z0-9]+$
+	}
+
+	# `route` giữ đúng thứ tự viết: Caddy không xếp lại các chỉ thị bên trong.
+	route {
+		# Mặc định, gồm HTML gốc (kể cả khi là kết quả của fallback): không cache, luôn hỏi lại máy chủ (§3.1).
+		header Cache-Control "no-store"
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		header @i18n Cache-Control "no-cache"
+		header @fonts Cache-Control "public, max-age=86400"
+		rewrite @spa /index.html
+		file_server
+	}
+}

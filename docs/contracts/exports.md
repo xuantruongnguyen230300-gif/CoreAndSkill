@@ -11,7 +11,7 @@ verified: chua-doi-chieu
 >
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
-> | Card §1 có **một** bản cài: `src/BE/Core/CoreAndSkill.Core.Web/Controllers/UsersController.cs` action `Export` (`GET /api/v1/core/users/export`, quyền `core.user.export`). Thân là chính tệp, `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`; ô công thức bị vô hiệu hoá; `CORE.EXPORT.TOO_MANY_ROWS` 422 nêu cả số dòng thực tế và giới hạn, không ghi tệp và không ghi nhật ký; đã kiểm ở `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Web/B4ExportEndpointTests.cs` | Tệp xuất **khớp bộ lọc đang xem** chỉ chứng minh được trên DB thật: `ExportUsersDatabaseTests.cs` (`RequiresDocker`) — **chưa chạy** |
+> | Card §1 có **một** bản cài: `src/BE/Core/CoreAndSkill.Core.Web/Controllers/UsersController.cs` action `Export` (`GET /api/v1/core/users/export`, quyền `core.user.export`). Thân là chính tệp, `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`; ô công thức bị vô hiệu hoá; `CORE.EXPORT.TOO_MANY_ROWS` 422 nêu cả số dòng thực tế và giới hạn, không ghi tệp và không ghi nhật ký; đã kiểm ở `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Web/B4ExportEndpointTests.cs`. Tệp xuất **khớp bộ lọc đang xem** chỉ chứng minh được trên DB thật: `ExportUsersDatabaseTests.cs` (`RequiresDocker`) xanh: `dotnet test` 2026-11-03 ở máy Windows, Docker `postgres:18` | Lớp DB xanh trên CI — CI chưa chạy với bản này |
 > | `format` vắng thì mặc định `csv`; giá trị ngoài `csv` / `xlsx` là `CORE.VALIDATION.FAILED` | Giữ nguyên |
 > | Card §1 **kiểm `X-XSRF-TOKEN` như lệnh ghi**: action `Export` mang `[RequireAntiforgery]`, `AntiforgeryValidationMiddleware` đọc `GetMetadata<RequireAntiforgeryAttribute>()` ở bước 1, `Content-Disposition` nằm trong `.WithExposedHeaders("Retry-After", "Content-Disposition")`. Thiếu token → 403 `CORE.AUTH.CSRF_REJECTED` và **không dòng nhật ký nào**; `Origin` lạ kèm token đúng → 403 `CORE.AUTH.ORIGIN_REJECTED`; chưa đăng nhập → 401. Kiểm qua HTTP ở `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Web/B4ExportEndpointTests.cs`, 14/14 xanh (đối chiếu 2026-09-23) — [ADR-0062](../adr/0062-endpoint-xuat-kiem-token-chong-gia-mao-nhu-lenh-ghi.md) | FE tải bằng blob theo [`../quy-uoc/fe-api-client.md`](../quy-uoc/fe-api-client.md) §6.4 — **chưa có màn nào gọi** |
 > | Card §2 (nhập): Core có cơ chế (`StartImportCommand`, `ImportJobExecutor`) nhưng **không có controller nhập nào** — endpoint nhập là của từng tài nguyên/module. `result` của việc nhập mang thêm `failedCount` và cắt `failed` ở `Core:Import:MaxFailedRowsInResult` dòng | Endpoint nhập đầu tiên do module dựng theo khuôn này |
@@ -47,7 +47,9 @@ Thân là chính tệp, kèm `Content-Disposition: attachment`. Tên tệp gồm
 
 | `code` | `type` | HTTP | Khi nào |
 | --- | --- | ---: | --- |
-| `CORE.EXPORT.TOO_MANY_ROWS` | `BusinessRule` | 422 | Vượt giới hạn số dòng của đường đồng bộ. Thông báo **phải** nói rõ giới hạn và gợi ý siết bộ lọc |
+| `CORE.EXPORT.TOO_MANY_ROWS` | `BusinessRule` | 422 | Vượt giới hạn số dòng của đường đồng bộ. `messageParams` khoá `RowCount` (số dòng khớp bộ lọc lúc đếm) và `MaxRows` (giới hạn). Thông báo **phải** nói rõ giới hạn và gợi ý siết bộ lọc |
+
+**Lỗi của tham số lọc kế thừa từ endpoint danh sách** của tài nguyên đó: cùng mã, cùng khoá `fieldErrors`, cùng `messageParams`. Ví dụ với người dùng: `roleId` không tồn tại là `CORE.USER.ROLE_NOT_FOUND` 422, `messageParams.RoleId` ([`users.md`](users.md) §3).
 
 **Mã dùng chung** — `type` và HTTP tra ở [`auth.md`](auth.md) §11:
 

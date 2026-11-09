@@ -41,7 +41,7 @@
 
   // Dính đáy dưới $bp-sm (Dialog.md §Responsive) — bàn phím ảo đẩy dialog căn giữa lên, cắt mất
   // phần đầu; dính đáy thì dialog trượt lên cùng bàn phím.
-  @media (max-width: #{s.$bp-sm - 1px}) {
+  @include s.duoi-man-hinh(s.$bp-sm) {
     &.app-dialog--sm,
     &.app-dialog--md,
     &.app-dialog--lg,
@@ -61,6 +61,205 @@
   }
 }
 
+// Vì sao: Dialog.md §Trạng thái, đoạn "Mở và đóng" — một thời lượng `--dur-base` cho hai chiều, đường
+// cong tách theo hướng (`--ease-decelerate` vào, `--ease-accelerate` ra). PrimeNG 21 chạy chuyển động
+// bằng lớp CSS theo pha gắn lên chính `.p-dialog` (`p-dialog-enter-active` / `p-dialog-leave-active`),
+// thời lượng và đường cong viết cứng trong `animation` của hai lớp đó (300ms). Chỉ đè
+// `animation-duration` / `animation-timing-function` để giữ nguyên `@keyframes` của thư viện. Lớp bọc
+// KHÔNG truyền thời lượng nào bằng TypeScript: truyền `duration` thì thư viện ghi số thành style nội
+// tuyến và token bị bỏ qua (luật F62, ADR-0123). Backdrop đi đường khác: khoá preset
+// `semantic.mask.transitionDuration` (core/theme/prime-preset.ts), cùng `--dur-base`.
+// Hỏng khi nào: PrimeNG đổi tên lớp `p-dialog-enter-active` / `p-dialog-leave-active` ở bản nâng cấp —
+// khối này không khớp phần tử nào, hộp chạy lại 300ms của thư viện, build và lint vẫn xanh. Phép
+// kiểm: ca "chuyển động" ở shared/ui/dialog/dialog.component.spec.ts.
+.app-dialog {
+  &.p-dialog-enter-active {
+    animation-duration: var(--dur-base);
+    animation-timing-function: var(--ease-decelerate);
+  }
+  &.p-dialog-leave-active {
+    animation-duration: var(--dur-base);
+    animation-timing-function: var(--ease-accelerate);
+  }
+}
+
+// Vì sao: Drawer.md §Kích thước/§Trạng thái — preset PrimeNG không có khái niệm "ba cỡ BỀ RỘNG",
+// bo góc theo cạnh neo, đổ bóng `--shadow-4`; `styleClass` của app-drawer (shared/ui/drawer/) gắn
+// `.app-drawer.app-drawer--<cỡ>.app-drawer--<vị trí>` lên chính phần tử gốc `.p-drawer`. Ba khoản
+// CSS thuần:
+//   - nhịp trượt vào/ra (Drawer.md §Trạng thái, ba cơ chế; luật F62, ADR-0123): PrimeNG 21 gắn lớp
+//     pha `p-drawer-enter-<vị trí>` / `p-drawer-leave-<vị trí>` lên chính `.p-drawer`, thời lượng 0.5s
+//     và đường cong viết cứng trong `animation` của lớp đó → đè `animation-duration` =
+//     `--dur-base` cho cả hai pha, `animation-timing-function` = `--ease-decelerate` pha vào,
+//     `--ease-accelerate` pha ra, giữ nguyên `@keyframes` của thư viện. Lớp bọc không truyền thời
+//     lượng nào bằng TypeScript;
+//   - `transition: transform 0.3s` của thư viện trên `.p-drawer`: thư viện kết thúc pha theo thời
+//     lượng LỚN NHẤT trên phần tử, nên một `transition` dài hơn `animation` giành quyền định thời —
+//     nó chờ một `transitionend` không bao giờ tới (`transform` do keyframes đổi, không kích hoạt
+//     transition) rồi kết thúc bằng hẹn giờ dự phòng, và tấm nhảy về chỗ cũ trước khi bị ẩn. Không
+//     có chuyển tiếp `transform` nào cần giữ → gỡ hẳn (`transition: none`), không còn thời lượng
+//     thứ hai để lệch khỏi token của pha;
+//   - mặt nạ: màu `--color-overlay` và thời lượng `--dur-base` (cùng nhịp với tấm trượt) trên lớp
+//     `p-overlay-mask-enter-active` / `-leave-active` mà Drawer gắn lên `.p-drawer-mask`;
+//   - chỉ thân cuộn (`.p-drawer-content` đã `overflow-y: auto`), đầu và chân không co.
+// Chế độ toàn màn của thư viện (`.p-drawer-full`) KHÔNG được phơi ra → không override (Cần chốt 3).
+// Hỏng khi nào: PrimeNG đổi tên lớp `.p-drawer`/`.p-drawer-header`/`.p-drawer-content`/
+// `.p-drawer-footer`/`.p-drawer-mask`, lớp pha `p-drawer-enter-*` / `p-drawer-leave-*`, hoặc lớp pha
+// mặt nạ `p-overlay-mask-*-active` ở bản nâng cấp major — khối không khớp phần tử nào, thư viện chạy
+// lại số của nó (0.5s), build và lint vẫn xanh. Đã xảy ra: khối mặt nạ cũ trỏ `p-overlay-mask-enter`,
+// chết sau lượt nâng 20 → 21. Phép kiểm: ca "chuyển động" ở shared/ui/drawer/drawer.component.spec.ts.
+@keyframes app-drawer-mask-vao {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: var(--color-overlay);
+  }
+}
+@keyframes app-drawer-mask-ra {
+  from {
+    background-color: var(--color-overlay);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.p-drawer-mask.p-overlay-mask-enter-active {
+  animation: app-drawer-mask-vao var(--dur-base) var(--ease-standard) forwards;
+}
+.p-drawer-mask.p-overlay-mask-leave-active {
+  animation: app-drawer-mask-ra var(--dur-base) var(--ease-standard) forwards;
+}
+
+.app-drawer {
+  transition: none;
+  box-shadow: var(--shadow-4);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 0 solid var(--color-border);
+
+  &.app-drawer--right,
+  &.app-drawer--left {
+    height: 100%;
+  }
+  &.app-drawer--right {
+    border-inline-start-width: var(--border-w);
+    border-radius: var(--radius-lg) var(--radius-0) var(--radius-0) var(--radius-lg);
+  }
+  &.app-drawer--left {
+    border-inline-end-width: var(--border-w);
+    border-radius: var(--radius-0) var(--radius-lg) var(--radius-lg) var(--radius-0);
+  }
+  &.app-drawer--sm.app-drawer--right,
+  &.app-drawer--sm.app-drawer--left {
+    width: min(var(--layout-drawer-w-sm), 92vw);
+  }
+  &.app-drawer--md.app-drawer--right,
+  &.app-drawer--md.app-drawer--left {
+    width: min(var(--layout-drawer-w-md), 92vw);
+  }
+  &.app-drawer--lg.app-drawer--right,
+  &.app-drawer--lg.app-drawer--left {
+    width: min(var(--layout-drawer-w-lg), 92vw);
+  }
+
+  // Dưới $bp-sm: neo đáy, cao tối đa 85vh, vạch trang trí ở đầu (Drawer.md §Responsive).
+  &.app-drawer--bottom {
+    width: 100%;
+    height: auto;
+    max-height: 85vh;
+    border-block-start-width: var(--border-w);
+    border-radius: var(--radius-lg) var(--radius-lg) var(--radius-0) var(--radius-0);
+
+    &::before {
+      content: '';
+      align-self: center;
+      flex-shrink: 0;
+      width: var(--sp-8);
+      height: var(--sp-2);
+      margin-top: var(--sp-3);
+      border-radius: var(--radius-full);
+      background: var(--color-border);
+    }
+  }
+
+  &:is(.p-drawer-enter-left, .p-drawer-enter-right, .p-drawer-enter-bottom) {
+    animation-duration: var(--dur-base);
+    animation-timing-function: var(--ease-decelerate);
+  }
+  &:is(.p-drawer-leave-left, .p-drawer-leave-right, .p-drawer-leave-bottom) {
+    animation-duration: var(--dur-base);
+    animation-timing-function: var(--ease-accelerate);
+  }
+
+  .p-drawer-header {
+    padding: var(--sp-5) var(--sp-6);
+    gap: var(--sp-4);
+    border-bottom: var(--border-w) solid var(--color-border-subtle);
+  }
+  .p-drawer-content {
+    padding: var(--sp-6);
+    min-height: 0;
+  }
+  .p-drawer-footer {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--sp-4);
+    padding: var(--sp-5) var(--sp-6);
+    border-top: var(--border-w) solid var(--color-border-subtle);
+  }
+}
+
+// Vì sao: Toast.md §Trạng thái, đoạn vào/ra — bất đối xứng có chủ đích: vào chậm (`--dur-slow`,
+// `--ease-decelerate`), ra nhanh (`--dur-base`, `--ease-accelerate`). PrimeNG 21 gắn lớp pha
+// `p-toast-message-enter-active` / `p-toast-message-leave-active` lên từng `.p-toast-message`, thời lượng
+// 300ms / 250ms và đường cong `ease-out` / `ease-in` viết cứng trong `animation` → đè hai thuộc tính
+// tách, giữ `@keyframes`. Pha ra gập chiều cao (`grid-template-rows`, `margin-bottom`) và thu padding
+// của `.p-toast-message-content` bằng `transition: padding 250ms ease-in` — ngoại lệ có tên của
+// Toast.md với luật "chỉ animate transform và opacity" — nên `transition` đó phải mang cùng token với
+// pha ra (luật F62; thư viện kết thúc pha theo thời lượng lớn nhất). Chỉ pha ra đổi padding nên đè
+// tĩnh trên `.p-toast-message-content` là đúng pha mà không cần chọn theo lớp pha. Lớp bọc không
+// truyền thời lượng nào bằng TypeScript (ADR-0123).
+// Tiền tố `p-toast` (phần tử gốc của thư viện) nâng độ ưu tiên lên (0,1,1): chạy thật thì CSS thư viện
+// nằm trong lớp `primeng` (cssLayer) nên khối này thắng sẵn, nhưng nơi nào nạp thư viện KHÔNG qua
+// `cssLayer` (phần lớn spec) thì hai bên bằng nhau (0,1,0) và CSS thư viện — nạp sau — thắng.
+// Hỏng khi nào: PrimeNG đổi tên lớp `p-toast-message-enter-active` / `p-toast-message-leave-active` /
+// `p-toast-message-content` hoặc phần tử `p-toast` ở bản nâng cấp — toast chạy lại 300 / 250ms của
+// thư viện, build và lint vẫn xanh. Phép kiểm: ca "chuyển động" ở shared/ui/toast/toast.component.spec.ts.
+p-toast .p-toast-message-enter-active {
+  animation-duration: var(--dur-slow);
+  animation-timing-function: var(--ease-decelerate);
+}
+p-toast .p-toast-message-leave-active {
+  animation-duration: var(--dur-base);
+  animation-timing-function: var(--ease-accelerate);
+}
+p-toast .p-toast-message-content {
+  transition: padding var(--dur-base) var(--ease-accelerate);
+}
+
+// Vì sao: DESIGN.md §7 *Lớp nổi neo* giao cho MỌI lớp nổi neo MỘT vai — bung và thu vào phần tử đã
+// gọi nó: `--dur-base`, `--ease-decelerate` chiều bung, `--ease-accelerate` chiều thu. Menu,
+// Autocomplete, DatePicker và ô số dòng của Paginator (một `p-select` thư viện tự dựng) cùng dùng
+// tên pha `p-anchored-overlay`, nên đè MỘT lần ở đây thay vì theo từng lớp bọc — đè theo lớp bọc thì
+// lớp nổi không có lớp bọc chạy nhịp khác trong cùng màn (ADR-0123 quyết định 4). Thư viện viết cứng
+// 300ms và đường cong riêng trong `animation` của hai lớp pha; chỉ đè hai thuộc tính tách, giữ
+// `@keyframes`. Lớp bọc không truyền thời lượng nào bằng TypeScript.
+// Tiền tố `body` nâng độ ưu tiên lên (0,1,1), cùng lý do với khối toast: thắng cả khi CSS thư viện
+// không vào lớp `primeng` (spec không qua `cssLayer`). Lớp nổi neo luôn nằm dưới `body`.
+// Hỏng khi nào: PrimeNG đổi tên lớp `p-anchored-overlay-enter-active` / `-leave-active` ở bản nâng
+// cấp — mọi lớp nổi neo chạy lại 300ms của thư viện, build và lint vẫn xanh. Phép kiểm: ca "chuyển
+// động" ở shared/ui/menu/menu.component.spec.ts.
+body .p-anchored-overlay-enter-active {
+  animation-duration: var(--dur-base);
+  animation-timing-function: var(--ease-decelerate);
+}
+body .p-anchored-overlay-leave-active {
+  animation-duration: var(--dur-base);
+  animation-timing-function: var(--ease-accelerate);
+}
+
 // Vì sao: preset PrimeNG không có khái niệm "cỡ mục theo Menu.md §Kích thước" — chỉ hai cỡ,
 // chiều cao mục và đệm ngang khác `sm`/`md`. `styleClass` của app-menu (shared/ui/menu/) gắn lớp
 // `.app-menu.app-menu--<cỡ>` lên panel `.p-menu`; item `danger` gắn `.app-menu__muc--nguy-hiem`
@@ -76,6 +275,14 @@
     min-height: var(--size-control-md);
     padding: 0 var(--sp-4);
     font-size: var(--fs-sm);
+  }
+
+  // Menu chọn một giá trị: mục đang áp nổi bằng nền + chữ đậm; tín hiệu cho trình đọc màn hình là
+  // `aria-checked` (menu.component.ts `onShow`) — màu một mình không đủ (DESIGN.md §2.4).
+  .app-menu__muc--chon .p-menu-item-content {
+    background: var(--color-brand-subtle);
+    color: var(--color-brand-on-subtle);
+    font-weight: var(--fw-semibold);
   }
 
   .app-menu__muc--nguy-hiem .p-menu-item-link,
@@ -104,8 +311,55 @@
   }
 }
 
-.app-autocomplete__lop-noi {
-  max-width: var(--layout-popover-h-max);
+// Vì sao: Autocomplete.md §lớp nổi — rộng bằng ô, cao tối đa --layout-popover-h-max rồi cuộn. Chiều
+// cao do PrimeNG đặt inline từ `scrollHeight` (autocomplete.component.html truyền token vào đó);
+// CSS không thắng được style inline nên không khai max-height ở đây, và KHÔNG đặt max-width (token
+// này là trần chiều cao).
+
+// Vì sao: DESIGN.md §2.6 *Ô nhập chữ* — ô nhập có MỘT đường biên, đọc theo hai trục (màu nói hợp
+// lệ/lỗi, độ dày nói focus), không vòng ngoài. Vòng `:focus-visible` chung ở styles.scss nằm NGOÀI
+// `@layer` nên thắng mọi `outline` của PrimeNG (cssLayer: true) — và Chrome khớp `:focus-visible`
+// cho ô nhập cả khi bấm chuột. Chỉ trung hoà `outline` CHO Ô NHẬP; nút, checkbox, liên kết vẫn
+// nhận vòng chung. Ô gõ của `p-autoComplete` `multiple` là `<input>` trần trong khung
+// `.p-autocomplete-input-multiple` — khung vẽ đường biên nên ô trần không được vẽ thêm vòng.
+// Hỏng khi nào: PrimeNG đổi tên lớp `.p-inputtext`/`.p-autocomplete-input`/
+// `.p-autocomplete-input-chip` ở bản nâng cấp major — ô nhập lại hiện vòng `--color-focus`
+// (phép kiểm ở core/theme/prime-preset.spec.ts).
+.p-inputtext:focus-visible,
+.p-autocomplete-input:focus-visible,
+.p-autocomplete-input-chip input:focus-visible {
+  outline: none;
+}
+
+// Vì sao: DESIGN.md §2.6, hàng `hover` — ô hợp lệ GÕ được chữ chỉ đổi con trỏ sang `text` (viền
+// giữ nguyên: preset đã đặt viền hover = viền nghỉ). Ô chọn (`p-select`, TreeSelect) không phải ô
+// gõ chữ nên không nằm trong danh sách chọn bên dưới — chúng giữ con trỏ mặc định.
+// Hỏng khi nào: PrimeNG đổi tên lớp `.p-inputtext`/`.p-autocomplete-input` ở bản nâng cấp major.
+.p-inputtext:enabled:hover,
+.p-autocomplete-input:enabled:hover {
+  cursor: text;
+}
+
+// Vì sao: DESIGN.md §2.6 bảng hai trục, hàng Lỗi — màu lỗi ở lại SUỐT lúc nghỉ, hover và focus; chỉ
+// độ dày đổi (nghỉ `--border-w-strong`, focus `--border-w-accent`). Aura khai viền lỗi (0,2,0) nhưng
+// khối `:enabled:focus` của chính nó (0,3,0) đè lại bằng viền focus `--color-text` — ô lỗi mất màu
+// lỗi ngay khi nhận focus — và viền thật của nó chỉ 1px. Viền thật giữ `--border-w`; phần dày
+// thêm vẽ vào PHÍA TRONG bằng bóng `inset` (cùng cách `Input`/`AuthField` của Core) nên hộp ô không
+// đổi. Cờ lỗi có hai dạng: `.p-invalid` (do `[invalid]` đặt) và `.ng-invalid.ng-dirty` (do form
+// Angular đặt lên host `p-autocomplete`).
+// Hỏng khi nào: PrimeNG đổi tên lớp `.p-invalid`/`.p-focus`/`.p-autocomplete-input-multiple` ở bản
+// nâng cấp major — ô lỗi lại mất màu khi focus (phép kiểm ở core/theme/prime-preset.spec.ts).
+.p-inputtext.p-invalid,
+.p-autocomplete:is(.p-invalid, .ng-invalid.ng-dirty) .p-autocomplete-input,
+.p-autocomplete:is(.p-invalid, .ng-invalid.ng-dirty) .p-autocomplete-input-multiple {
+  border-color: var(--color-danger-border);
+  box-shadow: inset 0 0 0 calc(var(--border-w-strong) - var(--border-w)) var(--color-danger-border);
+}
+.p-inputtext.p-invalid:enabled:focus,
+.p-autocomplete:is(.p-invalid, .ng-invalid.ng-dirty) .p-autocomplete-input:enabled:focus,
+.p-autocomplete:is(.p-invalid, .ng-invalid.ng-dirty).p-focus .p-autocomplete-input-multiple {
+  border-color: var(--color-danger-border);
+  box-shadow: inset 0 0 0 calc(var(--border-w-accent) - var(--border-w)) var(--color-danger-border);
 }
 
 // Vì sao: Design/Components/Tooltip.md §Kích thước, §Trạng thái `default` và §Responsive đều nói
@@ -141,7 +395,7 @@
   // mà không độ ưu tiên chọn lọc nào thắng được một khai báo nội tuyến — đè nó cần `!important`.
   // `visibility` không bị thư viện ghi nội tuyến, nên đè được bằng độ ưu tiên thường. Hộp vẫn
   // được dựng và định vị rồi mới bị ẩn: đúng cái giá đã ghi ở §Responsive.
-  @media (max-width: #{s.$bp-sm - 1px}) {
+  @include s.duoi-man-hinh(s.$bp-sm) {
     visibility: hidden;
   }
 }

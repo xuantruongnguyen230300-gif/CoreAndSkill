@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0045 — Ký hiệu `⏳ chờ `src/`` giữ nguyên chữ và glyph, chỉ sửa **định nghĩa** cho hết neo vào "giai đoạn 1"; ký hiệu thứ tư bị loại
 
-> **Trạng thái:** Đã chấp nhận (2026-09-20) · Bổ sung [`0043-lenh-do-cho-phai-lat-doi-sang-nhan-dich-den.md`](0043-lenh-do-cho-phai-lat-doi-sang-nhan-dich-den.md)
+> **Trạng thái:** Đã thay thế bởi [ADR-0114](0114-bo-so-no-luat-ve-rules-viec-ton-sang-issues-review-khong-sinh-viec-stop-chan-review-mot-lan-go-nhanh-chua-co-src.md) (2026-10-05)
 
 ## Bối cảnh
 

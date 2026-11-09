@@ -15,6 +15,9 @@
 #
 # Thoát 0 = mọi ca đúng kỳ vọng · 1 = có ca sai kỳ vọng · 2 = không chạy được.
 
+# T12:cap-xanh-do — mọi ca xanh đi kèm một ca đỏ dùng chung cơ chế dò (RULES-CHUNG.md T12);
+# cặp nào nằm ở đâu thì chú thích 'Cặp đỏ:' ngay trên ca xanh nói ra, hoặc ca đỏ cùng fixture đứng sát đó.
+
 set -uo pipefail
 
 T="$(cd "$(dirname "$0")" && pwd)"
@@ -134,6 +137,12 @@ cham_gia "chưa cài gói primeng -> FAIL (không có gì để đọc thì khô
 gia; goi_chung; dung_truc_tiep dialog; preset_ts base dialog
 printf "import { ButtonModule } from 'primeng/datepicker';\n" > "$DIR/src/app/shared/ui/x.spec.ts"
 cham_gia "*.spec.ts import primeng/ không mở rộng sàn -> PASS" xanh
+
+# Cặp đỏ của ca ngay trên: cùng import, cùng thư mục, chỉ bỏ đuôi .spec -> sàn mở rộng, preset thiếu datepicker.
+gia; goi_chung; dung_truc_tiep dialog; preset_ts base dialog
+printf "import { ButtonModule } from 'primeng/datepicker';
+" > "$DIR/src/app/shared/ui/x.ts"
+cham_gia "cùng import ấy ở x.ts (không phải .spec) -> FAIL (cặp đỏ của ca spec)" do
 
 printf '\n\033[1m== canary F29 — bản sao code thật, gói thật đã cài ==\033[0m\n'
 

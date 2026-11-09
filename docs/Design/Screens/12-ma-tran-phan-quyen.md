@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # Ma trận phân quyền — màn hình
 
-🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Màn đã dựng ở `src/FE` và thuộc pha F3 ([04-f3-man-quan-tri.md](../../wiki-core/fe/trien-khai/04-f3-man-quan-tri.md) §1, §3.5). Mới đối chiếu **từng mục** — bảng "Có thật hôm nay → sẽ thành" ngay dưới khối Khung/Quyền ghi mục nào khớp, mục nào lệch; chưa đối chiếu trọn file nên `verified: chua-doi-chieu` giữ nguyên.
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Màn đã dựng ở `src/FE` và thuộc pha F3. Mới đối chiếu **từng mục** — bảng "Có thật hôm nay → sẽ thành" ngay dưới khối Khung/Quyền ghi mục nào khớp, mục nào lệch; chưa đối chiếu trọn file nên `verified: chua-doi-chieu` giữ nguyên.
 
 Quản trị đơn vị xem, sửa ma trận vai trò × quyền của đơn vị hiện hành: tick ô rồi lưu **toàn bộ** ma trận một lần — bước 3–5 của [P1](../../luong/P1-tao-vai-tro-va-gan-quyen.md). Một màn, một hộp xác nhận. Nghiệp vụ (deny-by-default, `version`, luật phủ đủ danh mục, bất biến vai trò hệ thống): [permissions.md](../../contracts/permissions.md) §2–§6 — không chép lại.
 
@@ -24,7 +24,7 @@ Quản trị đơn vị xem, sửa ma trận vai trò × quyền của đơn v�
 | Nút "Huỷ thay đổi" là nút chữ | **Lệch.** Nút mang § `icon="refresh"` — mục Icon không gán icon cho nút này, và `pi-refresh` là icon dành cho "Tải lại ma trận" | Nút chữ theo mục Icon |
 | Banner chỉ xem (`info`) và banner lưu hỏng (`danger`; ca 409 có tiêu đề, thân, nút "Tải lại ma trận") | `.html` § `severity="info"` với `phanQuyen.chiXem`; § `@if (xungDotVersion())` với `phanQuyen.xungDot.tieuDe`, `phanQuyen.xungDot.noiDung`, `phanQuyen.hanhDong.taiLai`; § `@else if (loiLuu())` | Cỡ `md` của hai banner chưa so |
 | `Table` `bordered`, cỡ `sm`, `stickyHeader`, `cardLayout = false`, `groupBy` vào `resourceName`, `emptyGroupLabel`, `caption` | `.html` § `<app-table` mang đủ các input đó; `resourceName` dẫn xuất ở `.ts` § `dichHoacKhoa(r.resourceNameKey, r.resourceKey)` | — |
-| Cột "Quyền" — nhãn là bản dịch `nameKey`, dòng phụ `code` màu `--color-text-muted` | **Lệch.** Ô chỉ có nhãn (`.html` § `dichTenQuyen(hang)`); `code` không có dòng phụ mà nằm trong `Tooltip` của nhãn (§ `<app-tooltip [text]="hang.code">`). `th scope="row"` do `Table` vẽ — chưa so | Thêm dòng phụ theo sơ đồ bố cục |
+| Cột "Quyền" — nhãn là bản dịch `nameKey`, dòng phụ `code` màu `--color-text-muted` | **Lệch.** Ô chỉ có nhãn (`.html` § `dichTenQuyen(hang)`); `code` không có dòng phụ mà nằm trong `Tooltip` của nhãn (§ `<app-tooltip [text]="hang.code">`). `th scope="row"`: **Lệch** — `Table` chưa vẽ ([`Table.md`](../Components/Table.md) dòng 43, đã nằm ở nợ của `Table`) | Thêm dòng phụ theo sơ đồ bố cục |
 | Tiêu đề cột vai trò hệ thống là `Badge` `neutral` cỡ `sm`, `onSurface2` | **Lệch.** Tiêu đề là chuỗi ghép tên vai trò với câu của `vaiTro.loai.heThong` (`.ts` § `const header = vt.isSystem`), không có `Badge` | `Badge` theo sơ đồ bố cục |
 | Ô tick — `Check` `checkbox` cỡ `sm`, `ariaLabel` nêu cả quyền lẫn vai trò, khoá khi thiếu quyền ghi và ở ô bất biến | `.html` § `<app-check` với `type="checkbox"`, `size="sm"`, khoá `phanQuyen.o.nhan`; `.ts` § `oBiKhoa` | — |
 | `Tooltip` lý do khoá chỉ ở ô hàng `core.permission.write` × cột `isSystem` | **Lệch.** `.html` gắn câu của `phanQuyen.o.lyDoKhoaHeThong` cho **mọi** ô mà `oBiKhoa` trả `true` — gồm cả ca thiếu quyền ghi và lúc đang tải lại, nên người chỉ có quyền đọc thấy lý do "vai trò hệ thống" trên mọi ô. Lời chú **đã** nối xuống `<input>` qua `describedBy` của `Check` (`.html` § `[describedBy]="tipO.idMoTa"`, so 2026-09-26), nên trình đọc màn hình cũng đọc câu sai đó trên mọi ô bị khoá | Chỉ gắn cho ô bất biến theo sơ đồ bố cục; `describedBy` giữ nguyên |
@@ -74,7 +74,6 @@ Chưa đối chiếu: mục Responsive, hình thức `loading` lần đầu và 
             disabled = thiếu core.permission.write
             disabled = hàng core.permission.write × cột isSystem, kèm Tooltip lý do — xem ghi chú dưới
           ô đã đổi so với lần tải gần nhất → dải --border-w-accent --color-brand ở mép trái ô (không chỉ màu: kèm chữ chỉ-đọc-lên "đã đổi")
-  - Footer
 ```
 
 | Quyết định | Căn cứ |
@@ -82,7 +81,7 @@ Chưa đối chiếu: mục Responsive, hình thức `loading` lần đầu và 
 | Dữ liệu từ **một** lời gọi `GET /api/v1/core/permissions/matrix`: hàng = mọi quyền của danh mục, cột = mọi vai trò; hàng **không bao giờ** dựng từ bảng cấp quyền; màn không gọi `.../by-resource` | card §5, §2 điểm 2, §7 |
 | Gom nhóm theo tài nguyên **ở FE** bằng `groupBy` của [Table.md](../Components/Table.md) đặt vào field `resourceName` — FE dẫn xuất từ bản dịch `resourceNameKey`, thiếu bản dịch thì dùng `resourceKey` (dự phòng hiển thị; `resourceKey` là khoá gom nhóm) | card §5 |
 | Ô hàng `core.permission.write` × cột `is_system` hiện `disabled` + [Tooltip](../Components/Tooltip.md) lý do, thay vì cho tick rồi nhận 422 `CORE.PERMISSION.SYSTEM_ROLE_CANNOT_LOSE_WRITE`; mã vẫn có chỗ hiện ở bảng lỗi phòng dữ liệu lệch | card §6 |
-| Luồng lưu: xác nhận nếu có gỡ quyền, tải lại từ server sau khi lưu; `version` cho lần lưu kế lấy từ lần `GET` đó, không dùng `version` trong response 200 của `PUT` | [04-f3-man-quan-tri.md](../../wiki-core/fe/trien-khai/04-f3-man-quan-tri.md) §3.5 |
+| Luồng lưu: xác nhận nếu có gỡ quyền, tải lại từ server sau khi lưu; `version` cho lần lưu kế lấy từ lần `GET` đó, không dùng `version` trong response 200 của `PUT` | Quyết định giữ ở chính spec này — sơ đồ luồng lưu ngay dưới bảng |
 
 ```text
 bấm "Lưu ma trận"

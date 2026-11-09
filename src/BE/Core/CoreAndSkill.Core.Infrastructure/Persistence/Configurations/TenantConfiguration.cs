@@ -15,7 +15,7 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.HasKey(x => x.Id).HasName("pk_tenant");
 
         builder.Property(x => x.Code).HasMaxLength(50).IsRequired();
-        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(200).IsRequired().UseCollation(CoreSchema.QualifiedViVnCollation);
         builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
         builder.Property(x => x.IsSystem).IsRequired().HasDefaultValue(false);
         builder.Property(x => x.CreatedBy).HasMaxLength(100);

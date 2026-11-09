@@ -11,9 +11,11 @@
   [inputId]="inputId() ?? undefined"
   [dropdown]="false"
   [forceSelection]="true"
+  appendTo="body"
   styleClass="app-autocomplete"
   [inputStyleClass]="'app-autocomplete__o app-autocomplete__o--' + size()"
   [panelStyleClass]="'app-autocomplete__lop-noi'"
+  scrollHeight="var(--layout-popover-h-max)"
   [ariaLabelledBy]="describedBy() ?? undefined"
   (completeMethod)="onComplete($event)"
 >

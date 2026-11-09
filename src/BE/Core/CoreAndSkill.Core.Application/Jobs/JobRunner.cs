@@ -99,12 +99,12 @@ public sealed class JobRunner(
             // tiếp, việc giữ `running` cho JobRecoveryHostedService. Một OperationCanceledException khi token CHƯA huỷ
             // (HttpClient.Timeout ném TaskCanceledException bọc TimeoutException) là lỗi của executor như mọi lỗi khác.
             //
-            // Chỉ kiểu ngoại lệ + thông điệp ĐÃ LỌC — thông điệp của thư viện ngoài có thể mang giá trị
-            // đầu vào (07-observability.md §5). Không kèm ngăn xếp: ngoại lệ nguyên bản không được
-            // chuyển thẳng vào log có lưu trữ.
+            // Giữ ngăn xếp, thông điệp mọi tầng đã qua bộ lọc — luật B28 (07-observability.md §5).
+            // Không trao nguyên đối tượng ngoại lệ cho ILogger: chuỗi FailureText.DescribeWithStack
+            // đã lọc thông điệp của MỌI tầng trước khi vào log.
             logger.LogError(
                 "Việc {JobId} loại {JobType} lỗi không lường trước: {Failure} — cần người can thiệp.",
-                jobId, jobType, FailureText.Describe(ex));
+                jobId, jobType, FailureText.DescribeWithStack(ex));
             CoreMetrics.BackgroundJobFailed.Add(1);
             return JobOutcome.Failure(JobErrors.Unexpected);
         }

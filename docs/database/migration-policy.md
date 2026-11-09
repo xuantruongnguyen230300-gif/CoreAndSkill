@@ -14,11 +14,12 @@ verified: chua-doi-chieu
 > | --- | --- |
 > | 🛑 **Migration của schema `core` đã tồn tại**, cùng `CoreDbContextModelSnapshot.cs`, ở `src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/Migrations/`. Đếm bằng `ls src/BE/Core/CoreAndSkill.Core.Infrastructure/Persistence/Migrations/*.cs`. **Migration tiếp theo KHÔNG phải migration đầu tiên**: sinh nó từ snapshot hiện tại, đừng sinh từ model rỗng | Từng mục lật sang nhãn đã đối chiếu, **riêng lẻ**, khi có người mở source ra so |
 > | 🛑 **Script DDL đã tồn tại** ở `database/scripts/core/`, mỗi script mang sẵn khối ghi lịch sử kèm `checksum_sha256` (§3.1 của [`script-runbook.md`](script-runbook.md)). Số thứ tự tiếp theo lấy bằng `ls database/scripts/core/` — **đừng đặt trùng số đã dùng** | — |
-> | Chưa có script nào trong số đó từng được áp lên một Postgres thật — xem bảng đầu [`schema-core.md`](schema-core.md) | Áp lần đầu theo [`script-runbook.md`](script-runbook.md) |
-> | `src/` và `database/` **chưa vào git** (`git status` in chúng ở dạng chưa theo dõi) | Vào git ở lần commit đầu tiên; tới lúc đó hai lệnh đếm ở trên chỉ chạy được trên máy có sẵn cây thư mục |
+> | Các script đó mới chỉ được áp lên container test của integration test — xem bảng đầu [`schema-core.md`](schema-core.md) | Áp lần đầu lên database ngoài container test theo [`script-runbook.md`](script-runbook.md) |
 >
-> **File chủ về quyền sở hữu migration và quy trình đổi schema.**
-> Nội dung schema: [`schema-core.md`](schema-core.md). Thao tác chạy script lên database:
+> 📖 `src/`, `database/` đã vào git chưa, job CI nào đã chạy: [`../README.md`](../README.md) mục *Trạng thái repo*.
+>
+> **File chủ về quyền sở hữu migration và cách làm ra một migration.** Quy trình thay đổi phá vỡ:
+> [`../wiki-core/be/13-core-data-migration.md`](../wiki-core/be/13-core-data-migration.md) §4. Nội dung schema: [`schema-core.md`](schema-core.md). Thao tác chạy script lên database:
 > [`script-runbook.md`](script-runbook.md).
 
 ---
@@ -57,7 +58,7 @@ Khoá quyền của module nằm trong hai bảng của schema `core`, nhưng ch
 | --- | --- |
 | **Chỉ ghi thêm, bỏ qua khi đã có** | Migration của module không bao giờ sửa hay xoá dòng mà Core ghi, nên bản vá Core về sau không đè lên thứ module ghi — và ngược lại. Đó chính là ca hai chủ sở hữu mà §1.1 mô tả, thu hẹp về một thao tác không xung đột được |
 | Cùng năm điều kiện của phần seed ở §4.1 | Định danh cố định, không xoá tự động, không phụ thuộc dữ liệu có sẵn — áp như với khoá của Core |
-| Module mang **cổng đối chiếu hai chiều** của riêng nó — cổng B7 của Core **không** phủ khoá của module | Khoá có trong code module mà thiếu trong migration module thì deny-by-default trả 403 cho mọi người. Cổng B7 của Core quét đúng một assembly, `Core.Infrastructure`, nên nó không nhìn thấy nguồn khoá nào của module: đo bằng cách thêm một `IPermissionCatalogSource` ngoài assembly đó khai một khoá không có dòng seed — cổng xanh nguyên (2026-09-20). Chỗ trống này là nợ **B9** ở [`../DEBT.md`](../DEBT.md) |
+| Module mang **cổng đối chiếu hai chiều** của riêng nó — cổng B7 của Core **không** phủ khoá của module | Khoá có trong code module mà thiếu trong migration module thì deny-by-default trả 403 cho mọi người. Cổng B7 của Core quét đúng một assembly, `Core.Infrastructure`, nên nó không nhìn thấy nguồn khoá nào của module: đo bằng cách thêm một `IPermissionCatalogSource` ngoài assembly đó khai một khoá không có dòng seed — cổng xanh nguyên (2026-09-20). Chỗ trống này là luật **B9** ([`../RULES-BE.md`](../RULES-BE.md)) |
 | Script của module áp **sau** script của Core ([`script-runbook.md`](script-runbook.md) §3.3 bước 2) | Bảng đích phải có trước khi module ghi vào |
 
 Hai đường khác cho khoá của module đều đã bị chặn: migration của **Core** ghi khoá của module là Core
@@ -220,8 +221,8 @@ trên chúng — luật **M13**, bảng quyền ở [`script-runbook.md`](script
 
 **Khoá của module** khai qua cùng seam, và vào database bằng migration của **chính module** — ngoại lệ
 có tên của luật E6 ở §1, cùng năm điều kiện trên. **Cổng** B7 thì không dùng chung được: cổng của Core
-chỉ quét assembly `Core.Infrastructure`, nên module phải mang cổng đối chiếu của riêng nó (nợ **B9**,
-[`../DEBT.md`](../DEBT.md)).
+chỉ quét assembly `Core.Infrastructure`, nên module phải mang cổng đối chiếu của riêng nó (luật **B9**,
+[`../RULES-BE.md`](../RULES-BE.md)).
 
 **Không bao giờ nằm trong migration:**
 
@@ -251,48 +252,9 @@ Xem [`../wiki-core/be/13-core-data-migration.md`](../wiki-core/be/13-core-data-m
 
 ---
 
-## 5. Thay đổi phá vỡ — quy trình bốn bước
+## 5. Thay đổi phá vỡ
 
-Đổi tên cột, đổi kiểu cột, tách một cột thành hai: **không bao giờ làm trong một lượt**, kể cả
-khi hệ thống chỉ chạy một instance.
-
-Lý do: giữa lúc script schema chạy xong và lúc bản build mới lên, luôn có một khoảng thời gian —
-dù ngắn — mà **code cũ đang nói chuyện với schema mới**. Đổi tên cột trong một lượt biến khoảng
-đó thành lỗi 500 hàng loạt. Với nhiều instance hoặc rolling deploy, khoảng đó dài bằng cả đợt
-deploy.
-
-### 5.1 Bốn bước — ví dụ đổi `menu_item.name` thành `menu_item.label_key`
-
-| Bước | Schema | Code | Triển khai được một mình? |
-| --- | --- | --- | --- |
-| **1. Mở rộng** | `ADD COLUMN label_key varchar(200) NULL` | Chưa đọc, chưa ghi | ✔ Code cũ không biết cột mới ⇒ vô hại |
-| **2. Ghi cả hai** | — | Mọi đường ghi điền **cả** `name` **và** `label_key`. Đọc vẫn từ `name` | ✔ |
-| **3. Chuyển đọc** | — | Backfill xong (§4.2) rồi chuyển mọi đường đọc sang `label_key`. Vẫn ghi cả hai | ✔ Rollback về bước 2 an toàn vì `name` vẫn đúng |
-| **4. Thu hẹp** | `DROP COLUMN name` | Bỏ đường ghi `name` | ✔ Chỉ làm khi đã chắc **không** rollback về trước bước 3 |
-
-**Bước 4 là bước không hoàn tác được** — sau khi `DROP COLUMN`, dữ liệu cột cũ đã mất. Để nó cách
-bước 3 ít nhất một chu kỳ phát hành, và chỉ làm khi bản chạy bước 3 đã ổn định trên production.
-
-### 5.2 Đổi kiểu cột
-
-Cùng khuôn, nhưng bước 1 thêm một cột **mới tên khác** thay vì `ALTER COLUMN … TYPE`.
-
-`ALTER COLUMN … TYPE` trên bảng lớn buộc Postgres **viết lại toàn bộ bảng** và giữ khoá `ACCESS
-EXCLUSIVE` suốt thời gian đó — không ai đọc được, không riêng ghi. Thêm cột mới rồi backfill theo
-lô tránh hẳn điều đó.
-
-**Ngoại lệ rẻ, được phép làm thẳng:** nới `varchar(n)` lên số lớn hơn — Postgres chỉ đổi metadata,
-không rewrite ([`schema-core.md`](schema-core.md) §3.5).
-
-### 5.3 Thêm cột `NOT NULL`
-
-```sql
--- Nguy hiểm trên bảng lớn với Postgres cũ, và luôn hỏng nếu bảng đã có dữ liệu mà không có DEFAULT
-ALTER TABLE core.menu_item ADD COLUMN module_key varchar(100) NOT NULL;
-```
-
-Đường an toàn: thêm **nullable** → backfill theo lô → `SET NOT NULL`. Bước `SET NOT NULL` vẫn quét
-toàn bảng để kiểm, nhưng không viết lại nó.
+> 📖 Quy trình đổi tên cột, đổi kiểu cột, thêm cột `NOT NULL` trên bảng đã có dữ liệu: đọc [`../wiki-core/be/13-core-data-migration.md`](../wiki-core/be/13-core-data-migration.md) §4
 
 ---
 
@@ -337,7 +299,9 @@ Danh sách này áp cho **mỗi** thay đổi schema `core`, không có ngoại 
    sinh (§3.2).
 3. `dotnet ef migrations add <Tên>` — một việc, đặt tên theo §3.
 4. **Đọc file vừa sinh**, đối chiếu với bảng dấu hiệu ở §3.2.
-5. Nếu là thay đổi phá vỡ → chia bốn bước theo §5, migration này chỉ làm bước hiện tại.
+5. Nếu là thay đổi phá vỡ → chia bước theo
+   [`../wiki-core/be/13-core-data-migration.md`](../wiki-core/be/13-core-data-migration.md) §4,
+   migration này chỉ làm bước hiện tại.
 6. Sinh script `.sql` idempotent và đặt vào thư mục `<gốc repo>/database/scripts/` — [`script-runbook.md`](script-runbook.md) §4.
 7. Cập nhật [`schema-core.md`](schema-core.md): cột, index, ràng buộc, và **lý do**.
    Bảng mới cần quyền khác mặc định cho tài khoản ứng dụng ⇒ sửa bảng quyền ở

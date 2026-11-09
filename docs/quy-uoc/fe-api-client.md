@@ -16,10 +16,11 @@ verified: chua-doi-chieu
 > | §2.1 và §6.4 luật 2 (đối chiếu 2026-09-23): `src/FE/src/app/core/http/api-result.model.ts` — `export const CO_TAC_DUNG_PHU`; `core/interceptors/auth.interceptor.ts` — `const canToken = GHI.has(req.method) || req.context.get(CO_TAC_DUNG_PHU);`; `error.interceptor.ts` — `const duocGuiLai = !LENH_AN_TOAN.has(yeuCau.method) || yeuCau.context.get(CO_TAC_DUNG_PHU);` | — |
 > | §2.2 nhánh blob và §6.4 luật 3–5 (đối chiếu 2026-09-23): `error.interceptor.ts` — `if (err.error instanceof Blob)` bóc thân trước khi dịch; `src/FE/src/app/core/http/tai-tep.ts` — `export function tenTepTuPhanHoi(`, `export function luuTepXuat(`, nhánh `header === null` **ném lỗi** chứ không đặt tên dự phòng | — |
 > | §2.2 lớp lỗi xuyên suốt và §1 `status` **đã khớp** (đối chiếu 2026-09-25): `src/FE/src/app/core/http/loi-xuyen-suot.ts` — `export function laLoiXuyenSuot(`; `error.interceptor.ts` — `if (laLoiXuyenSuot(err.status, body))` đứng trước nhánh 429, và `new ApiFailureError(body, err.status)`; `dich-loi.ts` — `export function dichLoiChoMan(`; `api-result.model.ts` — `readonly status = 0,`; `vi.json` có `loi.CORE.SYSTEM.UNEXPECTED` | — |
-> | §2.1 `lamMoi`, §2.2 ý 2 và 5xx không envelope (đối chiếu 2026-09-26): `error.interceptor.ts` — `translate.instant('loi.CORE.CLIENT.SERVER_UNAVAILABLE')`, `xsrf.lamMoi({ boQuaToastLoi:`; `xsrf-token.store.ts` — `lamMoi(tuyChon:`; `vi.json` có khoá | — |
+> | §2.1 `lamMoi`, §2.2 ý 2 (đối chiếu 2026-09-26): `error.interceptor.ts` — `xsrf.lamMoi({ boQuaToastLoi:`; `xsrf-token.store.ts` — `lamMoi(tuyChon:` | — |
+> | §2.1 tách service khỏi store (đối chiếu 2026-11-06): `src/FE/src/app/core/auth/xsrf-token.service.ts` — `layToken(boQuaToastLoi: boolean): Observable<string>`; `src/FE/src/app/core/auth/xsrf-token.store.ts` — `private readonly service = inject(XsrfTokenService);` | — |
 > | 🚧 §5.2 `context` (chốt 2026-09-25): `crud.ts` — `export function theoId<`, `export function danhSachTrang<` chưa nhận `HttpContext`; để né, `NguoiDungService.chiTiet`, `VaiTroService.chiTiet`, `timKiem(searchText: string` gọi thẳng `HttpClient` | Hai hàm nhận `context?`; ba phương thức quay về hàm chung |
 > | §6.4 luật 1 và luật 6 **chưa đối chiếu được**: chưa service nào gọi endpoint xuất, và `TIMEOUT_XUAT_FILE` của §6.3 chưa có trong `src/FE` | Màn đầu tiên có nút xuất dựng theo sáu luật §6.4, khai hằng số timeout cùng lượt |
-> | 📐 §6.2 và §6.3 **chưa thi công** (đối chiếu 2026-09-23, 2026-09-25): `src/FE/src/app/core/http/` không có tệp `retry.ts` nào, và `thuLaiKhiLoiMang`/`TIMEOUT_MAC_DINH`/`TIMEOUT_XUAT_FILE` không xuất hiện ở đâu dưới `src/FE`. Khuôn để dựng của cả hai mục đã chuyển sang [`fe-api-client-chua-thi-cong.md`](fe-api-client-chua-thi-cong.md), không phải thứ `import` được hôm nay — đọc nó như mã có sẵn thì lỗi biên dịch, và lối thoát dễ nhất khỏi lỗi đó là viết bản thứ hai ngay trong feature | Service đầu tiên cần retry dựng `core/http/retry.ts` theo khuôn ở [`fe-api-client-chua-thi-cong.md`](fe-api-client-chua-thi-cong.md) §6.2 rồi áp tại service đó. **Một** bản, ở `core/` — retry rải mỗi feature một bản là ca §5 của CLAUDE.md. Timeout: khai hằng số theo khuôn §6.3 của tệp đó, luật ép bằng [F42](../DEBT.md) |
+> | 📐 Hàm retry của §6.2 và hai hằng timeout của §6.3 **chưa thi công** (đối chiếu 2026-09-23, 2026-09-25): `src/FE/src/app/core/http/` không có tệp `retry.ts` nào, và `thuLaiKhiLoiMang`/`TIMEOUT_MAC_DINH`/`TIMEOUT_XUAT_FILE` không xuất hiện ở đâu dưới `src/FE`. Luật của hai mục — F42, F52, F53 — nằm ở chính hai mục đó và có hiệu lực ngay. Chữ ký để dựng nằm ở [`fe-api-client-chua-thi-cong.md`](fe-api-client-chua-thi-cong.md), không phải thứ `import` được hôm nay — đọc nó như mã có sẵn thì lỗi biên dịch, và lối thoát dễ nhất khỏi lỗi đó là viết bản thứ hai ngay trong feature | Service đầu tiên cần retry dựng `core/http/retry.ts` theo khuôn ở [`fe-api-client-chua-thi-cong.md`](fe-api-client-chua-thi-cong.md) §6.2 rồi áp tại service đó. **Một** bản, ở `core/` — retry rải mỗi feature một bản là ca §5 của CLAUDE.md. Timeout: khai hằng số theo chữ ký §6.3 của tệp đó; luật F42 ở [`../RULES-FE.md`](../RULES-FE.md) |
 >
 > **Hình dạng envelope có đúng một file chủ: [`be-api-controller.md`](be-api-controller.md).** §1 khai kiểu TypeScript **phản chiếu** nó; lệch thì file BE thắng, file này sửa theo.
 
@@ -91,14 +92,25 @@ export const BO_QUA_TOAST_LOI = new HttpContextToken<boolean>(() => false);
 /** Cờ cho request mà 401 là câu trả lời BÌNH THƯỜNG, không phải hết phiên — §2.5. */
 export const BO_QUA_HET_PHIEN = new HttpContextToken<boolean>(() => false);
 
+/** Mã phía client cho phản hồi KHÔNG mang envelope, chọn theo status — nguồn duy nhất của luật F45 (§2.2). */
+export function maLoiKhongEnvelope(status: number): BusinessCode {
+  if (status === 0) {
+    return 'CORE.CLIENT.NO_CONNECTION';
+  }
+  if (status >= 500 && status <= 599) {
+    return 'CORE.CLIENT.SERVER_UNAVAILABLE';
+  }
+  return 'CORE.CLIENT.INVALID_RESPONSE';
+}
+
 /** Envelope ĐÃ BÓC (`null` khi không phải envelope) + HTTP status thật (`0`: không phản hồi, lỗi `unwrapData`) — §2.2. */
 export class ApiFailureError extends Error {
   constructor(
     readonly body: ApiFailure | null,
     readonly status = 0,
   ) {
-    // Mã lấy từ danh mục ở be-cqrs-handler.md §7.4 — FE KHÔNG tự chế mã.
-    super(body?.error.code ?? 'CORE.CLIENT.NO_CONNECTION');
+    // Mã lấy từ danh mục mã phía client ở be-cqrs-handler.md §7.4 — FE KHÔNG tự chế mã.
+    super(body?.error.code ?? maLoiKhongEnvelope(status));
   }
 }
 ```
@@ -215,20 +227,37 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
 **Tài nguyên tĩnh không đi qua chuỗi interceptor.** Bộ nạp tệp dịch ([`../wiki-core/fe/08-i18n.md`](../wiki-core/fe/08-i18n.md) §2.3) tạo `HttpClient` từ `HttpBackend`, đi vòng qua **toàn bộ** chuỗi. **Không** thay bằng danh sách tiền tố miễn trừ trong interceptor.
 
+> 📖 Request **API** duy nhất được đi vòng chuỗi theo cùng cách — ngoại lệ có tên: luật F59 ở [`../RULES-FE.md`](../RULES-FE.md)
+
+Token XSRF chia hai lớp: service gọi HTTP, store chỉ giữ state — store không inject `HttpClient` ([`../wiki-core/fe/03-state-management.md`](../wiki-core/fe/03-state-management.md) §4.1 quy tắc 2).
+
 ```typescript
+// core/auth/xsrf-token.service.ts — khối import ở ly-do §2.1
+@Injectable({ providedIn: 'root' })
+export class XsrfTokenService {
+  private readonly http = inject(HttpClient);
+
+  /** `boQuaToastLoi`: cờ của request gốc khi `errorInterceptor` làm mới ở nhánh CSRF (§2.2). */
+  layToken(boQuaToastLoi: boolean): Observable<string> {
+    const context = new HttpContext().set(BO_QUA_TOAST_LOI, boQuaToastLoi);
+    return this.http
+      .get<ApiResult<{ token: string }>>('/core/antiforgery/token', { context })
+      .pipe(map(unwrapData), map((d) => d.token));
+  }
+}
+
 // core/auth/xsrf-token.store.ts — khối import ở ly-do §2.1
 @Injectable({ providedIn: 'root' })
 export class XsrfTokenStore {
-  private readonly http = inject(HttpClient);
+  private readonly service = inject(XsrfTokenService);
   private readonly _token = signal<string | null>(null);
   readonly token = this._token.asReadonly();
 
   /** Gọi lúc khởi động app, sau đăng nhập, sau đăng xuất — và một lần khi gặp CSRF_REJECTED (§2.2). */
   lamMoi(tuyChon: { readonly boQuaToastLoi?: boolean } = {}): Observable<string> {
-    const context = new HttpContext().set(BO_QUA_TOAST_LOI, tuyChon.boQuaToastLoi ?? false);
-    return this.http
-      .get<ApiResult<{ token: string }>>('/core/antiforgery/token', { context })
-      .pipe(map(unwrapData), map((d) => d.token), tap((t) => this._token.set(t)));
+    return this.service
+      .layToken(tuyChon.boQuaToastLoi ?? false)
+      .pipe(tap((t) => this._token.set(t)));
   }
 }
 ```
@@ -243,7 +272,7 @@ Ba nơi gọi `lamMoi()`, mỗi nơi chặn một ca 403:
 
 Bốn ràng buộc:
 
-1. **`withCredentials: true` là bắt buộc.**
+1. **`withCredentials: true` là bắt buộc** — luật F59 ([`../RULES.md`](../RULES.md) §7).
 2. **Phiên không bao giờ nằm trong JS.** Cookie phiên `HttpOnly` do trình duyệt quản; không sao ra `localStorage` hay biến. Token XSRF thì JS giữ (ràng buộc 3), nhưng **chỉ trong bộ nhớ**, không `localStorage`/`sessionStorage`.
 3. **Token XSRF lấy từ thân phản hồi của endpoint phát token, giữ trong `XsrfTokenStore` ở bộ nhớ, và chỉ gắn vào request GHI tới API** — cộng đúng một ngoại lệ có tên: request `GET` **được đánh dấu tường minh** là có tác dụng phụ (hôm nay chỉ có tải tệp xuất, §6.4) đi qua nhánh gắn token như lệnh ghi. Ba nơi phải gọi `lamMoi()`: bảng ngay trên.
 4. **Đường dẫn trong service viết NGẮN, không mang tiền tố của base URL.** Cổng F19 so trên nội dung cả tệp — lệnh gốc ở [`../wiki-core/fe/trien-khai/05-gate.md`](../wiki-core/fe/trien-khai/05-gate.md) §8.13.
@@ -252,20 +281,22 @@ Bốn ràng buộc:
 
 ### 2.2 `errorInterceptor` — nơi DUY NHẤT dịch lỗi
 
-Thứ tự nhánh trong bộ xử lý lỗi `xuLyLoi(yeuCau)` — dựng theo **từng request**; khối đầy đủ của `error.interceptor.ts` ở [`ly-do/fe-api-client.md`](../wiki-core/fe/ly-do/fe-api-client.md) §2.2, sửa cùng lượt với code (luật D44, [`../DEBT.md`](../DEBT.md)):
+Thứ tự nhánh trong bộ xử lý lỗi `xuLyLoi(yeuCau)` — dựng theo **từng request**; khối đầy đủ của `error.interceptor.ts` ở [`ly-do/fe-api-client.md`](../wiki-core/fe/ly-do/fe-api-client.md) §2.2, sửa cùng lượt với code (luật D44, [`../RULES-DOCS.md`](../RULES-DOCS.md)):
 
 1. `inject()` gọi ở **thân hàm interceptor**, không trong callback của `catchError`.
 2. 403 `CORE.AUTH.CSRF_REJECTED` trên **lệnh ghi** (`!LENH_AN_TOAN.has(method)`) hoặc request `GET` mang dấu `CO_TAC_DUNG_PHU` (§2.1 ràng buộc 3, §6.4), chưa mang cờ `DA_THU_LAI_XSRF` ⇒ `xsrf.lamMoi()` (GET token mang `BO_QUA_TOAST_LOI` của request gốc) rồi gửi lại **đúng một lần**: bản clone mang header mới và cờ đặt trên **bản sao** context (`ctxDaThuLaiXsrf`), lần gửi lại bọc lại bằng chính `catchError(xuLyLoi(guiLai))`. `ORIGIN_REJECTED` không vào nhánh này.
 3. 401 ⇒ `SessionExpiryHandler.handle()` trừ request mang `BO_QUA_HET_PHIEN` (§2.5); không toast.
 4. 403 `CORE.AUTH.FORBIDDEN` ⇒ `auth.lamMoiQuyen()` rồi đi tiếp xuống nhánh 5; `CORE.AUTH.PASSWORD_CHANGE_REQUIRED` ⇒ `void auth.lamMoiPhien()`, không toast, không điều hướng; 403 mang mã **nghiệp vụ** ⇒ trả thẳng cho màn, không toast, không làm mới quyền.
 5. Lớp lỗi xuyên suốt (`laLoiXuyenSuot`, dưới) ⇒ toast theo định nghĩa gốc dưới, **không** xét `BO_QUA_TOAST_LOI`.
-6. 429 ⇒ toast `dichLoi(translate, body, thamSoRetryAfter(err))`; 409 `CORE.CONCURRENCY.CONFLICT` ⇒ toast, không gửi lại, không tải lại hộ. Cả hai tôn trọng `BO_QUA_TOAST_LOI`.
+6. 429 ⇒ toast `dichLoi(translate, body, err.status, thamSoRetryAfter(err))`; 409 `CORE.CONCURRENCY.CONFLICT` ⇒ toast, không gửi lại, không tải lại hộ. Cả hai tôn trọng `BO_QUA_TOAST_LOI`.
 7. Lỗi kèm `fieldErrors` ⇒ **không toast** — lỗi thuộc về form.
-8. Còn lại ⇒ toast `dichLoi(translate, body)` kèm `traceId` trừ khi `BO_QUA_TOAST_LOI`.
+8. Còn lại ⇒ toast `dichLoi(translate, body, err.status)` kèm `traceId` trừ khi `BO_QUA_TOAST_LOI`.
 
 Mọi nhánh kết thúc bằng `throwError(() => new ApiFailureError(body, err.status))`; `body` là `docEnvelopeLoi(err)` — thân lỗi là `Blob` kiểu JSON (request `responseType: 'blob'`, §6.4) thì đọc thành text và parse **trước** bước này.
 
-Hiện thực: `src/FE/src/app/core/http/dich-loi.ts` — `export function dichLoi(`, `export function thamSoRetryAfter(` và `export function dichLoiChoMan(` (câu cho khu lỗi riêng của màn: `null` với lớp lỗi xuyên suốt). Store và page import từ đây; interceptor không giữ bản riêng. `thamSoThem` ghi đè tham số cùng tên trong envelope; không có `body` thì trả câu mất kết nối.
+Hiện thực: `src/FE/src/app/core/http/dich-loi.ts` — `export function dichLoi(`, `export function thamSoRetryAfter(`, `export function dichLoiChoMan(` (câu cho khu lỗi riêng của màn: `null` với lớp lỗi xuyên suốt), `export function cauLoiKhongPhaiApi(` (câu cho lỗi không phải `ApiFailureError` — timeout, lỗi JS) và `export function dichLoiBatKy(` (khu lỗi nhận `unknown`: `ApiFailureError` đi qua hàm dịch truyền vào, mặc định `dichLoiChoMan`, màn có `fieldErrors` truyền `fieldErrorsText`; lỗi khác ra `cauLoiKhongPhaiApi`). Store và page import từ đây; interceptor không giữ bản riêng. `thamSoThem` ghi đè tham số cùng tên trong envelope.
+
+**Lỗi không mang envelope — mã phía client chọn theo status, ở đúng `dichLoi`** (luật F45, [`../RULES-FE.md`](../RULES-FE.md) §7). Chữ ký `dichLoi(translate, body, status, thamSoThem?)`; `status` bắt buộc, không có giá trị mặc định — hàm chọn mã qua `maLoiKhongEnvelope(status)`, nguồn duy nhất của luật này, khai ở `core/http/api-result.model.ts` và dùng lại bởi `ApiFailureError` cho `message` (dev-facing). `body` là `null` thì hàm chọn một trong `CORE.CLIENT.NO_CONNECTION`, `CORE.CLIENT.SERVER_UNAVAILABLE`, `CORE.CLIENT.INVALID_RESPONSE` theo `status`, đúng cột *Khi nào FE dùng* ở [`be-cqrs-handler.md`](be-cqrs-handler.md) §7.4; câu của `INVALID_RESPONSE` nhận tham số `maHttp` là số status. Interceptor, `dichLoiChoMan`, `applyFormFailure`, `fieldErrorsText` truyền status thật của phản hồi — `err.status` hoặc `ApiFailureError.status` — và không nơi nào khác tự tra khoá `loi.CORE.CLIENT.*` cho một phản hồi HTTP không envelope.
 
 **Cơ chế đường lùi ở `dichLoi` là bắt buộc**, và khoá dịch dựng từ `body.error.code`, không từ một trường ở gốc envelope.
 
@@ -486,20 +517,20 @@ Mapper là **hàm thuần**, không phải class, không inject gì.
 > ✅ **CÓ THẬT (đối chiếu 2026-09-23):** `src/FE/src/app/core/auth/phien.mapper.ts` đúng khuôn — chuỗi `export function sangNguoiDungHienTai`. Mảng `menu` của `core/` cũng vậy: DTO ở `core/menu/menu.dto.ts` (chuỗi `export interface MenuItemDto`), model độc lập ở `core/menu/menu.model.ts` (chuỗi `export interface MenuNode`, không `extends`), hàm dựng cây ở `core/menu/menu.mapper.ts` (chuỗi `export function dungCayMenu`).
 
 ```typescript
-// services/nguoi-dung.mapper.ts
-import type { NguoiDungDto } from '../models/nguoi-dung.dto';
-import type { NguoiDung } from '../models/nguoi-dung.model';
-
+// platform/quan-tri/nguoi-dung/services/nguoi-dung.mapper.ts — chép nguyên văn phần hàm, đối chiếu 2026-10-06
 export function mapNguoiDung(dto: NguoiDungDto): NguoiDung {
   return {
     id: dto.id,
     userName: dto.userName,
-    fullName: dto.fullName,
     email: dto.email,
+    fullName: dto.fullName,
+    roles: dto.roles,
     isLocked: dto.isLocked,
-    lockedUntil: dto.lockoutEnd ? new Date(dto.lockoutEnd) : null,
-    roleNames: dto.roles.map((r) => r.name),
-    createdAt: new Date(dto.createdAt),
+    lockoutEnd: dto.lockoutEnd ? new Date(dto.lockoutEnd) : null,
+    lockedByAdmin: dto.lockedByAdmin,
+    mustChangePassword: dto.mustChangePassword,
+    createdAt: dto.createdAt ? new Date(dto.createdAt) : null,
+    version: dto.version,
   };
 }
 ```
@@ -591,6 +622,8 @@ export class NguoiDungService {
 
   chiTiet(id: string): Observable<NguoiDung> {
     // Màn chi tiết tự hiện lỗi — tắt toast.
+    // 🚧 Chữ ký ĐÍCH: `theoId` hôm nay nhận bốn đối số, chưa nhận `this.ctx` — chép nguyên dòng dưới
+    // là lỗi biên dịch. Hôm nay `NguoiDungService.chiTiet` gọi thẳng `HttpClient` (bảng đầu file).
     return theoId<NguoiDungDto, NguoiDung>(this.http, this.duongDan, id, mapNguoiDung, this.ctx);
   }
 }
@@ -612,7 +645,7 @@ export class NguoiDungService {
 
 Angular hủy request HTTP khi observable bị unsubscribe. Hai chỗ phải khai thác điều đó:
 
-> 📖 Màn danh sách **không** tự viết vòng huỷ — `ListStateStore` đã giữ ([`fe-architecture.md`](fe-architecture.md) §2.8). Ô tìm không dẫn tới danh sách phân trang (gợi ý của `Autocomplete`) thì theo khuôn `GanVaiTroDialog` ở [`ly-do/fe-api-client.md`](../wiki-core/fe/ly-do/fe-api-client.md) §6.1, với hai luật: `switchMap` trên `Subject` từ khoá, và **`catchError` nằm TRONG `switchMap`** (đổi trạng thái rồi trả `EMPTY`).
+> 📖 Màn danh sách **không** tự viết vòng huỷ — `ListStateStore` đã giữ ([`fe-architecture.md`](fe-architecture.md) §2.8). Ô tìm không dẫn tới danh sách phân trang (gợi ý của `Autocomplete`) thì theo khuôn `TraCuuVaiTroStore` (trích ở [`ly-do/fe-api-client.md`](../wiki-core/fe/ly-do/fe-api-client.md) §6.1), với hai luật: `switchMap` trên `Subject` từ khoá, và **`catchError` nằm TRONG `switchMap`** — trả một giá trị mang câu lỗi, hoặc đổi trạng thái rồi trả `EMPTY`; không để lỗi chạy ra ngoài.
 
 **Gợi ý lọc ở máy chủ, không tải hết rồi lọc ở FE.** Trang gửi chuỗi gõ làm `searchText` của endpoint danh sách, lấy một trang đầu. `Autocomplete` tự chờ ngừng gõ và giữ `minChars` rồi mới phát `search` ([`../Design/Components/Autocomplete.md`](../Design/Components/Autocomplete.md)); trang **không** chờ ngừng gõ lần hai.
 
@@ -630,18 +663,24 @@ this.service.danhSach(query).pipe(takeUntilDestroyed(this.huy)).subscribe(/* ...
 
 ### 6.2 Retry — hẹp, có điều kiện
 
-📐 **Chưa thi công** — `core/http/retry.ts` chưa có trong `src/FE` hôm nay (bảng đầu file, đối chiếu 2026-09-23).
+Luật **F52** ([`../RULES-FE.md`](../RULES-FE.md)) — có hiệu lực từ lời gọi retry đầu tiên, kể cả khi hàm dùng chung chưa dựng:
 
-> 📐 Phần chưa thi công (khuôn `thuLaiKhiLoiMang`, điều kiện áp — chỉ `GET`, chỉ lỗi mạng/5xx, áp ở service chứ không ở interceptor): [`fe-api-client-chua-thi-cong.md`](fe-api-client-chua-thi-cong.md) §6.2
->
+- Retry chỉ áp cho **request đọc** (`GET`) và **chỉ khi** lỗi là lỗi mạng hoặc 5xx. Không bao giờ retry `POST`/`PUT`/`DELETE`.
+- Áp ở **service của feature**, không ở interceptor.
+
+📐 Hàm dùng chung `thuLaiKhiLoiMang` chưa có — `core/http/retry.ts` chưa có trong `src/FE` hôm nay (bảng đầu file, đối chiếu 2026-09-23). Chữ ký để dựng: [`fe-api-client-chua-thi-cong.md`](fe-api-client-chua-thi-cong.md) §6.2.
+
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-api-client.md`](../wiki-core/fe/ly-do/fe-api-client.md) §6.2
 
 ### 6.3 Timeout
 
-📐 **Chưa thi công** — `src/FE` chưa có `TIMEOUT_MAC_DINH`/`TIMEOUT_XUAT_FILE` hôm nay; luật ép bằng máy là nợ [F42](../DEBT.md).
+Hai luật, có hiệu lực ngay ([`../RULES-FE.md`](../RULES-FE.md)):
 
-> 📐 Phần chưa thi công (hai hằng số, và khuôn cho thao tác dài hơn ngưỡng — BE trả mã việc, FE hỏi trạng thái theo chu kỳ, chốt ở pha B4): [`fe-api-client-chua-thi-cong.md`](fe-api-client-chua-thi-cong.md) §6.3
->
+- **F42** — Timeout đặt ở service, khai tường minh cho từng nhóm endpoint. Endpoint xuất báo cáo được phép lâu hơn — nhưng phải **khai bằng một hằng số có tên**, không phải bằng cách bỏ timeout đi.
+- **F53** — Thao tác dài hơn ngưỡng `TIMEOUT_XUAT_FILE` (kết xuất lớn, nhập hàng loạt): BE trả mã việc, FE hỏi trạng thái theo chu kỳ — **không nâng timeout**. Khuôn phía BE: [`be-cqrs-handler.md`](be-cqrs-handler.md) §10.3; pha B4: [`../wiki-core/be/trien-khai/05-b4-tep-nhap-xuat-thong-bao.md`](../wiki-core/be/trien-khai/05-b4-tep-nhap-xuat-thong-bao.md).
+
+📐 `src/FE` chưa có `TIMEOUT_MAC_DINH`/`TIMEOUT_XUAT_FILE` hôm nay, nên code đang lệch F42 — việc sửa ở GitHub Issues, mã F42; dòng luật F42 ở [`../RULES-FE.md`](../RULES-FE.md). Chữ ký hai hằng số: [`fe-api-client-chua-thi-cong.md`](fe-api-client-chua-thi-cong.md) §6.3.
+
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-api-client.md`](../wiki-core/fe/ly-do/fe-api-client.md) §6.3
 
 ### 6.4 Tải tệp xuất về máy — blob qua `HttpClient`, tên tệp từ `Content-Disposition`
@@ -652,7 +691,7 @@ Chốt 2026-09-22 ([ADR-0062](../adr/0062-endpoint-xuat-kiem-token-chong-gia-mao
 2. **Request mang dấu tác dụng phụ** — `HttpContextToken` tên `CO_TAC_DUNG_PHU`, khai ở `core/http/api-result.model.ts` cùng chỗ `BO_QUA_TOAST_LOI`/`BO_QUA_HET_PHIEN`. **Phải ở `core/`**: hai interceptor đều đọc nó, mà `core/` không import ngược lên được (F1). Service gọi export đặt cờ; `authInterceptor` gắn token (§2.1 ràng buộc 3), `errorInterceptor` gửi lại đúng một lần khi `CSRF_REJECTED` (§2.2). Không tự đặt header trong service, và **không** gắn token cho mọi `GET` — làm vậy thì `errorInterceptor` hết phân biệt được `GET` nào được gửi lại, kể cả `xsrf.lamMoi()`.
 3. **Tên tệp đọc từ `Content-Disposition`**: `filename*` (giải mã percent-encoding) trước, `filename` sau. **Header đọc ra `null` là lỗi, không phải lý do đặt tên dự phòng** — nó nghĩa là BE chưa khai header vào `Access-Control-Expose-Headers` ([`be-api-controller.md`](be-api-controller.md) §7.3).
 4. **Kích hoạt tải bằng một hàm dùng chung ở `core/http/`** — object URL từ blob, thẻ `<a download>` tạm, click, rồi `URL.revokeObjectURL`. Feature không viết lại đoạn này.
-5. **Nhánh lỗi:** với `responseType: 'blob'`, `err.error` của lỗi 4xx/5xx là một `Blob` — `docEnvelopeLoi` trả `null` và người dùng thấy câu *mất kết nối* cho một lỗi 422 có mã. `errorInterceptor` **bóc envelope từ thân `Blob` kiểu JSON trước khi dịch** (§2.2, nơi duy nhất dịch lỗi).
+5. **Nhánh lỗi:** với `responseType: 'blob'`, `err.error` của lỗi 4xx/5xx là một `Blob` — `docEnvelopeLoi` trả `null` và người dùng nhận câu chung của lỗi không envelope thay cho câu của một lỗi 422 có mã. `errorInterceptor` **bóc envelope từ thân `Blob` kiểu JSON trước khi dịch** (§2.2, nơi duy nhất dịch lỗi).
 6. Timeout dùng `TIMEOUT_XUAT_FILE` (§6.3); trần số dòng của BE nay cũng là trần bộ nhớ trình duyệt, và không có thanh tiến trình của trình duyệt — nút gọi export tự báo đang chờ.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-api-client.md`](../wiki-core/fe/ly-do/fe-api-client.md) §6.4
@@ -691,6 +730,11 @@ Chi tiết quy ước file cấu hình theo môi trường và cách chúng vào
 | F12 | Service có `.spec.ts` cạnh nó — phạm vi: [`../RULES.md`](../RULES.md) F12 | §5 |
 | F18 | Không đọc `data` bằng dấu `!`, ép kiểu, hay giá trị lùi — chỉ qua `unwrapData` | §1.2 |
 | F19 | Đường dẫn trong service không mang tiền tố base URL | §2.1 |
+| F42 | Service khai timeout bằng hằng số có tên, không bỏ timeout | §6.3 |
+| F45 | Lỗi không envelope: mã phía client chọn theo status ở `dichLoi`; `NO_CONNECTION` chỉ cho status `0` | §2.2 |
+| F52 | Retry chỉ `GET`, chỉ lỗi mạng/5xx, ở service — không bao giờ `POST`/`PUT`/`DELETE` | §6.2 |
+| F53 | Thao tác dài hơn `TIMEOUT_XUAT_FILE` đi đường mã việc, không nâng timeout | §6.3 |
+| F59 | Mọi request tới API mang `withCredentials: true` | §2.1 |
 | S20 | Export mang `X-XSRF-TOKEN` như lệnh ghi — FE gắn token cho request mang dấu, tải blob | §2.1, §6.4 |
 | S6 | Không secret trong bundle FE | §8 |
 

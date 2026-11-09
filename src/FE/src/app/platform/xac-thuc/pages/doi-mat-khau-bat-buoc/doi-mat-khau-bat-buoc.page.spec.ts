@@ -8,7 +8,7 @@ import {
   provideTranslateLoader,
   provideTranslateService,
 } from '@ngx-translate/core';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 
 import { AuthService } from '../../../../core/auth/auth.service';
 import { DoiMatKhauService } from '../../../../core/auth/doi-mat-khau.service';
@@ -120,7 +120,9 @@ describe('DoiMatKhauBatBuocPage — lỗi 422 không gắn được vào ô nào
 
     const haiDong = 'loi.CORE.VALIDATION.REQUIRED\nloi.CORE.USER.PASSWORD_TOO_SHORT';
     expect(page.loiChung()).toBe(haiDong);
-    const khuLoi = (fixture.nativeElement as HTMLElement).querySelector('.auth-card__khu-loi');
+    const khuLoi = (fixture.nativeElement as HTMLElement).querySelector(
+      '.auth-card__khu-loi .notice-banner__than',
+    );
     expect(khuLoi?.textContent).toContain(haiDong);
     expect(getComputedStyle(khuLoi as Element).whiteSpace).toBe('pre-line');
   });
@@ -285,5 +287,125 @@ describe('DoiMatKhauBatBuocPage — ô nhập lại mật khẩu mới, kiểm k
     await veLai();
 
     expect(loiNhapLai()).toBe('loi.CORE.CLIENT.VALIDATION_MISMATCH');
+  });
+
+  // FormRow.md §Khi gửi sai · 09-forms-validation.md §5: gửi form không hợp lệ → focus về ô sai đầu.
+  it('gửi khi ô mật khẩu mới trống → focus về ô sai ĐẦU TIÊN (mật khẩu mới), không gọi API', async () => {
+    document.body.appendChild(fixture.nativeElement as HTMLElement);
+    go('doi-mat-khau-bat-buoc-hien-tai', 'cu');
+    await veLai();
+    (document.activeElement as HTMLElement | null)?.blur();
+
+    page.gui();
+    await veLai();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(o('doi-mat-khau-bat-buoc-moi'));
+    expect(doiMatKhau.doiBatBuoc).not.toHaveBeenCalled();
+    (fixture.nativeElement as HTMLElement).remove();
+  });
+
+  it('gửi rỗng cả ba ô → focus về ô mật khẩu hiện tại', async () => {
+    document.body.appendChild(fixture.nativeElement as HTMLElement);
+    page.gui();
+    await veLai();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(o('doi-mat-khau-bat-buoc-hien-tai'));
+    (fixture.nativeElement as HTMLElement).remove();
+  });
+
+  // AuthCard.md §Trạng thái `loading`: `aria-busy` trên <form>, không trên khung.
+  it('đang gửi → aria-busy="true" nằm trên <form>, không trên div.auth-card', async () => {
+    doiMatKhau.doiBatBuoc.and.returnValue(new Observable<void>());
+    go('doi-mat-khau-bat-buoc-hien-tai', 'cu');
+    go('doi-mat-khau-bat-buoc-moi', 'Moi-12345');
+    go('doi-mat-khau-bat-buoc-nhap-lai', 'Moi-12345');
+    page.gui();
+    await veLai();
+
+    const goc = fixture.nativeElement as HTMLElement;
+    expect(goc.querySelector('form')?.getAttribute('aria-busy')).toBe('true');
+    expect(goc.querySelector('.auth-card')?.hasAttribute('aria-busy')).toBeFalse();
+  });
+
+  // Screens/01-dang-nhap.md "Đổi mật khẩu — đang gửi": mọi ô disabled như màn Đăng nhập, giữ giá trị,
+  // nút hiện/ẩn khoá kèm; lỗi → mở lại.
+  it('đang gửi → ba ô và nút hiện/ẩn disabled, giữ giá trị; API lỗi → mở lại', async () => {
+    const mau = new Subject<void>();
+    doiMatKhau.doiBatBuoc.and.returnValue(mau);
+    go('doi-mat-khau-bat-buoc-hien-tai', 'cu');
+    go('doi-mat-khau-bat-buoc-moi', 'Moi-12345');
+    go('doi-mat-khau-bat-buoc-nhap-lai', 'Moi-12345');
+    page.gui();
+    await veLai();
+
+    const goc = fixture.nativeElement as HTMLElement;
+    for (const id of ['hien-tai', 'moi', 'nhap-lai']) {
+      expect(o(`doi-mat-khau-bat-buoc-${id}`).disabled)
+        .withContext(id)
+        .toBeTrue();
+    }
+    expect(o('doi-mat-khau-bat-buoc-moi').value).toBe('Moi-12345');
+    const nut = goc.querySelectorAll<HTMLButtonElement>('.auth-field__nut-hien-an');
+    expect(nut.length).toBeGreaterThan(0);
+    nut.forEach((n) => expect(n.disabled).toBeTrue());
+
+    mau.error(new Error('mạng'));
+    await veLai();
+    for (const id of ['hien-tai', 'moi', 'nhap-lai']) {
+      expect(o(`doi-mat-khau-bat-buoc-${id}`).disabled)
+        .withContext(id)
+        .toBeFalse();
+    }
+  });
+
+  // AuthCard.md §Accessibility, dòng *Focus sau khi gửi hỏng*.
+  describe('focus sau khi gửi hỏng', () => {
+    function dien(): void {
+      go('doi-mat-khau-bat-buoc-hien-tai', 'cu');
+      go('doi-mat-khau-bat-buoc-moi', 'Moi-12345');
+      go('doi-mat-khau-bat-buoc-nhap-lai', 'Moi-12345');
+    }
+
+    it('lỗi máy chủ → focus về đúng ô đang giữ focus lúc gửi', async () => {
+      doiMatKhau.doiBatBuoc.and.returnValue(
+        throwError(() => loiApi('CORE.AUTH.CHANGE_PASSWORD_FAILED', null)),
+      );
+      dien();
+      o('doi-mat-khau-bat-buoc-moi').focus();
+      page.gui();
+      await veLai();
+      await veLai();
+      expect(document.activeElement).toBe(o('doi-mat-khau-bat-buoc-moi'));
+    });
+
+    it('không phần tử nào giữ focus, không ô nào lỗi → ô đầu tiên của form', async () => {
+      doiMatKhau.doiBatBuoc.and.returnValue(
+        throwError(() => loiApi('CORE.AUTH.CHANGE_PASSWORD_FAILED', null)),
+      );
+      dien();
+      (document.activeElement as HTMLElement | null)?.blur();
+      page.gui();
+      await veLai();
+      await veLai();
+      expect(document.activeElement).toBe(o('doi-mat-khau-bat-buoc-hien-tai'));
+    });
+
+    it('không phần tử nào giữ focus, có ô báo lỗi → ô lỗi đầu tiên', async () => {
+      doiMatKhau.doiBatBuoc.and.returnValue(
+        throwError(() =>
+          loiApi('CORE.VALIDATION.FAILED', {
+            NewPassword: [{ code: 'CORE.VALIDATION.REQUIRED', messageParams: null }],
+          }),
+        ),
+      );
+      dien();
+      (document.activeElement as HTMLElement | null)?.blur();
+      page.gui();
+      await veLai();
+      await veLai();
+      expect(document.activeElement).toBe(o('doi-mat-khau-bat-buoc-moi'));
+    });
   });
 });

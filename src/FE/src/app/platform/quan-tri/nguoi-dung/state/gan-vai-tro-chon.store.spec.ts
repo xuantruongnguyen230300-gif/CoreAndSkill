@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { TranslateService } from '@ngx-translate/core';
-import { Subject, of } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 
 import { PagedList } from '../../../../core/http/paged.model';
 import { VaiTro } from '../../vai-tro/models/vai-tro.model';
@@ -82,12 +82,23 @@ describe('GanVaiTroChonStore', () => {
     expect(store.dirty()).toBeFalse();
   });
 
-  it('mở hộp lần sau: câu lỗi mạng của lần trước bị xoá và kết quả tới muộn KHÔNG ghi đè danh sách seed', () => {
+  it('mở hộp lần sau: câu lỗi mạng của lần trước bị xoá', () => {
+    service.timKiem.and.returnValue(throwError(() => new Error('boom')));
+    store.moHop([KE_TOAN], false);
+    store.timKiem('k');
+    expect(store.timVaiTro.error()).not.toBeNull();
+
+    store.moHop([NHAN_SU], false);
+
+    expect(store.timVaiTro.error()).toBeNull();
+    expect(store.timVaiTro.options().map((o) => o.key)).toEqual(['ns']);
+  });
+
+  it('mở hộp lần sau: kết quả của request đang bay tới muộn KHÔNG ghi đè danh sách seed', () => {
     const bay = new Subject<PagedList<VaiTro>>();
     service.timKiem.and.returnValue(bay);
     store.moHop([KE_TOAN], false);
     store.timKiem('k');
-    store.timVaiTro.error.set('câu lỗi lần trước');
 
     store.moHop([NHAN_SU], false);
     bay.next({ items: [vaiTro(QUAN_TRI)], page: 1, pageSize: 20, totalCount: 1 });

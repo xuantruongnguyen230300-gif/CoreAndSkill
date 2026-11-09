@@ -1,11 +1,13 @@
 // Design/Components/FormRow.md
+// Hai khe tách riêng (DESIGN.md §4): nhãn → ô `--sp-4` (margin-bottom của nhãn), ô → dòng
+// lỗi/gợi ý `--sp-3` (margin-top của dòng phụ). Không dùng `gap` chung vì hai khe khác bậc.
 .form-row {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-5);
 }
 
 .form-row__nhan {
+  margin-bottom: var(--sp-4);
   font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
   color: var(--color-text);
@@ -23,14 +25,14 @@
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  margin: 0;
+  margin: var(--sp-3) 0 0;
   color: var(--color-danger);
   font-size: var(--fs-xs);
   line-height: var(--lh-snug);
 }
 
 .form-row__goi-y {
-  margin: 0;
+  margin: var(--sp-3) 0 0;
   color: var(--color-text-muted);
   font-size: var(--fs-xs);
   line-height: var(--lh-snug);

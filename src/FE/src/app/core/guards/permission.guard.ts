@@ -16,6 +16,8 @@ export function permissionGuard(...quyenCanCo: string[]): CanActivateFn {
     const router = inject(Router);
     const routes = inject(CORE_ROUTES);
 
-    return quyenCanCo.every((q) => auth.coQuyen(q)) ? true : router.createUrlTree([routes.khongCoQuyen]);
+    return quyenCanCo.every((q) => auth.coQuyen(q))
+      ? true
+      : router.createUrlTree([routes.khongCoQuyen]);
   };
 }

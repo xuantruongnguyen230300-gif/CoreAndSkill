@@ -22,7 +22,7 @@ public class RoleCommandHandlerTests
         var result = await handler.Handle(new CreateRoleCommand("Kế toán"), CancellationToken.None);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Value.ShouldBe(newId);
+        result.Value.Id.ShouldBe(newId);
     }
 
     [Fact]

@@ -1,0 +1,85 @@
+<app-drawer
+  variant="edit"
+  size="lg"
+  position="right"
+  [open]="open()"
+  [title]="title()"
+  [panelId]="panelId()"
+  (closed)="khiDrawerDong()"
+>
+  <form
+    #bieuMau
+    [formGroup]="form"
+    class="filter-panel"
+    role="search"
+    [id]="idForm()"
+    (submit)="apDung($event)"
+  >
+    @for (f of fields(); track f.key) {
+      @switch (f.kind) {
+        @case ('autocomplete') {
+          @let tt = trangThaiTim(f);
+          <app-form-row [label]="f.label" [controlId]="idTruong(f)" [disabled]="disabled()">
+            <app-autocomplete
+              variant="single"
+              size="md"
+              [inputId]="idTruong(f)"
+              [placeholder]="f.placeholder ?? ''"
+              [options]="goiYAutocomplete(f)"
+              [value]="khoaAutocomplete(f)"
+              [loading]="tt?.loading ?? false"
+              [errorTemplate]="tt?.error ? tplLoiTim : null"
+              [disabled]="disabled()"
+              (search)="onTim(f.key, $event)"
+              (valueChange)="onChonAutocomplete(f, $event)"
+            />
+            <ng-template #tplLoiTim>
+              <p class="filter-panel__loi-tim" role="alert">{{ tt?.error }}</p>
+              <app-button variant="ghost" size="sm" icon="refresh" (clicked)="thuLaiTim(f.key)">{{
+                'chung.thuLai' | translate
+              }}</app-button>
+            </ng-template>
+          </app-form-row>
+        }
+        @case ('select') {
+          <app-form-row [label]="f.label" [controlId]="idTruong(f)" [disabled]="disabled()">
+            <app-input
+              type="select"
+              size="md"
+              [id]="idTruong(f)"
+              [options]="f.options ?? []"
+              [formControlName]="f.key"
+            />
+          </app-form-row>
+        }
+        @case ('text') {
+          <app-form-row [label]="f.label" [controlId]="idTruong(f)" [disabled]="disabled()">
+            <app-input
+              type="text"
+              size="md"
+              [id]="idTruong(f)"
+              [placeholder]="f.placeholder ?? null"
+              [formControlName]="f.key"
+            />
+          </app-form-row>
+        }
+      }
+    }
+  </form>
+
+  <app-button
+    slot="footer"
+    variant="ghost"
+    [disabled]="disabled() || khongCoDieuKien()"
+    (clicked)="xoaHet()"
+    >{{ 'chung.loc.xoaHet' | translate }}</app-button
+  >
+  <app-button
+    slot="footer"
+    variant="primary"
+    type="submit"
+    [form]="idForm()"
+    [disabled]="disabled() || !coThayDoi()"
+    >{{ 'chung.loc.apDung' | translate }}</app-button
+  >
+</app-drawer>

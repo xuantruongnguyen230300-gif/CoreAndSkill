@@ -1,12 +1,12 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-05
 ---
 
 # 13. Hiệu năng Frontend
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. File này giữ *cách chọn ngưỡng*, không giữ con số — xem §4. Số đo build và ngưỡng đang khai nằm cạnh cổng F14: [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §8.11.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu cả tệp 2026-11-05, chỉ bằng đọc mã — chưa build, chưa chạy bảng kiểm §9). Hạng mục có thật và hạng mục chưa: bảng ở §10, bảng *có thật hôm nay → sẽ thành* ngay dưới nó. File này giữ *cách chọn ngưỡng*, không giữ con số — xem §4. Số đo build và ngưỡng đang khai nằm cạnh cổng F14: [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §8.11.
 >
 > Đo và tối ưu phía BE: [`../../quy-uoc/be-performance.md`](../../quy-uoc/be-performance.md). Số đo trải nghiệm: [`10-observability.md`](10-observability.md) §6.
 
@@ -70,11 +70,11 @@ Chi phí thật không nằm ở một biểu thức đơn giản mà ở **hàm
 
 Vì sao không có ngoại lệ: bundle khởi động là thứ **mọi** người dùng tải, kể cả người không bao giờ vào màn đó. Một màn nhỏ hôm nay là một màn to sáu tháng nữa, và lúc đó không ai đi tách lại.
 
-### 3.2 Lazy cả nhánh, không lazy từng màn
+### 3.2 Nhánh vào bằng `loadChildren`, mỗi màn một `loadComponent`
 
-Nhóm theo nhánh chức năng, không tách từng màn thành một chunk riêng. Quá nhiều chunk nhỏ đổi một vấn đề (bundle to) lấy một vấn đề khác (quá nhiều request nhỏ, và một khoảng trắng mỗi lần chuyển màn).
+Khuôn ở [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §2.2: `app.routes.ts` nạp nhánh, tệp route của nhánh nạp từng màn — mỗi màn một chunk. Phần dùng chung giữa các màn, như thư viện UI, được bộ build gom thành chunk dùng chung ([`trien-khai/05-gate.md`](trien-khai/05-gate.md) §8.11), nên chuyển màn trong cùng nhánh chỉ tải phần riêng của màn đó.
 
-Kinh nghiệm thực dụng: một chunk cho một nhánh chức năng mà người dùng thường ở lại trong đó.
+Cái giá là mỗi lần vào một màn mới thêm một request; tải trước có chọn lọc (§3.3) là chỗ bù.
 
 ### 3.3 Tải trước có chọn lọc
 
@@ -88,16 +88,18 @@ Một import ở tầng chung kéo một thư viện nặng vào bundle khởi �
 
 ---
 
-## 4. Ngân sách bundle — chọn ngưỡng theo số đo, không giữ mặc định
+## 4. Ngân sách bundle — chọn ngưỡng theo số đo, không giữ mặc định khi chưa đo
 
-### 4.1 Vì sao ngưỡng mặc định là vô nghĩa
+### 4.1 Vì sao ngưỡng mặc định chưa đo là vô nghĩa
 
-Công cụ tạo dự án đặt sẵn một ngưỡng. Con số đó không biết gì về ứng dụng này. Giữ nguyên nó có hai kết cục, và cả hai đều xấu:
+Công cụ tạo dự án đặt sẵn một ngưỡng. Con số đó không biết gì về ứng dụng này. Giữ nguyên nó mà không đo có hai kết cục, và cả hai đều xấu:
 
 - **Quá chặt** → cảnh báo vàng ở mọi lần build. Người ta học cách bỏ qua, và cổng chết trong im lặng.
 - **Quá lỏng** → không bao giờ báo. Bundle phình dần và không ai biết cho tới khi nó đã to.
 
 Ở dự án tiền nhiệm, ngưỡng mặc định được giữ nguyên trong khi chính tài liệu yêu cầu chỉnh theo số đo. Khi cuối cùng có người đo, dư địa còn lại chỉ vài kilobyte — ngưỡng đó đã mất tác dụng cảnh báo từ rất lâu mà không ai nhận ra.
+
+Đo rồi mà mặc định vẫn có dư địa thật thì giữ được, kèm số đo và lý do — `anyComponentStyle` ở [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §8.11 là ca đó.
 
 ### 4.2 Quy trình chọn ngưỡng
 
@@ -196,21 +198,28 @@ Bốn công cụ, mỗi cái trả lời một câu hỏi khác nhau. Dùng nh�
 
 ## 10. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Đối chiếu với `src/` ngày 2026-11-05, chỉ bằng đọc mã: hàng ghi ✅ CÓ THẬT có neo ở cột *Ghi chú*; hàng ghi 🚧 có bảng *có thật hôm nay → sẽ thành* ngay dưới bảng. Ý nghĩa ký hiệu: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| Zoneless và `OnPush` là mặc định | ✅ sẽ có | §2 — bật từ lần cấu hình đầu tiên, không gỡ sau |
-| Lazy-load theo nhánh chức năng | ✅ sẽ có | §3 |
-| Ngân sách bundle chọn theo số đo | ✅ sẽ có | Luật F14, bật ở pha F3 (§4.2) |
-| Ngân sách cho lazy chunk | ✅ sẽ có | §4.3 — khai ngay khi có lazy chunk đầu tiên, hoặc ghi lỗ mù ra ở [`trien-khai/05-gate.md`](trien-khai/05-gate.md) |
-| Skeleton đúng kích thước, ảnh khai kích thước | ✅ sẽ có | §5, §6 |
+| Zoneless và `OnPush` là mặc định | ✅ CÓ THẬT 2026-11-05 | §2 — bật từ lần cấu hình đầu tiên, không gỡ sau. Neo: `src/FE/src/app/app.config.ts` (chuỗi `provideZonelessChangeDetection()`); mọi tệp chứa `@Component(` dưới `src/FE/src/app` (trừ `.spec.ts`) đều chứa `ChangeDetectionStrategy.OnPush` |
+| Lazy-load theo nhánh chức năng | ✅ CÓ THẬT 2026-11-05 | §3. Neo: `src/FE/src/app/app.routes.ts` — mọi route qua `loadChildren` hoặc `loadComponent`, kể cả shell (chuỗi `import('./platform/shell/shell.component')`); trong một nhánh, mỗi màn một `loadComponent` (ví dụ `src/FE/src/app/platform/quan-tri/vai-tro/vai-tro.routes.ts`) |
+| Ngân sách bundle chọn theo số đo | ✅ CÓ THẬT 2026-11-05 | Luật F14, bật ở pha F3 (§4.2). Neo: cấu hình `production` của `src/FE/angular.json` (chuỗi `"maximumWarning": "600kB"`); số đo và lý do ở [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §8.11 |
+| Ngân sách cho lazy chunk | ✅ CÓ THẬT 2026-11-05 | §4.3. Neo: `src/FE/angular.json` (chuỗi `"type": "any"`); lỗ mù còn lại ghi ở [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §8.11 |
+| Skeleton đúng kích thước, ảnh khai kích thước | 🚧 đang thi công | §5, §6 — bảng dưới |
 | Tải trước có chọn lọc | ❌ chưa | Điều kiện: đã đo và biết nhánh nào được vào nhiều nhất (§3.3) |
 | Virtual scroll | ❌ chưa | Điều kiện: phải hiển thị hàng nghìn dòng cùng lúc và không phân trang được (§7) |
 | Đẩy tính toán nặng sang web worker | ❌ chưa | Điều kiện: có số đo cho thấy một tính toán làm nghẽn tương tác |
-| Giữ nguyên ngưỡng ngân sách mặc định | ❌ loại, không hoãn `K37` | §4.1 — con số đó không biết gì về ứng dụng này |
+| Giữ nguyên ngưỡng ngân sách mặc định khi chưa đo | ❌ loại, không hoãn `K37` | §4.1 — con số đó không biết gì về ứng dụng này. Đo rồi thì giữ được, kèm số đo và lý do |
 | Tệp gom xuất cho `shared/` | ❌ loại, không hoãn `K38` | §3.4 — kéo cả nhóm vào bundle khởi động |
 | SSR để cải thiện thời gian tải | ❌ loại, không hoãn `K39` | [`01-core-components.md`](01-core-components.md) §4.2 — muốn lật thì viết ADR |
+
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** — hàng *Skeleton đúng kích thước, ảnh khai kích thước* (đối chiếu 2026-11-05, chỉ bằng đọc mã):
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | `SkeletonLoader` có chiều cao cố định theo token cho từng biến thể: `src/FE/src/app/shared/components/skeleton-loader/skeleton-loader.component.scss` (chuỗi `height: calc(var(--fs-md) * var(--lh-normal));`); bảng danh sách người dùng cấp nó qua `loadingTemplate` (chuỗi `<app-skeleton-loader variant="text" width="full" />` ở `src/FE/src/app/platform/quan-tri/nguoi-dung/pages/danh-sach/danh-sach-nguoi-dung.page.html`). Một vạch chưa đúng hình dạng nội dung thay thế: [`../../Design/Components/DataTable.md`](../../Design/Components/DataTable.md) §Trạng thái đòi skeleton dạng hàng, đúng số dòng của trang | Skeleton dạng hàng như `DataTable.md`, rồi chạy và thấy bố cục không nhảy khi dữ liệu về (§9) |
+> | Chưa màn nào dưới `src/FE/src/app` dùng thẻ `<img` — luật khai kích thước ảnh chưa có chỗ áp | Áp từ ảnh đầu tiên |
 
 > Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 

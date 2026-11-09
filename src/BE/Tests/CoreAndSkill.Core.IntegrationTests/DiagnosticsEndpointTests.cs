@@ -69,6 +69,80 @@ public sealed class DiagnosticsEndpointTests : IDisposable
         body.ShouldNotContain("   at CoreAndSkill");
     }
 
+    // Điều kiện của hình dạng 3 (docs/quy-uoc/be-cqrs-handler.md §7.2): "CoreExceptionHandler không bao giờ đưa thông
+    // điệp của ngoại lệ vào phản hồi". DiagnosticsController ném đúng ngoại lệ mang thông điệp tiếng Việt này
+    // (CoreAndSkill.Core.Web/Controllers/DiagnosticsController.cs, outcome=exception) — thân 500 không được chứa nó,
+    // kể cả một phần — nếu không, hình dạng 3 không còn an toàn và luật R8 bị rò qua chính nhánh exception handler.
+    [Fact]
+    public async Task Probe_OutcomeException_ResponseBody_DoesNotContain_TheThrownExceptionMessage()
+    {
+        var response = await _client.GetAsync("/api/v1/core/diagnostics/probe?outcome=exception");
+        var body = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        // Phải so trên giá trị ĐÃ GIẢI MÃ: WriteAsJsonAsync thoát mọi ký tự ngoài ASCII thành \uXXXX, nên so chuỗi thô
+        // với thông điệp tiếng Việt không bao giờ khớp dù thông điệp có lọt vào thân.
+        DecodedStringValuesContaining(body, ThrownMessage).ShouldBeEmpty();
+    }
+
+    // T12 — cặp đỏ của ca trên: CÙNG phép tìm, khác đúng đầu vào — thân JSON dựng sẵn có thông điệp, thoát \uXXXX
+    // như encoder mặc định của WriteAsJsonAsync. Phép tìm phải THẤY nó; nếu không, ca trên xanh rỗng.
+    [Fact]
+    public void DecodedStringSearch_FindsTheMessage_WhenItIsPresentInAnEscapedJsonBody()
+    {
+        var escaped = JsonSerializer.Serialize(
+            new { success = false, error = new { code = "X", message = "Lỗi: " + ThrownMessage + " (chi tiết)" } });
+
+        // Kiểm chứng giả định của ca: thân thật sự đang bị thoát, so chuỗi thô sẽ trượt.
+        escaped.ShouldNotContain(ThrownMessage);
+        DecodedStringValuesContaining(escaped, ThrownMessage).ShouldNotBeEmpty();
+    }
+
+    // Cặp xanh của ca trên: cùng cấu trúc, khác đúng giá trị chuỗi — không chứa thông điệp.
+    [Fact]
+    public void DecodedStringSearch_FindsNothing_WhenTheMessageIsAbsent()
+    {
+        var escaped = JsonSerializer.Serialize(
+            new { success = false, error = new { code = "X", message = "Lỗi không mong đợi." } });
+
+        DecodedStringValuesContaining(escaped, ThrownMessage).ShouldBeEmpty();
+    }
+
+    private const string ThrownMessage = "Ngoại lệ mô phỏng cho endpoint thử của B0";
+
+    // Duyệt mọi giá trị chuỗi (và tên thuộc tính) đã giải mã của một thân JSON, trả những giá trị chứa `needle`.
+    private static List<string> DecodedStringValuesContaining(string json, string needle)
+    {
+        using var document = JsonDocument.Parse(json);
+        var found = new List<string>();
+        Walk(document.RootElement);
+        return found;
+
+        void Walk(JsonElement element)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.String:
+                    var value = element.GetString()!;
+                    if (value.Contains(needle, StringComparison.Ordinal))
+                        found.Add(value);
+                    break;
+                case JsonValueKind.Object:
+                    foreach (var property in element.EnumerateObject())
+                    {
+                        if (property.Name.Contains(needle, StringComparison.Ordinal))
+                            found.Add(property.Name);
+                        Walk(property.Value);
+                    }
+                    break;
+                case JsonValueKind.Array:
+                    foreach (var item in element.EnumerateArray())
+                        Walk(item);
+                    break;
+            }
+        }
+    }
+
     [Fact]
     public async Task Probe_TraceParentHeader_IsEchoedBack_AsTraceId()
     {

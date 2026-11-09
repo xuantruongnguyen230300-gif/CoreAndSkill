@@ -13,11 +13,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Jobs;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // ADR-0071 phương án C: câu quét việc dở dang lúc khởi động chuyển từ Database.SqlQueryRaw sang LINQ trên DbSet kèm
 // IgnoreQueryFilters([Tenant]). Nhóm này trả lời đúng MỘT câu hỏi: bản LINQ có chọn ĐÚNG tập việc mà bản SQL thô cũ
 // chọn không? Sai ở đây không hiện ra như một lỗi — nó hiện ra như một việc đang chạy bị đánh dấu hỏng oan, hoặc một
@@ -164,6 +159,8 @@ public sealed class JobRecoveryCandidateParityDatabaseTests(PostgresFixture db) 
     {
         "succeeded" => JobStatus.Succeeded,
         "failed" => JobStatus.Failed,
+        // Việc đã xoá mềm không phải ứng viên (bộ lọc xoá mềm còn áp): phép khôi phục không đụng, nên nó vẫn `running`.
+        "running-nhung-da-xoa-mem" => JobStatus.Running,
         _ => JobStatus.Queued,
     };
 

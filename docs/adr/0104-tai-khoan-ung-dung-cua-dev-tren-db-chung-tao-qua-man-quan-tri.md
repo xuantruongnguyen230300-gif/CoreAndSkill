@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0104 — Trên DB dev chung, người vận hành chạy bootstrap một lần, rồi dùng `admin` tạo tài khoản ứng dụng cho từng dev qua màn quản trị người dùng; không mã mới
 
-> **Trạng thái:** Đã chấp nhận (2026-09-25) · Bổ sung bởi [ADR-0105](0105-thu-khu-quan-tri-he-thong-tren-db-cuc-bo.md) (2026-09-25)
+> **Trạng thái:** Đã chấp nhận (2026-09-25) · Bổ sung bởi [ADR-0105](0105-thu-khu-quan-tri-he-thong-tren-db-cuc-bo.md) (2026-09-25) · Tạm hoãn bởi [ADR-0110](0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md) (2026-09-28)
 
 ## Bối cảnh
 

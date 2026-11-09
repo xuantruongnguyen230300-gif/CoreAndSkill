@@ -9,11 +9,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Tenants;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // docs/contracts/tenants.md §6 "Ghi chú": chính sách mật khẩu kiểm TRƯỚC khi gọi UserManager, nên
 // fieldErrors["TempPassword"] không nói gì về tên đăng nhập. Bằng chứng thứ tự: một PasswordValidator ghi lại tài khoản
 // nó được hỏi — lần hỏi ĐẦU TIÊN phải là tài khoản "thăm dò" (chưa mang tên đăng nhập nào), không phải tài khoản sắp tạo.

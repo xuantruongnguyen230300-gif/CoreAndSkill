@@ -1,12 +1,12 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-05
 ---
 
 # 05. Thư viện component dùng chung
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Đây là bộ component `shared/` phải có.
+> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG** chỉ còn ở các hàng ghi `✅ sẽ có` trong §10. Hàng ghi `✅ CÓ THẬT` đã đối chiếu với `src/` ngày 2026-11-05, neo ở từng hàng. Hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
 >
 > Đặc tả giao diện từng component (bố cục, trạng thái, câu chữ) thuộc [`../../Design/COMPONENTS.md`](../../Design/COMPONENTS.md). File này nói *cần component nào, vì sao, và ranh giới của chúng*.
 
@@ -153,7 +153,7 @@ Layout shell cần biết người dùng hiện tại và menu. Nhu cầu đó n
 | Khung shell | `platform/shell` | **Smart** — inject phiên và menu, truyền dữ liệu xuống |
 | `Sidebar`, `Topbar` | `shared/components/` | **Dumb** — "tự dựng" theo cột Nền (§3), không dùng PrimeNG; nhận dữ liệu qua `input()`, báo ra qua `output()` |
 
-Vì vậy luật F11 **không có allowlist đường dẫn**: cổng quét mọi thư mục `components/` và không tha đường dẫn nào. Thứ duy nhất được tha là vài token không lấy dữ liệu — DOM và vòng đời của chính component — ở bảng token của [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §8.8. Spec giao diện của hai component: [`../../Design/Components/Sidebar.md`](../../Design/Components/Sidebar.md), [`../../Design/Components/Topbar.md`](../../Design/Components/Topbar.md).
+Vì vậy luật F11 **không có allowlist đường dẫn**: cổng quét đúng `shared/components/` — phạm vi câu luật F11 ở [`../../RULES-FE.md`](../../RULES-FE.md) — và không tha đường dẫn nào trong đó. Thứ duy nhất được tha là vài token không lấy dữ liệu — DOM và vòng đời của chính component — ở bảng token của [`trien-khai/05-gate.md`](trien-khai/05-gate.md) §8.8. `components/` của từng feature chịu cùng cấm đoán ([`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §3.1) nhưng cổng không quét — review canh, lỗ mù ghi ở cùng §8.8. Spec giao diện của hai component: [`../../Design/Components/Sidebar.md`](../../Design/Components/Sidebar.md), [`../../Design/Components/Topbar.md`](../../Design/Components/Topbar.md).
 
 Nguyên tắc chung khi một cổng FE thật sự cần ngoại lệ: **loại trừ một đường dẫn cụ thể kèm lý do, đừng làm rule lỏng đi.** Rule lỏng thì lần sau không ai biết vì sao nó lỏng.
 
@@ -208,7 +208,7 @@ Chi tiết ngưỡng và cách viết: [`06-testing-strategy.md`](06-testing-str
 ## 9. Kiểm chứng
 
 - [ ] Tìm `primeng/` trong `src/app` → chỉ còn kết quả trong các đường dẫn ✔ của allowlist §2.4 (luật F5)
-- [ ] Không component nào trong `components/` inject service lấy dữ liệu (luật F11) — kể cả `Sidebar`, `Topbar`
+- [ ] Không component nào trong `shared/components/` inject service lấy dữ liệu (luật F11, có cổng) — kể cả `Sidebar`, `Topbar`; `components/` của từng feature kiểm bằng mắt, cổng không quét (§5.2)
 - [ ] Mỗi component ở `shared/ui/` có cột Nền "bọc PrimeNG" ở `Design/COMPONENTS.md`; mỗi component ở `shared/components/` có cột Nền "tự dựng" (§3)
 - [ ] Không file nào trong `components/` hay `pages/` nhắc tới kiểu DTO (luật F10)
 - [ ] Không còn cú pháp Angular cũ trong toàn bộ `src/app` (luật F9)
@@ -220,19 +220,18 @@ Chi tiết ngưỡng và cách viết: [`06-testing-strategy.md`](06-testing-str
 
 ## 10. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Hàng `✅ CÓ THẬT` đã đối chiếu với `src/` ngày 2026-11-05, neo ở cột *Ghi chú*; hàng còn ghi `✅ sẽ có` là 📐 **đích đến của giai đoạn 2**, chưa có code. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| Lớp bọc `shared/ui/` + allowlist §2.4 | ✅ sẽ có | Luật F5, pha F1 |
-| Bộ component ở §1 trừ upload | ✅ sẽ có | Sinh ra từ nhu cầu thật của F3 |
-| Directive hiển thị theo permission | ✅ sẽ có | §4 — tiện nghi giao diện, không phải bảo mật |
-| Ranh giới dumb / smart có cổng | ✅ sẽ có | Luật F10, F11 — F11 không allowlist đường dẫn (§5.2) |
+| Lớp bọc `shared/ui/` + allowlist §2.4 | ✅ CÓ THẬT (2026-11-05) | Luật F5, pha F1 — lớp bọc ở `src/FE/src/app/shared/ui/`; cổng đọc allowlist từ bảng §2.4: `scripts/fe-gate.sh`, chuỗi `section "F5 - ` |
+| Bộ component ở §1 trừ upload | ✅ CÓ THẬT (2026-11-05) | Sinh ra từ nhu cầu thật của F3 — `ls src/FE/src/app/shared/ui src/FE/src/app/shared/components`: mỗi dòng §1 trừ Upload ứng với một thư mục (Form field là `form-row`, Skeleton là `skeleton-loader`) |
+| Directive hiển thị theo permission | ✅ CÓ THẬT (2026-11-05) | §4 — tiện nghi giao diện, không phải bảo mật; `src/FE/src/app/shared/directives/has-permission.directive.ts`, chuỗi `selector: '[appHasPermission]'` |
+| Ranh giới dumb / smart có cổng | ✅ CÓ THẬT (2026-11-05) | Luật F10, F11 — F11 không allowlist đường dẫn (§5.2); `scripts/fe-gate.sh`, chuỗi `section "F10 - ` và `section "F11 - `. Cổng F11 quét `shared/components/` |
 | Upload | ❌ chưa | Điều kiện: nghiệp vụ đầu tiên cần đính kèm (§7) |
-| Trình soạn thảo văn bản đa dạng thức | ❌ chưa | Điều kiện: có màn thật cần — và kèm làm sạch HTML ở BE |
+| Trình soạn thảo văn bản đa dạng thức | ❌ chưa | Điều kiện: có màn thật cần — kèm làm sạch HTML ở BE; cân nhắc đặt ở module nếu chỉ một nơi dùng (§1) |
 | Bảng chỉnh sửa tại chỗ | ✅ sẽ có | [`../../Design/Components/EditableGrid.md`](../../Design/Components/EditableGrid.md) — component riêng, không phải chế độ của lưới đọc. Điều kiện cấp bởi [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md) |
 | Bộ chọn ngày, khoảng ngày | ✅ sẽ có | [`../../Design/Components/DatePicker.md`](../../Design/Components/DatePicker.md) — bọc PrimeNG. Cùng ADR |
-| Trình soạn thảo văn bản đa dạng thức | ❌ chưa | Điều kiện: có màn thật cần; cân nhắc đặt ở module nếu chỉ một nơi dùng |
 | Catalog component chạy được (Storybook hoặc tương đương) | ❌ chưa | Điều kiện: từ hai người trở lên cùng làm UI, hoặc có sản phẩm thứ hai dùng lại bộ này |
 | Base class cho component hoặc cho service | ❌ loại, không hoãn `K19` | [`01-core-components.md`](01-core-components.md) §9 — dùng composition; hàm dùng chung cho CRUD ở [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §5 |
 | Import thẳng thư viện UI từ màn nghiệp vụ | ❌ loại, không hoãn `K20` | Luật F5 |

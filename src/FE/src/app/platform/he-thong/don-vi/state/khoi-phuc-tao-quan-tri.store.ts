@@ -15,6 +15,7 @@ import {
   TaoQuanTriForm,
 } from '../models/don-vi-hop.model';
 import { DonVi } from '../models/don-vi.model';
+import { cauLoiKhongPhaiApi } from '../../../../core/http/dich-loi';
 
 /**
  * Trạng thái + quy trình HAI hộp "Khôi phục quản trị" (tenants.md §4) và "Tạo quản trị mới" (§6) —
@@ -42,14 +43,21 @@ export class KhoiPhucTaoQuanTriStore {
     tempPassword: this.fb.control('', [Validators.required]),
     goLaiMa: this.fb.control('', [Validators.required]),
   });
-  readonly dangMo = signal<LoaiHopQuanTri>(null);
-  readonly donViDangThaoTac = signal<DonVi | null>(null);
-  readonly dangGui = signal(false);
-  readonly daGui = signal(false);
-  readonly loiChung = signal<string | null>(null);
-  readonly hienThiXacNhanHuy = signal(false);
+  private readonly _dangMo = signal<LoaiHopQuanTri>(null);
+  readonly dangMo = this._dangMo.asReadonly();
+  private readonly _donViDangThaoTac = signal<DonVi | null>(null);
+  readonly donViDangThaoTac = this._donViDangThaoTac.asReadonly();
+  private readonly _dangGui = signal(false);
+  readonly dangGui = this._dangGui.asReadonly();
+  private readonly _daGui = signal(false);
+  readonly daGui = this._daGui.asReadonly();
+  private readonly _loiChung = signal<string | null>(null);
+  readonly loiChung = this._loiChung.asReadonly();
+  private readonly _hienThiXacNhanHuy = signal(false);
+  readonly hienThiXacNhanHuy = this._hienThiXacNhanHuy.asReadonly();
+  private readonly _lanGuiSai = signal(0);
   /** Tăng mỗi lần bấm gửi mà form không hợp lệ — hộp lắng nghe để đưa focus về ô sai đầu tiên. */
-  readonly lanGuiSai = signal(0);
+  readonly lanGuiSai = this._lanGuiSai.asReadonly();
 
   /** Nhịp đổi trạng thái của hai form (giá trị, chạm, lỗi): control không phải signal, cần nó để `loiTruong` tính lại. */
   private readonly nhipForm = signal(0);
@@ -106,15 +114,15 @@ export class KhoiPhucTaoQuanTriStore {
   }
 
   moKhoiPhuc(dv: DonVi): void {
-    this.donViDangThaoTac.set(dv);
+    this._donViDangThaoTac.set(dv);
     this.formKhoiPhuc.reset({ userName: '', tempPassword: '', goLaiMa: '' });
-    this.daGui.set(false);
-    this.loiChung.set(null);
-    this.dangMo.set('khoi-phuc');
+    this._daGui.set(false);
+    this._loiChung.set(null);
+    this._dangMo.set('khoi-phuc');
   }
 
   moTaoQuanTri(dv: DonVi): void {
-    this.donViDangThaoTac.set(dv);
+    this._donViDangThaoTac.set(dv);
     this.formTaoQuanTri.reset({
       userName: '',
       email: '',
@@ -122,9 +130,9 @@ export class KhoiPhucTaoQuanTriStore {
       tempPassword: '',
       goLaiMa: '',
     });
-    this.daGui.set(false);
-    this.loiChung.set(null);
-    this.dangMo.set('tao-quan-tri');
+    this._daGui.set(false);
+    this._loiChung.set(null);
+    this._dangMo.set('tao-quan-tri');
   }
 
   /** Đóng do NGƯỜI DÙNG (nút Hủy, Esc, xác nhận hủy) — khoá khi đang gửi. */
@@ -139,22 +147,22 @@ export class KhoiPhucTaoQuanTriStore {
    * thoát im lặng, hộp không đóng.
    */
   private datLaiHop(): void {
-    this.dangMo.set(null);
-    this.donViDangThaoTac.set(null);
-    this.daGui.set(false);
-    this.loiChung.set(null);
+    this._dangMo.set(null);
+    this._donViDangThaoTac.set(null);
+    this._daGui.set(false);
+    this._loiChung.set(null);
   }
 
   onDismissAttempted(): void {
-    this.hienThiXacNhanHuy.set(true);
+    this._hienThiXacNhanHuy.set(true);
   }
 
   huyXacNhanHuy(): void {
-    this.hienThiXacNhanHuy.set(false);
+    this._hienThiXacNhanHuy.set(false);
   }
 
   xacNhanHuy(): void {
-    this.hienThiXacNhanHuy.set(false);
+    this._hienThiXacNhanHuy.set(false);
     this.dongHop();
   }
 
@@ -169,18 +177,18 @@ export class KhoiPhucTaoQuanTriStore {
     const dv = this.donViDangThaoTac();
     if (!dv) return;
     this.kiemKhopMa(this.formKhoiPhuc.controls.goLaiMa);
-    this.daGui.set(true);
-    this.loiChung.set(null);
+    this._daGui.set(true);
+    this._loiChung.set(null);
     if (this.formKhoiPhuc.invalid) {
       this.formKhoiPhuc.markAllAsTouched();
-      this.lanGuiSai.update((n) => n + 1);
+      this._lanGuiSai.update((n) => n + 1);
       return;
     }
     const gt = this.formKhoiPhuc.getRawValue();
-    this.dangGui.set(true);
+    this._dangGui.set(true);
     this.service
       .khoiPhucQuanTri(dv.id, { userName: gt.userName, tempPassword: gt.tempPassword })
-      .pipe(finalize(() => this.dangGui.set(false)))
+      .pipe(finalize(() => this._dangGui.set(false)))
       .subscribe({
         next: () => {
           this.datLaiHop();
@@ -197,15 +205,15 @@ export class KhoiPhucTaoQuanTriStore {
     const dv = this.donViDangThaoTac();
     if (!dv) return;
     this.kiemKhopMa(this.formTaoQuanTri.controls.goLaiMa);
-    this.daGui.set(true);
-    this.loiChung.set(null);
+    this._daGui.set(true);
+    this._loiChung.set(null);
     if (this.formTaoQuanTri.invalid) {
       this.formTaoQuanTri.markAllAsTouched();
-      this.lanGuiSai.update((n) => n + 1);
+      this._lanGuiSai.update((n) => n + 1);
       return;
     }
     const gt = this.formTaoQuanTri.getRawValue();
-    this.dangGui.set(true);
+    this._dangGui.set(true);
     this.service
       .taoQuanTriMoi(dv.id, {
         userName: gt.userName,
@@ -213,7 +221,7 @@ export class KhoiPhucTaoQuanTriStore {
         fullName: gt.fullName,
         tempPassword: gt.tempPassword,
       })
-      .pipe(finalize(() => this.dangGui.set(false)))
+      .pipe(finalize(() => this._dangGui.set(false)))
       .subscribe({
         next: () => {
           this.datLaiHop();
@@ -226,7 +234,7 @@ export class KhoiPhucTaoQuanTriStore {
   /** §4.3 09-forms-validation.md — lỗi không được biến mất: không gắn được vào ô thì vào banner chung. */
   private xuLyLoi(err: unknown, form: FormGroup, khiDonViKhongTonTai: () => void): void {
     if (!(err instanceof ApiFailureError)) {
-      this.loiChung.set(this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION'));
+      this._loiChung.set(cauLoiKhongPhaiApi(this.translate));
       return;
     }
     // Mọi mã đi cùng một đường (fe-ui-conventions.md §6.2): mã khớp ô thì gắn vào ô, mã chưa hiện ở ô
@@ -234,8 +242,8 @@ export class KhoiPhucTaoQuanTriStore {
     // không khai `fieldErrors` —
     // NOT_FOUND, RECOVERY_TARGET_NOT_ELIGIBLE (một câu cho cả hai ca, KHÔNG gắn vào ô "Tên đăng
     // nhập", cố ý che việc tài khoản có tồn tại hay không) — cũng rơi vào banner ở đây.
-    this.loiChung.set(applyFormFailure(form, err, this.translate));
-    // Đơn vị đã bị người khác xoá: hàng đó không được nằm lại trong lưới (Screen 20).
+    this._loiChung.set(applyFormFailure(form, err, this.translate));
+    // NOT_FOUND (id không tồn tại hoặc là đơn vị hệ thống): hàng đó không được nằm lại trong lưới (Screen 20).
     if (err.body?.error.code === 'CORE.TENANT.NOT_FOUND') khiDonViKhongTonTai();
   }
 }

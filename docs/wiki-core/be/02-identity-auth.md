@@ -236,7 +236,7 @@ Chính sách phải nằm ở **cấu hình**, không rải trong code — vì m
 
 **Quan trọng:** BE trả về **mã lỗi**, không trả câu tiếng Việt. Câu chữ do FE ghép. Xem [`16-i18n-va-ma-loi.md`](16-i18n-va-ma-loi.md) — luật R8 ở [`../../RULES.md`](../../RULES.md) canh việc này.
 
-**Chính sách giống nhau ở mọi môi trường — luật S9.** Section cấu hình `Core:Identity:Password` chỉ nằm ở `appsettings.json`. Một test quét mọi tệp `appsettings.*.json` và đỏ khi section đó xuất hiện ở tệp theo môi trường; tên test ở cột *Ép bằng gì* của [`../../RULES.md`](../../RULES.md).
+**Chính sách giống nhau ở mọi môi trường — luật S9.** Section cấu hình `Core:Identity:Password` chỉ nằm ở `appsettings.json`. Một test quét mọi tệp `appsettings.*.json` và đỏ khi section đó xuất hiện ở tệp theo môi trường; tên test ở cột *Ép bằng gì* của [`../../RULES-BE.md`](../../RULES-BE.md).
 
 ### 4.2 Khoá tài khoản — định nghĩa gốc
 
@@ -357,9 +357,12 @@ còn duy nhất toàn hệ**, mà duy nhất theo cặp `(TenantId, giá trị c
 toàn có thể cùng có `admin`, cùng có `vanthu@…`. `UserManager.FindByNameAsync` tra theo tên
 chuẩn hoá, nên **một mình nó không còn định danh được một người**.
 
-Cách giải đã chốt: **một ô "mã đơn vị" trên chính form đăng nhập**, cùng cấp với ô tên đăng
-nhập. Đó không phải màn chọn tenant — nó điền **trước** khi xác thực, không phải chọn **sau**
-khi xác thực. Hai phương án khác (tên đăng nhập duy nhất toàn hệ; suy tenant từ tên miền) đã
+Cách giải đã chốt: **mã đơn vị đi cùng request đăng nhập**, cùng cấp với tên đăng nhập. Đó
+không phải màn chọn tenant — mã có mặt **trước** khi xác thực, không phải chọn **sau** khi xác
+thực. Người dùng thường không gõ mã: mỗi công ty một bản cài, FE lấy mã đơn vị nghiệp vụ từ cấu
+hình bản cài; ô mã đơn vị chỉ hiện ở chế độ vận hành của trang đăng nhập
+([`../../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md`](../../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md)).
+Hai phương án khác (tên đăng nhập duy nhất toàn hệ; suy tenant từ tên miền) đã
 được cân nhắc và loại — lý do ở [`17-multi-tenant.md`](17-multi-tenant.md) §11.
 
 **Thứ tự bắt buộc, và bước 3 là bước dễ bỏ sót nhất:**
@@ -412,7 +415,7 @@ hệ thống: nó thấy danh sách đơn vị, không thấy dữ liệu bên t
 | Cờ bootstrap | ✅ sẽ có | §3.6. **Không** gỡ bộ lọc tenant — §6.4 |
 | Bắt đổi mật khẩu lần đầu | ✅ sẽ có | Kiểm ở server |
 | Claim `TenantId` trong phiếu xác thực | ✅ sẽ có | §6.1. Nguồn duy nhất của tenant ở mọi request |
-| Ô mã đơn vị trên form đăng nhập | ✅ sẽ có | §6.2. **Không** phải màn chọn tenant |
+| Mã đơn vị gửi cùng request đăng nhập — lấy từ cấu hình bản cài; ô nhập chỉ ở chế độ vận hành | ✅ sẽ có | §6.2. **Không** phải màn chọn tenant |
 | Đặt lại mật khẩu hộ trong đơn vị; khôi phục quản trị đơn vị qua khu hệ thống | ✅ sẽ có | §4.4 |
 | Từ bỏ cờ bypass, một chiều, chống tự khoá | ✅ sẽ có | §3.6 |
 | **Quên mật khẩu tự phục vụ** | ❌ chưa | §4.4. Ngoài v1 — [`../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md) |

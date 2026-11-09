@@ -25,7 +25,7 @@
         [value]="
           nd.lockedByAdmin
             ? ('nguoiDung.khoa.boiQuanTri' | translate)
-            : ('nguoiDung.khoa.tuDong' | translate: { lockoutEnd: (nd.lockoutEnd | date: 'short') })
+            : ('nguoiDung.khoa.tuDong' | translate: { lockoutEnd: (nd.lockoutEnd | date) })
         "
       />
     </app-form-row>
@@ -51,7 +51,7 @@
       id="ndct-ngay-tao"
       type="text"
       [readonly]="true"
-      [value]="nd.createdAt ? (nd.createdAt | date: 'short') : '—'"
+      [value]="nd.createdAt ? (nd.createdAt | date) : '—'"
     />
   </app-form-row>
 </app-card>

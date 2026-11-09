@@ -9,11 +9,18 @@
   (closed)="closed.emit()"
   (dismissAttempted)="dismissAttempted.emit()"
 >
-  <app-notice-banner severity="info" size="sm">{{ 'donVi.khoiPhuc.ghiChu' | translate }}</app-notice-banner>
+  <app-notice-banner severity="info" size="sm">{{
+    'donVi.khoiPhuc.ghiChu' | translate
+  }}</app-notice-banner>
   @if (loiChung()) {
     <app-notice-banner severity="danger" size="sm">{{ loiChung() }}</app-notice-banner>
   }
-  <form #formKhoiPhucEl [formGroup]="formKhoiPhuc()" (ngSubmit)="submittedKhoiPhuc.emit()">
+  <form
+    #formKhoiPhucEl
+    [formGroup]="formKhoiPhuc()"
+    (ngSubmit)="submittedKhoiPhuc.emit()"
+    class="form-grid"
+  >
     @let loiTenDangNhapKp = loiTruong().khoiPhuc.userName;
     <app-form-row
       [label]="'donVi.khoiPhuc.tenDangNhap' | translate"
@@ -69,7 +76,9 @@
     </app-form-row>
   </form>
   <div slot="footer">
-    <app-button variant="secondary" (clicked)="closed.emit()">{{ 'chung.huy' | translate }}</app-button>
+    <app-button variant="secondary" (clicked)="closed.emit()">{{
+      'chung.huy' | translate
+    }}</app-button>
     <app-button variant="primary" [loading]="dangGui()" (clicked)="submittedKhoiPhuc.emit()">{{
       'donVi.khoiPhuc.xacNhan' | translate
     }}</app-button>
@@ -90,7 +99,12 @@
   @if (loiChung()) {
     <app-notice-banner severity="danger" size="sm">{{ loiChung() }}</app-notice-banner>
   }
-  <form #formTaoQuanTriEl [formGroup]="formTaoQuanTri()" (ngSubmit)="submittedTaoQuanTri.emit()">
+  <form
+    #formTaoQuanTriEl
+    [formGroup]="formTaoQuanTri()"
+    (ngSubmit)="submittedTaoQuanTri.emit()"
+    class="form-grid"
+  >
     @let loiTenDangNhapTq = loiTruong().taoQuanTri.userName;
     <app-form-row
       [label]="'donVi.form.tenDangNhap' | translate"
@@ -178,7 +192,9 @@
     </app-form-row>
   </form>
   <div slot="footer">
-    <app-button variant="secondary" (clicked)="closed.emit()">{{ 'chung.huy' | translate }}</app-button>
+    <app-button variant="secondary" (clicked)="closed.emit()">{{
+      'chung.huy' | translate
+    }}</app-button>
     <app-button variant="primary" [loading]="dangGui()" (clicked)="submittedTaoQuanTri.emit()">{{
       'donVi.taoQuanTri.xacNhan' | translate
     }}</app-button>

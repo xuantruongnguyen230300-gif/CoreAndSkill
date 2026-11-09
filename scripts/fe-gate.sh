@@ -12,20 +12,14 @@
 #
 # Mỗi section mang ĐÚNG mã luật F của nó — không phải một hệ mã thứ hai (05-gate.md, đầu file).
 #
-# Phạm vi hôm nay (pha F0 + F1 + F8 của F2) + một nợ §10 đã đóng: F3, F4, F5, F6, F7, F8, F9, F10,
-# F11, F12, F18, F19, F20, F21, F22, F25, F27, F29, F36, F37, F38, F39. Canary: scripts/tests/fe-gate-f<mã>.test.sh.
+# Phạm vi: mọi section `section "F<mã>"` bên dưới. Danh sách mã đọc bằng lệnh, không chép ở đây:
+#     grep -o '^section "F[0-9]*' scripts/fe-gate.sh
+# Canary: scripts/tests/fe-gate-f<mã>.test.sh, mỗi mã một tệp.
 #
-# F25 cùng loại với F27 bên dưới: một khoản nợ ở RULES.md §10, đóng khi màn danh sách Core đầu
-# tiên đọc seam CORE_SCREEN_EXT (fe-architecture.md §2.7 luật 5). Canary:
+# F25: luật ở docs/RULES-FE.md hàng F25 (seam CORE_SCREEN_EXT — fe-architecture.md §2.7 luật 5). Canary:
 # scripts/tests/fe-gate-f25.test.sh.
 #
-# F27 không nằm trong bảng "Bật ở pha" của 05-gate.md §3.1 — nó là một khoản nợ ở RULES.md §10,
-# đóng trực tiếp vì hình dạng máy đọc được đã có sẵn ngay (🔧 làm được ngay), không đợi cổng lên
-# theo pha. Phát hiện lần đầu bởi core-reviewer ở PR F2; quyết định remediation ở
-# adr/0037-f2-dung-du-component-core-khong-hoan-ngam.md. Đọc `05-gate.md` sau khi F27 được thêm ở
-# đây có thể chưa khớp — tài liệu đó là lộ trình theo pha, không phải điều kiện để đóng một khoản
-# nợ đã có hình dạng máy đọc được; đồng bộ bảng đó là việc của người giữ nội dung docs/, không phải
-# việc của script này.
+# F27: luật ở docs/RULES-FE.md hàng F27; quyết định remediation ở adr/0037-f2-dung-du-component-core-khong-hoan-ngam.md.
 #
 # F4 so hai TẬP tên (BUSINESS_MODULES với thư mục src/app/modules/ thật) — tập RỖNG khớp tập
 # RỖNG là PASS, không phải lỗi: đó là trạng thái đúng vĩnh viễn của chính repo Core (không bao giờ
@@ -33,14 +27,13 @@
 # Đây là ngoại lệ có tên riêng của F4 — KHÔNG suy rộng sang cổng khác. Lý do đầy đủ và nghĩa vụ
 # canary khi dự án hạ nguồn thêm module đầu tiên: adr/0036-f4-rong-khop-rong-la-hop-le.md.
 #
-# F5, F8, F11, F22 đọc allowlist/ngưỡng/lệnh từ bảng chủ lúc chạy (05-gate.md §8.3, §8.6, §8.8;
-# fe-ui-conventions.md §5.2; quy-uoc/fe-architecture.md §5). Mỗi section đỏ khi đọc ra 0 phần tử
-# hoặc 0 tệp đầu vào — chốt chống "xanh rỗng" (05-gate.md §8.2: ngoại lệ tập rỗng là của riêng F4).
-# F6, F7, F9, F10, F12, F18 không đọc bảng chủ nào nhưng cũng đếm tập tệp mình sẽ hỏi và đỏ khi bằng 0 (05-gate.md §8,
-# nguyên tắc 2; RULES.md §8 luật T6) — "OK" chỉ in kèm số tệp đã quét.
+# F3, F5, F8, F11, F22, F29 đọc danh sách/allowlist/ngưỡng/lệnh từ bảng chủ lúc chạy (05-gate.md §8.1,
+# §8.3, §8.6, §8.8, §8.12; fe-ui-conventions.md §5.2; quy-uoc/fe-architecture.md §4.5, §5). Mỗi section
+# đỏ khi đọc ra 0 phần tử hoặc 0 tệp đầu vào — chốt chống "xanh rỗng" (05-gate.md §8.2: ngoại lệ tập
+# rỗng là của riêng F4). Các section còn lại không đọc bảng chủ nào nhưng cũng đếm tập đầu vào mình sẽ
+# hỏi và đỏ khi bằng 0 (05-gate.md §8, nguyên tắc 2; RULES.md §8 luật T6) — "OK" chỉ in kèm số tệp đã quét.
 #
-# Các mã "Bật ở pha F0" còn lại theo bảng — F1, F13, F24 — là cổng CÔNG CỤ (`ng lint`/`ng build`),
-# không thuộc script này (05-gate.md §2).
+# Cổng CÔNG CỤ (`ng lint`/`ng build`/...) không thuộc script này: danh sách ở 05-gate.md §3.2.
 #
 # Biến FE cho phép override thư mục FE gốc (mặc định src/FE) — dùng bởi
 # scripts/tests/fe-gate-f4.test.sh để trỏ script này vào một fixture tạm, gọi THẲNG script
@@ -76,7 +69,7 @@ quet_ca_tep() {
 [ -d "$FE" ] || { printf '\033[31m❌ ABORT — không thấy %s. Chạy script từ gốc repo.\033[0m\n' "$FE"; exit 2; }
 
 # ================================================================ F3
-section "F3 - cấm eslint-disable cho quy tắc ranh giới"
+section "F3 - cấm eslint-disable cho rule trong danh sách cấm tắt"
 BANG=docs/quy-uoc/fe-architecture.md
 if [ ! -f "$BANG" ]; then
   bad "không thấy $BANG"
@@ -116,12 +109,12 @@ else
             }
           }')
     if [ -n "$HITS" ] || [ -n "$HITS_WHOLE" ] || [ -n "$HITS_KHOI" ]; then
-      bad "eslint-disable hoặc cấu hình nội tuyến chạm rule ranh giới:"
+      bad "eslint-disable hoặc cấu hình nội tuyến chạm rule trong danh sách cấm tắt:"
       [ -n "$HITS" ] && printf '%s\n' "$HITS"
       [ -n "$HITS_WHOLE" ] && printf '%s\n' "$HITS_WHOLE"
       [ -n "$HITS_KHOI" ] && printf '%s\n' "$HITS_KHOI"
     else
-      ok "không có eslint-disable hay cấu hình nội tuyến nào chạm rule ranh giới ($SO_TEP tệp đã quét)"
+      ok "không có eslint-disable hay cấu hình nội tuyến nào chạm rule trong danh sách cấm tắt ($SO_TEP tệp đã quét)"
     fi
   fi
 fi
@@ -436,7 +429,6 @@ else
   #       trước khi tới lời gọi, nên chỉ nhìn lời gọi là mù;
   #   (2) đối số đầu của một lời gọi HTTP mang tiền tố `api/`, có hay không có `/` đầu — prettier
   #       bẻ `this.http` / `.get<…>(` / đường dẫn ra ba dòng, nên so theo dòng là mù.
-  # Lệnh gốc ở 05-gate.md §8.13 chỉ khớp `this.http.<verb><` trên một dòng — hẹp hơn hai mẫu này.
   # Canary: scripts/tests/fe-gate-f19.test.sh.
   SO_TEP=$(find "$FE/src" -name '*.ts' -not -name '*.spec.ts' | grep -c .)
   if [ "$SO_TEP" -eq 0 ]; then
@@ -477,8 +469,7 @@ else
   # Bốn API của Router nhận đường dẫn: `navigate([…])`, `createUrlTree([…])` (guard trả UrlTree),
   # `navigateByUrl(…)`, `parseUrl(…)` (RedirectCommand). Đỏ khi phần tử/đối số đầu là chuỗi mở đầu
   # bằng `/`. So trên nội dung cả tệp — prettier bẻ `navigate(` và mảng đường dẫn ra hai dòng khi
-  # lời gọi kèm tuỳ chọn. Lệnh gốc ở 05-gate.md §8.14 chỉ khớp `navigate(['/` trên một dòng —
-  # hẹp hơn mẫu này. Canary: scripts/tests/fe-gate-f21.test.sh.
+  # lời gọi kèm tuỳ chọn. Canary: scripts/tests/fe-gate-f21.test.sh.
   SO_TEP=$(find "$FE/src/app/core" -name '*.ts' -not -name '*.spec.ts' | grep -c .)
   if [ "$SO_TEP" -eq 0 ]; then
     bad "không có tệp *.ts nào trong $FE/src/app/core để quét — cổng sẽ xanh rỗng"
@@ -550,7 +541,7 @@ f && /^\|/ {
   if (cung ~ /^\*\*[0-9]+\*\*$/) gsub(/\*/, "", cung); else cung = "?"
   if (mau != "") print mau "\t" cung
 }'
-# BỘ BÓC DÒNG — dùng chung cho F22 (đếm) và mọi phép dò của F39 (in dòng mã): một bộ bóc, không hai.
+# BỘ BÓC DÒNG — dùng chung cho F22 (đếm) và các phép dò của F58 (in dòng mã): một bộ bóc, không hai.
 # Mặc định in mỗi tệp một dòng `tệp<TAB>dòng thô<TAB>dòng mã`; với `-v in_ma=1` thì in từng dòng mã
 # dạng `tệp:số dòng:nguyên văn` (như grep -n) thay cho con số. Biến vào: cm (dấu chú thích dòng, rỗng
 # nếu cú pháp không có), mo / dg (dấu mở / đóng khối). So bằng index() — dấu là chuỗi thường, không regex.
@@ -616,7 +607,7 @@ elif [ ! -d "$FE/src" ]; then
   bad "không có $FE/src để quét"
 else
   # LC_ALL=C — tiêu đề mục và tên cột trong chương trình awk là chuỗi BYTE UTF-8 nguyên văn, so theo
-  # byte mới đúng (cùng bẫy với F37).
+  # byte mới đúng.
   F22_BANG=$(LC_ALL=C awk -F'|' "$F22_AWK" "$BANG")
   F22_SO_LOAI=$(printf '%s' "$F22_BANG" | grep -c .)
   # Canary nội tại của bộ bóc (T6): mỗi quy tắc phân loại ở §5 một dòng, dựng tại chỗ, đọc bằng đúng
@@ -729,10 +720,10 @@ if [ ! -f "$SHELL_HTML" ]; then
   bad "không có $SHELL_HTML để quét"
 else
   # [^>]* cho phép attribute khác đứng trước class (vd [attr.aria-label]) — vẫn cùng ý nghĩa với
-  # câu chữ ở RULES.md §10: <nav class="sidebar"> / <header class="topbar"> dựng tay.
+  # câu chữ ở docs/RULES-FE.md F27: <nav class="sidebar"> / <header class="topbar"> dựng tay.
   HITS=$(grep -nE '<nav[^>]*class="sidebar"|<header[^>]*class="topbar"' "$SHELL_HTML")
   if [ -n "$HITS" ]; then
-    bad "shell.component.html còn dựng tay Sidebar/Topbar bằng <nav>/<header> (RULES.md §10 F27, adr/0037):"
+    bad "shell.component.html còn dựng tay Sidebar/Topbar bằng <nav>/<header> (docs/RULES-FE.md F27, adr/0037):"
     printf '%s\n' "$HITS"
   elif ! grep -q '<app-sidebar' "$SHELL_HTML" || ! grep -q '<app-topbar' "$SHELL_HTML"; then
     bad "shell.component.html không gọi đủ <app-sidebar>/<app-topbar> — component dumb chưa được dùng"
@@ -869,128 +860,6 @@ else
   fi
 fi
 
-# ================================================================ F37
-section "F37 - hằng số thời lượng nhóm B nêu đích danh token --dur-* VÀ khớp giá trị của nó"
-# ADR-0073 quyết định 4; luật F37 ở docs/RULES.md §7.
-#
-# VÌ SAO CON SỐ SỐNG Ở HAI NƠI. `transitionOptions` / `showTransitionOptions` của PrimeNG nhận một
-# CHUỖI tham số hoạt ảnh Angular, và chuỗi đó bị phân tích thành số — nó KHÔNG giải `var()`. Token
-# đặt được *giá trị* nhưng không *đi tới* được, nên giá trị buộc phải có một bản thứ hai trong
-# TypeScript. Luật không xoá được bản thứ hai; nó bắt bản thứ hai TRUY ĐƯỢC về bản gốc.
-#
-# HAI NỬA, và nửa thứ hai mới là nửa quan trọng:
-#   (1) TRUY NGƯỢC — mỗi hằng `export const *_MS = <số>` dưới shared/ui/ phải có một chuỗi `--dur-`
-#       trong khối chú thích LIỀN TRÊN nó;
-#   (2) ĐỐI CHIẾU GIÁ TRỊ — đọc giá trị của chính token được nêu từ _tokens.scss rồi SO SỐ.
-# Chỉ nửa (2) bắt được ca HAI NƠI TRÔI KHỎI NHAU: chú thích vẫn nói `--dur-base`, token đã đổi
-# 200ms -> 240ms, hằng số vẫn 200, và nửa (1) xanh. Đó là chính xác lớp lỗi F37 sinh ra để chặn.
-#
-# NGOẠI LỆ CÓ TÊN: TOOLTIP_DELAY_CHUOT_MS là THAM SỐ HÀNH VI (độ trễ trước khi hộp nổi hiện), không
-# phải thời lượng một chuyển tiếp, nên nó không phản chiếu token nào. Ngoại lệ khai ngay đây, mỗi
-# mục phải trỏ vào một hằng CÓ THẬT và chú thích của hằng đó phải tự nói ra điều đó — một ngoại lệ
-# không ai kiểm lại là một ngoại lệ mục ruỗng.
-#
-# Canary: scripts/tests/fe-gate-f37.test.sh, cộng ba canary NỘI TẠI dưới đây (bộ đọc hằng, bộ đọc
-# token, phép so giá trị) — điều kiện PASS của mục này thuần phủ định nên một bộ đọc chết trông y
-# hệt "không có vi phạm" (05-gate.md §8.2).
-F37_TOKENS="$FE/src/styles/_tokens.scss"
-F37_UI="$FE/src/app/shared/ui"
-F37_NGOAI_LE="TOOLTIP_DELAY_CHUOT_MS"
-
-# Bộ đọc hằng: in `tệp|dòng|TÊN|giá trị|token nêu trong chú thích|có-cụm-"tham số hành vi"|chú thích liền trên`.
-# LC_ALL=C — mẫu tiếng Việt ở đây là chuỗi BYTE UTF-8 nguyên văn, so theo byte mới đúng (cùng bẫy
-# locale mà .claude/check-docs.sh §27 đã ghi).
-F37_AWK='
-  FNR == 1 { inblk = 0; blk = ""; blkend = -1 }
-  /^[[:space:]]*\/\*\*/ { inblk = 1; blk = "" }
-  inblk { blk = blk " " $0 }
-  inblk && /\*\// { inblk = 0; blkend = FNR; next }
-  /^export const [A-Za-z0-9_]+_MS[[:space:]]*=[[:space:]]*[0-9]+[[:space:]]*;/ {
-    ten = $3
-    gia = $5; gsub(/[^0-9]/, "", gia)
-    tok = ""
-    if (match(blk, /--dur-[a-z]+/)) tok = substr(blk, RSTART, RLENGTH)
-    hv = index(blk, "tham số hành vi") ? 1 : 0
-    ke = (blkend == FNR - 1) ? 1 : 0
-    print FILENAME "|" FNR "|" ten "|" gia "|" tok "|" hv "|" ke
-  }'
-
-if [ ! -f "$F37_TOKENS" ]; then
-  bad "không có $F37_TOKENS — không đọc được giá trị token nào để đối chiếu; nửa (2) của F37 sẽ xanh rỗng"
-elif [ ! -d "$F37_UI" ]; then
-  bad "không có $F37_UI để quét"
-else
-  # --- bảng token --dur-*, đọc từ tệp chủ, KHÔNG hằng hoá trong cổng
-  F37_DUR=$(LC_ALL=C awk -F'[:;]' '/^[[:space:]]*--dur-[a-z]+:/ {
-      gsub(/[[:space:]]/, "", $1); gsub(/[^0-9]/, "", $2); print $1 "=" $2 }' "$F37_TOKENS")
-  F37_SO_TOKEN=$(printf '%s\n' "$F37_DUR" | grep -c .)
-
-  F37_HANG=$(find "$F37_UI" -name '*.ts' -not -name '*.spec.ts' -print0 \
-    | LC_ALL=C xargs -0 -r awk "$F37_AWK")
-  F37_SO_HANG=$(printf '%s\n' "$F37_HANG" | grep -c .)
-
-  # --- canary nội tại 1: bộ đọc hằng còn sống (dò trên một đoạn dựng tại chỗ)
-  F37_CANARY=$(printf '/**\n * phản chiếu token **`--dur-fast`** (`120ms`).\n */\nexport const ZZ_CANARY_MS = 120;\n' \
-    | LC_ALL=C awk "$F37_AWK" | cut -d'|' -f3-7)
-  # --- canary nội tại 2: hằng KHÔNG nêu token phải ra token rỗng
-  F37_CANARY2=$(printf '/**\n * Khong neu token nao.\n */\nexport const ZZ_CANARY_MS = 120;\n' \
-    | LC_ALL=C awk "$F37_AWK" | cut -d'|' -f5)
-
-  F37_LOI=""
-  if [ "$F37_SO_TOKEN" -eq 0 ]; then
-    bad "F37 đọc được 0 token --dur-* từ $F37_TOKENS — bộ đọc token hỏng, nửa đối chiếu giá trị đang không kiểm gì"
-  elif [ "$F37_SO_HANG" -eq 0 ]; then
-    bad "F37 đọc được 0 hằng *_MS dưới $F37_UI — bộ đọc hằng hỏng hoặc hằng đã dời chỗ; mục này đang không kiểm gì"
-  elif [ "$F37_CANARY" != "ZZ_CANARY_MS|120|--dur-fast|0|1" ]; then
-    bad "F37 canary bộ đọc hỏng — không bóc được cặp (hằng, token) từ một đoạn dựng sẵn; đọc ra: '$F37_CANARY'"
-  elif [ -n "$F37_CANARY2" ]; then
-    bad "F37 canary nửa truy ngược hỏng — chú thích KHÔNG nêu token nào mà bộ đọc vẫn trả về '$F37_CANARY2'"
-  else
-    # --- ngoại lệ có tên phải trỏ vào một hằng CÓ THẬT (chống mục ruỗng)
-    for NL in $F37_NGOAI_LE; do
-      case "$F37_HANG" in
-        *"|$NL|"*) ;;
-        *) F37_LOI="${F37_LOI}ngoại lệ có tên '$NL' không trỏ vào hằng nào còn tồn tại dưới $F37_UI — gỡ mục đi"$'\n' ;;
-      esac
-    done
-
-    while IFS='|' read -r TEP DONG TEN GIA TOK HV KE; do
-      [ -z "$TEN" ] && continue
-      if [ "$KE" -ne 1 ]; then
-        F37_LOI="${F37_LOI}$TEP:$DONG — $TEN không có khối chú thích LIỀN TRÊN; F37 đọc chú thích ngay trên khai báo"$'\n'
-        continue
-      fi
-      case " $F37_NGOAI_LE " in
-        *" $TEN "*)
-          # Ngoại lệ phải tự nói ra vì sao nó là ngoại lệ — nếu không, nó chỉ là một hằng quên token.
-          if [ "$HV" -ne 1 ]; then
-            F37_LOI="${F37_LOI}$TEP:$DONG — $TEN nằm trong ngoại lệ có tên nhưng chú thích KHÔNG nói nó là 'tham số hành vi'"$'\n'
-          fi
-          continue ;;
-      esac
-      if [ -z "$TOK" ]; then
-        F37_LOI="${F37_LOI}$TEP:$DONG — $TEN không nêu token --dur-* nào trong chú thích liền trên (luật F37: nêu ĐÍCH DANH token nó phản chiếu)"$'\n'
-        continue
-      fi
-      GIA_TOKEN=""
-      case "$F37_DUR" in
-        *"$TOK="*) GIA_TOKEN=$(printf '%s\n' "$F37_DUR" | awk -F= -v t="$TOK" '$1 == t { print $2 }') ;;
-      esac
-      if [ -z "$GIA_TOKEN" ]; then
-        F37_LOI="${F37_LOI}$TEP:$DONG — $TEN nêu token '$TOK' nhưng token đó KHÔNG có trong $F37_TOKENS"$'\n'
-      elif [ "$GIA_TOKEN" != "$GIA" ]; then
-        F37_LOI="${F37_LOI}$TEP:$DONG — $TEN = $GIA nhưng '$TOK' = ${GIA_TOKEN}ms. Hai nơi đã trôi khỏi nhau — sửa con số trong TypeScript, đừng sửa token cho khớp"$'\n'
-      fi
-    done <<< "$F37_HANG"
-
-    if [ -n "$F37_LOI" ]; then
-      bad "lệch luật F37 (ADR-0073):"; printf '%s' "$F37_LOI"
-    else
-      ok "$F37_SO_HANG hằng *_MS truy về token và khớp giá trị ($F37_SO_TOKEN token --dur-* đã đọc)"
-    fi
-  fi
-fi
-
 # ================================================================ F38
 section "F38 - index.html không mang tên sản phẩm (name, shortName đọc từ provideCoreBranding( của app.config.ts)"
 # Luật F38 ở docs/RULES.md §7; quy-uoc/fe-routing-guard.md §2.2.
@@ -1079,89 +948,220 @@ else
   fi
 fi
 
-# ================================================================ F39
-section "F39 - provider hoạt ảnh chỉ khai qua provideCoreAnimations() của core, không nạp điểm vào tĩnh của bộ máy hoạt ảnh"
-# Luật F39 ở docs/RULES.md §7; ADR-0080. Trên $FE/src/app/**/*.ts trừ *.spec.ts, MỌI phép dò đi trên
-# DÒNG MÃ — phân loại theo §5 của quy-uoc/fe-architecture.md, qua bộ bóc dùng chung F22_DEM (chế độ
-# in_ma), cú pháp của đuôi `.ts` đọc từ §5 (cu_phap). Chú thích một mình không thoả, và không vi phạm.
-#   (1) tệp mang `export function provideCoreAnimations(` nằm dưới $FE/src/app/core/ — tìm theo TÊN
-#       HÀM, rồi mới kiểm chỗ; dời nó về composition root là phương án B ADR-0080 đã loại;
-#   (2) `provideAnimationsAsync(` chỉ khớp ở tệp đó;
-#   (3) không dòng mã nào nhắc ĐIỂM VÀO TĨNH `@angular/platform-browser/animations` đứng ngay trước dấu
-#       nháy đóng (`…/animations/async` được phép). Dò theo điểm vào, không theo tên hàm: bí danh, import
-#       cả không gian tên, dạng module (`NoopAnimationsModule`, `BrowserAnimationsModule`) đều bị bắt;
-#   (4) dòng mã của app.config.ts có `provideCoreAnimations(`;
-#   (5) dòng mã của tệp ở (1) có `(prefers-reduced-motion: reduce)` và `'noop'` — chỉ dò HÌNH DẠNG;
-#       hành vi thân hàm do unit test cạnh tệp đó khoá, không do F39.
-# Chốt chống xanh rỗng, mỗi cái là FAIL: không tìm ra tệp mang hàm xuất · tệp đó không khớp
-# `provideAnimationsAsync(` · canary nội tại của bộ bóc hỏng (và: §5 không khai cú pháp `.ts`).
-#
-# Các đột biến đã đi qua mọi test ngày 2026-09-24 đều có ca canary bắt buộc:
-# scripts/tests/fe-gate-f39.test.sh.
-F39_APP="$FE/src/app"
-F39_CORE="$FE/src/app/core/"
-F39_CAU_HINH="$FE/src/app/app.config.ts"
-F39_XUAT='export function provideCoreAnimations('
-if [ ! -d "$F39_APP" ]; then
-  bad "không có $F39_APP để quét"
-elif [ ! -f "$F39_CAU_HINH" ]; then
-  bad "không có $F39_CAU_HINH — không kiểm được composition root gọi provideCoreAnimations("
-elif ! cu_phap ts; then
-  bad "docs/quy-uoc/fe-architecture.md §5 không khai cú pháp chú thích cho '.ts' — không tách được dòng mã; F39 không đoán"
+# ================================================================ F45
+section "F45 - mã cho phản hồi không envelope chỉ chọn ở core/http/ (không tệp nào ngoài core/http/ tự nhắc ba mã CORE.CLIENT.*)"
+# Luật F45 ở quy-uoc/fe-api-client.md §2.2: mã cho phản hồi HTTP không envelope chỉ được chọn ở
+# `maLoiKhongEnvelope(status)`. Cổng này khoá VỊ TRÍ (hành vi do unit test của core/http/ khoá): đỏ khi
+# mã trơn `CORE.CLIENT.(NO_CONNECTION|SERVER_UNAVAILABLE|INVALID_RESPONSE)` xuất hiện trong tệp *.ts
+# không phải *.spec.ts NGOÀI core/http/ — chỗ cần câu cho lỗi không phải phản hồi HTTP gọi
+# `cauLoiKhongPhaiApi` / `dichLoiBatKy` (core/http/dich-loi.ts).
+# QUYẾT ĐỊNH TIỀN TỐ: mẫu BỎ tiền tố `loi.` để bắt cả khoá `loi.CORE.CLIENT.X` lẫn mã trơn đưa qua một
+# hàm dịch khác. Kiểm 2026-10-04: ngoài core/http/ không tệp nào mang mã trơn của ba mã này, nên bỏ
+# tiền tố không đỏ thêm tệp nào. Chú thích cũng bị bắt — nhắc mã ở chú thích thì trỏ tên hàm thay vì chép mã.
+# Giữ đúng ba mã: `loi.CORE.CLIENT.VALIDATION_*` dùng hợp lệ dưới shared/forms/.
+# Canary: scripts/tests/fe-gate-f45.test.sh.
+F45_MAU='CORE\.CLIENT\.(NO_CONNECTION|SERVER_UNAVAILABLE|INVALID_RESPONSE)'
+if [ ! -d "$FE/src/app" ]; then
+  bad "không có $FE/src/app để quét"
 else
-  # Dòng mã của mọi tệp trong phạm vi, dạng `tệp:số dòng:nội dung` (như grep -n).
-  F39_MA=$(find "$F39_APP" -type f -name '*.ts' -not -name '*.spec.ts' -print0 \
-    | LC_ALL=C xargs -0 -r awk -v in_ma=1 -v BINMODE=3 -v cm="$CM_DONG" -v mo="$CM_MO" -v dg="$CM_DG" "$F22_DEM")
-  F39_SO_TEP=$(find "$F39_APP" -type f -name '*.ts' -not -name '*.spec.ts' | grep -c .)
-  # Canary nội tại của chế độ in_ma (T6): dòng chỉ là chú thích không được in, dòng mã in kèm tệp và số dòng.
-  F39_CANARY=$(printf '// (zz)\nf(); // yy\n/* ww */\n' \
-    | LC_ALL=C awk -v in_ma=1 -v BINMODE=3 -v cm="$CM_DONG" -v mo="$CM_MO" -v dg="$CM_DG" "$F22_DEM" | tr '\n' '|')
-  # f39_khop <chuỗi cố định> — các dòng của F39_MA mà PHẦN NỘI DUNG (sau `tệp:số:`) chứa chuỗi đó.
-  f39_khop() { printf '%s\n' "$F39_MA" | LC_ALL=C awk -v s="$1" 'length($0) { t = $0; sub(/^[^:]*:[0-9]+:/, "", t); if (index(t, s)) print }'; }
-  # f39_tep <dòng dạng tệp:số:nội dung>... (stdin) — tên tệp, mỗi tệp một lần
-  f39_tep() { LC_ALL=C awk 'length($0) { print substr($0, 1, index($0, ":") - 1) }' | sort -u; }
-  F39_TEP_XUAT=$(f39_khop "$F39_XUAT" | f39_tep)
-  if [ "$F39_CANARY" != "-:2:f(); // yy|" ]; then
-    bad "F39 canary bộ bóc dòng mã hỏng — đoạn dựng sẵn in ra '$F39_CANARY' (kỳ vọng '-:2:f(); // yy|'); F39 đang không dò gì"
-  elif [ "$F39_SO_TEP" -eq 0 ]; then
-    bad "không có tệp *.ts nào trong $F39_APP để quét — cổng sẽ xanh rỗng"
-  elif [ -z "$F39_TEP_XUAT" ]; then
-    bad "không tìm ra tệp nào dưới $F39_APP có dòng mã '$F39_XUAT' — không có hàm Core nào chọn bộ chạy; F39 sẽ xanh rỗng"
+  F45_SO_TEP=$(find "$FE/src/app" -name '*.ts' -not -name '*.spec.ts' -not -path '*/core/http/*' | grep -c .)
+  if [ "$F45_SO_TEP" -eq 0 ]; then
+    bad "không có tệp *.ts nào ngoài core/http/ để quét — cổng sẽ xanh rỗng"
   else
-    F39_LOI=""
-    while IFS= read -r F39_TEP; do
-      [ -n "$F39_TEP" ] || continue
-      # (1) hàm xuất nằm dưới core/
-      case "$F39_TEP" in
-        "$F39_CORE"*) ;;
-        *) F39_LOI="${F39_LOI}(1) $F39_TEP mang '$F39_XUAT' nhưng nằm NGOÀI $F39_CORE — thân hàm phải sống ở nơi Core canh (ADR-0080, phương án B đã loại)"$'\n' ;;
-      esac
-      F39_MA_TEP=$(printf '%s\n' "$F39_MA" | LC_ALL=C awk -v p="$F39_TEP:" 'index($0, p) == 1')
-      # chốt: tệp đó phải chọn bộ chạy
-      printf '%s\n' "$F39_MA_TEP" | LC_ALL=C grep -qF -- 'provideAnimationsAsync(' \
-        || F39_LOI="${F39_LOI}$F39_TEP mang '$F39_XUAT' nhưng không có dòng mã nào khớp 'provideAnimationsAsync(' — hàm xuất không chọn bộ chạy nào; F39 sẽ xanh rỗng"$'\n'
-      # (5) hình dạng nhánh giảm chuyển động, trên dòng mã
-      printf '%s\n' "$F39_MA_TEP" | LC_ALL=C grep -qF -- '(prefers-reduced-motion: reduce)' \
-        || F39_LOI="${F39_LOI}(5) $F39_TEP thiếu '(prefers-reduced-motion: reduce)' trên DÒNG MÃ — chú thích một mình không thoả"$'\n'
-      printf '%s\n' "$F39_MA_TEP" | LC_ALL=C grep -qF -- "'noop'" \
-        || F39_LOI="${F39_LOI}(5) $F39_TEP thiếu \"'noop'\" trên DÒNG MÃ — chú thích một mình không thoả"$'\n'
-    done <<< "$F39_TEP_XUAT"
-    # (2) provideAnimationsAsync( chỉ ở tệp mang hàm xuất
-    F39_NGOAI=$(f39_khop 'provideAnimationsAsync(' | LC_ALL=C awk -v ds="$F39_TEP_XUAT" '
-      BEGIN { n = split(ds, d, "\n") }
-      { for (i = 1; i <= n; i++) if (index($0, d[i] ":") == 1) next; print }')
-    [ -n "$F39_NGOAI" ] && F39_LOI="${F39_LOI}(2) provideAnimationsAsync( xuất hiện NGOÀI tệp mang '$F39_XUAT':"$'\n'"$F39_NGOAI"$'\n'
-    # (3) điểm vào tĩnh — mẫu của dòng luật; `…/animations/async` không khớp vì sau `animations` là `/`
-    F39_TINH=$(printf '%s\n' "$F39_MA" | LC_ALL=C awk 'length($0) { t = $0; sub(/^[^:]*:[0-9]+:/, "", t)
-      if (t ~ /@angular\/platform-browser\/animations[\x27"]/) print }')
-    [ -n "$F39_TINH" ] && F39_LOI="${F39_LOI}(3) dòng mã nhắc ĐIỂM VÀO TĨNH @angular/platform-browser/animations — kéo bộ máy hoạt ảnh vào bundle khởi động của mọi người dùng (bí danh, không gian tên, dạng module đều tính):"$'\n'"$F39_TINH"$'\n'
-    # (4) composition root gọi hàm của Core, trên dòng mã
-    printf '%s\n' "$F39_MA" | LC_ALL=C awk -v p="$F39_CAU_HINH:" 'index($0, p) == 1' | LC_ALL=C grep -qF -- 'provideCoreAnimations(' \
-      || F39_LOI="${F39_LOI}(4) $F39_CAU_HINH không có 'provideCoreAnimations(' trên DÒNG MÃ — composition root không nối nửa provider giảm chuyển động (dòng nối trong chú thích không tính)"$'\n'
-    if [ -n "$F39_LOI" ]; then
-      bad "lệch luật F39 (ADR-0080):"; printf '%s' "$F39_LOI"
+    F45_HITS=$(find "$FE/src/app" -name '*.ts' -not -name '*.spec.ts' -not -path '*/core/http/*' -print0 | xargs -0 -r grep -nE -- "$F45_MAU")
+    if [ -n "$F45_HITS" ]; then
+      bad "mã CORE.CLIENT.(NO_CONNECTION|SERVER_UNAVAILABLE|INVALID_RESPONSE) xuất hiện NGOÀI core/http/ — dùng cauLoiKhongPhaiApi / dichLoiBatKy / dichLoi (luật F45, fe-api-client.md §2.2):"
+      printf '%s\n' "$F45_HITS"
     else
-      ok "provider hoạt ảnh chỉ ở $(printf '%s' "$F39_TEP_XUAT" | tr '\n' ' ')(tệp mang hàm xuất, dưới core/; $F39_SO_TEP tệp đã quét trên dòng mã), app.config.ts gọi provideCoreAnimations"
+      ok "ba mã CORE.CLIENT.* không xuất hiện ngoài core/http/ ($F45_SO_TEP tệp đã quét)"
+    fi
+  fi
+fi
+
+# ================================================================ F58
+section "F58 - điểm ngắt: truy vấn độ rộng chỉ qua hai mixin của _spacing.scss; TypeScript chỉ nhận chuỗi từ core/theme/diem-ngat.ts, khớp từng hằng với \$bp-*"
+# Luật F58 ở docs/quy-uoc/fe-ui-conventions.md §7, §7.1; đặc tả ở 05-gate.md §8.16. Lý do cổng tồn tại:
+# điểm ngắt có hai bản — SCSS và chuỗi cho `matchMedia` — và ba tệp TypeScript từng tự khai lại
+# mỗi tệp một kiểu trừ biên (`479.98px`, `639px`, `480 - 1`). Đổi `$bp-*` mà không đổi hằng thì CSS và
+# `matchMedia` bất đồng ở dải giữa hai giá trị: CSS đã ẩn nút theme của Topbar mà menu tài khoản chưa có mục.
+#   (1) `_spacing.scss` có dòng `$bp-<x>: <N>px;`, mọi dòng mở đầu bằng `$bp-` đều đúng dạng đó;
+#   (2) hai mixin `tu-man-hinh(`, `duoi-man-hinh(` có, dòng `@media` đầu thân mỗi mixin đúng nguyên văn;
+#   (3) tệp phản chiếu: mọi dòng mã là một hằng đúng khuôn, chú thích liền trên nêu ĐÚNG MỘT `$bp-<x>` khớp
+#       hậu tố tên, hướng khớp tiền tố, giá trị khớp `_spacing.scss` (so theo chuỗi);
+#   (4)(5) TypeScript ngoài tệp đó: không `(min|max)-width:`, không hằng điểm ngắt dạng số;
+#   (6) SCSS ngoài `_spacing.scss`: không `@media` có `width` trong điều kiện.
+# Vế 3–6 dò trên DÒNG MÃ qua bộ bóc F22_DEM, dùng chung với F22. Điều kiện PASS của vế 3–6 thuần phủ định nên mỗi bộ
+# dò có canary nội tại bên dưới. Canary tệp: scripts/tests/fe-gate-f58.test.sh.
+F58_SP="$FE/src/styles/_spacing.scss"
+F58_GUONG="$FE/src/app/core/theme/diem-ngat.ts"
+F58_TRU="0.02"                              # phép trừ biên, khai MỘT lần — vế 2 và vế 3 cùng đọc
+F58_PHAN_DUOI=$((100 - 10#${F58_TRU#0.}))   # phần lẻ của "dưới điểm ngắt": 98 cho 0.02
+# f58_hang — stdin: tệp phản chiếu thô. Ra mỗi hằng đúng khuôn một dòng:
+# `dòng<TAB>hậu tố HOA<TAB>DUOI|TU<TAB>max|min<TAB>số<TAB>các biến $bp-* của chú thích liền trên (phẩy)`
+f58_hang() {
+  LC_ALL=C perl -e '
+    my @d = <STDIN>; chomp @d; s/\r$// for @d;
+    for my $i (0 .. $#d) {
+      next unless $d[$i] =~ /^export const TRUY_VAN_(DUOI|TU)_BP_([A-Z]+) = \x27\((max|min)-width: ([0-9.]+)px\)\x27;$/;
+      my ($hd, $x, $dir, $val) = ($1, $2, $3, $4);
+      my %bp; my $j = $i - 1;
+      if ($j >= 0 && $d[$j] =~ /\*\/\s*$/) {
+        my @blk;
+        while ($j >= 0) { unshift @blk, $d[$j]; last if $d[$j] =~ /^\s*\/\*/; $j--; }
+        if ($j >= 0) { my $t = join(" ", @blk); $bp{$1} = 1 while $t =~ /\$bp-([a-z]+)/g; }
+      }
+      print join("\t", $i + 1, $x, $hd, $dir, $val, join(",", sort keys %bp)), "\n";
+    }'
+}
+# f58_v4 / f58_v5 / f58_v6 — stdin: dòng mã dạng `tệp:số dòng:nội dung`; ra các dòng vi phạm.
+f58_v4() { LC_ALL=C awk '{ t = $0; sub(/^[^:]*:[0-9]+:/, "", t); if (t ~ /\((min|max)-width[[:space:]]*:/) print }'; }
+f58_v5() {
+  LC_ALL=C perl -ne '
+    next unless /^([^:]*:[0-9]+):(.*)$/;
+    my ($w, $t) = ($1, $2);
+    next unless $t =~ /\b(?:const|let|var|readonly)\s+([A-Za-z_\$][A-Za-z0-9_\$]*)\s*(?::[^=;]*)?=\s*-?[0-9][0-9_.]*\s*(?:[;,]|$)/;
+    my @s = map { lc } grep { length } map { split /(?<=[a-z0-9])(?=[A-Z])/ } split /_/, $1;
+    my $hit = 0;
+    for my $i (0 .. $#s) {
+      $hit = 1 if $s[$i] =~ /^(?:bp|bps|breakpoint|breakpoints)$/;
+      $hit = 1 if $s[$i] eq "diem" && ($s[$i + 1] // "") eq "ngat";
+    }
+    print "$w:$t\n" if $hit;'
+}
+f58_v6() {
+  LC_ALL=C awk '{ t = $0; sub(/^[^:]*:[0-9]+:/, "", t); p = index(t, "@media"); if (!p) next
+    c = substr(t, p + 6); q = index(c, "{"); if (q) c = substr(c, 1, q - 1)
+    if (c ~ /width/) print }'
+}
+if [ ! -f "$F58_SP" ]; then
+  bad "không có $F58_SP — không đọc được bảng điểm ngắt"
+elif [ ! -d "$FE/src/app" ]; then
+  bad "không có $FE/src/app để quét"
+else
+  F58_LOI=""
+  # ---- canary nội tại (T6)
+  F58_C3=$(printf '/** Phản chiếu `$bp-zz`. */\nexport const TRUY_VAN_DUOI_BP_ZZ = \x27(max-width: 99.98px)\x27;\n' | f58_hang)
+  F58_C4_DUNG=$(printf 'z:1:matchMedia(\x27(max-width: 1px)\x27)\n' | f58_v4 | grep -c .)
+  F58_C4_SAI=$(printf 'z:1:el.style.setProperty(\x27max-width\x27, v)\n' | f58_v4 | grep -c .)
+  F58_C5_DUNG=$(printf 'z:1:const BP_XS = 1;\nz:2:readonly bpSm = 2;\nz:3:const DIEM_NGAT_MD = 3;\n' | f58_v5 | grep -c .)
+  F58_C5_SAI=$(printf 'z:1:const subpathLen = 3;\n' | f58_v5 | grep -c .)
+  F58_C6_DUNG=$(printf 'z:1:@media (max-width: 1px) {\n' | f58_v6 | grep -c .)
+  F58_C6_SAI=$(printf 'z:1:@media (prefers-reduced-motion: reduce) {\n' | f58_v6 | grep -c .)
+  F58_CBOC=""
+  if cu_phap ts; then
+    F58_CBOC=$(printf '// (zz)\nf(); // yy\n/* ww */\n' \
+      | LC_ALL=C awk -v in_ma=1 -v BINMODE=3 -v cm="$CM_DONG" -v mo="$CM_MO" -v dg="$CM_DG" "$F22_DEM" | tr '\n' '|')
+  fi
+  if [ "$F58_C3" != "$(printf '2\tZZ\tDUOI\tmax\t99.98\tzz')" ]; then
+    bad "F58 canary bộ đọc hằng (vế 3) hỏng — đoạn dựng sẵn đọc ra '$F58_C3'; F58 đang không dò gì"
+  elif [ "$F58_C4_DUNG" -ne 1 ] || [ "$F58_C4_SAI" -ne 0 ]; then
+    bad "F58 canary vế 4 hỏng — phải khớp matchMedia('(max-width: 1px)') (được $F58_C4_DUNG) và không khớp setProperty('max-width', …) (được $F58_C4_SAI)"
+  elif [ "$F58_C5_DUNG" -ne 3 ] || [ "$F58_C5_SAI" -ne 0 ]; then
+    bad "F58 canary vế 5 hỏng — phải khớp 3 khai báo hằng điểm ngắt (được $F58_C5_DUNG) và không khớp 'const subpathLen = 3;' (được $F58_C5_SAI)"
+  elif [ "$F58_C6_DUNG" -ne 1 ] || [ "$F58_C6_SAI" -ne 0 ]; then
+    bad "F58 canary vế 6 hỏng — phải khớp '@media (max-width: 1px) {' (được $F58_C6_DUNG) và không khớp '@media (prefers-reduced-motion: …)' (được $F58_C6_SAI)"
+  elif [ "$F58_CBOC" != "-:2:f(); // yy|" ]; then
+    bad "F58 canary bộ bóc dòng mã hỏng — đoạn dựng sẵn in ra '$F58_CBOC' (kỳ vọng '-:2:f(); // yy|'; rỗng nếu §5 không khai cú pháp '.ts')"
+  else
+    # ---- (1) bảng điểm ngắt
+    F58_BP=$(LC_ALL=C perl -ne '
+      next unless /^\$bp-/;
+      if (/^\$bp-([a-z]+):\s*([0-9]+)px\s*;/) { print "$1\t$2\n" } else { s/\r?\n$//; print "!\t$_\n" }' "$F58_SP")
+    F58_SO_BP=$(printf '%s\n' "$F58_BP" | grep -c '^[a-z]')
+    F58_BP_HONG=$(printf '%s\n' "$F58_BP" | LC_ALL=C awk -F'\t' '$1 == "!" { print $2 }')
+    if [ "$F58_SO_BP" -eq 0 ]; then
+      F58_LOI="${F58_LOI}(1) $F58_SP không có dòng '\$bp-<x>: <N>px;' nào — không có bảng điểm ngắt để so, cổng không đoán"$'\n'
+    fi
+    [ -n "$F58_BP_HONG" ] && F58_LOI="${F58_LOI}(1) dòng mở đầu bằng '\$bp-' mà giá trị không phải số nguyên px — cổng không đoán:"$'\n'"$F58_BP_HONG"$'\n'
+    # ---- (2) hai mixin
+    F58_MX=$(LC_ALL=C perl -ne '
+      s/\r?\n$//;
+      if (/^\@mixin\s+([a-z-]+)\s*\(/) { $cur = $1; print "M\t$cur\t\n"; next }
+      if ($cur ne "" && /^\}/) { $cur = ""; next }
+      if ($cur ne "" && /\@media/ && !$got{$cur}++) { (my $t = $_) =~ s/^\s+//; print "@\t$cur\t$t\n" }' "$F58_SP")
+    F58_KV_TU='@media (min-width: $nguong) {'
+    F58_KV_DUOI="@media (max-width: \$nguong - ${F58_TRU}px) {"
+    for F58_M in tu-man-hinh duoi-man-hinh; do
+      if ! printf '%s\n' "$F58_MX" | LC_ALL=C awk -F'\t' -v m="$F58_M" '$1 == "M" && $2 == m { f = 1 } END { exit !f }'; then
+        F58_LOI="${F58_LOI}(2) $F58_SP thiếu '@mixin $F58_M('"$'\n'
+        continue
+      fi
+      if [ "$F58_M" = tu-man-hinh ]; then F58_KV="$F58_KV_TU"; else F58_KV="$F58_KV_DUOI"; fi
+      F58_DOC=$(printf '%s\n' "$F58_MX" | LC_ALL=C awk -F'\t' -v m="$F58_M" '$1 == "@" && $2 == m { print $3 }')
+      [ "$F58_DOC" = "$F58_KV" ] \
+        || F58_LOI="${F58_LOI}(2) @mixin $F58_M: dòng @media đầu thân là '${F58_DOC:-<không có>}', phải đúng nguyên văn '$F58_KV'"$'\n'
+    done
+    # ---- (3) tệp phản chiếu
+    F58_SO_HANG=0
+    if [ ! -f "$F58_GUONG" ]; then
+      F58_LOI="${F58_LOI}(3) không có $F58_GUONG — TypeScript không còn nơi lấy điểm ngắt (luật F58)"$'\n'
+    else
+      cu_phap ts
+      F58_MA_G=$(LC_ALL=C awk -v in_ma=1 -v BINMODE=3 -v cm="$CM_DONG" -v mo="$CM_MO" -v dg="$CM_DG" "$F22_DEM" "$F58_GUONG")
+      F58_LECH=$(printf '%s\n' "$F58_MA_G" | LC_ALL=C perl -ne '
+        next unless /\S/; s/\r?\n$//;
+        (my $t = $_) =~ s/^[^:]*:[0-9]+://;
+        print "$_\n" unless $t =~ /^export const TRUY_VAN_(?:DUOI|TU)_BP_[A-Z]+ = \x27\((?:max|min)-width: [0-9.]+px\)\x27;$/;')
+      [ -n "$F58_LECH" ] && F58_LOI="${F58_LOI}(3) dòng mã của tệp phản chiếu không đúng khuôn 'export const TRUY_VAN_(DUOI|TU)_BP_<X> = '(max|min)-width: <số>px)';':"$'\n'"$F58_LECH"$'\n'
+      F58_HANG=$(f58_hang < "$F58_GUONG")
+      F58_SO_HANG=$(printf '%s\n' "$F58_HANG" | grep -c .)
+      if [ "$F58_SO_HANG" -eq 0 ]; then
+        F58_LOI="${F58_LOI}(3) $F58_GUONG không có hằng nào đúng khuôn — F58 sẽ xanh rỗng"$'\n'
+      fi
+      while IFS=$'\t' read -r F58_DONG F58_X F58_HD F58_DIR F58_VAL F58_CT; do
+        [ -n "$F58_X" ] || continue
+        F58_TEN="TRUY_VAN_${F58_HD}_BP_${F58_X}"; F58_VT="$F58_GUONG:$F58_DONG: $F58_TEN"
+        F58_XL=$(printf '%s' "$F58_X" | tr 'A-Z' 'a-z')
+        case "$F58_CT" in
+          '')  F58_LOI="${F58_LOI}(3) $F58_VT: không có khối '/** … */' liền trên nêu biến \$bp-*"$'\n' ;;
+          *,*) F58_LOI="${F58_LOI}(3) $F58_VT: khối chú thích nêu hơn một biến (\$bp-${F58_CT//,/, \$bp-}) — chỉ được nêu một"$'\n' ;;
+          *)   [ "$F58_CT" = "$F58_XL" ] || F58_LOI="${F58_LOI}(3) $F58_VT: khối chú thích nêu \$bp-$F58_CT nhưng hậu tố tên là \$bp-$F58_XL"$'\n' ;;
+        esac
+        F58_N=$(printf '%s\n' "$F58_BP" | LC_ALL=C awk -F'\t' -v x="$F58_XL" '$1 == x { print $2; exit }')
+        if [ -z "$F58_N" ]; then
+          F58_LOI="${F58_LOI}(3) $F58_VT: \$bp-$F58_XL không có trong bảng điểm ngắt của $F58_SP"$'\n'
+          continue
+        fi
+        if [ "$F58_HD" = DUOI ]; then
+          F58_DUNG="$((F58_N - 1)).$F58_PHAN_DUOI"; F58_HUONG=max
+        else
+          F58_DUNG="$F58_N"; F58_HUONG=min
+        fi
+        [ "$F58_DIR" = "$F58_HUONG" ] \
+          || F58_LOI="${F58_LOI}(3) $F58_VT: $F58_HD phải đi với ${F58_HUONG}-width, đang là ${F58_DIR}-width"$'\n'
+        [ "$F58_VAL" = "$F58_DUNG" ] \
+          || F58_LOI="${F58_LOI}(3) $F58_VT: mang $F58_VAL, \$bp-$F58_XL = ${F58_N}px đòi $F58_DUNG — sửa hằng ở tệp phản chiếu, đừng sửa _spacing.scss cho khớp"$'\n'
+      done <<< "$F58_HANG"
+    fi
+    # ---- (4)(5) TypeScript ngoài tệp phản chiếu
+    F58_SO_TS=$(find "$FE/src/app" -type f -name '*.ts' -not -name '*.spec.ts' -not -path "$F58_GUONG" | grep -c .)
+    F58_SO_SCSS=$(find "$FE/src" -type f -name '*.scss' -not -name '_spacing.scss' | grep -c .)
+    if ! cu_phap ts; then
+      F58_LOI="${F58_LOI}docs/quy-uoc/fe-architecture.md §5 không khai cú pháp chú thích cho '.ts' — F58 không đoán"$'\n'
+    elif [ "$F58_SO_TS" -eq 0 ]; then
+      F58_LOI="${F58_LOI}không có tệp *.ts nào dưới $FE/src/app để quét (vế 4, 5) — cổng sẽ xanh rỗng"$'\n'
+    else
+      F58_TS_MA=$(find "$FE/src/app" -type f -name '*.ts' -not -name '*.spec.ts' -not -path "$F58_GUONG" -print0 \
+        | LC_ALL=C xargs -0 -r awk -v in_ma=1 -v BINMODE=3 -v cm="$CM_DONG" -v mo="$CM_MO" -v dg="$CM_DG" "$F22_DEM")
+      F58_H4=$(printf '%s\n' "$F58_TS_MA" | f58_v4)
+      [ -n "$F58_H4" ] && F58_LOI="${F58_LOI}(4) TypeScript viết truy vấn độ rộng — import hằng từ core/theme/diem-ngat.ts, đừng tự viết:"$'\n'"$F58_H4"$'\n'
+      F58_H5=$(printf '%s\n' "$F58_TS_MA" | f58_v5)
+      [ -n "$F58_H5" ] && F58_LOI="${F58_LOI}(5) TypeScript khai hằng điểm ngắt dạng số — điểm ngắt chỉ có ở core/theme/diem-ngat.ts:"$'\n'"$F58_H5"$'\n'
+    fi
+    # ---- (6) SCSS ngoài _spacing.scss
+    if ! cu_phap scss; then
+      F58_LOI="${F58_LOI}docs/quy-uoc/fe-architecture.md §5 không khai cú pháp chú thích cho '.scss' — F58 không đoán"$'\n'
+    elif [ "$F58_SO_SCSS" -eq 0 ]; then
+      F58_LOI="${F58_LOI}không có tệp *.scss nào dưới $FE/src để quét (vế 6) — cổng sẽ xanh rỗng"$'\n'
+    else
+      F58_H6=$(find "$FE/src" -type f -name '*.scss' -not -name '_spacing.scss' -print0 \
+        | LC_ALL=C xargs -0 -r awk -v in_ma=1 -v BINMODE=3 -v cm="$CM_DONG" -v mo="$CM_MO" -v dg="$CM_DG" "$F22_DEM" | f58_v6)
+      [ -n "$F58_H6" ] && F58_LOI="${F58_LOI}(6) SCSS viết @media theo độ rộng ngoài _spacing.scss — dùng tu-man-hinh / duoi-man-hinh:"$'\n'"$F58_H6"$'\n'
+    fi
+    if [ -n "$F58_LOI" ]; then
+      bad "lệch luật F58 (fe-ui-conventions.md §7, §7.1):"; printf '%s' "$F58_LOI"
+    else
+      ok "điểm ngắt: $F58_SO_HANG hằng của diem-ngat.ts khớp bảng \$bp-* ($F58_SO_BP biến đã đọc); $F58_SO_TS tệp .ts và $F58_SO_SCSS tệp .scss đã quét"
     fi
   fi
 fi

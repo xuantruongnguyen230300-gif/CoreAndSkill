@@ -1,6 +1,5 @@
 import { Component, provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import {
   TranslateLoader,
   TranslateService,
@@ -46,7 +45,6 @@ describe('PaginationComponent — chỉ báo "x–y trên tổng z" (Design/Comp
       imports: [HostComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideTranslateService({
           lang: 'vi',
           fallbackLang: 'vi',
@@ -77,5 +75,15 @@ describe('PaginationComponent — chỉ báo "x–y trên tổng z" (Design/Comp
 
   it('trang cuối không đủ trang → "21–25 trên tổng 25"', async () => {
     expect(await khoang(3, 25)).toBe('21–25 trên tổng 25');
+  });
+
+  it('không đặt vùng aria-live nào — vùng báo kết quả duy nhất do DataTable giữ (Pagination.md)', async () => {
+    await khoang(1, 25);
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.pagination__khoang')).not.toBeNull();
+    expect(el.querySelectorAll('[aria-live], [role="status"], [role="alert"]').length).toBe(0);
   });
 });

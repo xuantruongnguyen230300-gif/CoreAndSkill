@@ -1,7 +1,12 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { TranslateLoader, TranslationObject, provideTranslateLoader, provideTranslateService } from '@ngx-translate/core';
+import {
+  TranslateLoader,
+  TranslationObject,
+  provideTranslateLoader,
+  provideTranslateService,
+} from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
 
 import { NavItem, SidebarComponent } from './sidebar.component';
@@ -32,7 +37,11 @@ describe('SidebarComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
-        provideTranslateService({ lang: 'vi', fallbackLang: 'vi', loader: provideTranslateLoader(FakeTranslateLoader) }),
+        provideTranslateService({
+          lang: 'vi',
+          fallbackLang: 'vi',
+          loader: provideTranslateLoader(FakeTranslateLoader),
+        }),
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(SidebarComponent);
@@ -40,7 +49,11 @@ describe('SidebarComponent', () => {
   });
 
   function layDanhSachAriaCurrentPage(): HTMLAnchorElement[] {
-    return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('a[aria-current="page"]'));
+    return Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>(
+        'a[aria-current="page"]',
+      ),
+    );
   }
 
   it('cha có cả route và children — khi đang ở route CON (tiền tố của cha), chỉ mục CON nhận aria-current="page"', () => {
@@ -64,7 +77,9 @@ describe('SidebarComponent', () => {
   });
 
   it('mục lá (không children) vẫn khớp tiền tố — active khi đang ở một tuyến con của nó', () => {
-    fixture.componentRef.setInput('items', [{ id: 'ho-so', label: 'Hồ sơ', route: '/ho-so' } satisfies NavItem]);
+    fixture.componentRef.setInput('items', [
+      { id: 'ho-so', label: 'Hồ sơ', route: '/ho-so' } satisfies NavItem,
+    ]);
     fixture.componentRef.setInput('activeRoute', '/ho-so/doi-mat-khau');
     fixture.detectChanges();
 

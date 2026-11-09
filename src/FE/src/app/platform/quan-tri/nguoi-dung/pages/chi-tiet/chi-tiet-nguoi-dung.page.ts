@@ -14,7 +14,7 @@ import { finalize } from 'rxjs';
 
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ApiFailureError } from '../../../../../core/http/api-result.model';
-import { dichLoiChoMan } from '../../../../../core/http/dich-loi';
+import { dichLoiBatKy } from '../../../../../core/http/dich-loi';
 import { BadgeComponent } from '../../../../../shared/components/badge/badge.component';
 import { CardComponent } from '../../../../../shared/components/card/card.component';
 import { ConfirmDialogComponent } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -22,6 +22,7 @@ import { EmptyStateComponent } from '../../../../../shared/components/empty-stat
 import { HasPermissionDirective } from '../../../../../shared/directives/has-permission.directive';
 import { NoticeBannerComponent } from '../../../../../shared/components/notice-banner/notice-banner.component';
 import { PageHeaderComponent } from '../../../../../shared/components/page-header/page-header.component';
+import { SkeletonLoaderComponent } from '../../../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { NguoiDungService } from '../../services/nguoi-dung.service';
 import { GanVaiTroChonStore } from '../../state/gan-vai-tro-chon.store';
@@ -47,6 +48,7 @@ import { TheVaiTroNguoiDungComponent } from '../../components/the-vai-tro-nguoi-
     HasPermissionDirective,
     NoticeBannerComponent,
     PageHeaderComponent,
+    SkeletonLoaderComponent,
     ButtonComponent,
     HopDatLaiMatKhauComponent,
     HopGanVaiTroComponent,
@@ -166,7 +168,5 @@ export class ChiTietNguoiDungPage {
 
 /** Thân khối lỗi tải chi tiết: `null` với lớp lỗi xuyên suốt (đã toast), còn lại câu dịch theo mã. */
 function cauLoiTai(err: unknown, translate: TranslateService): string | null {
-  return err instanceof ApiFailureError
-    ? dichLoiChoMan(translate, err)
-    : translate.instant('loi.CORE.CLIENT.NO_CONNECTION');
+  return dichLoiBatKy(translate, err);
 }

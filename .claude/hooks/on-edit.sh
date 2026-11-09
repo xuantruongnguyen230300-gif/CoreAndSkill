@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 # on-edit.sh — hook PostToolUse (Edit|Write|NotebookEdit|Bash|PowerShell).
+# Lệnh shell thoát khác 0 thì harness bắn PostToolUseFailure THAY cho PostToolUse; payload
+# đó mang đủ các khoá hook này đọc (session_id, tool_input.command, duration_ms), nên
+# đăng ký thêm hook này cho sự kiện đó là đủ, không cần sửa gì ở đây.
 #
 # Việc duy nhất: GHI DẤU chạm code. KHÔNG chạy cổng. Cổng tài liệu cũng không cần
 # dấu từ đây: hook Stop tự hỏi hệ thống tệp xem có gì mới hơn lần cổng xanh cuối.
 #
-# Dấu, ở .claude/.state/ (bị gitignore), chỉ ghi khi src/ tồn tại:
+# Dấu, ở .claude/.state/ (bị gitignore):
 #   core-touched                 nhật ký CHUNG các file chạm Core, mọi phiên ghi vào.
 #                                Review phủ cả cây, nên nhật ký là một sự thật của repo
 #   phien/<phiên>/touched-core   phiên NÀY đã chạm Core — hook Stop chỉ chặn phiên có cờ
 #   phien/<phiên>/src-touched    phiên này đã sửa src/ — hook Stop nhắc cổng build/test
-#   phien/<phiên>/scan-stamp     mốc lần quét trước của nhánh lệnh shell
 #
 # "Chạm Core" đọc từ khối máy đọc trong docs/kien-truc-core-module.md qua
 # core-paths.sh. File này không giữ danh sách đường dẫn Core nào.
@@ -18,6 +20,9 @@
 # Luôn thoát 0: một hook ghi dấu mà làm hỏng lượt là một hook người ta tắt đi.
 
 set -uo pipefail
+# Đồng hồ đọc TRƯỚC mọi việc khác: đầu mút phải của cửa sổ quét ở nhánh lệnh shell.
+# printf builtin, không tách tiến trình.
+printf -v BAY_GIO '%(%s)T' -1 2>/dev/null || BAY_GIO=$(date +%s)
 # Ép locale, VÀ không dùng `grep -P`. Hai lớp cho cùng một bẫy: trên Git Bash
 # với LANG rỗng, `grep -P` thoát mã 2 kèm "supports only unibyte and UTF-8
 # locales". Trong một hook, lỗi đó KHÔNG hiện ra đâu cả — dấu đơn giản không
@@ -35,6 +40,8 @@ P=$(printf '%s' "$payload" | phien_dir)
 # chua ca ket qua tra ve cua cong cu, va ket qua do co the chua nguyen van
 # nhung chuoi ma cac mau duoi day dang tim. Moi mau BRE deu tham lam, nen
 # `.*"file_path"` bam vao lan xuat hien CUOI CUNG trong ca payload.
+# Ban goc giu lai cho top_num: duration_ms dung SAU tool_response.
+payload_goc=$payload
 payload=${payload%%'"tool_response"'*}
 
 # Hai lệnh sed trích đường dẫn chạy ở LC_ALL=C — BẮT BUỘC, không phải tuỳ chọn.
@@ -57,12 +64,6 @@ else
   # Không có file_path nào để trích ⇒ đây là một lệnh shell.
   case "$payload" in *'"command"'*) mode=shell ;; *) exit 0 ;; esac
 fi
-
-# ---------------------------------------------------------------- chỉ từ giai đoạn 2
-# Dấu src-touched và core-touched chỉ có nghĩa khi có code. Giai đoạn 1 dừng ở
-# đây — parser khối Core không chạy, nên một khối đang được viết dở ở docs/
-# không ảnh hưởng gì tới lượt nào.
-[ -d src ] || exit 0
 
 mkdir -p "$P" 2>/dev/null || exit 0
 # Mốc hoạt động của phiên: hook Stop dọn thư mục phiên không hoạt động lâu ngày
@@ -139,16 +140,28 @@ if [ "$mode" = edit ]; then
 fi
 
 # ---------------------------------------------------------------- nhánh lệnh shell
-# Không đoán từ chuỗi lệnh. Hỏi HỆ THỐNG TỆP xem file nào đã đổi từ lần quét
-# trước của phiên: không parse gì, không nhầm lệnh đọc với lệnh ghi, và dấu ghi
-# ra là đường dẫn thật.
+# Không đoán từ chuỗi lệnh. Hỏi HỆ THỐNG TỆP xem file nào đổi TRONG KHOẢNG CỦA CHÍNH
+# LỜI GỌI NÀY: không parse gì, không nhầm lệnh đọc với lệnh ghi, và dấu ghi ra là
+# đường dẫn thật.
 #
-# Mốc lần quét trước, KHÔNG phải một cửa sổ cố định: một lệnh chạy lâu hơn cửa sổ
-# (build, format cả solution) sửa file ở đầu lệnh thì file đó đã "cũ" lúc hook này
-# chạy. Mốc mới đặt TRƯỚC khi quét, nên file đổi trong lúc quét được lần sau thấy.
-# Phiên chưa có mốc thì lùi về 90 giây. Các subagent song song của một phiên dùng
-# chung mốc; một lần quét của agent này thấy file agent kia vừa sửa và ghi vào
-# cùng dấu của phiên — không có khe hở giữa hai lần quét.
+# Khoảng lời gọi = [BAY_GIO − duration_ms − DO_TRE, BAY_GIO]. `duration_ms` ở tầng
+# ngoài payload PostToolUse và PostToolUseFailure (đo thật: Claude Code 2.1.282 và
+# 2.1.283, 2026-09-30) là lúc lệnh THỰC SỰ chạy — không gồm hook PreToolUse, không gồm
+# lúc chờ người dùng duyệt quyền. DO_TRE phủ độ trễ từ lúc lệnh xong tới lúc hook này
+# đọc đồng hồ (đo được dưới 0,3 s). Mỗi giây DO_TRE cũng là một giây TRƯỚC lời gọi mà
+# thay đổi của phiên khác bị tính cho phiên này — giữ vài giây, không vài chục. Lệnh
+# chạy lâu (build, format cả solution) sửa file ở đầu lệnh vẫn nằm trong khoảng —
+# duration_ms dài theo.
+#
+# Hai cửa sổ đã loại, cả hai vì cùng một lỗi: gom thay đổi KHÔNG do lời gọi này làm.
+#   - "Từ lần quét trước của phiên": gom cả thay đổi của phiên khác, của IDE, của người
+#     dùng giữa hai lời gọi — phiên chỉ chạy `ls` cũng mang cờ chạm Core.
+#   - Mốc đặt ở hook PreToolUse: hook đó chạy TRƯỚC bước chờ duyệt quyền, mốc gộp cả
+#     lúc chờ (có thể nhiều phút).
+# Không ghi mốc nào: lời gọi song song của cùng phiên (subagent mang session_id của
+# phiên cha) không ghi đè nhau, và không có gì tích tụ phải dọn.
+#
+# Payload không có duration_ms: lùi về cửa sổ 90 giây.
 nap_prune
 roots=(src)
 while IFS= read -r e; do
@@ -157,11 +170,13 @@ while IFS= read -r e; do
   [ -e "${e%/}" ] && roots+=( "${e%/}" )
 done <<< "$list"
 
-tmp="$P/scan-stamp.tmp.$$"
-: > "$tmp" 2>/dev/null || exit 0
-if [ -e "$P/scan-stamp" ]; then newer=( -newer "$P/scan-stamp" ); else newer=( -newermt '-90 seconds' ); fi
-recent=$(find "${roots[@]}" \( "${PRUNE[@]}" -false \) -prune -o -type f "${newer[@]}" -print 2>/dev/null | head -5000)
-mv -f "$tmp" "$P/scan-stamp" 2>/dev/null || rm -f "$tmp"
+DO_TRE=5
+dur=$(printf '%s' "$payload_goc" | top_num duration_ms 2>/dev/null) || dur=""
+case "$dur" in
+  ''|*[!0-9]*) lui=90 ;;
+  *) if [ "${#dur}" -gt 12 ]; then lui=90; else lui=$(( (10#$dur + 999) / 1000 + DO_TRE )); fi ;;
+esac
+recent=$(find "${roots[@]}" \( "${PRUNE[@]}" -false \) -prune -o -type f -newermt "@$(( BAY_GIO - lui ))" -print 2>/dev/null | head -5000)
 [ -n "$recent" ] || exit 0
 
 recent=$(printf '%s\n' "$recent" | bo_gitignore)

@@ -1,55 +1,84 @@
 // Design/Components/AuthCard.md
-.auth-card-vung {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100dvh;
-  padding: var(--sp-6);
-  background: var(--color-bg);
-}
+@use 'spacing' as s;
 
-.auth-card {
-  width: 100%;
-  max-width: var(--layout-auth-w);
-  padding: var(--sp-11);
-  background: var(--color-surface);
-  border: var(--border-w) solid var(--color-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-2);
+// Chiều cao tối thiểu 100dvh thuộc về CỘT bọc `main` và `Footer` (`AuthPageComponent`), không
+// thuộc khung: `main` chỉ chiếm phần còn lại của cột (AuthCard.md §Responsive).
+app-auth-card {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--sp-8);
-}
 
-.auth-card__tieu-de {
-  margin: 0;
-  font-size: var(--fs-2xl);
-  font-weight: var(--fw-bold);
-  color: var(--color-text);
-  letter-spacing: var(--ls-tight);
-}
+  // Mobile-first (AuthCard.md §Responsive): dưới `$bp-xs` khung trải hết bề rộng, bỏ viền, bo góc và
+  // bóng, đệm `--sp-6`, căn trên (bàn phím ảo không đẩy tiêu đề ra khỏi màn); từ `$bp-xs` đệm
+  // trong `--sp-8`, khung có viền, bo góc, căn giữa dọc; từ `$bp-md` đệm trong `--sp-11`.
+  .auth-card-vung {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0;
+    background: var(--color-bg);
 
-.auth-card__mo-ta {
-  margin: calc(var(--sp-3) * -1) 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--fs-md);
-}
+    @include s.tu-man-hinh(s.$bp-xs) {
+      align-items: center;
+      padding: var(--sp-6);
+    }
+  }
 
-.auth-card__khu-loi {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-4);
-  padding: var(--sp-4);
-  background: var(--color-danger-bg);
-  border: var(--border-w) solid var(--color-danger-border);
-  border-left-width: var(--border-w-strong);
-  border-radius: var(--radius-md);
-  color: var(--color-text);
-  font-size: var(--fs-sm);
-  // Giữ ngắt dòng của chuỗi: mỗi mã một dòng (quy-uoc/fe-ui-conventions.md §6.2).
-  white-space: pre-line;
+  .auth-card {
+    width: 100%;
+    max-width: var(--layout-auth-w);
+    padding: var(--sp-6);
+    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-8);
 
-  i {
-    color: var(--color-danger);
+    @include s.tu-man-hinh(s.$bp-xs) {
+      padding: var(--sp-8);
+      border: var(--border-w) solid var(--color-border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-2);
+    }
+
+    @include s.tu-man-hinh(s.$bp-md) {
+      padding: var(--sp-11);
+    }
+  }
+
+  .auth-card__thuong-hieu {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--fs-md);
+    font-weight: var(--fw-bold);
+  }
+
+  .auth-card__tieu-de {
+    margin: 0;
+    font-size: var(--fs-2xl);
+    font-weight: var(--fw-bold);
+    color: var(--color-text);
+    letter-spacing: var(--ls-tight);
+  }
+
+  .auth-card__mo-ta {
+    // Khe tiêu đề → mô tả = `--sp-3`: kéo lại phần `gap` `--sp-8` dư.
+    margin: calc(var(--sp-3) - var(--sp-8)) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--fs-md);
+  }
+
+  // Khe trong form — của khung, không của từng màn (AuthCard.md §Kích thước). Trường xếp dọc cách
+  // nhau `--sp-6`, đo từ phần tử cuối của trường trên (dòng lỗi/gợi ý nếu đang hiện) tới nhãn
+  // trường dưới; nút hành động chính cách trường cuối `--sp-7` = `--sp-6` của `gap` cộng phần bù.
+  // Phần tử chủ `app-auth-field`/`app-button` là phần tử flex nên mặc định `inline` không còn gây hại.
+  .auth-card > form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-6);
+  }
+
+  .auth-card > form > app-button {
+    margin-top: calc(var(--sp-7) - var(--sp-6));
   }
 }

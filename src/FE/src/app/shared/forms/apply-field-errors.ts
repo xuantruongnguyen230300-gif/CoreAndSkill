@@ -3,6 +3,7 @@ import { FormGroup } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
 
 import { ApiFieldError } from '../../core/http/api-result.model';
+import { cauMaCon } from './field-errors-text';
 
 /**
  * Định nghĩa gốc: quy-uoc/fe-ui-conventions.md §6.2, hiện thực đầy đủ ở wiki-core/fe/09-forms-validation.md §4.1.
@@ -28,7 +29,7 @@ export function applyFieldErrors(
       khongKhop.push(khoaBE);
       continue;
     }
-    const cau = loi.map((l) => translate.instant(`loi.${l.code}`, l.messageParams ?? {}) as string);
+    const cau = loi.map((l) => cauMaCon(translate, l));
     control.setErrors({ ...(control.errors ?? {}), server: cau });
     control.markAsTouched();
   }

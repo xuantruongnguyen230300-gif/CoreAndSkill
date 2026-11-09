@@ -70,6 +70,8 @@ import { CORE_HOME, CoreHomeLoader } from '../../core/config/core-home';
 
 - **Vì sao `CORE_HOME` đọc bằng `{ optional: true }` dù token không có mặc định** — Luật "không mặc định" chặn một giao diện mang tên sản phẩm **khác**. Trang chào của Core không mang tên nào: nó đọc `CORE_BRANDING` và phiên. Quên khai vì vậy ra một trang đúng nhưng nghèo, không ra một trang sai — cái giá ở [`../../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md`](../../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md).
 
+- **Vì sao `TENANT_CODE` ở `core/config/` dù người đọc duy nhất ở `platform/`** — `CORE_SCREEN_EXT` nằm ở `platform/config/` trước hết vì kiểu của nó mang model của `platform/` (§2.7); `TENANT_CODE` là một `string`, không kéo theo kiểu nào. Giá trị của nó đi cùng đường với `API_BASE_URL`: khai trong tệp môi trường của bản cài, qua hàm khai báo ở `core/config/khai-bao-moi-truong.ts`, cấp ở composition root. Chuyển token sang `platform/` thì một giá trị của bản cài bị tách làm hai tầng — hàm khai báo ở `core/`, token ở `platform/` — mà không gỡ được phụ thuộc nào. Chốt 2026-10-06 ([`../../../adr/nhat-ky-quyet-dinh.md`](../../../adr/nhat-ky-quyet-dinh.md)). Dấu hiệu nên xét lại: token bắt đầu mang một kiểu của `platform/`.
+
 ### 2.6 Composition root — nơi mọi seam được nối lại
 
 - **Vì sao mặc định là `useExisting`** — Nhu cầu có hai thể hiện của một service hạ tầng gần như luôn là dấu hiệu của một nhầm lẫn.
@@ -124,12 +126,12 @@ import type { DonVi } from '../he-thong/don-vi/models/don-vi.model';
 - **Vì sao `replaceUrl`** — Người dùng không điều hướng; thêm bước lịch sử thì nút Quay lại đưa họ về đúng trang vượt, store lại đẩy sang trang cuối, và nút Quay lại coi như hỏng.
 - **Vì sao `min(page − 1, …)` chứ không chỉ `⌈totalCount / pageSize⌉`** — Đếm và lấy dòng là hai câu truy vấn; ghi đồng thời giữa hai câu có thể cho `totalCount` đủ lớn để trang hiện hành *trông như* hợp lệ. Chỉ dùng phép chia thì store ghi lại chính `page` cũ — URL không đổi, không lượt tải nào chạy, màn kẹt ở `loading`. Lấy `min` với `page − 1` bảo đảm mỗi lần ghi `page` giảm ngặt, nên chuỗi dừng muộn nhất ở trang 1 — đây là lý do ngoại lệ này không rơi vào bẫy vòng lặp của luật 1.
 
-Khối import của `DanhSachNguoiDungPage` ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.8):
+Khối import của `DanhSachNguoiDungPage` ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.8) — **trích**: chỉ các import mà mẫu `.ts` ở §2.8 dùng. Tệp thật import thêm nhiều thứ, trong đó có `CORE_SCREEN_EXT`, `TraCuuVaiTroStore`, `AuthService`, `PageHeaderComponent`:
 
 ```typescript
-// platform/quan-tri/nguoi-dung/pages/danh-sach/danh-sach-nguoi-dung.page.ts — phần import
+// platform/quan-tri/nguoi-dung/pages/danh-sach/danh-sach-nguoi-dung.page.ts — phần import, trích
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ListStateStore } from '../../../../../core/list/list-state.store';
 import { EmptyStateComponent } from '../../../../../shared/components/empty-state/empty-state.component';
 import { SkeletonLoaderComponent } from '../../../../../shared/components/skeleton-loader/skeleton-loader.component';
@@ -141,26 +143,23 @@ import { NguoiDungService } from '../../services/nguoi-dung.service';
 
 Template của màn:
 
+🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Mẫu theo bố cục chốt 2026-10-08. Màn thật chưa chuyển, và chỗ cắm `[dataTableTop]`, `placement`, nút lọc của `Toolbar`, `FilterPanel` chưa dựng — bảng *có thật hôm nay → sẽ thành* ở [`10-nguoi-dung.md`](../../../Design/Screens/10-nguoi-dung.md) mục *Có thật hôm nay → sẽ thành*, dòng "Bố cục màn danh sách theo quyết định 2026-10-08".
+
 ```html
-<!-- Biến thể Toolbar chọn theo SỐ TRƯỜNG LỌC, không theo số bản ghi
-     (../Design/Templates/ListScreen.md §3). Màn này có hai trường lọc — "Vai trò" và
-     "Trạng thái" — nên là `full` với khu lọc nằm thẳng trong dải, không có panel. -->
-<app-toolbar
-  variant="full"
-  [searchValue]="list.query().searchText ?? ''"
-  (searchChanged)="list.setSearchText($event)"
->
-  <!-- Khu lọc 1–2 trường vào qua slot nội dung, đặt ngay sau ô tìm (Toolbar.md §API). -->
-</app-toolbar>
-<!-- Phân trang vào ra qua API của DataTable: ở biến thể `paged`, lớp bọc vẽ dải phân trang
-     ngay dưới khung bảng và màn KHÔNG đặt thêm một Pagination nào — DataTable.md, đoạn mở đầu. -->
+<!-- Khối danh sách liền một viền (../Design/Templates/ListScreen.md §2): Toolbar vào chỗ cắm đầu
+     khung [dataTableTop] của DataTable với placement="attached". Phân trang vào ra qua API của
+     DataTable: ở biến thể `paged`, lớp bọc vẽ dải phân trang ở đáy, BÊN TRONG khung, và màn
+     KHÔNG đặt thêm một Pagination nào — DataTable.md, đoạn mở đầu. -->
 <app-data-table
   rowKey="id"
   [rows]="list.rows()"
+  [columns]="columns()"
+  [caption]="'nguoiDung.bang.caption' | translate"
   [state]="list.state()"
   [totalRecords]="list.totalCount()"
   [page]="list.query().page"
   [pageSize]="list.query().pageSize"
+  [paginationAriaLabel]="'nguoiDung.bang.caption' | translate"
   [sortBy]="list.query().sortBy ?? null"
   [sortDescending]="list.query().sortDescending ?? false"
   (pageChange)="list.setPage($event.page, $event.pageSize)"
@@ -168,6 +167,41 @@ Template của màn:
   [emptyTemplate]="trong"
   [loadingTemplate]="dangTai"
   [errorTemplate]="loi"
+>
+  <!-- Biến thể Toolbar chọn theo việc danh sách CÓ trường lọc hay không, không theo số trường
+       (ListScreen.md §3): màn này có trường lọc nên là `full` — mọi trường nằm trong FilterPanel,
+       mở bằng nút lọc; không ô lọc nào nằm thẳng trong dải. -->
+  <app-toolbar
+    dataTableTop
+    variant="full"
+    placement="attached"
+    [searchValue]="list.query().searchText ?? ''"
+    [searchLabel]="'nguoiDung.timKiem.nhan' | translate"
+    [filterLabel]="'chung.loc.nutLoc' | translate"
+    [filterAriaLabel]="nhanNutLoc()"
+    [activeFilterCount]="soDieuKienLoc()"
+    [filterPanelOpen]="panelLocMo()"
+    filterPanelId="loc-nguoi-dung"
+    (searchChanged)="list.setSearchText($event)"
+    (filterPanelToggled)="panelLocMo.set($event)"
+  />
+</app-data-table>
+
+<!-- FilterPanel tự đặt Drawer quanh form (FilterPanel.md §"Trong Drawer"). Điều kiện đang áp đọc
+     từ URL qua store (luật 1); Áp dụng ghi lại bằng setFilters, store đưa trang về 1 (luật 3).
+     Trường "Vai trò" là kind 'autocomplete': page giữ việc gọi API, panel chỉ nhận kết quả. -->
+<app-filter-panel
+  panelId="loc-nguoi-dung"
+  [title]="'nguoiDung.loc.tieuDe' | translate"
+  [open]="panelLocMo()"
+  [fields]="truongLoc()"
+  [value]="list.query().filters"
+  [searchStates]="trangThaiTimLoc()"
+  [selectedLabels]="nhanLocDaChon()"
+  (applied)="apDungLoc($event)"
+  (cleared)="xoaDieuKienPanel()"
+  (closed)="panelLocMo.set(false)"
+  (fieldSearch)="timVaiTroLoc.timKiem($event.text)"
 />
 
 <!-- Context của emptyTemplate mang ca rỗng; màn KHÔNG đọc lại `state` để suy ra ca đó. -->
@@ -205,7 +239,7 @@ Template của màn:
 </ng-template>
 ```
 
-- **Giải thích template của màn mẫu** — Mẫu lược bỏ `PageHeader`, cột, chip, hai ô lọc trong slot, và nút xoá lọc của khối không khớp. Ba slot trạng thái là input `TemplateRef` của `DataTable`: `DataTable` quyết **khi nào** hiện slot nào, màn quyết **hiện gì** — `EmptyState`, `SkeletonLoader` là component tự dựng mà lớp bọc không được import ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.2). Nút "Thử lại" nằm trong `errorTemplate` và gọi thẳng `list.reload()`. **Khoá i18n trong mẫu là khoá thật của màn**, lấy từ bảng Câu chữ ở [`../Design/Screens/10-nguoi-dung.md`](../../../Design/Screens/10-nguoi-dung.md) — spec màn là nguồn của câu chữ và của khoá, mục này không đặt khoá riêng. API đầy đủ của từng component ở [`../Design/Components/Toolbar.md`](../../../Design/Components/Toolbar.md) và [`../Design/Components/DataTable.md`](../../../Design/Components/DataTable.md).
+- **Giải thích template của màn mẫu** — Mẫu giữ đủ input bắt buộc của `Toolbar` và `DataTable`; `columns()` là tín hiệu dựng mảng `DataColumnDef` ở `.ts` thật, mẫu `.ts` ở §2.8 không chép nó — cùng cách với các tín hiệu và hàm của bộ lọc (`panelLocMo`, `truongLoc()`, `trangThaiTimLoc()`, `nhanLocDaChon()`, `apDungLoc`, …) và `FilterPanelComponent` trong `imports`. Mẫu lược bỏ `PageHeader`, nút chính trong slot `[toolbarActions]`, khai báo cột, chip, cột hành động (`rowActionsTemplate`), nút xoá lọc của khối không khớp, và nhánh chọn nút của khối lỗi theo `list.errorCode()` ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.8 luật 10). Hợp đồng của trường `autocomplete` — `searchStates`, `selectedLabels`, `fieldSearch` — ở [`../Design/Components/FilterPanel.md`](../../../Design/Components/FilterPanel.md) §API. Ba slot trạng thái là input `TemplateRef` của `DataTable`: `DataTable` quyết **khi nào** hiện slot nào, màn quyết **hiện gì** — `EmptyState`, `SkeletonLoader` là component tự dựng mà lớp bọc không được import ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.2). Nút "Thử lại" nằm trong `errorTemplate` và gọi thẳng `list.reload()`. **Khoá i18n trong mẫu là khoá thật của màn**, lấy từ bảng Câu chữ ở [`../Design/Screens/10-nguoi-dung.md`](../../../Design/Screens/10-nguoi-dung.md) — spec màn là nguồn của câu chữ và của khoá, mục này không đặt khoá riêng. API đầy đủ của từng component ở [`../Design/Components/Toolbar.md`](../../../Design/Components/Toolbar.md) và [`../Design/Components/DataTable.md`](../../../Design/Components/DataTable.md).
 
 - **Vì sao không dựng dải phân trang thứ hai** — Đặt thêm một `app-pagination` ở màn là hai đường cùng phát một sự kiện đổi trang, và `setPage` bị gọi hai lần cho một cú bấm.
 
@@ -224,6 +258,8 @@ Template của màn:
 - **Luật 6 — `state` là một biến** — Bốn cờ cho phép biểu diễn tổ hợp vô nghĩa; cùng lý do đã ghi ở [`../Design/Components/DataTable.md`](../../../Design/Components/DataTable.md).
 
 - **Luật 7 — một thực thể cho một màn** — Cấp ở gốc app thì hai màn danh sách mở song song ghi đè truy vấn của nhau, và quay lại màn cũ thấy trạng thái của lần trước. Khai trên page thì store chết cùng màn.
+
+- **Luật 10 — vì sao store giữ mã, không đoán theo bộ lọc, không giữ câu** — Có màn mà hành động đúng sau khi tải hỏng tuỳ nguyên nhân. Màn người dùng lọc theo một vai trò vừa bị xoá: "Thử lại" gửi lại đúng truy vấn đó và hỏng y hệt, chỉ "Xoá bộ lọc" gỡ được. Mất mạng hay 5xx thì ngược lại: "Xoá bộ lọc" vứt bộ lọc người dùng vừa chọn để chữa một sự cố thoáng qua. Suy nguyên nhân từ tham số đã gửi không tách được hai ca đó — chỉ mã tách được. Store giữ **mã** chứ không giữ câu: câu đã hiện ở toast kèm `traceId`, khu lỗi hiện thêm là hai chỗ cho một lỗi ([`fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §2.2). Không phát nguyên `ApiFailureError` cũng vì thế — có `body` trong tay thì dựng câu chỉ tốn một dòng. Lỗi không envelope cho `null` chứ không cho mã phía client suy từ status: mã đó là mã của **câu**, chọn ở `dichLoi`; store tự suy thêm là bản thứ hai của cùng nhánh. Mã đi bằng signal riêng chứ không thêm giá trị vào `state`: `state` là trạng thái vẽ mà `DataTable` hiểu, thêm một giá trị cho mỗi mã thì `DataTable` phải biết mã nghiệp vụ.
 
 - **Vì sao store không biết endpoint** — Biết endpoint thì store không dùng lại được cho màn thứ hai. Query param là dữ liệu người dùng gõ được — `?page=-5` sẽ tới — nên `soNguyenDuong` bỏ giá trị sai dạng.
 

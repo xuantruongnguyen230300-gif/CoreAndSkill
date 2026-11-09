@@ -15,6 +15,7 @@ verified: chua-doi-chieu
 > | `src/BE/Core/CoreAndSkill.Core.Application/ClientErrors/ReportClientErrorCommandHandler.cs` cắt `stack` còn `MaxStackLines` dòng, rồi đẩy mọi field văn bản qua `SensitiveTextRedactor.Redact` trước khi ghi — đúng hai ràng buộc ở §1 | — |
 > | Danh sách trường mà `SensitiveTextRedactor` nhận ra có khớp [`../wiki-core/be/07-observability.md`](../wiki-core/be/07-observability.md) §5 hay không: **chưa đối chiếu** | Một lượt soi bộ lọc đó vào §5 |
 > | Bảng lỗi §1 và giới hạn tần suất: **chưa ai đối chiếu** | Đối chiếu rồi mới lật `verified:` |
+> | Phía FE (đối chiếu 2026-11-06): bản `production` gửi tới đây — `src/FE/src/app/core/observability/http-client-error-output.ts`, chuỗi `const DUONG_DAN_BAO_LOI = '/core/client-errors';`; `phienBanApp` lấy từ `src/FE/src/app/core/observability/client-error-reporter.ts`, chuỗi `phienBanApp: MA_COMMIT ?? '',`, rỗng thành `khong-ro`. Ca kiểm dùng `HttpTestingController`, chưa tới BE thật | Gọi thử thật — hàng đầu |
 >
 > Envelope, `ErrorType` → HTTP, khuôn mã lỗi, bảo mật chung: [`README.md`](README.md).
 > Vì sao cần endpoint này và ba ràng buộc bắt buộc phía FE:
@@ -38,18 +39,18 @@ Nhận một báo cáo lỗi runtime xảy ra trên trình duyệt người dùn
   "stack": "at PhieuListPage.hienThi (main-A7F2.js:1:2481)",
   "duongDan": "/phieu/danh-sach",
   "traceId": "c1807b11710f43c1964ec2988f532e56",
-  "phienBanApp": "2026.09.10-a1b2c3d"
+  "phienBanApp": "3f9c2e7a1b5d4c8e0f6a2b9d7c3e1f5a8b4d6c20"
 }
 ```
 
 | Field | Kiểu | Bắt buộc | Ghi chú |
 | --- | --- | --- | --- |
 | `kind` | string | ✅ | Loại lỗi. Tối đa 100 ký tự |
-| `message` | string | ✅ | Câu lỗi gốc, FE cắt ở 500 ký tự trước khi gửi |
+| `message` | string | ✅ | Câu lỗi gốc, FE cắt ở 500 ký tự trước khi gửi. Chỉ văn bản nằm sẵn trong giá trị bị ném — quy tắc lấy: [`../wiki-core/fe/10-observability.md`](../wiki-core/fe/10-observability.md) §4.1 |
 | `stack` | string | — | FE cắt ở 4000 ký tự. Thiếu vẫn nhận: một số trình duyệt không cho |
-| `duongDan` | string | ✅ | Đường dẫn FE lúc lỗi, **không kèm query string** — query có thể mang giá trị người dùng nhập |
-| `traceId` | string | — | `traceId` của request BE gần nhất, nếu có. Đây là thứ nối báo cáo này với log BE |
-| `phienBanApp` | string | ✅ | Bản build FE. Thiếu nó thì `stack` trỏ vào tệp băm không còn tồn tại và không lần ngược được |
+| `duongDan` | string | ✅ | Tối đa 2000 ký tự. Đường dẫn FE lúc lỗi, **không kèm query string** — query có thể mang giá trị người dùng nhập |
+| `traceId` | string | — | Tối đa 100 ký tự. `traceId` của request BE hoàn tất gần nhất trước lỗi, nếu có. Đây là thứ nối báo cáo này với log BE — **suy luận, không phải nhân quả**: request đó không chắc là request gây ra lỗi ([`../wiki-core/fe/10-observability.md`](../wiki-core/fe/10-observability.md) §5.2) |
+| `phienBanApp` | string | ✅ | Tối đa 100 ký tự. Bản build FE: mã commit đầy đủ mà bản dựng nhúng vào; bản dựng không có mã commit — máy dev — gửi `khong-ro`. Thiếu nó thì `stack` trỏ vào tệp băm không còn tồn tại và không lần ngược được |
 
 Server tự đọc `User-Agent` và IP từ header — **không** nhận chúng từ thân request, vì giá trị do client gửi thì client sửa được.
 

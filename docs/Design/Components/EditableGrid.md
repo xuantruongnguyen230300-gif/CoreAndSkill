@@ -127,7 +127,7 @@ Component này có **hai tầng trạng thái**: của cả lưới, và của t
 
 | Tên | Chiều | Kiểu | Mặc định | Ghi chú |
 | --- | --- | --- | --- | --- |
-| `columns` | input | `ReadonlyArray<EditableColumnDef<T>>` | `[]` | Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 — mở rộng của `ColumnDef` chung. `editor: 'date'` vẽ ô sửa bằng [`DatePicker.md`](./DatePicker.md) `mode = 'single'` |
+| `columns` | input | `ReadonlyArray<EditableColumnDef<T>>` | `[]` | Chữ ký đầy đủ ở [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §9 — kiểu cột riêng của `EditableGrid`, không mở rộng kiểu gốc chung. `editor: 'date'` vẽ ô sửa bằng [`DatePicker.md`](./DatePicker.md) `mode = 'single'` |
 | `rows` | input | `ReadonlyArray<T>` | `[]` | Bản nháp đang sửa, không phải ảnh chụp từ máy chủ |
 | `variant` | input | `'cell' \| 'row' \| 'matrix'` | `'cell'` | |
 | `size` | input | `'sm' \| 'md'` | `'md'` | |

@@ -13,6 +13,8 @@ public static class CoreServiceCollectionExtensions
     public static IServiceCollection AddCore(
         this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
+        CoreConsoleEncoding.UseUtf8OnWindowsConsole();
+        services.AddCoreLogging(environment);
         services.AddCoreOptions(configuration);
         services.AddCoreApplication();
         services.AddCorePersistence();

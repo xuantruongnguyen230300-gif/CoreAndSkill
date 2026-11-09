@@ -64,10 +64,12 @@ describe('HopVaiTroStore', () => {
     });
 
     it('moHopSua() → ô mang tên hiện tại, tiêu đề "đổi tên"; mở lại không mang dấu vết lần trước', () => {
-      store.moHopTao();
-      store.daGui.set(true);
-      store.loi.set('cũ');
-      store.xungDot.set(true);
+      // `daGui` + `loi` bằng một lần gửi lỗi thật; `xungDot` bằng một lần gửi xung đột thật.
+      store.moHopSua(vaiTro('Cũ'));
+      service.doiTen.and.returnValue(throwError(() => loiApi('CORE.ROLE.SOMETHING')));
+      store.gui(() => undefined);
+      expect(store.daGui()).toBeTrue();
+      expect(store.loi()).not.toBeNull();
 
       store.moHopSua(vaiTro('Kế toán'));
 
@@ -75,6 +77,14 @@ describe('HopVaiTroStore', () => {
       expect(store.tieuDe()).toBe('[vaiTro.form.tieuDeDoiTen]');
       expect(store.daGui()).toBeFalse();
       expect(store.loi()).toBeNull();
+      expect(store.xungDot()).toBeFalse();
+
+      service.doiTen.and.returnValue(throwError(() => loiApi('CORE.CONCURRENCY.CONFLICT')));
+      store.gui(() => undefined);
+      expect(store.xungDot()).toBeTrue();
+
+      store.moHopTao();
+
       expect(store.xungDot()).toBeFalse();
     });
   });
@@ -85,6 +95,19 @@ describe('HopVaiTroStore', () => {
       store.gui(() => undefined);
       expect(service.tao).not.toHaveBeenCalled();
       expect(store.loiTen()).toBe('[loi.CORE.CLIENT.VALIDATION_REQUIRED]');
+    });
+
+    it('tên vai trò dài 257 ký tự → không gọi service, lỗi độ dài hiện ở ô; 256 ký tự thì gửi', () => {
+      store.moHopTao();
+      store.form.controls.name.setValue('a'.repeat(257));
+      store.gui(() => undefined);
+      expect(service.tao).not.toHaveBeenCalled();
+      expect(store.loiTen()).toBe('[loi.CORE.CLIENT.VALIDATION_MAXLENGTH]');
+
+      service.tao.and.returnValue(of({ id: 'r9' }));
+      store.form.controls.name.setValue('a'.repeat(256));
+      store.gui(() => undefined);
+      expect(service.tao).toHaveBeenCalledTimes(1);
     });
 
     it('tạo thành công → hộp đóng, toast thành công, xong nhận null', () => {

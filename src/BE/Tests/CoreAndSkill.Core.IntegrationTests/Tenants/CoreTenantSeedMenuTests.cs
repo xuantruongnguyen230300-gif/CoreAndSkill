@@ -70,14 +70,13 @@ public sealed class CoreTenantSeedMenuTests
     // Khu /he-thong gác bằng CỜ is_system_operator, không bằng ma trận quyền
     // (docs/adr/0017-khu-quan-tri-he-thong.md, docs/quy-uoc/fe-routing-guard.md §3.5). Ba bước lọc
     // menu ở docs/database/schema-core.md §6.3 chỉ biết quyền, vai trò, hoặc "mọi người" — KHÔNG có
-    // bước nào đọc cờ đó. Nên hôm nay một mục menu trỏ vào khu hệ thống chỉ có hai cách tồn tại, và
-    // cả hai đều sai: không gắn quyền ⇒ hiện cho mọi người dùng của MỌI đơn vị; gắn một quyền ⇒ dựng
-    // đúng đường phân quyền thứ hai mà ADR-0017 cơ chế 2 và luật M9 tồn tại để chặn.
+    // bước nào đọc cờ đó. Nên nguồn seed DÙNG CHUNG của Core (mọi đơn vị nhận) không được có mục nào trỏ vào
+    // khu hệ thống: không gắn quyền ⇒ hiện cho mọi người dùng của MỌI đơn vị; gắn một quyền ⇒ dựng đúng đường
+    // phân quyền thứ hai mà ADR-0017 cơ chế 2 và luật M9 tồn tại để chặn.
     //
-    // Test này vì thế là một CỔNG CHẶN, không phải một lời khai rằng khu hệ thống không cần menu.
-    // Khoảng trống đó có thật và đang chờ quyết định — mở được nó cần một cơ chế mới (cột trên
-    // core.menu_item, hoặc một đường seed riêng cho đơn vị hệ thống), tức một ADR. Ngày có ADR đó,
-    // sửa test này cùng lúc; đừng gỡ nó để một mục lọt qua.
+    // Luật M17 (ADR-0122 điểm 4) — HAI vế. Vế 1 (test dưới): nguồn dùng chung không có mục /he-thong. Vế 2 (hai test
+    // sau, và SystemTenantMenuDatabaseTests trên PostgreSQL thật): danh sách RIÊNG của đơn vị hệ thống có đúng một mục
+    // mang đúng giá trị ADR chốt. Gỡ hay nới một vế để một mục lọt qua là vi phạm — ADR-0079 quyết định 3.
     [Fact]
     public void CoreSeedMenu_HasNoItemPointingIntoTheSystemOperatorArea()
     {
@@ -87,7 +86,27 @@ public sealed class CoreTenantSeedMenuTests
             .ToList();
 
         leaking.ShouldBeEmpty(
-            "Mục menu trỏ vào khu quản trị hệ thống. Mô hình lọc menu (schema-core.md §6.3) không đọc "
-          + "được cờ is_system_operator, nên mục này hiện sai người — xem ADR-0017 trước khi thêm.");
+            "Mục menu trỏ vào khu quản trị hệ thống nằm trong nguồn seed DÙNG CHUNG — nó vào MỌI đơn vị. Mô hình lọc "
+          + "menu (schema-core.md §6.3) không đọc được cờ is_system_operator. Mục của khu hệ thống chỉ được đi trong "
+          + "CoreTenantSeedSource.SystemTenantMenuItems (ADR-0122).");
+    }
+
+    [Fact]
+    public void SystemTenantMenu_IsExactlyOneItem_WithTheValuesTheAdrFixed()
+    {
+        var item = CoreTenantSeedSource.SystemTenantMenuItems.ShouldHaveSingleItem();
+
+        (item.Code, item.LabelKey, item.Icon, item.Route, item.ParentCode, item.RequiredPermissionCode, item.ModuleKey)
+            .ShouldBe(("he-thong-don-vi", "menu.he-thong-don-vi", "pi-building", "/he-thong/don-vi", null, null, null));
+    }
+
+    [Fact]
+    public void SystemTenantMenu_StandsAfterEveryRootItemOfTheSharedSource()
+    {
+        // Thiết kế chốt: đứng CUỐI cây (docs/Design/Screens/00-khung-ung-dung.md, bảng Quyết định bố cục).
+        var item = CoreTenantSeedSource.SystemTenantMenuItems.ShouldHaveSingleItem();
+        var highestShared = CoreMenu().Where(m => m.ParentCode is null).Max(m => m.DisplayOrder);
+
+        item.DisplayOrder.ShouldBeGreaterThan(highestShared);
     }
 }

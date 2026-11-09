@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 01. Một Core tầm trung gồm những gì — Nhóm A và Nhóm B
 
-> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/BE` đã có trên đĩa; file này mô tả thứ Core phải trở thành, và nay **có bản thật để đối chiếu**. Chưa ai đối chiếu toàn file, nên `verified:` giữ `chua-doi-chieu` — thành phần nào đã có thật thì mở `src/BE` ra so và nêu `file:dòng`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-20). `src/BE` đã có trên đĩa; file này mô tả thứ Core phải trở thành, và nay **có bản thật để đối chiếu**. Chưa ai đối chiếu toàn file, nên `verified:` giữ `chua-doi-chieu` — thành phần nào đã có thật thì mở `src/BE` ra so và nêu đường dẫn kèm một chuỗi tìm được trong tệp ([`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §9).
 >
 > **Đây là file agent đọc TRƯỚC KHI tự đề xuất thêm một abstraction mới.** Mục [§5 Áp dụng](#5-áp-dụng--core-này-có-gì-cố-ý-thiếu-gì) liệt kê những thứ đã được cân nhắc và **cố ý loại**, kèm lý do. Đề xuất lại một thứ nằm trong bảng đó mà không nói được điều kiện đã đổi là làm mất thời gian của mọi người.
 
@@ -235,7 +235,7 @@ CA15 ArchTest — dựng SONG SONG, không để cuối
 | CA7 Permission | Không có hằng số vai trò trong Core |
 | CA8 Người dùng hiện tại | Interface ở Application, cài đặt ở Web |
 | CA9 Cấu hình kiểm lúc khởi động | Mọi nhóm cấu hình bắt buộc |
-| CA10 Log + mã lần gọi | Serilog, log có cấu trúc |
+| CA10 Log + mã lần gọi | Log có cấu trúc, JSON ra đầu ra chuẩn bằng formatter có sẵn của .NET — [`07-observability.md`](07-observability.md) §2.3 |
 | CA11 Health check | Tách sống / sẵn sàng |
 | CA12 Migration | **Core sở hữu migration schema `core`** — đảo ngược so với dự án tiền nhiệm |
 | CA13 Menu động | Theo quyền |
@@ -270,7 +270,7 @@ Ngược lại, một thành phần Nhóm A vắng mặt **luôn** là finding �
 1. **Kiểm ngưỡng hai module.** Một module cần thì để ở module đó.
 2. **Kiểm bảng 5.2.** Nếu nó nằm trong đó, phải chứng minh điều kiện kích hoạt đã xảy ra.
 3. **Viết ADR** ở [`../../adr/`](../../adr/) — bối cảnh, phương án đã loại, hệ quả. Khuôn ở [`08-adr-practice.md`](08-adr-practice.md).
-4. **Bổ sung luật vào** [`../../RULES.md`](../../RULES.md) kèm cột "ép bằng gì". Chưa có cổng thì dòng đó thuộc mục nợ, không được để trống cột.
+4. **Bổ sung luật vào** tệp `RULES-*.md` theo phạm vi (mục lục: [`../../RULES.md`](../../RULES.md)) kèm cột "ép bằng gì". Chưa có cổng thì dòng đó mang `🕳️`, ô *Ép bằng gì* nêu ai canh — không được để trống cột.
 5. **Cập nhật file này** — thêm vào Nhóm A hoặc Nhóm B, kèm dấu hiệu thiếu và chi phí thêm.
 
 Bỏ bước 3 và 4 là cách một Core phình to mà không ai nhận ra: mỗi lần thêm đều hợp lý riêng lẻ, và tổng thể thì không mang đi đâu được nữa.

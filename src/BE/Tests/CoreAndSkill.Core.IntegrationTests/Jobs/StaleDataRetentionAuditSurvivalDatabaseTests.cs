@@ -10,11 +10,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Jobs;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Nghiệm thu B3 §5 mục 3 (docs/wiki-core/be/trien-khai/04-b3-van-hanh.md): "Xoá dữ liệu quá hạn theo
 // chính sách → thứ nhật ký đang tham chiếu KHÔNG bị xoá theo".
 //
@@ -245,8 +240,12 @@ public sealed class StaleDataRetentionAuditSurvivalDatabaseTests : IAsyncLifetim
         await Should.NotThrowAsync(() => Job.RunOnceAsync(CancellationToken.None));
 
         // Assert — chính DB chặn, và chặn vì đúng ràng buộc của bảng nhật ký (không phải vì bảng khác).
+        // Mã là 23001 restrict_violation, KHÔNG phải 23503 foreign_key_violation: khoá ngoại khai ON DELETE RESTRICT
+        // (docs/database/schema-core.md, mục core.audit_log), và từ PostgreSQL 18 — phiên bản ghim ở PostgresFixture —
+        // cú xoá bị hành động RESTRICT chặn trả mã riêng của chuẩn SQL. 23503 chỉ còn cho NO ACTION và cho phía ghi
+        // dòng con (INSERT/UPDATE trỏ tới cha không có).
         var failure = _cleaner.LastException.ShouldBeOfType<PostgresException>();
-        failure.SqlState.ShouldBe(PostgresErrorCodes.ForeignKeyViolation);
+        failure.SqlState.ShouldBe(PostgresErrorCodes.RestrictViolation);
         failure.ConstraintName.ShouldNotBeNull();
         failure.ConstraintName!.ShouldStartWith("fk_audit_log_");
 

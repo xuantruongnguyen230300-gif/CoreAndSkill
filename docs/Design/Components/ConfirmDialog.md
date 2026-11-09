@@ -8,20 +8,20 @@ verified: chua-doi-chieu
 
 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG.** Bản tối thiểu đã có ở `src/FE` (F2, ADR-0037) — biến thể `danger` đã có màn dùng; bảng "đã có → còn thiếu" ngay dưới đây.
 
-**Nền:** dựng **trên** [`Dialog.md`](./Dialog.md), không bọc thư viện riêng. Nó thừa hưởng toàn bộ bẫy focus, khoá cuộn nền, Escape từ `Dialog`; phần thêm vào chỉ là một bố cục cố định và một hợp đồng "đúng hai kết quả".
+**Nền:** đích đến là dựng **trên** [`Dialog.md`](./Dialog.md), không bọc thư viện riêng — việc dựng lại để sau (quyết định 2026-10-06, Q09); **tới khi đó giữ bản tự dựng hiện có**. Nó thừa hưởng toàn bộ bẫy focus, khoá cuộn nền, Escape từ `Dialog`; phần thêm vào chỉ là một bố cục cố định và một hợp đồng "đúng hai kết quả".
 
 ## Đã có → còn thiếu (F2, ADR-0037)
 
-Component: `src/FE/src/app/shared/components/confirm-dialog/confirm-dialog.component.ts`. Dùng ở `ho-so.page.html` cho xác nhận từ bỏ cờ đặc quyền (`severity="danger"`).
+Component: `src/FE/src/app/shared/components/confirm-dialog/confirm-dialog.component.ts`. Đối chiếu 2026-10-06: dùng ở nhiều màn dưới `src/FE/src/app/platform` (tìm bằng chuỗi `<app-confirm-dialog`), gồm cả `severity="danger"` (`ho-so.page.html`, `danh-sach-vai-tro.page.html`), `severity="ask"` (`hop-tao-don-vi.component.html`, `hop-quan-tri-don-vi.component.html`) và `severity="warning"` (`danh-sach-don-vi.page.html`, `chi-tiet-nguoi-dung.page.html`).
 
 | Khoản | Đã có | Còn thiếu |
 | --- | --- | --- |
 | API | Đủ chữ ký spec: `open`, `severity`, `title`, `message`, `confirmLabel`, `cancelLabel`, `requireAcknowledge`, `loading`, `error`, `confirmed`, `cancelled` | — |
-| Nền | **Không** dựng trên `Dialog.md` như dòng "Nền" ghi — `Dialog.md` chưa được dựng ở F2 (không thuộc bốn component kéo sớm của ADR-0037). Bẫy focus, khoá cuộn nền, Escape, backdrop được viết TRỰC TIẾP trong `ConfirmDialogComponent` | Việc tách phần overlay dùng chung ra một `Dialog` thật, rồi cho `ConfirmDialog` dựng trên nó (đúng dòng "Nền" của spec này) — còn nợ, làm khi F3 dựng `Dialog.md` |
+| Nền | **Vẫn không** dựng trên `Dialog.md` như dòng "Nền" ghi (đối chiếu 2026-10-06). `Dialog` đã dựng (`src/FE/src/app/shared/ui/dialog/dialog.component.ts`) nhưng `confirm-dialog.component.ts` chỉ import `TranslatePipe`, `ButtonComponent`, `NoticeBannerComponent`: bẫy focus, khoá cuộn nền, Escape, backdrop vẫn viết TRỰC TIẾP trong `ConfirmDialogComponent` | Tách phần overlay ra để `ConfirmDialog` dựng trên `Dialog` — **làm được nay** (lý do "chưa có `Dialog`" không còn), nhưng chưa xếp; **đã quyết 2026-10-06 (Q09): để sau**, giữ bản tự dựng tới khi dựng lại. Lớp chồng đã đúng thang (đối chiếu 2026-10-06, đọc mã + `lop-chong.spec.ts` xanh trong Chrome: `confirm-dialog.component.scss` chuỗi `z-index: var(--z-dialog)` ở cả `.confirm-dialog__backdrop` lẫn `.confirm-dialog`): hộp nằm trên `Dialog` bằng thang `--z-*` — [`../DESIGN.md`](../DESIGN.md) §6.4 "Luật thang lớp chồng": backdrop và hộp cùng `--z-dialog` |
 | Biến thể `danger` | Có, qua một màn thật | — |
-| Biến thể `ask`/`warning` | Dựng trong CSS/logic (icon, màu vòng, nút xác nhận `primary`) | Chưa có màn nào dùng — chưa được thử qua thực tế |
+| Biến thể `ask`/`warning` | Dựng trong CSS/logic (icon, màu vòng, nút xác nhận `primary`) và đã có màn dùng (đối chiếu 2026-10-06): `ask` ở `hop-tao-don-vi.component.html`, `hop-quan-tri-don-vi.component.html`; `warning` ở `danh-sach-don-vi.page.html`, `chi-tiet-nguoi-dung.page.html` | Hình thức thật trên trình duyệt **chưa đo** |
 | Bẫy focus, Escape, backdrop, focus vào nút huỷ lúc mở, trả focus lúc đóng | Có, viết tay bằng `effect()` + truy vấn DOM trong chính component | — |
-| `requireAcknowledge` (ô đánh dấu bắt buộc) | Dựng bằng `<input type="checkbox">` thuần, chưa qua `Check.md` (`Check.md` chưa dựng) | Chưa có màn nào dùng — chưa được thử qua thực tế |
+| `requireAcknowledge` (ô đánh dấu bắt buộc) | Có, nhưng dựng bằng `<input type="checkbox">` thuần (`confirm-dialog.component.html` chuỗi `<input type="checkbox"`), chưa qua `Check.md`. `Check` đã dựng (`src/FE/src/app/shared/ui/check/check.component.ts`) nên lý do cũ không còn | Đổi sang `Check` khi làm khoản "Nền" ở trên. Chưa màn nào truyền `requireAcknowledge` (không thấy trong `*.html` dưới `platform`) — chưa được thử qua thực tế |
 | `loading`/`error` | Có, đúng luật (Escape/backdrop bị chặn khi `loading`, hộp giữ mở khi `error`) | — |
 | Responsive (`< $bp-sm` đổi cột, đảo thứ tự nút) | Dựng trong CSS (`@include tu-man-hinh`) | Chưa thử trên màn hình thật hẹp — chưa được thử qua thực tế |
 
@@ -101,7 +101,7 @@ Icon nằm trong một vòng tròn `--radius-full` nền là token `*-bg` tươn
 | Hình dạng | `--radius-lg`, `--radius-full`, `--border-w` |
 | Kích thước | `--size-control-lg`, `--icon-lg`, `--layout-dialog-w-sm` |
 | Bóng | `--shadow-4` |
-| Lớp | `--z-dialog`, `--z-backdrop` |
+| Lớp | `--z-dialog` (cả backdrop lẫn hộp) — [`../DESIGN.md`](../DESIGN.md) §6.4 |
 
 ## Responsive
 

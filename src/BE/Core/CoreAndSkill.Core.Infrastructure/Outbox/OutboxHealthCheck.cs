@@ -1,3 +1,4 @@
+using CoreAndSkill.Core.Application.Common.Logging;
 using CoreAndSkill.Core.Application.Configuration;
 using CoreAndSkill.Core.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,8 +32,8 @@ internal sealed class OutboxHealthCheck(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Không đo được outbox: DB không với tới, hoặc bảng chưa có (script chưa áp). Readiness đã
-            // có DatabaseHealthCheck cho hai ca đó; ở đây báo đỏ chung, không lộ thông điệp lỗi.
-            return HealthCheckResult.Unhealthy("Không kiểm được trạng thái outbox.", ex);
+            // có DatabaseHealthCheck cho hai ca đó; ở đây báo đỏ chung. Mô tả mang thông điệp đã lọc; /health/* dùng bộ ghi phản hồi mặc định nên không lộ ra HTTP.
+            return HealthCheckResult.Unhealthy($"Không kiểm được trạng thái outbox. {FailureText.Describe(ex)}");
         }
 
         return Evaluate(snapshot, TimeSpan.FromMinutes(options.Value.DegradedPendingAgeMinutes));

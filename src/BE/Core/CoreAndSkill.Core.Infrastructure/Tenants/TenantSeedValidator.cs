@@ -36,7 +36,12 @@ internal static class TenantSeedValidator
 
         var roleNames = ValidateRoles(sources.SelectMany(s => s.GetRoles()));
         ValidateRolePermissions(sources.SelectMany(s => s.GetRolePermissions()), roleNames, catalog);
-        ValidateMenuItems(sources.SelectMany(s => s.GetMenuItems()).ToList(), catalog);
+        var menuItems = sources.SelectMany(s => s.GetMenuItems()).ToList();
+        ValidateMenuItems(menuItems, catalog);
+
+        // ADR-0122 điểm 2: đơn vị hệ thống nhận thêm danh sách riêng của Core. Kiểm đúng tập nó nhận — nguồn thường + danh sách
+        // riêng — để va chạm mã hiện lúc khởi động chứ không thành lỗi ghi giữa lệnh bootstrap.
+        ValidateMenuItems([.. menuItems, .. CoreTenantSeedSource.SystemTenantMenuItems], catalog);
     }
 
     private static HashSet<string> ValidateRoles(IEnumerable<SeedRole> roles)
@@ -47,7 +52,7 @@ internal static class TenantSeedValidator
         foreach (var role in roles)
         {
             if (!normalized.Add(RoleNameNormalizer.NormalizeName(role.Name)))
-                throw Invalid($"vai trò '{role.Name}' bị khai trùng (so theo tên đã chuẩn hoá của Identity).");
+                throw new TenantSeedException($"Nguồn seed đơn vị không hợp lệ: vai trò '{role.Name}' bị khai trùng (so theo tên đã chuẩn hoá của Identity).");
 
             declared.Add(role.Name);
         }
@@ -65,14 +70,14 @@ internal static class TenantSeedValidator
             // Tra theo tên vai trò SEED, cùng hình dạng tra của ApplySeedAsync — đây là kiểm dữ liệu mặc định, không phải
             // một quyết định phân quyền theo tên vai trò (luật S2 cấm cái sau).
             if (!roleNames.TryGetValue(mapping.RoleName, out _))
-                throw Invalid($"ánh xạ quyền trỏ tới vai trò '{mapping.RoleName}' không có nguồn nào khai.");
+                throw new TenantSeedException($"Nguồn seed đơn vị không hợp lệ: ánh xạ quyền trỏ tới vai trò '{mapping.RoleName}' không có nguồn nào khai.");
 
             if (!catalog.Contains(mapping.PermissionCode))
-                throw Invalid($"ánh xạ quyền của vai trò '{mapping.RoleName}' trỏ tới khoá '{mapping.PermissionCode}' " +
+                throw new TenantSeedException($"Nguồn seed đơn vị không hợp lệ: ánh xạ quyền của vai trò '{mapping.RoleName}' trỏ tới khoá '{mapping.PermissionCode}' " +
                               "không có trong danh mục quyền đã gộp.");
 
             if (!pairs.Add((mapping.RoleName, mapping.PermissionCode)))
-                throw Invalid($"cặp ánh xạ ('{mapping.RoleName}', '{mapping.PermissionCode}') bị khai trùng.");
+                throw new TenantSeedException($"Nguồn seed đơn vị không hợp lệ: cặp ánh xạ ('{mapping.RoleName}', '{mapping.PermissionCode}') bị khai trùng.");
         }
     }
 
@@ -97,26 +102,24 @@ internal static class TenantSeedValidator
         {
             var code = MenuItem.NormalizeCode(item.Code);
             if (!byCode.TryAdd(code, item))
-                throw Invalid($"mã menu '{item.Code}' bị khai trùng với '{byCode[code].Code}' (so theo mã đã chuẩn hoá '{code}').");
+                throw new TenantSeedException($"Nguồn seed đơn vị không hợp lệ: mã menu '{item.Code}' bị khai trùng với '{byCode[code].Code}' (so theo mã đã chuẩn hoá '{code}').");
 
             if (item.RequiredPermissionCode is { } permission && !catalog.Contains(permission))
-                throw Invalid($"mục menu '{item.Code}' gắn khoá '{permission}' không có trong danh mục quyền đã gộp.");
+                throw new TenantSeedException($"Nguồn seed đơn vị không hợp lệ: mục menu '{item.Code}' gắn khoá '{permission}' không có trong danh mục quyền đã gộp.");
         }
 
         foreach (var child in menuItems.Where(m => m.ParentCode is not null))
         {
             if (!byCode.TryGetValue(MenuItem.NormalizeCode(child.ParentCode!), out var parent))
-                throw Invalid($"mục menu '{child.Code}' trỏ ParentCode '{child.ParentCode}' không có mục nào được dựng trước nó.");
+                throw new TenantSeedException($"Nguồn seed đơn vị không hợp lệ: mục menu '{child.Code}' trỏ ParentCode '{child.ParentCode}' không có mục nào được dựng trước nó.");
 
             if (parent.ParentCode is not null)
-                throw Invalid($"mục menu '{child.Code}' trỏ ParentCode '{child.ParentCode}', mà mục đó lại có cha " +
+                throw new TenantSeedException($"Nguồn seed đơn vị không hợp lệ: mục menu '{child.Code}' trỏ ParentCode '{child.ParentCode}', mà mục đó lại có cha " +
                               $"'{parent.ParentCode}' — cây menu đúng MỘT cấp (schema-core.md §6.1 luật 1).");
 
             if (parent.Route is not null)
-                throw Invalid($"mục menu '{parent.Code}' có con ('{child.Code}') nên là mục cha, mà mục cha chỉ đóng/mở " +
+                throw new TenantSeedException($"Nguồn seed đơn vị không hợp lệ: mục menu '{parent.Code}' có con ('{child.Code}') nên là mục cha, mà mục cha chỉ đóng/mở " +
                               $"và phải có route rỗng (schema-core.md §6.1 luật 2) — nó đang trỏ '{parent.Route}'.");
         }
     }
-
-    private static TenantSeedException Invalid(string detail) => new($"Nguồn seed đơn vị không hợp lệ: {detail}");
 }

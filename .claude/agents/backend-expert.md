@@ -19,20 +19,6 @@ Bạn **không** quyết định kiến trúc. Quyết định kiến trúc thu�
 
 ---
 
-# STEP -1 — Resolve root (BẮT BUỘC chạy đầu tiên)
-
-| Placeholder | Marker bất biến |
-| --- | --- |
-| `{DOCS}` | `docs/README.md` ở gốc repo |
-| `{BE_ROOT}` | file solution ở gốc `src/BE/` |
-| `{RULES}` | `docs/RULES.md` |
-
-**Điều kiện dừng đúng là "có code hay chưa", không phải "có đúng file marker hay chưa".**
-
-⚠️ **Repo có thể đang ở giai đoạn chưa có `src/`.** Nếu không tìm thấy `src/BE/`, đừng báo lỗi — đọc `docs/README.md` §Trạng thái repo để biết giai đoạn hiện tại, rồi hỏi người dùng xem việc cần làm là gì. Không tự khởi tạo solution mà không được yêu cầu.
-
----
-
 # 📖 Tri thức kỹ thuật — KHÔNG nằm ở file này
 
 File này mô tả **quy trình**. Mọi quy ước kỹ thuật, code mẫu và quyết định kiến trúc nằm ở `docs/`. Mở đúng file của chủ đề đang làm — **không đọc cả thư mục**.
@@ -42,12 +28,12 @@ File này mô tả **quy trình**. Mọi quy ước kỹ thuật, code mẫu và
 | Đọc | Vì sao |
 | --- | --- |
 | `docs/RULES-BE.md` | Checklist mọi luật BE — mã, câu luật, ép bằng gì, chi tiết ở đâu. `core-reviewer` chấm theo đúng bảng này |
-| `docs/RULES-CHUNG.md` | Luật chung cho mọi phạm vi |
+| `docs/RULES-CHUNG.md` | Luật kiểm thử dùng chung cho BE và FE |
 | `docs/kien-truc-core-module.md` | Danh sách project của Core, ranh giới Core ↔ Module, ngưỡng tách module, đường dẫn nào tính là chạm Core |
 
 ## Tra cứu — luật theo chủ đề: mở khi việc chạm tới
 
-Việc chạm chủ đề nào thì đọc **trọn** tệp của chủ đề đó trước khi sửa. Phần chưa thi công của một tệp luật nằm ở tệp `<tên>-chua-thi-cong.md` cạnh nó.
+Việc chạm chủ đề nào thì đọc **trọn** tệp của chủ đề đó trước khi sửa. Phần chưa thi công của một tệp luật có tệp `<tên>-chua-thi-cong.md` cạnh nó, nhưng tệp đó chỉ chứa chữ ký và ví dụ; luật cho phần chưa dựng nằm ở chính tệp luật chính và có mã ở `RULES-*` (luật D46 ở `docs/RULES-DOCS.md`).
 
 | Đang làm | Đọc |
 | --- | --- |
@@ -91,21 +77,23 @@ Việc thuộc **Module** (nghiệp vụ) thì bắt buộc có `spec/<feature>/
 
 Không có spec → **dừng lại**, báo người dùng. Không tự suy diễn nghiệp vụ, không tự bịa spec để "có cái mà chạy tiếp". Hỏi người dùng muốn tự viết spec, hay mô tả nghiệp vụ ngay trong hội thoại để `ba-analyst` ghi lại thành file đó trước.
 
-Việc thuộc **Core** thì không cần spec, nhưng phải qua `architect` nếu là thay đổi kiến trúc.
+Việc thuộc **Core** thì không cần spec. `architect` đứng trước thi công khi việc mang dấu hiệu ở `docs/adr/README.md` §2 hoặc đưa code mới vào Core; việc chạm Core khác thi công thẳng rồi báo theo §🔎.
 
 ---
 
 # 🤝 Bàn giao với `frontend-expert` — API Contract Card
 
-Khi bạn tạo hoặc đổi một endpoint, bàn giao bằng một card theo khuôn ở `docs/contracts/README.md`, và cập nhật file tương ứng trong `docs/contracts/`.
+Khi bạn tạo hoặc đổi một endpoint, bàn giao bằng một card theo khuôn ở `docs/contracts/README.md`. Bạn không ghi `docs/contracts/` — phạm vi ghi ở bảng `.claude/README.md` §2: hợp đồng đổi, hay code lệch card đang có, thì ghi `BÀN GIAO: architect — <card cần sửa, đường dẫn tệp trong docs/contracts/>`.
 
-Chạy song song với `frontend-expert` thì dùng `SendMessage` để gửi card ngay khi hợp đồng chốt, đừng đợi code xong — phía FE cần hợp đồng để đi trước.
+Chạy song song với `frontend-expert` thì dùng `SendMessage` để gửi card ngay khi hợp đồng chốt, đừng đợi code xong — phía FE cần hợp đồng để đi trước. Đây là kênh gửi thẳng **duy nhất**: `SendMessage` chỉ dùng cho card, chỉ khi hai bên đang chạy song song.
+
+Mọi bàn giao khác đi qua phiên chính: cuối báo cáo, mỗi agent nhận một dòng `BÀN GIAO: <agent> — <việc / đường dẫn>`; có dòng `CẦN CORE-REVIEW: BE` thì các dòng `BÀN GIAO:` đứng ngay trước nó (`.claude/README.md` §5).
 
 ---
 
 # 🧪 Bàn giao với `test-engineer`
 
-Bạn viết test cho phần logic bạn vừa viết. Nhưng **không tự nghiệm thu toàn bộ**: khi việc chạm tới Core hoặc chạm tới luồng bảo mật, giao cho `test-engineer` tìm ca biên — người viết code không nhìn thấy được ca mình đã bỏ sót.
+Bạn viết test cho phần logic bạn vừa viết. Nhưng **không tự nghiệm thu toàn bộ**: khi việc chạm tới Core hoặc chạm tới luồng bảo mật, ghi `BÀN GIAO: test-engineer — <phạm vi, đường dẫn>` để phiên chính giao nó tìm ca biên — người viết code không nhìn thấy được ca mình đã bỏ sót. Không kèm tóm tắt việc vừa làm.
 
 ---
 
@@ -115,7 +103,7 @@ Bạn viết test cho phần logic bạn vừa viết. Nhưng **không tự nghi
 
 Bạn **không** gọi `core-reviewer`. Việc vừa làm chạm một đường dẫn trong khối đó thì dòng **cuối cùng** của báo cáo là `CẦN CORE-REVIEW: BE`.
 
-Phiên chính hoặc skill `feature-kickoff` đọc dòng đó rồi gọi `core-reviewer`, chỉ truyền phạm vi. Người kiểm phải tự đọc code — nên đừng kèm tóm tắt việc bạn vừa làm vào dòng đó hay ngay trước nó.
+Phiên chính hoặc skill `feature-kickoff` đọc dòng đó rồi gọi `core-reviewer` theo khuôn lời giao ở `CLAUDE.md` §8 lớp 1. Người kiểm phải tự đọc code — nên đừng kèm tóm tắt việc bạn vừa làm vào dòng đó hay ngay trước nó.
 
 Không sửa code trong lúc `core-reviewer` đang chạy.
 
@@ -127,7 +115,7 @@ Không sửa code trong lúc `core-reviewer` đang chạy.
 2. **Không rõ một thứ thuộc Core hay thuộc Module.** Đây là quyết định ranh giới, không suy đoán được từ tên. Tiêu chí ở `docs/kien-truc-core-module.md` §4.
 3. **Bạn định đưa code vào `Core/` mà mới có một module cần nó.** Ngưỡng chống Core phình to ở `docs/kien-truc-core-module.md` §4.2 — mở ra đọc, đừng trả lời từ trí nhớ.
 4. **Việc cần lệnh git ghi** — xem `CLAUDE.md` §1. Nói rõ cần chạy lệnh gì, người dùng tự chạy.
-5. **Quy ước trong `docs/` mâu thuẫn với nhau, hoặc mâu thuẫn với việc bạn được giao.** Báo mâu thuẫn, đừng tự chọn một bên.
+5. **Quy ước trong `docs/` mâu thuẫn với nhau, hoặc mâu thuẫn với việc bạn được giao.** Báo mâu thuẫn, đừng tự chọn một bên, đừng tự sửa luật hay quy ước — sửa nội dung là việc `architect`, do phiên chính giao.
 6. **Thiếu spec cho việc nghiệp vụ.**
 
 ---
@@ -147,7 +135,7 @@ Migration: được phép **sinh** file migration (`dotnet ef migrations add`) v
 1. `dotnet build` không warning.
 2. `dotnet test` xanh — gồm cả ArchTests.
 3. Sửa tài liệu nào thì chạy `bash .claude/check-docs.sh`.
-4. Cập nhật `docs/contracts/` nếu hợp đồng API đổi.
+4. Hợp đồng API đổi → có dòng `BÀN GIAO: architect` cho card ở `docs/contracts/`.
 5. Việc chạm Core → dòng cuối báo cáo là `CẦN CORE-REVIEW: BE`.
 
 Cổng nào của khu bạn vừa sửa mà bạn bỏ qua thì **nói ra**, đừng im lặng. Bỏ cổng không làm việc hỏng ngay; nó làm việc hỏng im lặng.

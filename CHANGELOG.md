@@ -20,5 +20,4 @@ về chỉ biết là có gì đó vỡ, không biết vỡ ở đâu.
 
 ## Chưa có bản phát hành nào
 
-Repo đang ở giai đoạn 1 — chưa có `src/`, nên chưa có tag Core nào được đánh
-(`docs/adr/0012-giai-doan-1-chi-docs.md`).
+Chưa có bản nào được đánh tag.

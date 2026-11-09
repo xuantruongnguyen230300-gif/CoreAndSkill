@@ -5,10 +5,11 @@ import {
   HttpEvent,
   HttpInterceptorFn,
   HttpRequest,
+  HttpResponse,
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { Observable, catchError, from, switchMap, throwError } from 'rxjs';
+import { Observable, catchError, from, switchMap, tap, throwError } from 'rxjs';
 
 import { AuthService } from '../auth/auth.service';
 import { SessionExpiryHandler } from '../auth/session-expiry.handler';
@@ -23,6 +24,7 @@ import {
 } from '../http/api-result.model';
 import { dichLoi, thamSoRetryAfter } from '../http/dich-loi';
 import { laLoiXuyenSuot } from '../http/loi-xuyen-suot';
+import { ClientErrorReporter } from '../observability/client-error-reporter';
 
 /** Đánh dấu request đã được gửi lại một lần sau CSRF_REJECTED — chặn vòng lặp. */
 const DA_THU_LAI_XSRF = new HttpContextToken<boolean>(() => false);
@@ -79,6 +81,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const hetPhien = inject(SessionExpiryHandler);
   const xsrf = inject(XsrfTokenStore);
+  const boThuLoi = inject(ClientErrorReporter);
 
   /**
    * Bộ xử lý lỗi cho MỘT request. Dựng theo request để lần gửi lại sau CSRF_REJECTED dùng lại đúng
@@ -94,6 +97,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       const body = docEnvelopeLoi(err);
+      // traceId của phản hồi lỗi cũng là "request gần nhất" cho báo cáo lỗi runtime (10-observability.md §5.2).
+      boThuLoi.ghiNhanTuPhanHoi(body);
       // Mọi nhánh trả lỗi về người gọi qua đây — mang status thật để màn nhận diện lớp xuyên suốt.
       const nem = (): Observable<never> => throwError(() => new ApiFailureError(body, err.status));
 
@@ -147,21 +152,20 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       // Lớp xuyên suốt (5xx, 403 CORE.AUTH.* còn lại) — LUÔN toast kèm traceId, KHÔNG xét
       // BO_QUA_TOAST_LOI: khu lỗi của màn bỏ qua lớp này (`laLoiXuyenSuot`), nên toast là chỗ hiện duy nhất.
       if (laLoiXuyenSuot(err.status, body)) {
-        if (body === null) {
-          // 5xx không envelope (proxy trả 502/504 dạng HTML): máy chủ CÓ trả lời nên không phải câu mất
-          // kết nối; không mã, không traceId — câu của mã phía client `CORE.CLIENT.SERVER_UNAVAILABLE`
-          // (be-cqrs-handler.md §7.4). 403 không envelope không vào lớp này, nên `null` ở đây luôn là 5xx.
-          toast.loi(translate.instant('loi.CORE.CLIENT.SERVER_UNAVAILABLE'), null);
-        } else {
-          toast.loi(dichLoi(translate, body), body.traceId);
-        }
+        // 5xx không envelope (proxy trả 502/504 dạng HTML): `body` null → `dichLoi` chọn câu của mã
+        // phía client theo status (fe-api-client.md §2.2, be-cqrs-handler.md §7.4, luật F45). 403
+        // không envelope không vào lớp này, nên `body === null` ở đây luôn là 5xx.
+        toast.loi(dichLoi(translate, body, err.status), body?.traceId ?? null);
         return nem();
       }
 
       // 429 — siết tần suất. Số giây chờ đọc từ Retry-After.
       if (err.status === 429) {
         if (!yeuCau.context.get(BO_QUA_TOAST_LOI)) {
-          toast.loi(dichLoi(translate, body, thamSoRetryAfter(err)), body?.traceId ?? null);
+          toast.loi(
+            dichLoi(translate, body, err.status, thamSoRetryAfter(err)),
+            body?.traceId ?? null,
+          );
         }
         return nem();
       }
@@ -170,7 +174,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       // Toast rồi trả lỗi về màn. KHÔNG gửi lại, KHÔNG tải lại hộ.
       if (err.status === 409 && body?.error.code === 'CORE.CONCURRENCY.CONFLICT') {
         if (!yeuCau.context.get(BO_QUA_TOAST_LOI)) {
-          toast.loi(dichLoi(translate, body), body?.traceId ?? null);
+          toast.loi(dichLoi(translate, body, err.status), body?.traceId ?? null);
         }
         return nem();
       }
@@ -182,10 +186,18 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       // Màn tự hiển thị lỗi của mình thì tắt toast cho ĐÚNG request đó.
       if (!yeuCau.context.get(BO_QUA_TOAST_LOI)) {
-        toast.loi(dichLoi(translate, body), body?.traceId ?? null);
+        toast.loi(dichLoi(translate, body, err.status), body?.traceId ?? null);
       }
       return nem();
     };
 
-  return next(req).pipe(catchError(xuLyLoi(req)));
+  return next(req).pipe(
+    // Phản hồi thành công cũng mang traceId — đó là lý do envelope mang nó kể cả khi thành công (§5.2).
+    tap((suKien) => {
+      if (suKien instanceof HttpResponse) {
+        boThuLoi.ghiNhanTuPhanHoi(suKien.body);
+      }
+    }),
+    catchError(xuLyLoi(req)),
+  );
 };

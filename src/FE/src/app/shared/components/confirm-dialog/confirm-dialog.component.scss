@@ -4,7 +4,8 @@
 .confirm-dialog__backdrop {
   position: fixed;
   inset: 0;
-  z-index: var(--z-backdrop);
+  // Trên Dialog (PrimeNG modal đặt ở --z-backdrop, xem core/theme/prime-z-index.ts), dưới Toast/Tooltip.
+  z-index: var(--z-dialog);
   background: var(--color-overlay);
   border: none;
   padding: 0;

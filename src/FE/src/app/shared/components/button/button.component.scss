@@ -1,5 +1,8 @@
 // Design/Components/Button.md — token dùng liệt kê ở §Token dùng của file đó.
-.nut {
+.nut,
+:host(.nut) {
+  // `<button>` không thừa hưởng font của `body` (UA đặt font hệ thống) — khai tường minh.
+  font-family: var(--font-sans);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -9,10 +12,14 @@
   font-weight: var(--fw-semibold);
   line-height: var(--lh-snug);
   border: var(--border-w) solid transparent;
+  text-decoration: none;
   cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard);
 
-  &:disabled {
+  &:disabled,
+  &[aria-disabled='true'] {
     opacity: 0.55;
     cursor: not-allowed;
   }
@@ -22,88 +29,103 @@
     outline-offset: 2px;
   }
 
-  &:active:not(:disabled) {
+  &:active:not(:disabled):not([aria-disabled='true']) {
     transform: translateY(1px);
     box-shadow: none;
   }
 }
 
-.nut--sm {
+.nut--sm,
+:host(.nut--sm) {
   height: var(--size-control-sm);
   padding: 0 var(--sp-4);
   font-size: var(--fs-xs);
 }
 
-.nut--md {
+.nut--md,
+:host(.nut--md) {
   height: var(--size-control-md);
   padding: 0 var(--sp-5);
   font-size: var(--fs-sm);
 }
 
-.nut--lg {
+.nut--lg,
+:host(.nut--lg) {
   height: var(--size-control-lg);
   padding: 0 var(--sp-6);
   font-size: var(--fs-md);
 }
 
-.nut--block {
+.nut--block,
+:host(.nut--block) {
   width: 100%;
 }
 
-.nut--primary {
+.nut--primary,
+:host(.nut--primary) {
   background: var(--color-brand);
   color: var(--color-text-on-brand);
 
   @media (hover: hover) {
-    &:hover:not(:disabled) {
+    &:hover:not(:disabled):not([aria-disabled='true']) {
       background: var(--color-brand-hover);
       box-shadow: var(--shadow-2);
     }
   }
 
-  &:active:not(:disabled) {
+  &:active:not(:disabled):not([aria-disabled='true']) {
     background: var(--color-brand-active);
   }
 }
 
-.nut--secondary {
+.nut--secondary,
+:host(.nut--secondary) {
   background: var(--color-surface);
   color: var(--color-text);
   border-color: var(--color-border);
 
   @media (hover: hover) {
-    &:hover:not(:disabled) {
+    &:hover:not(:disabled):not([aria-disabled='true']) {
       background: var(--color-surface-2);
       border-color: var(--color-border-strong);
       box-shadow: var(--shadow-2);
     }
   }
+
+  // Nút đang giữ một lớp nổi mở (nút lọc của Toolbar): giữ nền như `hover` cho tới khi lớp đóng —
+  // người dùng thấy nút nào đang giữ lớp (Toolbar.md §"Nút lọc").
+  &[aria-expanded='true']:not(:disabled) {
+    background: var(--color-surface-2);
+    border-color: var(--color-border-strong);
+  }
 }
 
-.nut--ghost {
+.nut--ghost,
+:host(.nut--ghost) {
   background: transparent;
   color: var(--color-text-muted);
 
   @media (hover: hover) {
-    &:hover:not(:disabled) {
+    &:hover:not(:disabled):not([aria-disabled='true']) {
       background: var(--color-surface-2);
       color: var(--color-text);
     }
   }
 }
 
-.nut--danger {
+.nut--danger,
+:host(.nut--danger) {
   background: var(--color-danger);
   color: var(--color-text-on-brand);
 
   @media (hover: hover) {
-    &:hover:not(:disabled) {
+    &:hover:not(:disabled):not([aria-disabled='true']) {
       background: var(--color-danger-hover);
       box-shadow: var(--shadow-2);
     }
   }
 
-  &:active:not(:disabled) {
+  &:active:not(:disabled):not([aria-disabled='true']) {
     background: var(--color-danger-active);
   }
 }

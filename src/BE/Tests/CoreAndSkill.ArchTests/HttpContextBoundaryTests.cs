@@ -5,7 +5,7 @@ using Xunit;
 
 namespace CoreAndSkill.ArchTests;
 
-// Luật B4 — docs/RULES.md §10, docs/adr/0026-ranh-gioi-identity-va-cookie.md: `Core.Infrastructure` KHÔNG phụ thuộc
+// Luật B4 — docs/RULES-BE.md, docs/adr/0026-ranh-gioi-identity-va-cookie.md: `Core.Infrastructure` KHÔNG phụ thuộc
 // `HttpContext`. Luật A2 canh chiều Application → Infrastructure; chiều này không luật nào canh, và đã lệch thật một lần
 // (một tài liệu đặt `HttpContextCurrentUser` vào Infrastructure). Ranh giới có hai nửa: Identity lõi, store, UserManager
 // ở Infrastructure — cookie scheme, SignIn/SignOut, mọi thứ đọc `HttpContext` ở Core.Web.

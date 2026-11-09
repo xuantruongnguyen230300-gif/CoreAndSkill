@@ -1,5 +1,5 @@
-using System.Globalization;
 using CoreAndSkill.Core.Application.Common;
+using CoreAndSkill.Core.Application.Common.Logging;
 using CoreAndSkill.Core.Application.Configuration;
 using CoreAndSkill.Core.Application.Files;
 using CoreAndSkill.Core.Application.Identity;
@@ -28,7 +28,9 @@ internal sealed class CoreExceptionHandler(ILogger<CoreExceptionHandler> logger)
         // khác: mọi nhánh dưới đều ghi thân bằng cancellationToken (= RequestAborted, đã huỷ) và sẽ tự ném.
         if (httpContext.RequestAborted.IsCancellationRequested && ChainContainsClientAbort(exception))
         {
-            logger.LogDebug(exception, "Client huỷ request ở {Path} — không phải lỗi.", httpContext.Request.Path);
+            logger.LogDebug(
+                "Client huỷ request ở {Path} — không phải lỗi. {Failure}",
+                httpContext.Request.Path, FailureText.Describe(exception));
             httpContext.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
             return true;
         }
@@ -51,7 +53,7 @@ internal sealed class CoreExceptionHandler(ILogger<CoreExceptionHandler> logger)
         // (be-api-controller.md §6.3 ràng buộc 6, docs/contracts/auth.md §10).
         if (exception is LoginAttemptLimitExceededException limitExceeded)
         {
-            var retryAfterSeconds = ((int)Math.Ceiling(limitExceeded.RetryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+            var retryAfterSeconds = RetryAfterSeconds.Format(limitExceeded.RetryAfter);
             httpContext.Response.Headers.RetryAfter = retryAfterSeconds;
             httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
             await httpContext.Response.WriteAsJsonAsync(
@@ -78,7 +80,9 @@ internal sealed class CoreExceptionHandler(ILogger<CoreExceptionHandler> logger)
             return true;
         }
 
-        logger.LogError(exception, "Ngoại lệ ngoài dự kiến ở {Path}", httpContext.Request.Path);
+        logger.LogError(
+            "Ngoại lệ ngoài dự kiến ở {Path} — {Failure}",
+            httpContext.Request.Path, FailureText.DescribeWithStack(exception));
 
         httpContext.Response.StatusCode = ResultToHttpMapper.ToStatusCode(CommonErrors.Unexpected.Type);
         await httpContext.Response.WriteAsJsonAsync(

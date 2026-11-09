@@ -11,11 +11,6 @@ using INotificationPublisher = CoreAndSkill.Core.Application.Notifications.INoti
 
 namespace CoreAndSkill.Core.IntegrationTests.Notifications;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Thông báo trên PostgreSQL THẬT — docs/wiki-core/be/12-notifications.md §3-§5. Chứng minh: thông báo trong ứng dụng
 // lưu KHOÁ + THAM SỐ (jsonb), không lưu câu đã ghép; danh sách / đếm chưa đọc / đánh dấu đã đọc chỉ chạm thông báo của
 // CHÍNH người gọi và của đơn vị mình; kênh email chọn ngôn ngữ theo NGƯỜI NHẬN (không theo người kích hoạt), và không

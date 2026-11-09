@@ -1,7 +1,7 @@
 import { TranslateService } from '@ngx-translate/core';
 
 import { ApiFailureError, ApiFieldError } from '../../core/http/api-result.model';
-import { fieldErrorsText } from './field-errors-text';
+import { cauMaCon, cauTungMa, fieldErrorsText } from './field-errors-text';
 
 function body(
   code: string,
@@ -94,5 +94,57 @@ describe('fieldErrorsText()', () => {
 
   it('502 không envelope → null, KHÔNG phải câu mất kết nối', () => {
     expect(fieldErrorsText(translate, new ApiFailureError(null, 502))).toBeNull();
+  });
+});
+
+describe('cauTungMa() / fieldErrorsText() — mã chưa có khoá dịch', () => {
+  function dich(): TranslateService {
+    const translate = jasmine.createSpyObj<TranslateService>('TranslateService', ['instant']);
+    translate.instant.and.callFake((k: unknown) =>
+      k === 'loi.CORE.AUTH.CO_KHOA'
+        ? 'Câu có khoá'
+        : k === 'loi.CORE.VALIDATION.INVALID'
+          ? 'Giá trị không hợp lệ.'
+          : (k as string),
+    );
+    return translate;
+  }
+
+  it('cauTungMa: mã có bản dịch → câu; mã thiếu → câu dự phòng, mỗi mã một dòng', () => {
+    expect(
+      cauTungMa(dich(), [
+        { code: 'CORE.AUTH.CO_KHOA', messageParams: null },
+        { code: 'CORE.AUTH.MA_LA', messageParams: null },
+      ]),
+    ).toBe('Câu có khoá\nGiá trị không hợp lệ.');
+  });
+
+  it('fieldErrorsText: mã con thiếu bản dịch không bao giờ ra chuỗi dạng loi.X.Y', () => {
+    const cau = fieldErrorsText(
+      dich(),
+      body('CORE.VALIDATION.FAILED', { A: [{ code: 'CORE.AUTH.MA_LA', messageParams: null }] }),
+    );
+    expect(cau).toBe('Giá trị không hợp lệ.');
+    expect(cau).not.toContain('loi.');
+  });
+});
+
+describe('cauMaCon() — mã chưa có khoá dịch', () => {
+  it('mã lạ → câu dự phòng, KHÔNG hiện chuỗi khoá; mã có khoá → câu của mã', () => {
+    const translate = jasmine.createSpyObj<TranslateService>('TranslateService', ['instant']);
+    translate.instant.and.callFake((k: unknown) =>
+      k === 'loi.CORE.AUTH.CO_KHOA'
+        ? 'Câu có khoá'
+        : k === 'loi.CORE.VALIDATION.INVALID'
+          ? 'Giá trị không hợp lệ.'
+          : (k as string),
+    );
+
+    expect(cauMaCon(translate, { code: 'CORE.AUTH.MA_LA', messageParams: null })).toBe(
+      'Giá trị không hợp lệ.',
+    );
+    expect(cauMaCon(translate, { code: 'CORE.AUTH.CO_KHOA', messageParams: null })).toBe(
+      'Câu có khoá',
+    );
   });
 });

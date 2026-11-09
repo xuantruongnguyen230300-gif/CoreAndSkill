@@ -51,7 +51,7 @@ public static class CoreOptionsServiceCollectionExtensions
             .ValidateOnStart();
 
         // Pha B4 — mỗi nhóm khoá một lớp Options, ValidateOnStart ở MỌI môi trường (be-architecture.md §4.3).
-        // Core:File:RootPath không có mặc định: thiếu thì tiến trình không khởi động, nêu tên khoá.
+        // Core:File:RootPath không có mặc định: thiếu thì tiến trình không khởi động khi Core dùng bản lưu đĩa của nó, nêu tên khoá (ADR-0107).
         services.AddOptions<CoreFileOptions>()
             .Bind(configuration.GetSection(CoreFileOptions.SectionName))
             .ValidateDataAnnotations()
@@ -93,6 +93,12 @@ public static class CoreOptionsServiceCollectionExtensions
         // dạng thì không khởi động.
         services.AddOptions<CoreNetworkOptions>()
             .Bind(configuration.GetSection(CoreNetworkOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        // Ngưỡng rate limit — mặc định là các con số đã chốt ở be-api-controller.md §6.1, §6.2; khai ngoài miền thì không khởi động.
+        services.AddOptions<CoreRateLimitOptions>()
+            .Bind(configuration.GetSection(CoreRateLimitOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
 

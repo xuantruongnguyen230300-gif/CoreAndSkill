@@ -2,6 +2,7 @@
   <footer
     class="footer"
     [class.footer--auth]="variant() === 'auth'"
+    [class.footer--sidebar]="variant() === 'sidebar'"
     [class.footer--sm]="size() === 'sm'"
     [class.footer--khong-vach]="!showDivider()"
   >
@@ -10,6 +11,9 @@
         <span>{{ copyright() }}</span>
       }
       @if (version()) {
+        @if (copyright() && variant() !== 'sidebar') {
+          <span aria-hidden="true">·</span>
+        }
         <span>{{ version() }}</span>
       }
     </div>
@@ -17,7 +21,11 @@
     @if (variant() === 'full' && links().length > 0) {
       <nav class="footer__lien-ket">
         @for (l of links(); track l.href) {
-          <a [href]="l.href" [target]="l.external ? '_blank' : null" [rel]="l.external ? 'noopener' : null">
+          <a
+            [href]="l.href"
+            [target]="l.external ? '_blank' : null"
+            [rel]="l.external ? 'noopener' : null"
+          >
             {{ l.label }}
             @if (l.external) {
               <i class="pi pi-external-link" aria-hidden="true"></i>

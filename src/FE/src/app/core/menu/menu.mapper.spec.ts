@@ -102,4 +102,19 @@ describe('dungCayMenu()', () => {
     expect('parentId' in con).toBeFalse();
     expect('displayOrder' in con).toBeFalse();
   });
+
+  it('không quyền nào trong nhóm "Quản trị" → không có nhãn nhóm; cây rỗng thì mảng rỗng', () => {
+    const chiNhom = PHANG.filter((m) => m.code === 'quan-tri');
+    expect(dungCayMenu(chiNhom)).toEqual([]);
+
+    const cay = dungCayMenu(PHANG.filter((m) => m.code !== 'quan-tri-nguoi-dung'));
+    expect(cay.map((n) => n.code)).toEqual(['trang-chu']);
+  });
+
+  it('một quyền trong nhóm → nhóm hiện với đúng một mục; mục có route không con thì giữ', () => {
+    const cay = dungCayMenu(PHANG);
+
+    expect(cay.map((n) => n.code)).toEqual(['trang-chu', 'quan-tri']);
+    expect(cay[1].children.map((n) => n.code)).toEqual(['quan-tri-nguoi-dung']);
+  });
 });

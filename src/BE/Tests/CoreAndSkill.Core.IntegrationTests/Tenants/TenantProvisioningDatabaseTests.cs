@@ -3,6 +3,7 @@ using CoreAndSkill.Core.Application.Common.Interfaces;
 using CoreAndSkill.Core.Application.Tenants;
 using CoreAndSkill.Core.Domain.Common;
 using CoreAndSkill.Core.Infrastructure.Persistence.Interceptors;
+using CoreAndSkill.Core.Infrastructure.Tenants;
 using CoreAndSkill.Core.IntegrationTests.Support;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -11,11 +12,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Tenants;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // TenantProvisioningService trên PostgreSQL THẬT, qua DI của ứng dụng thật — luật T2, T8: không giả
 // lập DbContext, UnitOfWork, UserManager. Chứng minh ba thứ mà test thuần logic không chứng minh được
 // (docs/quy-uoc/be-architecture.md §9.1): transaction commit trọn vẹn, TenantId được gán đúng lúc ghi,
@@ -112,6 +108,24 @@ public sealed class TenantProvisioningDatabaseTests(PostgresFixture db) : IAsync
 
         // Act — mã được chuẩn hoá (Trim + chữ HOA) trước khi so, nên biến thể này vẫn là cùng một đơn vị.
         var result = await CreateTenantAsync(BusinessInput(" dv-dup ", failIfExists: true));
+
+        // Assert
+        result.IsFailure.ShouldBeTrue();
+        result.Error!.Code.ShouldBe(TenantProvisioningErrors.CodeDuplicate.Code);
+        (await CountAllAsync()).ShouldBe(before);
+    }
+
+    // Luật M16: yêu cầu NGHIỆP VỤ mang mã trùng đơn vị HỆ THỐNG không được dùng lại đơn vị đó (nếu không, tài khoản bypass của
+    // yêu cầu rơi vào đơn vị hệ thống). Phải trả CODE_DUPLICATE và không thêm dòng nào — kể cả khi FailIfExists = false.
+    [Fact]
+    public async Task CreateTenant_BusinessRequestWithSystemTenantCode_ReturnsCodeDuplicate_AndAddsNoAccount()
+    {
+        // Arrange
+        await CreateTenantAsync(SystemInput());
+        var before = await CountAllAsync();
+
+        // Act — cùng mã sau chuẩn hoá, failIfExists mặc định false.
+        var result = await CreateTenantAsync(BusinessInput(" system "));
 
         // Assert
         result.IsFailure.ShouldBeTrue();
@@ -315,15 +329,19 @@ public sealed class TenantProvisioningDatabaseTests(PostgresFixture db) : IAsync
         (await CountRolesOfAsync(business.TenantId)).ShouldBe(1);
         (await CountRolesOfAsync(system.TenantId)).ShouldBe(1);
 
-        // Menu: hai đơn vị được seed từ CÙNG các nguồn nên số mục phải bằng nhau — đơn vị mới không
-        // "ăn" mục của đơn vị hệ thống, không mục nào mang TenantId rỗng hay lạ.
+        // Menu: hai đơn vị được seed từ CÙNG các nguồn; đơn vị hệ thống — và chỉ nó — nhận thêm danh sách riêng
+        // CoreTenantSeedSource.SystemTenantMenuItems (ADR-0122 điểm 1–2, luật M17). Nên số mục của đơn vị hệ thống đúng
+        // bằng số mục của đơn vị nghiệp vụ cộng độ dài danh sách riêng đó — đơn vị mới không "ăn" mục của đơn vị hệ
+        // thống, không nhận nhầm mục riêng của nó, không mục nào mang TenantId rỗng hay lạ.
         var menuByTenant = await db.QueryAsync(
             "SELECT tenant_id, count(*) FROM core.menu_item GROUP BY tenant_id",
             reader => (TenantId: reader.GetGuid(0), Count: reader.GetInt64(1)));
 
         menuByTenant.Count.ShouldBe(2);
         menuByTenant.Select(m => m.TenantId).ShouldBe(new[] { system.TenantId, business.TenantId }, ignoreOrder: true);
-        menuByTenant.Select(m => m.Count).Distinct().Count().ShouldBe(1);
+        var systemMenuCount = menuByTenant.Single(m => m.TenantId == system.TenantId).Count;
+        var businessMenuCount = menuByTenant.Single(m => m.TenantId == business.TenantId).Count;
+        systemMenuCount.ShouldBe(businessMenuCount + CoreTenantSeedSource.SystemTenantMenuItems.Count);
         menuByTenant.ShouldAllBe(m => m.Count > 1); // Core + nguồn giả
 
         (await db.CountAsync(
@@ -338,6 +356,23 @@ public sealed class TenantProvisioningDatabaseTests(PostgresFixture db) : IAsync
             JOIN core.menu_item parent ON parent.id = child.parent_id
             WHERE parent.tenant_id <> child.tenant_id
             """)).ShouldBe(0);
+    }
+
+    // Luật M16 (ADR-0122): sau bootstrap đơn vị hệ thống, mọi tài khoản của nó mang is_system_operator.
+    [Fact]
+    public async Task Bootstrap_SystemTenant_EveryAccountIsSystemOperator()
+    {
+        // Arrange + Act
+        var system = (await CreateTenantAsync(SystemInput())).Value;
+
+        // Assert
+        (await db.CountAsync(
+            "SELECT count(*) FROM core.app_user WHERE tenant_id = @t",
+            new NpgsqlParameter("t", system.TenantId))).ShouldBeGreaterThan(0);
+
+        (await db.CountAsync(
+            "SELECT count(*) FROM core.app_user WHERE tenant_id = @t AND NOT is_system_operator",
+            new NpgsqlParameter("t", system.TenantId))).ShouldBe(0);
     }
 
     // ---- Hạ tầng của test --------------------------------------------------------------------

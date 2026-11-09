@@ -110,6 +110,18 @@ công, và database còn lại một nửa. Đây là mặc định gây bất n
 
 Vì sao dựng lại từ đầu khi một vòng in `DUNG`: database còn trống nên dựng lại là thao tác rẻ nhất.
 
+Vì sao bước 1 ghim `-E UTF8 -T template0`: `createdb` mặc định chép `template1` và nhận luôn mã hoá của nó. Cụm khởi tạo với locale không phải UTF-8 thì `template1` mang mã hoá khác, và database mới lặng lẽ nhận mã hoá đó — chữ tiếng Việt bị từ chối khi ghi, hoặc lưu mà không được kiểm. Muốn mã hoá khác `template1` thì Postgres chỉ cho chép từ `template0`. Tệp máy dev `database/dev/tao-db-local.sql` đã ghim cả hai (chuỗi `ENCODING 'UTF8' TEMPLATE template0`); bước 1 của bản cài thật ghim theo để hai đường không lệch.
+
+Vì sao câu kiểm *đang ở đâu, là ai* đứng trước vòng lặp, dù lệnh `psql` đã ghim `-U`, `-d`:
+
+- Với `psql`, `-d "$PGDATABASE"` chỉ đúng khi biến đúng — một terminal còn biến của phiên trước là đủ để chạy sang database khác (cùng lý do với §7).
+- Công cụ đồ hoạ không ghim gì. Bước 1 nối vào database `postgres` bằng `postgres`, bước 2 nối vào database ứng dụng bằng `coreandskill_owner`; chạy tiếp trên cùng kết nối là phản xạ tự nhiên, và không gì nhắc người chạy đổi kết nối.
+- Script Core đầu tiên tạo schema `core` và bảng lịch sử migration EF **trước** transaction của nó — trong `database/scripts/core/0001__core__initial.sql`, khối có `CREATE SCHEMA core;` đứng trên dòng `START TRANSACTION;` đầu tiên. Ở chế độ tự commit (mặc định của `psql`) phần đó ghi ngay, nên lỗi ở phần sau không dọn được nó.
+
+Vì sao kiểm chủ bảng sau bước 2: chạy bước 2 bằng `postgres` trên đúng database thì script chạy xong không báo gì, nhưng mọi bảng thuộc `postgres` và cột `applied_by` của lịch sử ghi `postgres`. Không có câu kiểm này thì lỗi chỉ lộ ở bước 3: Postgres chỉ cho chủ đối tượng, hoặc người được trao quyền cấp lại, `GRANT` trên nó — nên khối cấp quyền chạy bằng `coreandskill_owner` hỏng. Sửa chủ từng bảng bằng tay là đường thứ hai cho cùng việc; database còn trống nên dựng lại rẻ hơn.
+
+Vì sao vòng module phải bỏ khi module chưa có thư mục script: bash không bật `nullglob` thì glob không khớp giữ nguyên chữ, `psql -f` nhận một đường dẫn không tồn tại, vòng in `DUNG` — và quy tắc *in `DUNG` thì không sang bước kế* dừng người chạy oan.
+
 Lý do của bốn tính chất lệnh bootstrap:
 
 | Tính chất | Vì sao |
@@ -202,7 +214,7 @@ nhất để biết là chạy thử và xem có nổ không.
 
 ### 5.1 Cơ chế: app TỪ CHỐI KHỞI ĐỘNG khi thiếu migration
 
-Vì sao ca "database có thừa migration" **cố ý không chặn**: quy trình thay đổi phá vỡ bốn bước đòi schema mới lên trước code
+Vì sao ca "database có thừa migration" **cố ý không chặn**: quy trình thay đổi phá vỡ ([`13-core-data-migration.md`](../13-core-data-migration.md) §4) đòi schema mới lên trước code
 mới; chặn nó là chặn đúng quy trình an toàn mà ta vừa dựng ra. Nhưng nó vẫn phải **ồn ào**, vì
 nếu không phải đang deploy thì đó là dấu hiệu ai đó chạy nhầm script lên nhầm môi trường.
 
@@ -258,10 +270,38 @@ khởi động" vô hiệu hoá toàn bộ cơ chế — và sẽ có người b
 
 ## 6. Môi trường dev — cùng đường với §3.3
 
-Vì sao máy dev chạy đúng năm bước của §3.3: nhờ vậy đường cài đặt thật được chạy mỗi ngày
-trên máy dev, thay vì chỉ chạy một lần vào lúc căng nhất (§0).
+Vì sao máy dev chạy bước 2, 3, 5 của §3.3 bằng đúng lệnh của bản cài thật: nhờ vậy đường cài đặt
+thật được chạy mỗi ngày trên máy dev, thay vì chỉ chạy một lần vào lúc căng nhất (§0).
+
+Vì sao bước 1 của máy dev là một tệp riêng với mật khẩu công khai, còn BE vẫn chạy bằng
+`coreandskill_app` chứ không bằng `postgres`: clone về là chạy, không phải gõ mật khẩu role; và BE
+chạy bằng siêu quản trị thì khối cấp quyền ở §3.6 không chặn gì, nên lỗi về quyền chỉ lộ ở bản cài
+thật — [`adr/0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md`](../../../adr/0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md).
 
 Vì sao dựng lại từ đầu thay vì sửa một database dev đã lệch: trên máy dev đó là thao tác rẻ nhất.
+
+Vì sao bảng năm bước ghi database và tài khoản cho từng bước: `psql` khai `-d`, `-U` ở mỗi lệnh; công cụ đồ hoạ giữ kết nối đang mở, nên bước nào đổi database hay tài khoản là người chạy phải tự đổi kết nối.
+
+Vì sao khối dọn *Lỡ chạy nhầm* tự kiểm `current_database()`: `DROP SCHEMA core CASCADE` chạy sang `coreandskill_dev` xoá sạch schema thật — đúng loại nhầm kết nối mà khối đang dọn hậu quả. Câu kiểm biến lần nhầm thứ hai thành một lỗi. Vì sao chỉ máy dev: trên cụm dùng chung hay bản cài thật, schema `core` trong database `postgres` không chắc do lần nhầm này tạo, và mọi thao tác ở đó đi theo checklist §7.
+
+### Windows — `psql` không có trong PATH
+
+Bản cài PostgreSQL cho Windows đặt `psql.exe` ở `C:\Program Files\PostgreSQL\<bản>\bin\`. Đo trên máy dev 2026-10-06: `psql.exe` có ở thư mục `18\bin`, nhưng `which psql` trong Git Bash không thấy — PATH còn trỏ `C:\Program Files\PostgreSQL\16\bin`, thư mục của một bản không còn trên đĩa.
+
+```bash
+psql --version                     # "command not found" => chua co trong PATH
+ls "/c/Program Files/PostgreSQL/"  # ban nao dang cai
+# Chi cho phien Git Bash nay (doi 18 theo ban dang cai):
+export PATH="/c/Program Files/PostgreSQL/18/bin:$PATH"
+```
+
+Thêm lâu dài: Start → gõ *environment variables* → *Edit environment variables for your account* → `Path` → *Edit* → *New* → `C:\Program Files\PostgreSQL\18\bin`; gỡ mục trỏ tới bản đã gỡ; mở lại terminal. Git Bash nhận PATH của Windows, nên một chỗ này đủ cho cả Git Bash lẫn PowerShell.
+
+Không cài `psql` mà dùng container ở runbook §6: `psql` có sẵn trong container. Thay `psql -h "$PGHOST"` bằng `docker exec -i coreandskill-db psql`, và `-f <tệp>` bằng `< <tệp>`. **Chưa ai chạy thử** đường này trên repo.
+
+### Công cụ đồ hoạ (DBeaver, pgAdmin)
+
+Tạo **hai kết nối** theo bảng năm bước, đặt tên nói rõ database và tài khoản: một tới `postgres` bằng `postgres` — chỉ cho bước 1 và khối dọn; một tới `coreandskill_dev` bằng `coreandskill_owner` — cho bước 2, 3. Mở mỗi script trong cửa sổ SQL của kết nối thứ hai, chạy câu kiểm *đang ở đâu, là ai* ngay trong cửa sổ đó, rồi chạy cả tệp bằng *Execute script* (runbook §3.3 bước 2).
 
 ## 7. Checklist trước khi chạy script trên PRODUCTION
 

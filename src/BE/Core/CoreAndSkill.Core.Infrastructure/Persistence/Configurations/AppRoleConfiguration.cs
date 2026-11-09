@@ -13,6 +13,7 @@ internal sealed class AppRoleConfiguration : IEntityTypeConfiguration<AppRole>
         builder.ToTable("app_role");
 
         builder.Property(x => x.TenantId).IsRequired();
+        builder.Property(x => x.Name).UseCollation(CoreSchema.QualifiedViVnCollation);
         builder.Property(x => x.Description).HasMaxLength(500);
         builder.Property(x => x.IsSystem).IsRequired().HasDefaultValue(false);
         builder.Property(x => x.CreatedBy).HasMaxLength(100);

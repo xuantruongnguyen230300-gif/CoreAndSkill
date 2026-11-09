@@ -27,7 +27,7 @@ public sealed class RolesController(ISender mediator) : ApiControllerBase
     public async Task<IActionResult> Create([FromBody] CreateRoleRequest body, CancellationToken ct)
     {
         var result = await mediator.Send(new CreateRoleCommand(body.Name), ct);
-        var location = result.IsSuccess ? $"/{CoreRoutes.Roles}/{result.Value}" : string.Empty;
+        var location = result.IsSuccess ? $"/{CoreRoutes.Roles}/{result.Value.Id}" : string.Empty;
         return HandleCreated(result, location);
     }
 

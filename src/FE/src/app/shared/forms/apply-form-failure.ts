@@ -60,12 +60,15 @@ export function applyFormFailure<F extends FormGroup>(
     // thì bị thay, không cộng dồn.
     const serverSau: unknown = oMaGoc.errors?.['server'];
     const maConCungO = serverSau !== serverTruoc && Array.isArray(serverSau) ? serverSau : [];
-    oMaGoc.setErrors({ ...oMaGoc.errors, server: [dichLoi(translate, body), ...maConCungO] });
+    oMaGoc.setErrors({
+      ...oMaGoc.errors,
+      server: [dichLoi(translate, body, loi.status), ...maConCungO],
+    });
     oMaGoc.markAsTouched();
   }
 
   if (Object.values(fieldErrors).every((loi) => loi.length === 0)) {
-    return oMaGoc ? null : dichLoi(translate, body);
+    return oMaGoc ? null : dichLoi(translate, body, loi.status);
   }
   // `khongKhop` giữ thứ tự khoá BE gửi; khoá khớp mà mang danh sách rỗng góp 0 mã.
   return cauTungMa(

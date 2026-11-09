@@ -1,27 +1,4 @@
-<app-page-header [title]="'vaiTro.tieuDe' | translate" [description]="'vaiTro.moTa' | translate">
-  <a
-    *appHasPermission="'core.permission.read'"
-    class="nut-lien-ket"
-    routerLink="/quan-tri/phan-quyen"
-    >{{ 'vaiTro.hanhDong.moMaTran' | translate }}</a
-  >
-  <app-button
-    *appHasPermission="'core.role.write'"
-    variant="primary"
-    icon="plus"
-    (clicked)="hop.moHopTao()"
-    >{{ 'vaiTro.hanhDong.them' | translate }}</app-button
-  >
-</app-page-header>
-
-<app-toolbar
-  variant="search"
-  [searchValue]="list.query().searchText ?? ''"
-  [searchLabel]="'vaiTro.timKiem.nhan' | translate"
-  [readonlyChips]="chipDonVi()"
-  [loading]="list.state() === 'loading'"
-  (searchChanged)="list.setSearchText($event)"
-/>
+<app-page-header [title]="'vaiTro.tieuDe' | translate" [description]="'vaiTro.moTa' | translate" />
 
 <app-data-table
   [rows]="rows()"
@@ -40,7 +17,37 @@
   [emptyTemplate]="tplRong"
   [loadingTemplate]="tplDangTai"
   [errorTemplate]="tplLoi"
-/>
+  [rowActionsTemplate]="hanhDongDong()"
+  [rowActionsLabel]="'vaiTro.cot.hanhDong' | translate"
+>
+  <app-toolbar
+    dataTableTop
+    variant="search"
+    placement="attached"
+    [searchValue]="list.query().searchText ?? ''"
+    [searchLabel]="'vaiTro.timKiem.nhan' | translate"
+    [readonlyChips]="chipDonVi()"
+    [loading]="list.state() === 'loading'"
+    (searchChanged)="list.setSearchText($event)"
+  >
+    <a
+      toolbarActions
+      *appHasPermission="'core.permission.read'"
+      app-button
+      variant="secondary"
+      routerLink="/quan-tri/phan-quyen"
+      >{{ 'vaiTro.hanhDong.moMaTran' | translate }}</a
+    >
+    <app-button
+      toolbarActions
+      *appHasPermission="'core.role.write'"
+      variant="primary"
+      icon="plus"
+      (clicked)="hop.moHopTao()"
+      >{{ 'vaiTro.hanhDong.them' | translate }}</app-button
+    >
+  </app-toolbar>
+</app-data-table>
 
 <ng-template #colTen let-vt>{{ vt.name }}</ng-template>
 
@@ -54,15 +61,15 @@
 
 <ng-template #colSoNguoiDung let-vt>{{ vt.userCount }}</ng-template>
 
-<ng-template #colNgayTao let-vt>{{
-  vt.createdAt ? (vt.createdAt | date: 'short') : '—'
-}}</ng-template>
+<ng-template #colNgayTao let-vt>{{ vt.createdAt ? (vt.createdAt | date) : '—' }}</ng-template>
 
-<ng-template #colHanhDong let-vt>
+<ng-template #tplHanhDong let-vt>
   <app-icon-button
     icon="ellipsis-v"
     size="sm"
     variant="ghost"
+    haspopup="menu"
+    [expanded]="mucMoMenuId() === vt.id"
     [ariaLabel]="'vaiTro.menu.moMenu' | translate: { ten: vt.name }"
     (click)="onMoMenu($event, vt)"
   />
@@ -78,8 +85,9 @@
   />
 </ng-template>
 
+<!-- Số vạch = số dòng mỗi trang đang chọn (DataTable.md §Trạng thái `loading`, SkeletonLoader.md §Responsive). -->
 <ng-template #tplDangTai>
-  <app-skeleton-loader variant="text" width="full" />
+  <app-skeleton-loader variant="text" width="full" [lines]="list.query().pageSize" />
 </ng-template>
 
 <ng-template #tplLoi>
@@ -140,7 +148,7 @@
   } @else if (hop.loi()) {
     <app-notice-banner severity="danger" size="sm">{{ hop.loi() }}</app-notice-banner>
   }
-  <form [formGroup]="hop.form" (ngSubmit)="hop.gui(xongHop)">
+  <form [formGroup]="hop.form" class="form-grid" (ngSubmit)="hop.gui(xongHop)">
     @let loi = hop.loiTen();
     <app-form-row
       [label]="'vaiTro.form.ten' | translate"

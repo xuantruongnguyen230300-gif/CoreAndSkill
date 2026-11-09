@@ -6,6 +6,7 @@ import AuraCheckbox from '@primeuix/themes/aura/checkbox';
 import AuraChip from '@primeuix/themes/aura/chip';
 import AuraDatatable from '@primeuix/themes/aura/datatable';
 import AuraDialog from '@primeuix/themes/aura/dialog';
+import AuraDrawer from '@primeuix/themes/aura/drawer';
 import AuraInputtext from '@primeuix/themes/aura/inputtext';
 import AuraMenu from '@primeuix/themes/aura/menu';
 import AuraPaginator from '@primeuix/themes/aura/paginator';
@@ -15,13 +16,16 @@ import AuraToast from '@primeuix/themes/aura/toast';
 import AuraTooltip from '@primeuix/themes/aura/tooltip';
 
 /**
- * Bảy nhóm semantic được ghi đè theo ĐÚNG danh sách ở
+ * Tám nhóm semantic được ghi đè theo ĐÚNG danh sách ở
  * docs/wiki-core/fe/04-design-token-system.md §7: primary, highlight, formField, content,
- * overlay, text (đều nằm dưới `colorScheme.light`/`colorScheme.dark`) và `focusRing` (nằm ngoài
- * `colorScheme` — dùng chung cho cả hai chế độ). Thang màu gốc 50–950 và các nhóm còn lại của
- * Aura (mask, list, navigation…) KHÔNG bị đụng tới về MÀU — chưa có component nào cần tới chúng.
+ * overlay, text và mask (bảy nhóm này nằm dưới `colorScheme.light`/`colorScheme.dark`) và
+ * `focusRing` (nằm ngoài `colorScheme` — dùng chung cho cả hai chế độ). `mask` là nhóm thứ tám,
+ * không phải ngoại lệ của danh sách: nó chỉ mang khoá `background` (lớp phủ sau hộp modal của
+ * Dialog, Drawer) nối về `--color-overlay` — keyframes mặt nạ của PrimeNG 21 đọc đúng khoá đó,
+ * không còn đóng cứng màu đen như bản 20. Thang màu gốc 50–950 và các nhóm còn lại của Aura
+ * (list, navigation…) KHÔNG bị đụng tới về MÀU — chưa có component nào cần tới chúng.
  *
- * Ngoài bảy nhóm màu trên, `definePreset` ở cuối tệp còn ghi đè hai khoá semantic KHÔNG phải màu:
+ * Ngoài tám nhóm màu trên, `definePreset` ở cuối tệp còn ghi đè hai khoá semantic KHÔNG phải màu:
  * `transitionDuration` và `mask.transitionDuration` (ADR-0073). Chúng khai thẳng ở đó, không nằm
  * trong object này — `colorScheme` chỉ giữ thứ đổi theo chế độ sáng/tối.
  *
@@ -50,7 +54,21 @@ const colorScheme = {
     filledFocusBackground: 'var(--color-surface-2)',
     borderColor: 'var(--color-border-strong)',
     hoverBorderColor: 'var(--color-border-strong)',
-    focusBorderColor: 'var(--color-focus)',
+    // Ô nhập chữ có MỘT đường biên khi focus (DESIGN.md §2.6 *Ô nhập chữ*): viền chuyển
+    // `--color-text`, phần dày thêm vẽ vào trong bằng `focusRing.shadow` dưới đây — không vòng
+    // ngoài, không `--color-focus`. Khoá `focusRing` CHUNG ở cuối tệp (nút, checkbox…) giữ nguyên.
+    // ⚠️ Hai khoá này LAN: sub-preset Aura của `select` (ô số dòng của Paginator) đọc
+    // `form.field.focus.*`, mà `select` không phải ô nhập chữ — nên `components.select` ở
+    // `AURA_SUBSET` khai lại về vòng focus chung (DESIGN.md §2.6 hàng *Phạm vi*). Thêm sub-preset
+    // component con mới đọc `form.field.focus.*` thì phải khai lại tương tự.
+    focusBorderColor: 'var(--color-text)',
+    focusRing: {
+      width: '0',
+      style: 'none',
+      color: 'transparent',
+      offset: '0',
+      shadow: 'inset 0 0 0 calc(var(--border-w-strong) - var(--border-w)) var(--color-text)',
+    },
     invalidBorderColor: 'var(--color-danger-border)',
     color: 'var(--color-text)',
     disabledColor: 'var(--color-text-disabled)',
@@ -91,6 +109,11 @@ const colorScheme = {
     hoverColor: 'var(--color-text)',
     mutedColor: 'var(--color-text-muted)',
     hoverMutedColor: 'var(--color-text-muted)',
+  },
+  // Lớp phủ sau hộp modal (Dialog.md, Drawer.md: `--color-overlay`). Aura mặc định `rgba(0,0,0,0.4)`
+  // sáng / `0.6` tối — một quyết định thiết kế chép tay ngoài `Design/` (luật F6/F7).
+  mask: {
+    background: 'var(--color-overlay)',
   },
 };
 
@@ -136,6 +159,7 @@ const AURA_SUBSET = {
     datatable: AuraDatatable,
     paginator: AuraPaginator,
     dialog: AuraDialog,
+    drawer: AuraDrawer,
     checkbox: AuraCheckbox,
     radiobutton: AuraRadiobutton,
     autocomplete: AuraAutocomplete,
@@ -143,7 +167,21 @@ const AURA_SUBSET = {
     tooltip: AuraTooltip,
     // Component con — xem khối chú thích trên.
     button: AuraButton,
-    select: AuraSelect,
+    // Không phải ô nhập chữ: khai lại viền/vòng focus về vòng chung (xem chú thích ở `formField`).
+    select: {
+      ...AuraSelect,
+      root: {
+        ...AuraSelect.root,
+        focusBorderColor: '{form.field.border.color}',
+        focusRing: {
+          width: '{focus.ring.width}',
+          style: '{focus.ring.style}',
+          color: '{focus.ring.color}',
+          offset: '{focus.ring.offset}',
+          shadow: '{focus.ring.shadow}',
+        },
+      },
+    },
     chip: AuraChip,
     inputtext: AuraInputtext,
   },
@@ -179,19 +217,20 @@ export const CORE_PRIME_PRESET = definePreset(AURA_SUBSET, {
      * Backdrop của lớp nổi dạng modal — ADR-0073 quyết định 7.
      *
      * Backdrop đi đường khác hẳn hộp thoại: `@primeuix/styles/base` chạy
-     * `animation: p-overlay-mask-enter-animation dt('mask.transition.duration') forwards`, tức nó
-     * là CSS thuần và token TỚI ĐƯỢC — khác hộp, nơi tham số là chuỗi hoạt ảnh Angular không giải
-     * `var()` (xem `DIALOG_THOI_LUONG_MS` ở shared/ui/dialog/dialog.component.ts).
+     * `animation: p-animate-overlay-mask-enter dt('mask.transition.duration') forwards`, tức nó
+     * là CSS thuần và token TỚI ĐƯỢC qua preset. Hộp của Dialog đi đường khác nhưng cũng là CSS: khối
+     * đè pha vào/ra ở `src/styles/_thu-vien.scss` (luật F62, ADR-0123).
      *
-     * 🛑 Giá trị ở đây phải là CÙNG token với hằng số thời lượng của `Dialog` — `--dur-base`, chứ
+     * 🛑 Giá trị ở đây phải là CÙNG token với khối đè thời lượng của `Dialog` — `--dur-base`, chứ
      * KHÔNG phải `var(--dur-fast)` của khoá trên. Design/Components/Dialog.md đòi backdrop mờ dần
      * CÙNG LÚC với hộp; nối lẻ backdrop về một token khác làm khoảng lệch rộng ra, không hẹp lại.
      * Aura mặc định cho khoá này `0.3s` riêng — nó KHÔNG đi theo `transitionDuration` ở trên, nên
      * bỏ khoá này là để backdrop trôi một mình.
      *
-     * Đổi token của `Dialog` thì đổi cả hai chỗ: hằng số kia và dòng này. `prime-preset.spec.ts`
-     * canh dòng này bằng `--dur-base`; cổng F37 canh hằng số kia bằng cùng token — hai nửa gặp
-     * nhau ở tên token, vì luật F1 cấm `core/` import `shared/`.
+     * Đổi token của `Dialog` thì đổi cả hai chỗ: khối đè ở `_thu-vien.scss` và dòng này.
+     * `prime-preset.spec.ts` canh dòng này bằng `--dur-base`; spec của lớp bọc canh khối đè bằng cùng
+     * token (ADR-0123 quyết định 5) — hai nửa gặp nhau ở tên token, vì luật F1 cấm `core/` import
+     * `shared/`.
      */
     mask: {
       transitionDuration: 'var(--dur-base)',

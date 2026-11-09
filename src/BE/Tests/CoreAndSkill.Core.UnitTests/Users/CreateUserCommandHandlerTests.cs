@@ -114,7 +114,7 @@ public class CreateUserCommandHandlerTests
         var result = await CreateHandler().Handle(command, CancellationToken.None);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Value.ShouldBe(newUserId);
+        result.Value.Id.ShouldBe(newUserId);
         await _userAdmin.Received(1).GrantInitialRolesAsync(newUserId, Arg.Is<IReadOnlyCollection<Guid>>(r => r.Contains(roleId)), Arg.Any<CancellationToken>());
         // Tài khoản vừa tạo không đi qua phép so token của §7 (ADR-0082) — không có bản chụp nào để lệch.
         await _userAdmin.DidNotReceiveWithAnyArgs().AssignRolesAsync(default, default!, default, default);

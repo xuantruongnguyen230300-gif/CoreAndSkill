@@ -1,7 +1,12 @@
-import { DatePipe, registerLocaleData } from '@angular/common';
+import {
+  DATE_PIPE_DEFAULT_OPTIONS,
+  DATE_PIPE_DEFAULT_TIMEZONE,
+  DatePipe,
+  registerLocaleData,
+} from '@angular/common';
 import localeFr from '@angular/common/locales/fr';
 import localeVi from '@angular/common/locales/vi';
-import { LOCALE_ID, provideZonelessChangeDetection } from '@angular/core';
+import { Component, LOCALE_ID, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import { CORE_I18N, provideCoreI18n } from './core-i18n';
@@ -21,8 +26,18 @@ describe('provideCoreI18n — LOCALE_ID và dữ liệu locale', () => {
         provideZonelessChangeDetection(),
         provideCoreI18n({
           languages: [
-            { code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi },
-            { code: 'fr', nativeName: 'Français', localeData: localeFr },
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+            {
+              code: 'fr',
+              nativeName: 'Français',
+              dateTimeFormat: 'dd/MM/y HH:mm',
+              localeData: localeFr,
+            },
           ],
           defaultLanguage: 'fr',
           sources: ['/i18n/'],
@@ -40,8 +55,18 @@ describe('provideCoreI18n — LOCALE_ID và dữ liệu locale', () => {
         provideZonelessChangeDetection(),
         provideCoreI18n({
           languages: [
-            { code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi },
-            { code: 'fr', nativeName: 'Français', localeData: localeFr },
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+            {
+              code: 'fr',
+              nativeName: 'Français',
+              dateTimeFormat: 'dd/MM/y HH:mm',
+              localeData: localeFr,
+            },
           ],
           defaultLanguage: 'vi',
           sources: ['/i18n/'],
@@ -50,8 +75,10 @@ describe('provideCoreI18n — LOCALE_ID và dữ liệu locale', () => {
     });
 
     // Locale chưa đăng ký thì DatePipe NÉM lỗi — nên hai dòng này chứng minh cả hai đã đăng ký.
+    // `vi` theo CLDR của Angular 21 là `d/M/yy`; `fr` là `dd/MM/y` — khác nhau, nên cũng chứng minh
+    // hai dữ liệu locale không bị lẫn vào nhau.
     expect(new DatePipe('vi').transform('2026-09-10T03:12:44Z', 'shortDate', 'UTC')).toBe(
-      '10/09/2026',
+      '10/9/26',
     );
     expect(new DatePipe('fr').transform('2026-09-10T03:12:44Z', 'shortDate', 'UTC')).toBe(
       '10/09/2026',
@@ -68,5 +95,82 @@ describe('provideCoreI18n — LOCALE_ID và dữ liệu locale', () => {
     expect(() =>
       new DatePipe('sv-canary').transform('2026-09-10T03:12:44Z', 'shortDate', 'UTC'),
     ).not.toThrow();
+  });
+});
+
+/**
+ * Khuôn ngày giờ — luật F36, fe-ui-conventions.md §5.5: pipe `date` không nhận đối số ở template;
+ * khuôn đến từ `LanguageOption.dateTimeFormat` của ngôn ngữ mặc định qua `DATE_PIPE_DEFAULT_OPTIONS`.
+ */
+describe('provideCoreI18n — khuôn ngày giờ', () => {
+  const NGON_NGU = [
+    {
+      code: 'vi',
+      nativeName: 'Tiếng Việt',
+      dateTimeFormat: 'HH:mm dd/MM/y',
+      localeData: localeVi,
+    },
+    {
+      code: 'fr',
+      nativeName: 'Français',
+      dateTimeFormat: 'dd/MM/y HH:mm',
+      localeData: localeFr,
+    },
+  ];
+
+  @Component({
+    selector: 'app-chu-ngay-gio',
+    imports: [DatePipe],
+    template: `{{ thoiDiem | date }}`,
+  })
+  class ChuNgayGioComponent {
+    readonly thoiDiem = '2026-09-10T03:12:44Z';
+  }
+
+  /** Múi giờ UTC CHỈ trong test để kết quả không phụ thuộc máy chạy; mã sản xuất không cấp nó. */
+  function renderVoiMacDinh(defaultLanguage: string): string {
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideCoreI18n({ languages: NGON_NGU, defaultLanguage, sources: ['/i18n/'] }),
+        { provide: DATE_PIPE_DEFAULT_TIMEZONE, useValue: 'UTC' },
+      ],
+    });
+    const fixture = TestBed.createComponent(ChuNgayGioComponent);
+    fixture.detectChanges();
+    return (fixture.nativeElement as HTMLElement).textContent.trim();
+  }
+
+  it('cấp DATE_PIPE_DEFAULT_OPTIONS chỉ có dateFormat của ngôn ngữ mặc định — không có timezone', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideCoreI18n({ languages: NGON_NGU, defaultLanguage: 'fr', sources: ['/i18n/'] }),
+      ],
+    });
+
+    expect(TestBed.inject(DATE_PIPE_DEFAULT_OPTIONS)).toEqual({ dateFormat: 'dd/MM/y HH:mm' });
+  });
+
+  it('`{{ t | date }}` không đối số ra khuôn của vi khi mặc định là vi', () => {
+    expect(renderVoiMacDinh('vi')).toBe('03:12 10/09/2026');
+  });
+
+  it('`{{ t | date }}` không đối số ra khuôn của fr khi mặc định là fr', () => {
+    expect(renderVoiMacDinh('fr')).toBe('10/09/2026 03:12');
+  });
+
+  it('phép thử có nghĩa: không có khuôn từ seam thì pipe ra khuôn mặc định của locale, khác hẳn', () => {
+    // Chốt chống "xanh rỗng" — nếu pipe bỏ qua DATE_PIPE_DEFAULT_OPTIONS thì hai ca trên đã xanh
+    // vì lý do khác; ở đây chứng minh khuôn rơi về 'mediumDate' của locale là chuỗi KHÁC.
+    expect(new DatePipe('vi').transform('2026-09-10T03:12:44Z', undefined, 'UTC')).toBe(
+      '10 thg 9, 2026',
+    );
+  });
+
+  it('defaultLanguage không có mục nào trong languages thì ném lỗi nêu mã đó', () => {
+    expect(() =>
+      provideCoreI18n({ languages: NGON_NGU, defaultLanguage: 'de', sources: ['/i18n/'] }),
+    ).toThrowError(/'de'/);
   });
 });

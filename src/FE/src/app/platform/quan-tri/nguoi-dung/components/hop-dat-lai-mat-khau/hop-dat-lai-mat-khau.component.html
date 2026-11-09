@@ -12,7 +12,7 @@
     'nguoiDung.datLai.canhBao' | translate: { tenDangNhap: tenDangNhap() }
   }}</app-notice-banner>
   <app-banner-loi-hop [xungDot]="xungDot()" [loiChung]="loiChung()" (thuLai)="thuLai.emit()" />
-  <form #formEl [formGroup]="form()" (ngSubmit)="submitted.emit()">
+  <form #formEl [formGroup]="form()" class="form-grid" (ngSubmit)="submitted.emit()">
     @let loiMk = loiMatKhau();
     <app-form-row
       [label]="'nguoiDung.form.matKhauTam' | translate"

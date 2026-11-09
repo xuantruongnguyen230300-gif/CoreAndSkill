@@ -172,6 +172,29 @@ internal static class RawSqlTenantScanner
             .OrderBy(t => t, StringComparer.Ordinal)];
     }
 
+    // Câu SQL chỉ gồm lệnh `ALTER TABLE` — DDL đổi cấu trúc cột (collation, DEFAULT, kiểu), không câu DML nào. M6 canh
+    // câu ĐỌC/GHI dòng của đơn vị khác; một lệnh ALTER TABLE không chọn dòng nào để trả hay để ghi, nên không có gì để
+    // lọc theo `tenant_id` (ADR-0119: migration `TaoCollationViVnVaExtensionUnaccent` đổi collation ba cột của bảng có
+    // đơn vị, mà EF không sinh được tên collation có lược đồ). Dấu hiệu máy đọc được: MỌI câu (tách theo `;`) mở bằng
+    // `ALTER TABLE` và không chứa từ khoá DML nào. Một câu `SELECT`/`UPDATE`/`DELETE`/`INSERT` trộn vào là cổng đỏ lại.
+    public static bool IsSchemaDdlOnly(string sql)
+    {
+        string[] dml = ["SELECT", "INSERT", "UPDATE", "DELETE", "MERGE", "COPY", "TRUNCATE"];
+
+        var statements = sql.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (statements.Length == 0)
+            return false;
+
+        return statements.All(statement =>
+        {
+            var tokens = Tokenize(statement);
+            return tokens.Count >= 2
+                && string.Equals(tokens[0], "ALTER", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(tokens[1], "TABLE", StringComparison.OrdinalIgnoreCase)
+                && !tokens.Any(token => dml.Contains(token, StringComparer.OrdinalIgnoreCase));
+        });
+    }
+
     // `tenant_id` ở vị trí VỊ TỪ (điểm mù 5): bám một toán tử so sánh, ở một trong hai phía.
     public static bool HasTenantPredicate(string sql)
     {

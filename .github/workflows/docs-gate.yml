@@ -23,8 +23,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           # §5 của cổng dùng `git check-ignore`; §7 đọc file để đếm dòng.
-          # Cần cây làm việc đầy đủ, không cần lịch sử sâu.
-          fetch-depth: 1
+          # §4 dùng `git log` để chứng minh một đường dẫn trong ADR đã chấp nhận
+          # từng tồn tại — cần lịch sử đầy đủ; clone nông thì §4 đỏ và nói rõ.
+          fetch-depth: 0
 
       - name: Chạy cổng tài liệu
         run: bash .claude/check-docs.sh
@@ -38,7 +39,7 @@ jobs:
           test -f .claude/check-docs.sh || { echo "::error::.claude/check-docs.sh không tồn tại"; exit 1; }
           bash -n .claude/check-docs.sh || { echo "::error::check-docs.sh có lỗi cú pháp"; exit 1; }
 
-  # Luật S6 (docs/RULES.md): không có bí mật trong source. Chạy NGAY giai đoạn 1 —
+  # Luật S6, S23 (docs/RULES-BE.md): không có bí mật trong source. Chạy NGAY giai đoạn 1 —
   # tài liệu cũng chứa chuỗi cấu hình và lệnh mẫu, và một bí mật đã vào lịch sử
   # git thì gỡ khỏi nhánh không gỡ được khỏi lịch sử. Cấu hình: .gitleaks.toml.
   gitleaks:
@@ -69,6 +70,54 @@ jobs:
         run: |
           "$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --verbose --exit-code 1 .
 
+      # Luật S23 vế (b), (f): các rule appsettings-* trong .gitleaks.toml miễn trừ giá trị dev
+      # công khai THEO GIÁ TRỊ, chỉ trong appsettings.Development.json. Mỗi ca đỏ phá đúng một
+      # điều kiện của allowlist và phải bị đúng rule của nó bắt — đọc RuleID, không đọc mã thoát.
+      # Ca xanh đi trước: nó cũng bắt cấu hình hỏng và tệp dev lệch giá trị ghim trong .gitleaks.toml.
+      - name: Canary S23 — rule mật khẩu appsettings
+        run: |
+          set -euo pipefail
+          rel=src/BE/CoreAndSkill.Api
+          src=$rel/appsettings.Development.json
+          gl() {  # $1 thư mục ca → in các RuleID bắt được; gitleaks lỗi thì trả 2
+            "$RUNNER_TEMP/gitleaks" dir "$1" --config .gitleaks.toml --no-banner --redact --exit-code 0 \
+              --report-format json --report-path "$1.json" >/dev/null 2>&1 || return 2
+            { grep -oE '"RuleID": *"[^"]+"' "$1.json" || true; } | sed -E 's/.*"([^"]+)"$/\1/' | sort -u
+          }
+          ca() {  # $1 tên ca, $2 tên tệp đích — chép tệp dev thật vào thư mục ca
+            d="$RUNNER_TEMP/canary-s23/$1"; mkdir -p "$d/$rel"; cp "$src" "$d/$rel/$2"; printf '%s' "$d"
+          }
+          cay() {  # $1 tệp, $2 biểu thức sed, $3 chuỗi phải có sau khi cấy
+            sed -i -E "$2" "$1"
+            grep -qF "$3" "$1" || { echo "::error::canary S23 không cấy được vi phạm — $src đổi hình dạng"; exit 1; }
+          }
+          phai_bat() {  # $1 thư mục ca, $2 mô tả, các tham số sau: RuleID phải có
+            d=$1; m=$2; shift 2
+            r=$(gl "$d") || { echo "::error::S23: gitleaks lỗi ở ca $m"; exit 1; }
+            for id in "$@"; do
+              printf '%s\n' "$r" | grep -qx "$id" || { echo "::error::S23: rule $id không bắt $m"; exit 1; }
+            done
+          }
+          d=$(ca xanh appsettings.Development.json)
+          r=$(gl "$d") || { echo "::error::S23: gitleaks lỗi ở ca xanh — cấu hình hỏng?"; exit 1; }
+          [ -z "$r" ] || { echo "::error::S23: $src thật bị báo ($r) — tệp dev lệch giá trị ghim trong .gitleaks.toml"; exit 1; }
+          d=$(ca do-bootstrap appsettings.Development.json)
+          cay "$d/$src" 's/("AdminPassword": *")[^"]*"/\1Canary-Khac-Gia-Tri-9"/' 'Canary-Khac-Gia-Tri-9'
+          phai_bat "$d" "mật khẩu bootstrap khác giá trị dev công khai" appsettings-json-password
+          d=$(ca do-so appsettings.Development.json)
+          cay "$d/$src" 's/("AdminPassword": *)"[^"]*"/\120260929/' '"AdminPassword": 20260929'
+          phai_bat "$d" "mật khẩu bootstrap dạng số" appsettings-json-password-number
+          d=$(ca do-may-khac appsettings.Development.json)
+          cay "$d/$src" 's/Host=localhost/Host=db.canary.internal/' 'Host=db.canary.internal'
+          phai_bat "$d" "mật khẩu công khai trỏ máy khác máy cục bộ" appsettings-connection-password
+          d=$(ca do-mat-khau-khac appsettings.Development.json)
+          cay "$d/$src" 's/Password=coreandskill_app/Password=Canary-Khac-9/' 'Password=Canary-Khac-9'
+          phai_bat "$d" "mật khẩu khác trên máy cục bộ" appsettings-connection-password
+          d=$(ca do-sai-tep appsettings.json)
+          phai_bat "$d" "giá trị dev công khai nằm ngoài appsettings.Development.json" \
+            appsettings-json-password appsettings-connection-password
+          echo "canary S23: đúng — ca xanh không bị báo, mọi ca đỏ bị đúng rule bắt"
+
   # Hook ở .claude/hooks/ chạy bên trong mọi lượt của mọi agent, và lỗi trong một
   # hook không hiện ra đâu cả — dấu không được ghi, cổng không chạy, lệnh cấm lọt.
   # Bộ payload mẫu chạy lại mỗi lần đẩy, không chờ ai nhớ chạy tay.
@@ -81,6 +130,22 @@ jobs:
           fetch-depth: 1
       - name: Chạy bộ test hook
         run: bash .claude/hooks/tests/run-tests.sh
+
+  # Cổng Q41: cụm cấu hình dev BE <-> FE (cổng API 7100, origin FE 4200, tenant dev) phải khớp nhau
+  # và khớp giá trị ghim. Chỉ cần bash + coreutils, đọc đúng bốn tệp ở src/BE và src/FE — không cần
+  # dotnet/node nên KHÔNG đặt vào backend-gate/frontend-gate (hai job đó nặng, bật có điều kiện, và
+  # lỗi lệch cổng phải hiện ngay cả khi một phía build đỏ). Thiếu tệp đầu vào thì script thoát 2 → đỏ.
+  dev-config:
+    name: dev-config-check.sh (Q41)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Cổng cấu hình dev BE-FE
+        run: bash scripts/dev-config-check.sh
+      - name: Canary của cổng (scripts/tests/dev-config-check.test.sh)
+        run: bash scripts/tests/dev-config-check.test.sh
 
   # Hai cổng giai đoạn 2 BẬT THEO SỰ THẬT TRÊN ĐĨA, không theo một cờ ai phải nhớ
   # lật: có src/BE thì chạy cổng BE, có src/FE thì chạy cổng FE. `if:` ở mức job
@@ -114,7 +179,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: src/BE/global.json
 
       - name: Solution .slnx — phải có đúng một
         id: sln
@@ -145,12 +210,13 @@ jobs:
           cat /tmp/threshold.txt
 
       # Bộ test chia hai bước, cộng lại là đủ cả bộ (docs/wiki-core/be/04-testing-strategy.md §4.2).
-      # Bước đầu chạy ĐÚNG lệnh của máy dev không Docker, nên đỏ ở đây thì tái hiện được ở máy.
+      # Bước đầu cùng bộ lọc với lệnh của máy dev không Docker nhưng ở cấu hình Release; lệnh tái hiện
+      # đúng bước này ở máy (và khác biệt Linux/Windows còn lại): 04-testing-strategy.md §4.2.
       # Mỗi bước kiểm (hai bước test, E10) chạy khi build xanh, kể cả khi bước trước nó đỏ —
       # lỗi ở một bước không được che kết quả của bước khác.
       - name: Test không cần Docker (ArchTests, unit, integration) + coverage
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test "${{ steps.sln.outputs.file }}" --configuration Release --no-build -p:CollectCoverage=true --filter "Category!=RequiresDocker"
+        run: dotnet test "${{ steps.sln.outputs.file }}" --configuration Release --no-build --logger GitHubActions -p:CollectCoverage=true --filter "Category!=RequiresDocker"
 
       # Nhóm cần PostgreSQL thật, dựng tạm qua Testcontainers (máy CI luôn có Docker).
       # CollectCoverage=false: project unit test tự bật ngưỡng coverage trong .csproj, mà ở
@@ -160,7 +226,7 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           set -o pipefail
-          dotnet test "${{ steps.sln.outputs.file }}" --configuration Release --no-build -p:CollectCoverage=false --filter "Category=RequiresDocker" | tee "$RUNNER_TEMP/test-db.txt"
+          dotnet test "${{ steps.sln.outputs.file }}" --configuration Release --no-build --logger GitHubActions -p:CollectCoverage=false --filter "Category=RequiresDocker" | tee "$RUNNER_TEMP/test-db.txt"
           grep -qE '(Passed|Failed)!.*Total: *[1-9]' "$RUNNER_TEMP/test-db.txt" || { echo "::error::Bước test DB không chạy test nào — bộ lọc Category=RequiresDocker không khớp lớp nào"; exit 1; }
 
       # Luật E10: model đổi mà quên sinh migration. Chạy cho TỪNG DbContext có
@@ -222,6 +288,10 @@ jobs:
         working-directory: .
         run: test -f scripts/fe-gate.sh || { echo "::error::scripts/fe-gate.sh không tồn tại — script cổng thiếu thì CI phải đỏ (05-gate.md §6)"; exit 1; }
 
+      # Lỗ hổng của gói chạy cùng ứng dụng, từ mức high trở lên làm đỏ job (docs/quy-uoc/repo-artifact.md §3.2).
+      - name: 0b. npm audit — lỗ hổng mức high
+        run: npm audit --audit-level=high --omit=dev
+
       - name: 1. fe-gate.sh
         working-directory: .
         run: bash scripts/fe-gate.sh
@@ -245,5 +315,26 @@ jobs:
       - name: 3. ng test
         run: npx ng test --watch=false --browsers=ChromeHeadless
 
-      - name: 4. ng build
-        run: npx ng build
+      # Sàn coverage nhánh theo tầng (F15): giá trị sàn khai ở đúng một chỗ — src/FE/karma.conf.js.
+      - name: 3b. ng test --code-coverage — sàn coverage nhánh theo tầng
+        run: npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
+
+      # 4a chạy TRƯỚC 4b, trên cây chưa có tệp bản cài (05-gate.md §6 điều 4). Viết bằng `if`, không
+      # bằng `!`: bash bỏ qua chế độ dừng-khi-lỗi với lệnh bị đảo mã thoát (05-gate.md §5).
+      - name: 4a. canary F54 — thiếu tệp bản cài thì ng build phải hỏng
+        run: |
+          test ! -e src/environments/environment.ban-cai.ts
+          if npx ng build > /tmp/f54.log 2>&1; then echo "F54: build xanh khi thiếu tệp bản cài"; exit 1; fi
+          grep -q environment.ban-cai.ts /tmp/f54.log
+
+      # Nhúng mã commit đầy đủ vào bản dựng (Footer.md §Phiên bản hiển thị, Q59): ghi đè
+      # build-info.ts — mặc định `null` ở cây nguồn — ngay trước bước build.
+      - name: 4b0. nhúng mã commit vào bản dựng
+        run: |
+          printf "export const MA_COMMIT: string | null = '%s';\n" "$GITHUB_SHA" > src/app/core/config/build-info.ts
+
+      - name: 4b. ng build — bằng tệp bản cài giả của CI
+        run: |
+          cp ../../scripts/ci/environment.ban-cai.ts src/environments/
+          npx ng build
+          rm src/environments/environment.ban-cai.ts

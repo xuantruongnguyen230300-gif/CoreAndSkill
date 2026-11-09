@@ -10,7 +10,8 @@ verified: chua-doi-chieu
 > nên quy ước trong khu này **đã có code để đối chiếu** và thuộc tầm chấm của một lượt review.
 >
 > 🛑 Điều đó **không** biến một dòng ở đây thành mô tả hiện trạng. Quy ước nói code **phải** thế
-> nào; code có thế hay không thì phải mở file mã nguồn ra so và nêu `file:dòng`. Trạng thái thật
+> nào; code có thế hay không thì phải mở file mã nguồn ra so và nêu đường dẫn kèm một chuỗi tìm
+> được trong tệp ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §9). Trạng thái thật
 > của từng file đọc ở nhãn đầu chính file đó, cùng khoá `verified:`.
 
 ---
@@ -100,6 +101,7 @@ của nó, và những file còn lại chỉ trỏ về nó.
 | Dựng UI, form, style theo token, bọc PrimeNG | [`fe-ui-conventions.md`](fe-ui-conventions.md) |
 | Khai route, lazy-load, guard, giữ state trên URL | [`fe-routing-guard.md`](fe-routing-guard.md) |
 | Quyết định cái gì được commit: artifact build, secret, file sinh tự động | [`repo-artifact.md`](repo-artifact.md) |
+| Chạy DB, BE, FE trên máy dev; đổi cổng hay origin của máy dev | [`chay-may-dev.md`](chay-may-dev.md) |
 | Chấm review: cái gì là finding, cái gì không | [`tieu-chi-review.md`](tieu-chi-review.md) |
 
 Không thấy chủ đề của mình ở bảng trên → tra mục lục cấp trên: [`../README.md`](../README.md).
@@ -136,11 +138,11 @@ nhiệm:
 
 ### 5.3 Mọi luật phải nối được với một cổng
 
-Mỗi quy ước ở khu này ứng với ít nhất một dòng trong [`../RULES.md`](../RULES.md), và
-dòng đó khai **ép bằng gì**. Quy ước không có cổng vẫn được viết, nhưng phải nằm ở §9
-của `RULES.md` — nhìn thấy được là nợ, không trộn lẫn vào luật đã có cổng.
+Mỗi quy ước ở khu này ứng với ít nhất một dòng trong một tệp `RULES-*.md` (mục lục: [`../RULES.md`](../RULES.md)), và
+dòng đó khai **ép bằng gì**. Quy ước không có cổng vẫn được viết, và dòng của nó mang `🕳️` —
+nhìn thấy được là chưa được ép.
 
-Khi thêm một quy ước mới vào khu này: thêm dòng tương ứng vào `RULES.md` **cùng lượt**.
+Khi thêm một quy ước mới vào khu này: thêm dòng tương ứng vào tệp `RULES-*.md` theo phạm vi, **cùng lượt**.
 
 ### 5.4 Comment trong code tối thiểu — lịch sử ở `docs/audit/`
 

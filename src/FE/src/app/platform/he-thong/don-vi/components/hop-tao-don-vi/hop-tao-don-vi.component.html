@@ -120,7 +120,9 @@
     </fieldset>
   </form>
   <div slot="footer">
-    <app-button variant="secondary" (clicked)="closed.emit()">{{ 'chung.huy' | translate }}</app-button>
+    <app-button variant="secondary" (clicked)="closed.emit()">{{
+      'chung.huy' | translate
+    }}</app-button>
     <app-button variant="primary" [loading]="dangLuu()" (clicked)="submitted.emit()">{{
       'donVi.form.xacNhan' | translate
     }}</app-button>

@@ -292,7 +292,10 @@ describe('TaoNguoiDungStore', () => {
     });
 
     it('moHop() xoá lựa chọn và danh sách gợi ý của lần trước', () => {
-      store.timVaiTro.options.set([{ key: 'r1', label: 'Kế toán' }]);
+      store.timVaiTro.seed([{ id: 'r1', name: 'Kế toán', isSystem: false }]);
+      expect(store.vaiTroChon().options).toEqual([
+        { key: 'r1', label: 'Kế toán', hint: undefined },
+      ]);
       store.moHop();
       expect(store.vaiTroChon().selected).toEqual([]);
       expect(store.vaiTroChon().options).toEqual([]);

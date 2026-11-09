@@ -1,4 +1,4 @@
-import { registerLocaleData } from '@angular/common';
+import { DATE_PIPE_DEFAULT_OPTIONS, registerLocaleData } from '@angular/common';
 import {
   EnvironmentProviders,
   InjectionToken,
@@ -10,6 +10,12 @@ import {
 export interface LanguageOption {
   readonly code: string;
   readonly nativeName: string;
+  /**
+   * Khuôn ngày giờ của pipe `date` khi template không nêu đối số (fe-ui-conventions.md §5.5), ví dụ
+   * `HH:mm dd/MM/y`. Bắt buộc: thêm ngôn ngữ mà quên khuôn thì lỗi biên dịch, không phải khuôn
+   * Anh-Mỹ lặng lẽ.
+   */
+  readonly dateTimeFormat: string;
   /**
    * Dữ liệu locale của chính mã trên — `import localeXx from '@angular/common/locales/<mã>'` ở
    * composition root. Không nạp được từ một chuỗi lúc chạy, nên mục ngôn ngữ mang nó theo
@@ -36,6 +42,12 @@ export const CORE_I18N = new InjectionToken<CoreI18n>('CORE_I18N');
  * không báo lỗi (08-i18n.md §6.2). Thêm một ngôn ngữ = thêm một mục ở đây, không sửa gì khác.
  */
 export function provideCoreI18n(i18n: CoreI18n): EnvironmentProviders {
+  const macDinh = i18n.languages.find((ngonNgu) => ngonNgu.code === i18n.defaultLanguage);
+  if (macDinh === undefined) {
+    throw new Error(
+      `CORE_I18N.defaultLanguage '${i18n.defaultLanguage}' không có mục nào trong languages.`,
+    );
+  }
   // Angular chỉ đóng gói sẵn locale en-US: không đăng ký thì pipe date/number im lặng rơi về khuôn
   // Anh-Mỹ. Đăng ký cho MỌI ngôn ngữ đã khai, không riêng ngôn ngữ mặc định — bộ chọn ngôn ngữ
   // (F2) đổi được sang bất kỳ mục nào trong danh sách.
@@ -45,5 +57,7 @@ export function provideCoreI18n(i18n: CoreI18n): EnvironmentProviders {
   return makeEnvironmentProviders([
     { provide: CORE_I18N, useValue: i18n },
     { provide: LOCALE_ID, useValue: i18n.defaultLanguage },
+    // Chỉ `dateFormat`, không `timezone`: múi giờ là của trình duyệt người dùng.
+    { provide: DATE_PIPE_DEFAULT_OPTIONS, useValue: { dateFormat: macDinh.dateTimeFormat } },
   ]);
 }

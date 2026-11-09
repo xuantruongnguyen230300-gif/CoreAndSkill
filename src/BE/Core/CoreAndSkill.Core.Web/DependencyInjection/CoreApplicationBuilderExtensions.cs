@@ -5,12 +5,14 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Scalar.AspNetCore;
 
 namespace CoreAndSkill.Core.Web.DependencyInjection;
 
 public static class CoreApplicationBuilderExtensions
 {
-    // Thứ tự pipeline đầy đủ — định nghĩa gốc ở docs/quy-uoc/be-architecture.md §3.1. BỐN chỗ
+    // Thứ tự pipeline đầy đủ — định nghĩa gốc ở docs/quy-uoc/be-architecture.md §3.1. NĂM chỗ
     // không hoán đổi được, xem chú thích tại chỗ. KHÔNG đổi thứ tự khi thêm middleware mới.
     public static async Task<WebApplication> UseCoreAsync(this WebApplication app)
     {
@@ -18,31 +20,47 @@ public static class CoreApplicationBuilderExtensions
         // DB thiếu migration thì không phục vụ request nào, kể cả health check.
         await app.VerifyDatabaseSchemaAsync();
 
-        // 1/4 — ĐẦU TIÊN. Proxy tin cậy nạp từ Core:Network:* ở AddCoreWeb (ForwardedHeadersOptions) — danh sách
-        // rỗng ⇒ không tin proxy nào (ràng buộc 4 của be-architecture.md §3.1).
+        // 4/5 — ĐẦU TIÊN. Proxy tin cậy nạp từ Core:Network:* ở AddCoreWeb (ForwardedHeadersOptions) — danh sách
+        // rỗng ⇒ không tin proxy nào.
         app.UseForwardedHeaders();
 
+        app.UseMiddleware<SecurityHeadersMiddleware>(); // ADR-0120 QC3 — SAU UseForwardedHeaders, TRƯỚC TraceId
         app.UseMiddleware<TraceIdMiddleware>();
+        app.UseMiddleware<RequestLogMiddleware>(); // một dòng log mỗi request — SAU TraceId, TRƯỚC UseExceptionHandler
         app.UseExceptionHandler();
         app.UseMiddleware<EnvelopeMiddleware>();
 
-        // 3/4 — UseCors TRƯỚC mọi middleware chặn.
+        // 3/5 — UseCors TRƯỚC mọi middleware chặn.
         app.UseCors(CorsPolicyNames.Default);
+
+        // 5/5 — NGAY SAU UseCors, TRƯỚC UseAuthentication. Giới hạn nền đếm cả request bị 401/403 ở ba
+        // lớp chặn phía sau nó (xác thực, chống giả mạo, buộc đổi mật khẩu) — nợ B26 đã tốt nghiệp,
+        // RULES-BE.md B26; canh bằng RateLimitPolicyWiringTests.GlobalRateLimit_Counts*.
+        app.UseRateLimiter();
 
         app.UseAuthentication();
 
-        // 2/4 — SAU UseAuthentication, TRƯỚC UseAuthorization (be-api-controller.md §7.2).
+        // 2/5 — SAU UseAuthentication, TRƯỚC UseAuthorization (be-api-controller.md §7.2).
         app.UseMiddleware<AntiforgeryValidationMiddleware>();
 
         app.UseAuthorization();
-        app.UseMiddleware<PasswordChangeRequiredMiddleware>(); // SAU UseAuthorization
-        app.UseRateLimiter();
+        app.UseMiddleware<PasswordChangeRequiredMiddleware>(); // 1/5 — SAU UseAuthorization
         app.MapControllers();
 
-        app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
+        // Tài liệu OpenAPI và trang Scalar — CHỈ Development, môi trường khác không map (404 như đường không tồn tại);
+        // luật S29, ADR-0118 quyết định 2. Tắt telemetry và phông tải từ CDN: trang không tự gọi ra ngoài máy dev.
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapOpenApi();
+            app.MapScalarApiReference(options => options
+                .DisableTelemetry()
+                .DisableDefaultFonts());
+        }
+
+        app.MapHealthChecks(HealthPaths.Live, new HealthCheckOptions { Predicate = _ => false })
             .AllowAnonymous()
             .DisableRateLimiting();
-        app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") })
+        app.MapHealthChecks(HealthPaths.Ready, new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") })
             .AllowAnonymous()
             .DisableRateLimiting();
 

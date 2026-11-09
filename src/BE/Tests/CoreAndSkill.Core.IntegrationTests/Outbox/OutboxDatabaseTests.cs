@@ -19,11 +19,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Outbox;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Outbox trên PostgreSQL THẬT — docs/wiki-core/be/12-notifications.md §2. Chứng minh những thứ test thuần logic
 // (OutboxInterceptorTests, OutboxHealthCheckTests, OutboxMessageTests) KHÔNG chứng minh được:
 //   1. dòng outbox nằm CÙNG giao dịch với thay đổi nghiệp vụ — commit thì cùng có, quay lại thì cùng không;
@@ -318,6 +313,33 @@ public sealed class OutboxDatabaseTests(PostgresFixture db) : IAsyncLifetime
         (await StateAsync(valid)).Status.ShouldBe("done", "một dòng hỏng không được chặn dòng xếp sau nó");
     }
 
+    // B31 — một phiên KHÁC giữ khoá dòng tới hạn duy nhất (bộ phát của máy khác giữ khoá suốt lúc bên nhận của nó chạy,
+    // ADR-0099). `FOR UPDATE SKIP LOCKED` bỏ qua dòng đó; dòng bị bỏ qua không phải dòng đã xử lý, nên DispatchBatchAsync trả 0
+    // và một nhịp kết thúc ngay cả khi khoá còn giữ — không quay vòng. Mọi lời chờ có giới hạn thời gian để ĐỎ thay vì treo.
+    // Bản không cần Docker của cùng kịch bản: OutboxDispatchFailureTests (OfflineOutboxHost.LockedByOthers).
+    [Fact]
+    public async Task WhenAnotherConnectionHoldsTheOnlyDueRow_DispatchBatchReturnsZero_AndATickEndsWhileTheLockIsStillHeld()
+    {
+        var id = await InsertPendingAsync();
+        _handler.Behavior = _ => Task.FromResult(Result.Success());
+        await using var held = await HeldTransaction.OpenAsync(db.ConnectionString);
+        await held.ExecuteOneRowAsync(
+            "UPDATE core.outbox_message SET attempt_count = attempt_count WHERE id = @id", new NpgsqlParameter("id", id));
+
+        var processed = await Dispatcher().DispatchBatchAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(15));
+
+        processed.ShouldBe(0, "dòng bị bỏ qua vì khoá không phải dòng đã xử lý");
+        _handler.Calls.ShouldBe(0);
+
+        var loop = ActivatorUtilities.CreateInstance<OutboxDispatcherHostedService>(_host.Services);
+        using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        var failure = await Record.ExceptionAsync(() => loop.RunOnceAsync(limit.Token));
+
+        failure.ShouldBeNull("nhịp phải kết thúc trong lúc khoá còn giữ, không quay vòng tới khi hết giờ");
+        limit.IsCancellationRequested.ShouldBeFalse("nhịp chỉ kết thúc vì hết giờ — nó đang quay vòng");
+        (await StateAsync(id)).Status.ShouldBe("pending", "khoá còn giữ nên dòng nằm nguyên");
+    }
+
     [Fact]
     public async Task TheStoredError_IsRedacted_ATokenInAnExceptionMessageIsNeverPersisted()
     {
@@ -350,7 +372,9 @@ public sealed class OutboxDatabaseTests(PostgresFixture db) : IAsyncLifetime
 
         _handler.Calls.ShouldBe(1, "SKIP LOCKED: bộ phát thứ hai bỏ qua dòng đang bị giữ");
         (await StateAsync(id)).Status.ShouldBe("done");
-        second.ShouldBe(1, "dòng vẫn nằm trong danh sách tới hạn của bộ phát thứ hai — nó chỉ bỏ qua khi khoá không lấy được");
+        // Dòng vẫn nằm trong danh sách tới hạn của bộ phát thứ hai nhưng nó bỏ qua vì khoá không lấy được; dòng bị bỏ qua không
+        // tính là đã xử lý (OutboxDispatcher.DispatchBatchAsync: "Chỉ đếm dòng đã xử lý") nên trả 0, không phải 1.
+        second.ShouldBe(0, "dòng bị bỏ qua vì khoá không phải dòng đã xử lý — cùng lý do với B31 phía trên");
     }
 
     // ---- 4. Dead: nhìn thấy được và phát lại được -------------------------------------------------

@@ -21,13 +21,26 @@
   text-align: center;
 }
 
+// Biến thể `sidebar` (Footer.md §Biến thể): hai dòng, căn trái; nền trong suốt lấy nền của Sidebar.
+.footer--sidebar {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+
+  .footer__trai {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-1);
+  }
+}
+
 .footer--khong-vach {
   border-top: none;
 }
 
 .footer__trai {
+  align-items: center;
   display: flex;
-  gap: var(--sp-5);
+  gap: var(--sp-3);
 }
 
 .footer__lien-ket {

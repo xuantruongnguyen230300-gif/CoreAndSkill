@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0079 — Khu `/he-thong` không nhận đường vào nhìn thấy được ở v1; đường vào là URL gõ thẳng và cổng chặn mục menu giữ nguyên
 
-> **Trạng thái:** Đã chấp nhận (2026-09-24)
+> **Trạng thái:** Đã chấp nhận (2026-09-24) · Sửa một phần bởi [ADR-0122](0122-don-vi-he-thong-duoc-seed-mot-muc-menu-toi-he-thong-don-vi-moi-tai-khoan-cua-no-mang-co-van-hanh.md) (2026-10-08)
 >
 > **Bổ sung [`0017-khu-quan-tri-he-thong.md`](0017-khu-quan-tri-he-thong.md).** ADR-0017 chốt *khu hệ thống tồn tại và ai vào được*; nó không nói **người vận hành tới đó bằng cách nào**. ADR này trả lời đúng câu đó và không chạm điều nào của ADR-0017.
 >

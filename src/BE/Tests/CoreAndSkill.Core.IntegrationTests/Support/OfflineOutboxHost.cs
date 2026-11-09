@@ -227,6 +227,13 @@ internal sealed class OfflineOutboxTable
     private readonly Dictionary<Guid, Row> _rows = [];
     private readonly Dictionary<Guid, (Func<Row, bool> When, Func<Exception> Failure)> _commitFailures = [];
 
+    // Dòng đang bị một phiên KHÁC giữ khoá: câu `FOR UPDATE SKIP LOCKED` không lấy được nó (trả tập rỗng, không chờ) — đúng điều
+    // PostgreSQL làm. Câu đọc thường (không `FOR UPDATE`) vẫn thấy dòng, như database thật.
+    public HashSet<Guid> LockedByOthers { get; } = [];
+
+    // Số câu `FOR UPDATE SKIP LOCKED` đã phát ra, kể cả câu không lấy được khoá — để test đếm số lần bộ phát QUAY LẠI một dòng.
+    public int LockAttempts { get; private set; }
+
     // Người dùng có thật — dòng người nhận trỏ ra ngoài tập này vi phạm khoá ngoại.
     public HashSet<Guid> KnownUsers { get; } = [];
 
@@ -311,6 +318,12 @@ internal sealed class OfflineOutboxTable
                 // Một dòng theo khoá: câu khoá FOR UPDATE, hoặc câu đọc lại để ghi lần thử hỏng. Cả hai đi qua bộ lọc đơn vị.
                 var guids = parameters.OfType<Guid>().ToHashSet();
                 rows = _rows.Values.Where(r => guids.Contains(r.Id) && guids.Contains(r.TenantId));
+
+                if (sql.Contains("FOR UPDATE SKIP LOCKED", StringComparison.Ordinal))
+                {
+                    LockAttempts++;
+                    rows = rows.Where(r => !LockedByOthers.Contains(r.Id));
+                }
             }
 
             if (onlyPending)

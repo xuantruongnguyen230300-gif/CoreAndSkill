@@ -17,9 +17,11 @@ export class GanVaiTroChonStore {
 
   /** Một thể hiện riêng của hộp này — `TraCuuVaiTroStore` không cấp bằng DI (lý do ở đầu tệp đó). */
   readonly timVaiTro = new TraCuuVaiTroStore(this.vaiTroService, this.translate);
-  readonly dangChon = signal<readonly string[]>([]);
+  private readonly _dangChon = signal<readonly string[]>([]);
+  readonly dangChon = this._dangChon.asReadonly();
+  private readonly _heThongCuaMinh = signal<readonly VaiTroTraCuu[]>([]);
   /** Vai trò hệ thống đứng NGOÀI ô chọn khi xem chính mình (users.md §2 luật 2). */
-  readonly heThongCuaMinh = signal<readonly VaiTroTraCuu[]>([]);
+  readonly heThongCuaMinh = this._heThongCuaMinh.asReadonly();
   /** Ảnh chụp lúc mở hộp — so với `dangChon()` để biết "còn thay đổi chưa lưu" (Dialog `dirty`). */
   private banDau: readonly string[] = [];
 
@@ -33,11 +35,11 @@ export class GanVaiTroChonStore {
   moHop(rolesHienCo: readonly VaiTroRutGon[], laChinhMinh: boolean): void {
     const heThongCuaMinh = laChinhMinh ? rolesHienCo.filter((r) => r.isSystem) : [];
     const idHeThongCuaMinh = new Set(heThongCuaMinh.map((r) => r.id));
-    this.heThongCuaMinh.set(heThongCuaMinh);
+    this._heThongCuaMinh.set(heThongCuaMinh);
     const conLai = rolesHienCo.filter((r) => !idHeThongCuaMinh.has(r.id));
     const idsConLai = conLai.map((r) => r.id);
     this.banDau = idsConLai;
-    this.dangChon.set(idsConLai);
+    this._dangChon.set(idsConLai);
     this.timVaiTro.reset();
     this.timVaiTro.seed(conLai);
   }
@@ -48,7 +50,7 @@ export class GanVaiTroChonStore {
   }
 
   chon(gt: string | readonly string[]): void {
-    this.dangChon.set(Array.isArray(gt) ? gt : []);
+    this._dangChon.set(Array.isArray(gt) ? gt : []);
   }
 
   /** Tập vai trò đích khi gửi lên server — ô chọn CỘNG vai trò hệ thống đứng ngoài (users.md §7). */

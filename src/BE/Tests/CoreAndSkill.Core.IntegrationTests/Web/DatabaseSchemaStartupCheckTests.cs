@@ -69,7 +69,7 @@ public sealed class DatabaseSchemaStartupCheckTests
         thrown.Message.ShouldContain("Core:SchemaCheck:ConnectWaitSeconds", Case.Sensitive);
         thrown.Message.ShouldContain("Core:SchemaCheck:ConnectRetryIntervalSeconds", Case.Sensitive);
         thrown.Message.ShouldNotContain("TU CHOI — database thieu migration", Case.Sensitive, "không kiểm được KHÔNG phải thiếu migration — hai lý do khác nhau");
-        thrown.InnerException.ShouldBeAssignableTo<NpgsqlException>();
+        thrown.InnerException.ShouldBeNull("quyết định 2026-10-04: ngoại lệ ném ra không mang tầng chưa lọc của ngoại lệ gốc");
         verifier.Calls.ShouldBe(5);
         clock.Delays.Sum(d => d.TotalSeconds).ShouldBe(20);
         logs.Warnings.Count(w => w.Contains("Lan thu", StringComparison.Ordinal)).ShouldBe(4, "mỗi lần thử hỏng còn được thử lại ghi một dòng");
@@ -122,6 +122,116 @@ public sealed class DatabaseSchemaStartupCheckTests
             e => e.ShouldContain("Lan thu 1:", Case.Sensitive),
             e => e.ShouldContain("khong tam thoi", Case.Sensitive));
         logs.Warnings.ShouldBeEmpty("lỗi không tạm thời không được thử lại — không có dòng 'thử lại sau'");
+    }
+
+    // ===== Quyết định 2026-10-04: ngoại lệ dừng khởi động không mang tầng chưa lọc =====
+    // Ngoại lệ thoát khỏi Program.cs không ai bắt và runtime in ToString() chưa lọc ra stderr — nên ngoại lệ ném ra không
+    // được mang InnerException, không được chứa thông điệp gốc (có thể mang chuỗi kết nối). Chẩn đoán ở dòng LogError.
+    // Hai nhánh dừng: lỗi không tạm thời, và hết hạn chờ. Không cần Docker — bộ kiểm migration giả.
+
+    private const string LeakedMessage = "Failed to connect to Host=secret-host;Password=leak";
+
+    [Fact]
+    public async Task NonTransientFailure_ThrownException_HasNoInnerException()
+    {
+        var (thrown, _) = await RunNonTransientLeakAsync();
+
+        thrown.InnerException.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task NonTransientFailure_ThrownExceptionToString_DoesNotContainTheOriginalMessage()
+    {
+        var (thrown, _) = await RunNonTransientLeakAsync();
+
+        AssertNoLeak(thrown);
+    }
+
+    [Fact]
+    public async Task NonTransientFailure_LogError_StillCarriesTheFilteredDescriptionWithStack()
+    {
+        var (_, logs) = await RunNonTransientLeakAsync();
+
+        AssertDiagnosticLine(logs);
+    }
+
+    [Fact]
+    public async Task WaitExpired_ThrownException_HasNoInnerException()
+    {
+        var (thrown, _) = await RunWaitExpiredLeakAsync();
+
+        thrown.InnerException.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task WaitExpired_ThrownExceptionToString_DoesNotContainTheOriginalMessage()
+    {
+        var (thrown, _) = await RunWaitExpiredLeakAsync();
+
+        AssertNoLeak(thrown);
+    }
+
+    [Fact]
+    public async Task WaitExpired_LogError_StillCarriesTheFilteredDescriptionWithStack()
+    {
+        var (_, logs) = await RunWaitExpiredLeakAsync();
+
+        AssertDiagnosticLine(logs);
+    }
+
+    private static async Task<(InvalidOperationException Thrown, CollectingLogger Logs)> RunNonTransientLeakAsync()
+    {
+        var original = ThrownAndCaught(new PostgresException(LeakedMessage, "FATAL", "FATAL", "28P01"));
+        original.Message.ShouldContain("secret-host", Case.Sensitive, "chống test rỗng: ngoại lệ gốc phải mang chuỗi đánh dấu");
+        var (check, _, logs) = Build(new ScriptedVerifier(original), waitSeconds: 60, intervalSeconds: 5);
+
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => check.RunAsync(CancellationToken.None));
+
+        thrown.Message.ShouldContain("khong tam thoi", Case.Sensitive, "chống test rỗng: phải là nhánh lỗi không tạm thời");
+        return (thrown, logs);
+    }
+
+    private static async Task<(InvalidOperationException Thrown, CollectingLogger Logs)> RunWaitExpiredLeakAsync()
+    {
+        var inner = new SocketException((int)SocketError.ConnectionRefused);
+        var original = ThrownAndCaught(new NpgsqlException(LeakedMessage, inner));
+        original.IsTransient.ShouldBeTrue("chống test rỗng: kịch bản phải là lỗi tạm thời");
+        var (check, _, logs) = Build(new ScriptedVerifier(original), waitSeconds: 0, intervalSeconds: 5);
+
+        var thrown = await Should.ThrowAsync<InvalidOperationException>(() => check.RunAsync(CancellationToken.None));
+
+        thrown.Message.ShouldContain("het 0 giay cho", Case.Sensitive, "chống test rỗng: phải là nhánh hết hạn chờ");
+        return (thrown, logs);
+    }
+
+    private static void AssertNoLeak(Exception thrown)
+    {
+        var text = thrown.ToString();
+        text.ShouldNotContain("secret-host", Case.Sensitive);
+        text.ShouldNotContain("Password=leak", Case.Sensitive);
+        text.ShouldNotContain(LeakedMessage, Case.Sensitive);
+    }
+
+    // Dòng LogError mang mô tả đã lọc (tên kiểu của ngoại lệ gốc) kèm ngăn xếp (tên hàm đã ném ra nó).
+    private static void AssertDiagnosticLine(CollectingLogger logs)
+    {
+        var line = logs.Errors.ShouldHaveSingleItem();
+        line.ShouldContain("Lan thu 1:", Case.Sensitive);
+        line.ShouldContain("Exception", Case.Sensitive, "mô tả đã lọc phải nêu kiểu của ngoại lệ gốc");
+        line.ShouldContain(nameof(ThrownAndCaught), Case.Sensitive, "ngăn xếp của ngoại lệ gốc phải còn trong dòng log");
+    }
+
+    // Ném rồi bắt để ngoại lệ có StackTrace thật (ngoại lệ mới dựng thì StackTrace rỗng).
+    private static T ThrownAndCaught<T>(T exception) where T : Exception
+    {
+        try
+        {
+            throw exception;
+        }
+        catch (T caught)
+        {
+            return caught;
+        }
     }
 
     // EF có thể bọc lỗi của Npgsql — phân loại dò dọc chuỗi InnerException.

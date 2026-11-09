@@ -8,5 +8,5 @@ namespace CoreAndSkill.Core.Domain.Tenants;
 public static class TenantErrors
 {
     public static readonly Error SystemImmutable = new(
-        "CORE.TENANT.SYSTEM_IMMUTABLE", "Không được ngưng hoạt động đơn vị hệ thống.", ErrorType.BusinessRule);
+        "CORE.TENANT.SYSTEM_IMMUTABLE", "Không được thay đổi trạng thái hoạt động của đơn vị hệ thống.", ErrorType.BusinessRule);
 }

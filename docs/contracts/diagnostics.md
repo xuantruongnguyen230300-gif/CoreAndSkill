@@ -10,8 +10,7 @@ verified: chua-doi-chieu
 > `IExceptionHandler` trước khi CQRS/Identity (B1) tồn tại —
 > [`../wiki-core/be/trien-khai/01-b0-nen-mong.md`](../wiki-core/be/trien-khai/01-b0-nen-mong.md) §2
 > bước 4. Card này ban đầu tồn tại chỉ vì [`../RULES.md`](../RULES.md) đòi mọi chú thích trong
-> `src/` trỏ `docs/` phải trỏ tới một file có thật (§10) — nhưng nghiệm thu F0
-> ([`../wiki-core/fe/trien-khai/01-f0-nen-mong.md`](../wiki-core/fe/trien-khai/01-f0-nen-mong.md) §7)
+> `src/` trỏ `docs/` phải trỏ tới một file có thật (§10) — nhưng nghiệm thu pha F0 của FE
 > lại **đòi đúng** FE phải gọi thật endpoint này ở nhánh lỗi để đóng pha, nên trên thực tế nó **có**
 > bị gọi — không phải trong một luồng nghiệp vụ, mà trong luồng tự-kiểm của cả hai phía.
 

@@ -1,0 +1,28 @@
+<p-drawer
+  appendTo="body"
+  [visible]="hienThi()"
+  [modal]="true"
+  [dismissible]="true"
+  [closeOnEscape]="true"
+  [closable]="true"
+  [blockScroll]="true"
+  [position]="viTriThat()"
+  [styleClass]="lopGoc()"
+  [ariaCloseLabel]="'chung.dong' | translate"
+  (visibleChange)="onVisibleChange($event)"
+  (onShow)="khiHien()"
+>
+  <ng-template #header>
+    <h2 class="app-drawer__tieu-de" [id]="idTieuDe">{{ title() }}</h2>
+  </ng-template>
+
+  <ng-template #content>
+    <div class="app-drawer__than" [attr.aria-busy]="loading() ? 'true' : null">
+      <ng-content />
+    </div>
+  </ng-template>
+
+  <ng-template #footer>
+    <ng-content select="[slot=footer]" />
+  </ng-template>
+</p-drawer>

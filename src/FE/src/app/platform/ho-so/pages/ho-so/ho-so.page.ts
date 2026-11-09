@@ -16,7 +16,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { DoiMatKhauService } from '../../../../core/auth/doi-mat-khau.service';
 import { CORE_I18N } from '../../../../core/config/core-i18n';
 import { ApiFailureError } from '../../../../core/http/api-result.model';
-import { dichLoiChoMan } from '../../../../core/http/dich-loi';
+import { cauLoiKhongPhaiApi, dichLoiBatKy } from '../../../../core/http/dich-loi';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { UnsavedChangesService } from '../../../../core/unsaved-changes/unsaved-changes.service';
 import { applyFormFailure } from '../../../../shared/forms/apply-form-failure';
@@ -204,13 +204,14 @@ export class HoSoPage {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (hs) => this.apHoSo(hs),
+        next: (hs) => {
+          // Lần tải lại thành công đã cho người dùng bản mới để nhập lại: hạ banner xung đột (Screens/03).
+          this.xungDotDongThoi.set(false);
+          this.apHoSo(hs);
+        },
         error: (err: unknown) => {
           this.loiTaiHoSo.set({
-            than:
-              err instanceof ApiFailureError
-                ? dichLoiChoMan(this.translate, err)
-                : this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION'),
+            than: dichLoiBatKy(this.translate, err),
           });
         },
       });
@@ -296,7 +297,7 @@ export class HoSoPage {
 
   private xuLyLoiThongTin(err: unknown): void {
     if (!(err instanceof ApiFailureError)) {
-      this.loiLuuThongTin.set(this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION'));
+      this.loiLuuThongTin.set(cauLoiKhongPhaiApi(this.translate));
       return;
     }
     if (err.body?.error.code === 'CORE.CONCURRENCY.CONFLICT') {
@@ -340,7 +341,7 @@ export class HoSoPage {
 
   private xuLyLoiMatKhau(err: unknown): void {
     if (!(err instanceof ApiFailureError)) {
-      this.loiDoiMatKhau.set(this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION'));
+      this.loiDoiMatKhau.set(cauLoiKhongPhaiApi(this.translate));
       return;
     }
     // Mọi mã, KHÔNG lọc theo danh sách mã (fe-ui-conventions.md §6.2).
@@ -390,9 +391,7 @@ export class HoSoPage {
           }
           // Hộp xác nhận không có form: câu của banner do fe-ui-conventions.md §6.2 quyết.
           this.loiTuBo.set(
-            err instanceof ApiFailureError
-              ? fieldErrorsText(this.translate, err)
-              : this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION'),
+            dichLoiBatKy(this.translate, err, (l) => fieldErrorsText(this.translate, l)),
           );
         },
       });

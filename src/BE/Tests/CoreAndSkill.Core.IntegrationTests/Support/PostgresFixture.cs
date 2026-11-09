@@ -103,6 +103,19 @@ public sealed class PostgresFixture : IAsyncLifetime
         return rows;
     }
 
+    // Chạy MỘT tệp SQL bằng chính psql trong container, như người dùng chạy script bù dữ liệu (ADR-0122 điểm 5) —
+    // bằng tài khoản postgres, cùng cờ ON_ERROR_STOP. Không ném khi script lỗi: test cần đọc mã thoát và thông báo.
+    internal async Task<(long ExitCode, string Output)> RunScriptFileAsync(string path)
+    {
+        var remotePath = $"/tmp/{Path.GetFileName(path)}";
+        await _container.CopyAsync(WithoutUtf8Bom(await File.ReadAllBytesAsync(path)), remotePath);
+
+        var result = await _container.ExecAsync(
+            ["psql", "-U", SuperUser, "-d", DatabaseName, "-v", "ON_ERROR_STOP=1", "-f", remotePath]);
+
+        return (result.ExitCode ?? -1, result.Stdout + Environment.NewLine + result.Stderr);
+    }
+
     private async Task ApplySchemaScriptsAsync()
     {
         var scriptsDirectory = LocateScriptsDirectory();
@@ -140,16 +153,21 @@ public sealed class PostgresFixture : IAsyncLifetime
 
     // Đi ngược từ thư mục chạy test lên tới khi thấy database/scripts/core — không giả định độ sâu
     // của bin/Debug/net10.0. internal: test không cần Docker đọc script bằng đúng đường này (AppUserUniqueIndexesTests).
-    internal static string LocateScriptsDirectory()
+    internal static string LocateScriptsDirectory() => LocateDatabaseDirectory("scripts", "core");
+
+    // Thư mục script bù dữ liệu (ADR-0122 điểm 5) — ngoài database/scripts nên fixture không áp nó lên database trống.
+    internal static string LocateBackfillDirectory() => LocateDatabaseDirectory("bu-du-lieu");
+
+    private static string LocateDatabaseDirectory(params string[] segments)
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
-            var candidate = Path.Combine(directory.FullName, "database", "scripts", "core");
+            var candidate = Path.Combine([directory.FullName, "database", .. segments]);
             if (Directory.Exists(candidate))
                 return candidate;
         }
 
         throw new DirectoryNotFoundException(
-            $"Không tìm thấy database/scripts/core đi ngược từ '{AppContext.BaseDirectory}'.");
+            $"Không tìm thấy database/{string.Join('/', segments)} đi ngược từ '{AppContext.BaseDirectory}'.");
     }
 }

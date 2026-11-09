@@ -9,7 +9,9 @@ verified: chua-doi-chieu
 > File này giữ **lý do, bẫy, ví dụ dài** của [`../../../quy-uoc/be-performance.md`](../../../quy-uoc/be-performance.md);
 > luật ở đó. Số mục ở đây **trùng số §** của file luật; mục không có gì dời thì ghi "—".
 >
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi khối code là khuôn cho `src/BE` sẽ xây ở giai đoạn 2.
+> Nhãn trạng thái đặt **tại từng khối**, không cho cả tệp: khối nào chỉ là khuôn minh hoạ thì nói ngay ở
+> khối đó; khối còn lại tả mã trong `src/BE` nhưng chưa đối chiếu từng khối (`verified: chua-doi-chieu`) —
+> so với tệp nguồn trước khi dựa vào.
 
 ---
 

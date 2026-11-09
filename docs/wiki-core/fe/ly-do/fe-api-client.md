@@ -58,15 +58,20 @@ Thứ tự không tuỳ tiện. Interceptor chạy theo thứ tự khai lúc đi
 
 - **Ràng buộc 4 — đường dẫn mang tiền tố base** — Interceptor ghép base vào; service tự thêm nữa thì request bay tới một URL lặp đoạn giữa, trả 404, và trông hệt như "BE chưa làm endpoint".
 
-Khối import của `XsrfTokenStore` ([`fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §2.1):
+Khối import của `XsrfTokenService` và `XsrfTokenStore` ([`fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §2.1):
 
 ```typescript
-// core/auth/xsrf-token.store.ts — phần import
+// core/auth/xsrf-token.service.ts — phần import
 import { HttpClient, HttpContext } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
-import { Observable, map, tap } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
 import { ApiResult, BO_QUA_TOAST_LOI } from '../http/api-result.model';
 import { unwrapData } from '../http/unwrap';
+
+// core/auth/xsrf-token.store.ts — phần import
+import { Injectable, inject, signal } from '@angular/core';
+import { Observable, tap } from 'rxjs';
+import { XsrfTokenService } from './xsrf-token.service';
 ```
 
 ### 2.2 `errorInterceptor` — nơi DUY NHẤT dịch lỗi
@@ -101,7 +106,9 @@ import { unwrapData } from '../http/unwrap';
 
 - **Lớp lỗi xuyên suốt — vì sao cờ không tắt được, vì sao nhánh đứng trước 429/409** — `traceId` chỉ tới người dùng qua toast; để màn mang cờ nuốt 5xx thì câu *"báo mã theo dõi"* hiện ra mà không có mã nào để báo. Nhánh đứng ngay sau các nhánh 403 để không nhánh nào tôn trọng cờ chặn trước nó. 5xx không envelope (proxy, load balancer trả 502/504) mang mã client riêng chứ không câu mất kết nối: đã có phản hồi, nên câu đó sai sự thật và đẩy người dùng đi kiểm mạng của họ (chốt 2026-09-25). Quyết định và phương án đã loại: [`../../../adr/0094-lop-loi-xuyen-suot-luon-toast-ke-ca-khi-man-tat-toast.md`](../../../adr/0094-lop-loi-xuyen-suot-luon-toast-ke-ca-khi-man-tat-toast.md).
 
-Khối đầy đủ của `core/interceptors/error.interceptor.ts` — chuyển từ file luật §2.2 ngày 2026-09-22; file luật giữ thứ tự nhánh, khối này là hiện thực và sửa cùng lượt với code (luật D44, [`../../../DEBT.md`](../../../DEBT.md)). Phần import ở khối kế tiếp:
+- **Lỗi không envelope — vì sao mã theo status, vì sao nhánh ở `dichLoi`, vì sao `status` bắt buộc** (luật F45, chốt 2026-09-29) — Proxy trả 413 khi thân vượt giới hạn, hay 404 dạng HTML khi đường dẫn không tới được app, là phản hồi thật: câu mất kết nối cho chúng sai sự thật và đẩy người dùng đi kiểm mạng của họ trong khi mạng không sao. Không envelope thì không `traceId`, nên số status trong câu là manh mối duy nhất người hỗ trợ có để biết tầng nào đã trả lời. Nhánh nằm ở `dichLoi` vì toast của interceptor lẫn khu lỗi của màn — `dichLoiChoMan`, `applyFormFailure`, `fieldErrorsText` — đều đi qua hàm đó; đặt ở interceptor thì màn tắt toast vẫn hiện câu mất kết nối cho cùng phản hồi ấy. `status` không có giá trị mặc định vì mặc định `0` cho một lời gọi quên truyền biên dịch sạch rồi rơi đúng về câu mất kết nối.
+
+Khối đầy đủ của `core/interceptors/error.interceptor.ts` — chuyển từ file luật §2.2 ngày 2026-09-22; file luật giữ thứ tự nhánh, khối này là hiện thực và sửa cùng lượt với code (luật D44, [`../../../RULES-DOCS.md`](../../../RULES-DOCS.md)). Phần import ở khối kế tiếp.
 
 ```typescript
 // core/interceptors/error.interceptor.ts — phần import ở khối ngay dưới
@@ -127,7 +134,7 @@ function ctxDaThuLaiXsrf(goc: HttpContext): HttpContext {
 /**
  * Với `responseType: 'blob'` (tải tệp xuất — fe-api-client.md §6.4), Angular giao MỌI thân phản hồi
  * dưới dạng `Blob`, kể cả thân lỗi 4xx/5xx dù server gửi `application/json`. `docEnvelopeLoi` kiểm
- * `'success' in body` trên một `Blob` ⇒ `null` ⇒ toast *mất kết nối* cho một lỗi 422 có mã.
+ * `'success' in body` trên một `Blob` ⇒ `null` ⇒ toast câu chung của lỗi không envelope cho một lỗi 422 có mã.
  * `Blob.text()` bất đồng bộ, nên nhánh gọi hàm này là `from(...).pipe(switchMap(...))`.
  */
 async function bocThanBlob(err: HttpErrorResponse): Promise<HttpErrorResponse> {
@@ -221,21 +228,16 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       // Lớp xuyên suốt (5xx, 403 CORE.AUTH.* còn lại) — LUÔN toast kèm traceId, KHÔNG xét
       // BO_QUA_TOAST_LOI: khu lỗi của màn bỏ qua lớp này (`laLoiXuyenSuot`), nên toast là chỗ hiện duy nhất.
       if (laLoiXuyenSuot(err.status, body)) {
-        if (body === null) {
-          // 5xx không envelope (proxy trả 502/504 dạng HTML): máy chủ CÓ trả lời nên không phải câu mất
-          // kết nối; không mã, không traceId — câu của mã phía client `CORE.CLIENT.SERVER_UNAVAILABLE`
-          // (be-cqrs-handler.md §7.4). 403 không envelope không vào lớp này, nên `null` ở đây luôn là 5xx.
-          toast.loi(translate.instant('loi.CORE.CLIENT.SERVER_UNAVAILABLE'), null);
-        } else {
-          toast.loi(dichLoi(translate, body), body.traceId);
-        }
+        // 5xx không envelope (proxy trả 502/504 dạng HTML): `body` là null, không traceId — `dichLoi`
+        // chọn câu của mã phía client theo status (fe-api-client.md §2.2, be-cqrs-handler.md §7.4).
+        toast.loi(dichLoi(translate, body, err.status), body?.traceId ?? null);
         return nem();
       }
 
       // 429 — siết tần suất ở MỌI màn (contracts/auth.md §10–§11). Số giây chờ đọc từ Retry-After.
       if (err.status === 429) {
         if (!yeuCau.context.get(BO_QUA_TOAST_LOI)) {
-          toast.loi(dichLoi(translate, body, thamSoRetryAfter(err)), body?.traceId ?? null);
+          toast.loi(dichLoi(translate, body, err.status, thamSoRetryAfter(err)), body?.traceId ?? null);
         }
         return nem();
       }
@@ -244,7 +246,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       // Toast rồi trả lỗi về màn. KHÔNG gửi lại, KHÔNG tải lại hộ.
       if (err.status === 409 && body?.error.code === 'CORE.CONCURRENCY.CONFLICT') {
         if (!yeuCau.context.get(BO_QUA_TOAST_LOI)) {
-          toast.loi(dichLoi(translate, body), body?.traceId ?? null);
+          toast.loi(dichLoi(translate, body, err.status), body?.traceId ?? null);
         }
         return nem();
       }
@@ -256,7 +258,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       // Màn tự hiển thị lỗi của mình thì tắt toast cho ĐÚNG request đó.
       if (!yeuCau.context.get(BO_QUA_TOAST_LOI)) {
-        toast.loi(dichLoi(translate, body), body?.traceId ?? null);
+        toast.loi(dichLoi(translate, body, err.status), body?.traceId ?? null);
       }
       return nem();
     };
@@ -304,17 +306,22 @@ Chốt "một lần" dựa vào `daDangNhap()` chứ không vào một cờ riê
 
 - **Sai mật khẩu không cần `BO_QUA_HET_PHIEN`** — nó là 422 `CORE.AUTH.INVALID_CREDENTIALS`, không phải 401 ([`../../../contracts/auth.md`](../../../contracts/auth.md) §3).
 
-Khối import của `SessionExpiryHandler` ([`fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §2.5):
+Khối import của `SessionExpiryHandler` ([`fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §2.5) — chép nguyên văn từ tệp nguồn, đối chiếu 2026-10-06:
 
 ```typescript
 // core/auth/session-expiry.handler.ts — phần import
 import { DestroyRef, Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
+
 import { CORE_ROUTES } from '../config/core-routes';
 import { AuthService } from './auth.service';
+import {
+  KHOA_BAO_TAB_PHIEN_KET_THUC,
+  TabSessionBroadcastService,
+} from './tab-session-broadcast.service';
 ```
 
-Phần import mà `dangXuat()` cần trong `core/auth/auth.service.ts`:
+Phần import mà `dangXuat()` cần trong `core/auth/auth.service.ts` — trích, gom theo nguồn; khối import đủ của tệp đó ở [`fe-routing-guard.md`](fe-routing-guard.md) §3.3:
 
 ```typescript
 import { HttpClient, HttpContext } from '@angular/common/http';
@@ -344,7 +351,7 @@ Cái giá phải trả nói thẳng: **thêm một file và một hàm cho mỗi
 
 - **Việc 1 — chuyển ngày** — Trên dây ngày là chuỗi. Nếu không chuyển ở mapper, mỗi template sẽ tự chuyển theo một kiểu và ít nhất một chỗ sẽ quên múi giờ.
 
-- **Việc 2 — rút hình dạng dây** — `roles` trên dây là mảng object mang `id` và `isSystem` cho màn gán vai trò; màn danh sách chỉ cần tên. Template không nên biết hình dạng lồng của dây.
+- **Việc 2 — rút hình dạng dây** — Ví dụ có thật: menu trên dây là danh sách phẳng mang `parentId` và `displayOrder`; `dungCayMenu` ở `src/FE/src/app/core/menu/menu.mapper.ts` dựng nó thành cây và bỏ hai trường đó, vì màn chỉ cần cây và thứ tự đã do máy chủ quyết. Template không nên biết hình dạng của dây. "Đúng thứ màn cần" không có nghĩa là luôn bớt đi: `mapNguoiDung` giữ nguyên `roles` dạng mảng object vì hộp gán vai trò cần `id` và `isSystem`.
 
 ### 4.3 Cổng
 
@@ -373,7 +380,7 @@ Hai chi tiết của mẫu này đã được kiểm chứng ở dự án tiền
 
 > **Vì sao không ép endpoint ngoài khuôn vào hàm chung** — Ép mọi thứ vào một hàm dùng chung bằng cách thêm tham số điều kiện là cách hàm đó biến thành thứ khó đọc hơn code nó thay thế — đúng chế độ hỏng mà việc bỏ base class tránh được.
 
-- **Vì sao `context` lại là tham số của hàm chung** — Nó không rẽ nhánh gì trong hàm, chỉ chuyền nguyên cho `HttpClient`, nên không phải loại tham số điều kiện ở trên. Thiếu nó thì mọi lần đọc cần tắt toast phải tự viết lại `theoId` trong service — đã xảy ra ở ba phương thức — và ở bản chép tay đó không còn gì buộc đi qua mapper (chốt 2026-09-25).
+- **Vì sao `context` lại là tham số của hàm chung** (🚧 đã chốt, chưa thi công — `theoId`, `danhSachTrang` ở `src/FE/src/app/core/http/crud.ts` hôm nay chưa nhận `HttpContext`) — Nó không rẽ nhánh gì trong hàm, chỉ chuyền nguyên cho `HttpClient`, nên không phải loại tham số điều kiện ở trên. Thiếu nó thì mọi lần đọc cần tắt toast phải tự viết lại `theoId` trong service — đã xảy ra ở ba phương thức — và ở bản chép tay đó không còn gì buộc đi qua mapper (chốt 2026-09-25).
 
 ## 6. Hủy request, retry, timeout
 
@@ -384,54 +391,56 @@ Hai chi tiết của mẫu này đã được kiểm chứng ở dự án tiền
 - **Vì sao trang không chờ ngừng gõ lần hai** — chờ hai lớp là cộng dồn độ trễ mà không ai thấy nguồn.
 
 ```typescript
-// Ô gợi ý vai trò — phần liên quan của page; decorator, import và template lược bớt.
-// Endpoint nhận searchText: contracts/roles.md §1.
+// platform/quan-tri/vai-tro/state/tra-cuu-vai-tro.store.ts — trích, đối chiếu 2026-10-06. Rút gọn:
+// Subject ở tệp thật mang thêm lệnh đặt lại ('reset') và bộ lọc `boLoc`; bỏ `seed`, `reset`, thân của
+// `cauLoi` (dịch lỗi qua dichLoiChoMan / cauLoiKhongPhaiApi) và `sangOption`.
+export class TraCuuVaiTroStore {
+  readonly options = signal<readonly Option[]>([]);
+  readonly loading = signal(false);
+  /** Câu lỗi của lần tìm gần nhất cho `errorTemplate` của Autocomplete; `null` khi không lỗi. */
+  readonly error = signal<string | null>(null);
 
-/** Một trang đầu, bằng mặc định của hợp đồng — contracts/README.md §8. */
-const KICH_THUOC_GOI_Y = 20;
+  private readonly tuKhoa$ = new Subject<string>();
 
-export class GanVaiTroDialog {
-  private readonly vaiTro = inject(VaiTroService);
-  private readonly tuKhoa = new Subject<string>();
-
-  protected readonly goiY = signal<readonly Option[]>([]);
-  protected readonly dangTaiGoiY = signal(false);
-  protected readonly loiGoiY = signal(false);
-
-  constructor() {
-    this.tuKhoa
+  constructor(
+    private readonly service: VaiTroService,
+    private readonly translate: TranslateService,
+  ) {
+    this.tuKhoa$
       .pipe(
         // Request mới huỷ request cũ: kết quả của từ khoá cũ về muộn không ghi đè được kết quả mới.
-        switchMap((searchText) =>
-          this.vaiTro.danhSach({ page: 1, pageSize: KICH_THUOC_GOI_Y, searchText }).pipe(
-            tap({
-              subscribe: () => {
-                this.dangTaiGoiY.set(true);
-                this.loiGoiY.set(false);
-              },
-              next: (trang) => this.goiY.set(trang.items.map((v) => ({ key: v.id, label: v.name }))),
-              finalize: () => this.dangTaiGoiY.set(false),
-            }),
-            // errorInterceptor đã hiển thị lỗi; ở đây chỉ bật cờ để Autocomplete hiện errorTemplate của màn.
-            catchError(() => {
-              this.loiGoiY.set(true);
-              return EMPTY;
-            }),
-          ),
-        ),
-        takeUntilDestroyed(),
+        switchMap((q): Observable<KetQuaTim> => {
+          this.loading.set(true);
+          this.error.set(null);
+          return this.service.timKiem(q).pipe(
+            map((trang): KetQuaTim => ({ items: trang.items, loi: null })),
+            // TRONG switchMap: lỗi thành một giá trị, luồng tuKhoa$ sống tiếp.
+            catchError((err: unknown) => of<KetQuaTim>({ items: [], loi: this.cauLoi(err) })),
+          );
+        }),
       )
-      .subscribe();
+      .subscribe(({ items, loi }) => {
+        this.loading.set(false);
+        if (loi !== null) {
+          this.error.set(loi);
+          return;
+        }
+        this.options.set(items.map((vt) => this.sangOption(vt)));
+      });
   }
 
-  /** Nối vào output `search` của Autocomplete; `goiY()`, `dangTaiGoiY()` đi vào `options`, `loading`. */
-  protected timVaiTro(searchText: string): void {
-    this.tuKhoa.next(searchText);
+  /** Nối vào output `search` của Autocomplete; `options()`, `loading()`, `error()` đi vào ô. */
+  timKiem(tuKhoa: string): void {
+    this.tuKhoa$.next(tuKhoa);
   }
 }
 ```
 
-`VaiTroService.danhSach` theo đúng khuôn service ở [`fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §5.2. Lỗi đi theo đúng khuôn của `ListStateStore` ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.8): `catchError` **trong** `switchMap` đổi trạng thái rồi trả `EMPTY`. Để lỗi chạy ra ngoài `switchMap` thì luồng `tuKhoa` chết sau lỗi đầu tiên, và ô gợi ý im lặng không gọi máy chủ nữa cho tới khi tải lại trang.
+`VaiTroService.timKiem` lấy trang đầu theo `searchText` ([`../../../contracts/roles.md`](../../../contracts/roles.md) §1) và gửi kèm `context` tắt toast — `src/FE/src/app/platform/quan-tri/vai-tro/services/vai-tro.service.ts`, chuỗi `timKiem(searchText: string, pageSize = 20)`. Nó gọi thẳng `HttpClient` vì hàm chung chưa nhận `HttpContext` ([`fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §5.2). `catchError` **trong** `switchMap` biến lỗi thành một giá trị — kết quả rỗng kèm câu lỗi — để `Autocomplete` hiện đúng câu đó trong `errorTemplate`, theo bảng mã lỗi ở [`../../../Design/Screens/10-nguoi-dung.md`](../../../Design/Screens/10-nguoi-dung.md). `ListStateStore` ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.8) đi biến thể kia: đổi trạng thái rồi trả `EMPTY`, vì câu lỗi của màn danh sách nằm ở toast. Hai biến thể giữ chung một luật: để lỗi chạy ra ngoài `switchMap` thì luồng từ khoá chết sau lỗi đầu tiên, và ô gợi ý im lặng không gọi máy chủ nữa cho tới khi tải lại trang.
+
+- **Vì sao là một lớp thường mà nơi dùng tự `new`** — Một page cần nhiều thể hiện độc lập: ô lọc của danh sách người dùng, hộp tạo và hộp gán vai trò mỗi nơi giữ một thể hiện riêng. Cấp bằng DI thì cả page chỉ có một, và hai ô chia sẻ nhầm một trạng thái tìm kiếm. Đây là ngoại lệ `new` ở điều 2 của [`../../../adr/0049-trang-thai-quy-trinh-hop-thoai-o-state-khong-o-services.md`](../../../adr/0049-trang-thai-quy-trinh-hop-thoai-o-state-khong-o-services.md).
+
+- **Vì sao không `takeUntilDestroyed`** — `Subject` là trường riêng của chính thực thể, không gì bên ngoài giữ tham chiếu tới nó. Nơi dùng bị huỷ thì cả cụm — `Subject`, subscription, thực thể — được thu dọn cùng lúc. Rò rỉ chỉ xảy ra khi subscribe vào một luồng sống bên ngoài, như `Router` hay service `providedIn: 'root'`; đó là ca của khuôn `takeUntilDestroyed` ở [`fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §6.1.
 
 - **`switchMap` chứ không `mergeMap`** — Với `mergeMap`, gõ năm ký tự sinh năm request và kết quả hiển thị là **request nào về sau cùng**, không phải request của từ khoá cuối. Đó là lỗi hiện ra như "kết quả tìm kiếm sai ngẫu nhiên" và gần như không tái hiện được.
 
@@ -455,7 +464,7 @@ Không có timeout, một request treo sẽ giữ chỉ báo tải quay mãi và
 
 - **Đọc `filename*` trước `filename`** — tên tài nguyên có dấu tiếng Việt đi ở `filename*=UTF-8''…` (percent-encoding); `filename=` chỉ mang bản ASCII đã bỏ dấu cho client cũ. Đọc nhầm thứ tự thì tệp tên không dấu, đúng cú pháp, sai câu chữ — không ai báo.
 
-- **Bẫy thân lỗi là `Blob`** — với `responseType: 'blob'`, Angular giao **mọi** thân phản hồi dưới dạng `Blob`, kể cả thân của lỗi 4xx/5xx, dù server gửi `application/json`. `docEnvelopeLoi` kiểm `'success' in body` trên một `Blob` → `false` → `null` → toast *mất kết nối* cho một lỗi 422 `CORE.EXPORT.TOO_MANY_ROWS` mà thông điệp của nó nói rõ phải lọc hẹp thêm bao nhiêu. Bóc ở interceptor: `Blob.text()` là bất đồng bộ, nên nhánh này thành một `from(...).pipe(switchMap(...))` như nhánh CSRF — bóc ở từng service là chép lại đúng đoạn đó ở mọi export.
+- **Bẫy thân lỗi là `Blob`** — với `responseType: 'blob'`, Angular giao **mọi** thân phản hồi dưới dạng `Blob`, kể cả thân của lỗi 4xx/5xx, dù server gửi `application/json`. `docEnvelopeLoi` kiểm `'success' in body` trên một `Blob` → `false` → `null` → toast câu chung của lỗi không envelope cho một lỗi 422 `CORE.EXPORT.TOO_MANY_ROWS` mà thông điệp của nó nói rõ phải lọc hẹp thêm bao nhiêu. Bóc ở interceptor: `Blob.text()` là bất đồng bộ, nên nhánh này thành một `from(...).pipe(switchMap(...))` như nhánh CSRF — bóc ở từng service là chép lại đúng đoạn đó ở mọi export.
 
 - **Vì sao một hàm dùng chung kích hoạt tải** — `URL.createObjectURL` không tự thu hồi; quên `revokeObjectURL` là rò bộ nhớ đúng bằng cỡ tệp, mỗi lần bấm. Một hàm ở `core/http/` làm đúng một lần; export của module chỉ gọi.
 

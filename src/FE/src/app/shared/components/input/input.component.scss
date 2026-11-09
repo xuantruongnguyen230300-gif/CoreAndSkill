@@ -4,12 +4,20 @@
   display: block;
 }
 
+// Ô nhập chữ có MỘT đường biên (DESIGN.md §2.6 *Ô nhập chữ*): màu nói hợp lệ/lỗi, độ dày nói có
+// focus hay không. Viền thật luôn `--border-w`; phần dày thêm vẽ vào PHÍA TRONG bằng bóng `inset`
+// nên hộp ô không đổi giữa bốn trạng thái. `--input-vien-them`/`--input-vien-mau` gom trong biến để khối tự
+// điền ghép lại trong MỘT khai báo `box-shadow`.
 .input {
+  --input-vien-them: 0px;
+  --input-vien-mau: var(--color-text);
+
   display: block;
   width: 100%;
   background: var(--color-surface);
   border: var(--border-w) solid var(--color-border-strong);
   border-radius: var(--radius-sm);
+  box-shadow: inset 0 0 0 var(--input-vien-them) var(--input-vien-mau);
   color: var(--color-text);
   font-family: var(--font-sans);
   padding: 0 var(--sp-4);
@@ -19,16 +27,25 @@
     color: var(--color-text-muted);
   }
 
-  @media (hover: hover) {
-    &:hover:not(:disabled) {
-      border-color: var(--color-border-strong);
-    }
+  // Không có khối `:hover` đổi `border-color`: ở trạng thái nghỉ nó chỉ đặt lại đúng màu nghỉ, còn
+  // độ ưu tiên (0,4,0) của nó đè đường biên focus và màu lỗi (DESIGN.md §2.6, hàng `hover`).
+
+  // Trung hoà vòng `:focus-visible` chung (styles.scss) CHO Ô NHẬP — dấu hiệu focus là đường biên.
+  &:focus-visible {
+    outline: none;
+    border-color: var(--color-text);
+    --input-vien-them: calc(var(--border-w-strong) - var(--border-w));
   }
 
-  &:focus-visible {
-    outline: var(--border-w-strong) solid var(--color-focus);
-    outline-offset: 2px;
-    border-color: var(--color-brand);
+  // Trình duyệt tự điền: giữ nền `--color-surface` và chữ `--color-text`. Chrome khai nền tự điền
+  // `!important` nên phủ bằng bóng `inset` đủ lớn; đường biên ghép chung một khai báo.
+  &:-webkit-autofill {
+    box-shadow:
+      inset 0 0 0 var(--input-vien-them) var(--input-vien-mau),
+      inset 0 0 0 100vmax var(--color-surface);
+    -webkit-text-fill-color: var(--color-text);
+    caret-color: var(--color-text);
+    filter: none; // Firefox tô ô tự điền bằng `filter` trong stylesheet trình duyệt
   }
 
   &:disabled {
@@ -36,6 +53,18 @@
     color: var(--color-text-disabled);
     cursor: not-allowed;
   }
+
+  // `disabled` thắng tự điền.
+  &:disabled:-webkit-autofill {
+    box-shadow: inset 0 0 0 100vmax var(--color-surface-3);
+    -webkit-text-fill-color: var(--color-text-disabled);
+    filter: none; // Firefox tô ô tự điền bằng `filter` trong stylesheet trình duyệt
+  }
+}
+
+// Chừa chỗ nút hiện/ẩn (`--size-control-sm`, cách mép phải `--sp-4`) — token `--input-pad-reveal` (DESIGN.md §6.5), bí danh của `--auth-field-pad-reveal`.
+.input--co-nut {
+  padding-right: var(--input-pad-reveal);
 }
 
 .input--sm {
@@ -57,21 +86,29 @@
   width: 100%;
 }
 
+// Ô lỗi: viền thật vẫn `--border-w`; `--border-w-strong` khi nghỉ, `--border-w-accent` khi có focus
+// — luôn màu lỗi.
 .input--error {
-  border-width: var(--border-w-strong);
   border-color: var(--color-danger-border);
+  --input-vien-mau: var(--color-danger-border);
+  --input-vien-them: calc(var(--border-w-strong) - var(--border-w));
+
+  &:focus-visible {
+    border-color: var(--color-danger-border);
+    --input-vien-them: calc(var(--border-w-accent) - var(--border-w));
+  }
 }
 
 .nut-hien-an {
   position: absolute;
   top: 50%;
-  right: var(--sp-3);
+  right: var(--sp-4);
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
   background: transparent;
   border: none;
   color: var(--color-text-muted);

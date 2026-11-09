@@ -79,7 +79,7 @@ Vì sao có ngưỡng 50 dòng cho `Program.cs`: vượt ngưỡng nghĩa là c�
 
 ## 3. Ba luật ranh giới — ép bằng test, không bằng niềm tin
 
-Vì sao một chuỗi tên nghiệp vụ trong `Core.Application` là vi phạm R1: nó khiến Core không mang đi được sang dự án không có khái niệm đó.
+Vì sao một chuỗi tên nghiệp vụ trong `Core.Application` là vi phạm luật *Core không bao giờ tham chiếu Module*: nó khiến Core không mang đi được sang dự án không có khái niệm đó.
 
 > ⚠️ **Bài học khi thi công A5:** ở dự án tiền nhiệm, detector cho luật này quét **văn bản nguồn** thay vì AST. Hệ quả là code phải viết vòng để né detector — một chuỗi nội suy hợp lệ vẫn bị bắt, nên người viết phải tách biến chỉ để làm chuỗi "sạch". Đuôi vẫy chó. Đó là lý do file luật yêu cầu ưu tiên phân tích AST, và detector quét văn bản phải có test chứng minh nó bỏ qua comment và định danh (luật T1).
 
@@ -138,8 +138,8 @@ Vì sao khối máy đọc có bốn luật định dạng:
 | Dòng trống và dòng bắt đầu bằng `#` bị bỏ qua | Chú thích nhóm nằm ngay trong khối mà không thành một đường dẫn giả |
 | Không liệt kê tệp bị `.gitignore` loại | Hook tự loại chúng bằng `git check-ignore`; liệt kê ra là để một thư mục output build kích hoạt review |
 
-**Vì sao ArchTests nằm trong khối:** chúng là hàng rào của mọi luật ở [`kien-truc-core-module.md`](../../../kien-truc-core-module.md) §3 — sửa một test là nới một luật mà không đụng dòng luật nào.
+**Vì sao toàn bộ `src/BE/Tests/` nằm trong khối, không chỉ ArchTests:** test là cổng của luật. ArchTests là hàng rào của mọi luật ở [`kien-truc-core-module.md`](../../../kien-truc-core-module.md) §3; integration test và unit test là cổng của các luật ✅ khác, và `csproj` của UnitTests giữ ngưỡng coverage T3. Sửa một test là nới một luật mà không đụng dòng luật nào. Phủ theo từng project hay từng tệp thì phải giữ danh sách theo tên test, và test mới ngoài danh sách là một cổng sửa được mà không ai soát. Phủ cả thư mục cũng khớp vùng Core ở [`quy-uoc/repo-artifact.md`](../../../quy-uoc/repo-artifact.md) §15.5.
 
 **Vì sao host nằm ngoài khối:** dự án hạ nguồn **phải** sửa host — thêm dòng đăng ký module, đổi tên cookie, thêm dòng `COPY` cho module mới. Để host trong khối thì mỗi lần đăng ký module thành một lần "sửa Core", và hook chặn lượt đòi một lượt review Core cho một dòng đăng ký. Thứ canh host mỏng chuyển từ review sang test: luật A7 và ngưỡng `Program.cs`, cả hai là ArchTest nên vẫn nằm trong khối. Quyết định và cửa sổ chưa canh: [`adr/0100-host-thuoc-vung-du-an-ba-vung-so-huu-tep.md`](../../../adr/0100-host-thuoc-vung-du-an-ba-vung-so-huu-tep.md). 
 
-**Vì sao tài liệu luật nằm ngoài khối, trừ chính tệp giữ khối:** đưa `docs/quy-uoc/`, `RULES.md`, `OWNERSHIP.md` vào khối làm mỗi lần sửa một câu luật kéo theo một lượt review code, và hook đã chặn hàng trăm lần vì thế. Luật đổi mà code chưa khớp thì ghi nợ; lượt sửa code Core kế tiếp được soát theo luật mới. Riêng `kien-truc-core-module.md` ở lại, vì thu hẹp khối là tắt hàng rào — quyết định ở [`adr/0108-hook-stop-hoan-khi-cho-agent-nen-docs-khong-keo-review.md`](../../../adr/0108-hook-stop-hoan-khi-cho-agent-nen-docs-khong-keo-review.md) mục 2.
+**Vì sao tài liệu luật nằm ngoài khối, trừ chính tệp giữ khối:** đưa `docs/quy-uoc/`, `RULES.md`, `OWNERSHIP.md` vào khối làm mỗi lần sửa một câu luật kéo theo một lượt review code, và hook đã chặn hàng trăm lần vì thế. Luật đổi mà code chưa khớp thì thành GitHub Issue; lượt sửa code Core kế tiếp được soát theo luật mới. Riêng `kien-truc-core-module.md` ở lại, vì thu hẹp khối là tắt hàng rào — quyết định ở [`adr/0108-hook-stop-hoan-khi-cho-agent-nen-docs-khong-keo-review.md`](../../../adr/0108-hook-stop-hoan-khi-cho-agent-nen-docs-khong-keo-review.md) mục 2.

@@ -94,7 +94,13 @@ public sealed class ForwardedHeadersTrustTests
 
         var exception = Should.Throw<Exception>(() => factory.CreateClient());
 
-        Messages(exception).ShouldContain(m => m.Contains(key, StringComparison.Ordinal));
+        // Ca này từng đỏ một lần ở lần chạy đầy đủ mà không tái hiện được (docs/DEBT.md, T2). Thông điệp đi kèm liệt kê
+        // MỌI ngoại lệ khởi động, để lần đỏ sau cho biết khởi động hỏng vì khoá nào khác chứ không chỉ "không thấy khoá".
+        var messages = Messages(exception).ToList();
+        messages.ShouldContain(
+            m => m.Contains(key, StringComparison.Ordinal),
+            $"Khởi động phải hỏng và nêu khoá '{key}'. Ngoại lệ thật ({exception.GetType().FullName}): "
+            + string.Join(" || ", messages));
     }
 
     private static string NetworkKey(string name) => $"Core:Network:{name}:0";

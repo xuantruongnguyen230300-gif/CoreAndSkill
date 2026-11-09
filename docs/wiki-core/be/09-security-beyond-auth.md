@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 09. Bảo mật ngoài phạm vi đăng nhập
 
-> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §9**; mục khác chưa ai đối chiếu nên `verified:` giữ `chua-doi-chieu`). Đường dẫn tính từ `src/BE/Core/CoreAndSkill.Core.Application/Files/`.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §9**; §6 đối chiếu riêng 2026-10-06 — bảng ở chính mục đó; mục khác chưa ai đối chiếu nên `verified:` giữ `chua-doi-chieu`). Đường dẫn tính từ `src/BE/Core/CoreAndSkill.Core.Application/Files/`.
 >
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
@@ -92,16 +92,29 @@ Lớp thứ nhất là lớp mạnh nhất, vì nó được ép bằng test ki�
 
 ## 6. Header bảo mật
 
-| Header | Chống gì | Ghi chú cho API |
-| --- | --- | --- |
-| `Strict-Transport-Security` | Hạ cấp xuống HTTP | Bật ở môi trường thật |
-| `X-Content-Type-Options: nosniff` | Trình duyệt tự đoán kiểu nội dung | Quan trọng với endpoint tải file |
-| `Content-Security-Policy` | Chèn script | Chủ yếu cho trang HTML; với API, đặt chính sách chặn hết |
-| `X-Frame-Options` / chỉ thị khung trong CSP | Bị nhúng trong khung để lừa bấm | |
-| `Referrer-Policy` | Rò đường dẫn nội bộ sang site khác | |
-| `Cache-Control: no-store` cho phản hồi có dữ liệu riêng tư | Dữ liệu người này còn trong bộ đệm khi người khác dùng chung máy | Hay bị bỏ sót |
+**Chia vai header bảo mật giữa proxy và Core — định nghĩa gốc.** Người dùng chốt 2026-10-06 ([`../../adr/0120-https-ket-thuc-o-caddy-trong-compose-header-chia-doi-postgres-quan-tri-cum-rieng-quet-bundle-fe-khi-dung-ban-cai.md`](../../adr/0120-https-ket-thuc-o-caddy-trong-compose-header-chia-doi-postgres-quan-tri-cum-rieng-quet-bundle-fe-khi-dung-ban-cai.md)). Phép chia: header gắn với kênh truyền hay với tài liệu trình duyệt hiển thị do proxy đặt; header gắn với nội dung phản hồi API do middleware Core đặt, để nó còn nguyên khi không có proxy — máy dev, test tích hợp — và kiểm được bằng test.
 
-Header là biện pháp rẻ nhất trong toàn bộ file này: đặt một lần ở middleware, không ảnh hưởng nghiệp vụ.
+| Header | Chống gì | Ai đặt | Ghi chú cho API |
+| --- | --- | --- | --- |
+| `Strict-Transport-Security` | Hạ cấp xuống HTTP | Proxy, cả origin FE lẫn origin API | Chỉ ở bản cài; máy dev không có proxy nên không có header này |
+| `X-Content-Type-Options: nosniff` | Trình duyệt tự đoán kiểu nội dung | **Middleware Core**, mọi phản hồi của API. Origin FE: proxy, theo [`../fe/17-phuc-vu-va-trien-khai.md`](../fe/17-phuc-vu-va-trien-khai.md) §6 | Quan trọng với endpoint tải file |
+| `Content-Security-Policy` | Chèn script | Proxy. Origin API: chính sách chặn hết, gồm `frame-ancestors 'none'`. Origin FE: FE 17 §6 | Chủ yếu cho trang HTML |
+| `X-Frame-Options` / chỉ thị khung trong CSP | Bị nhúng trong khung để lừa bấm | Proxy — origin API đi qua `frame-ancestors` của CSP | |
+| `Referrer-Policy` | Rò đường dẫn nội bộ sang site khác | Proxy | |
+| `Cache-Control: no-store` | Dữ liệu người này còn trong bộ đệm khi người khác dùng chung máy | **Middleware Core**, mọi phản hồi của API | Hay bị bỏ sót. Middleware không ghi đè giá trị endpoint đã đặt |
+
+- Middleware Core đặt header lúc phản hồi bắt đầu, nên phản hồi 401, 403, 429 và phản hồi lỗi cũng mang.
+- Phản hồi tệp vẫn tự đặt `nosniff`, `no-store` ở lớp dựng phản hồi tệp ([`../../adr/0064-nhanh-tra-tep-di-qua-apicontrollerbase.md`](../../adr/0064-nhanh-tra-tep-di-qua-apicontrollerbase.md)) — cùng giá trị với middleware.
+- Cấu hình proxy của bản cài Compose: [`18-trien-khai-va-van-hanh.md`](18-trien-khai-va-van-hanh.md) §3, mục *Bản cài Compose*. Bản cài không dùng compose phải tự đặt nửa của proxy; không cổng nào biết nửa đó vắng.
+
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-10-06).
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | ✅ Nửa của Core: `src/BE/Core/CoreAndSkill.Core.Web/Middleware/SecurityHeadersMiddleware.cs` đặt hai header trong `Response.OnStarting`, mỗi header chỉ khi chưa có — chuỗi `if (!headers.ContainsKey(HeaderNames.XContentTypeOptions))`; nối ngay sau `UseForwardedHeaders`, trước `TraceIdMiddleware` — `CoreApplicationBuilderExtensions.cs` dưới `src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/`, chuỗi `app.UseMiddleware<SecurityHeadersMiddleware>()`. Test `EveryResponse_CarriesNosniffAndNoStore_EvenForErrors` ở `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Web/RequestLogMiddlewareTests.cs` — chưa chạy trong lượt đối chiếu này | — |
+> | ✅ Nửa của proxy, origin API: `Caddyfile` gốc repo, khối `{$API_DOMAIN}` đặt `Strict-Transport-Security`, `Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"`, `Referrer-Policy "no-referrer"` | — |
+> | ✅ Nửa của proxy, origin FE: `Caddyfile` gốc repo, khối `{$FE_DOMAIN}` đặt `Strict-Transport-Security`, `X-Content-Type-Options "nosniff"`, `X-Frame-Options "DENY"`, `Referrer-Policy "strict-origin-when-cross-origin"` và CSP ở chế độ **chỉ báo cáo** — chuỗi `Content-Security-Policy-Report-Only` | CSP chặn thật: điều kiện ở [`../fe/14-security.md`](../fe/14-security.md) §4.2 |
+> | Chưa ai kiểm cú pháp `Caddyfile`, chưa ai chạy `docker compose up` — header ở bản cài thật **chưa đo** | Một lần gọi thật cả hai origin, đọc header phản hồi |
 
 ---
 
@@ -210,7 +223,7 @@ Và sau sự cố: một mục ở [`../../audit/`](../../audit/) ghi lại **c�
 | Chống dò tài khoản: thông điệp, thời gian, mã trạng thái | ✅ sẽ có | Cả ba đường |
 | Kiểm đầu vào ở biên, giới hạn kích thước mọi chiều | ✅ sẽ có | |
 | Chống gán tràn: entity không setter công khai, kiểu đầu vào riêng | ✅ sẽ có | Luật E1 |
-| Header bảo mật | ✅ sẽ có | Middleware, một chỗ |
+| Header bảo mật | ✅ có một phần (đối chiếu 2026-10-06) | Chia đôi giữa proxy và middleware Core — §6. Có: middleware Core, hai khối origin API và FE của `Caddyfile` — CSP origin FE mới chỉ báo cáo. Chưa: kiểm cú pháp `Caddyfile`, đo trên bản cài chạy thật |
 | Quét bí mật trong CI | ✅ sẽ có | Luật S6 |
 | Danh sách cột cho phép khi sắp xếp và lọc | ✅ sẽ có | §8 |
 | Kiểm chữ ký file khi tải lên | ✅ sẽ có | |

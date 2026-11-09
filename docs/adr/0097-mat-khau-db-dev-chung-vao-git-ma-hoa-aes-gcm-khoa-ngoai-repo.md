@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0097 — Chuỗi kết nối tới DB dev dùng chung vào git, phần mật khẩu mã hoá AES-256-GCM; khoá giải mã không bao giờ vào repo; giá trị mã hoá không giải được thì không khởi động
 
-> **Trạng thái:** Đã chấp nhận (2026-09-25) · Sửa một phần bởi [ADR-0098](0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md) (2026-09-25) · Bổ sung bởi [ADR-0099](0099-luat-van-hanh-db-dev-chung.md) (2026-09-25)
+> **Trạng thái:** Đã chấp nhận (2026-09-25) · Sửa một phần bởi [ADR-0098](0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md) (2026-09-25) · Bổ sung bởi [ADR-0099](0099-luat-van-hanh-db-dev-chung.md) (2026-09-25) · Sửa một phần bởi [ADR-0110](0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md) (2026-09-28) · Tạm hoãn bởi [ADR-0110](0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md) (2026-09-28)
 
 ## Bối cảnh
 

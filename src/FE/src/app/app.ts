@@ -1,6 +1,10 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 
+import { LoiTaiPhanMaService } from './core/navigation/loi-tai-phan-ma';
+import { ButtonComponent } from './shared/components/button/button.component';
+import { EmptyStateComponent } from './shared/components/empty-state/empty-state.component';
 import { ToastComponent } from './shared/ui/toast/toast.component';
 import { UnsavedChangesDialogComponent } from './platform/shell/unsaved-changes-dialog/unsaved-changes-dialog.component';
 
@@ -12,9 +16,23 @@ import { UnsavedChangesDialogComponent } from './platform/shell/unsaved-changes-
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ToastComponent, UnsavedChangesDialogComponent],
+  imports: [
+    RouterOutlet,
+    TranslatePipe,
+    ButtonComponent,
+    EmptyStateComponent,
+    ToastComponent,
+    UnsavedChangesDialogComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App {}
+export class App {
+  /**
+   * Khối "Không tải được phần ứng dụng" (Design/Screens/02-trang-loi.md) thay `<router-outlet />` khi
+   * chưa màn nào hiện mà phần mã của tuyến hỏng. Khối và mọi thứ nó dùng nằm ở gói khởi động — đặt
+   * nó ở gói theo tuyến thì nó hỏng cùng lúc với thứ nó báo.
+   */
+  protected readonly loiTaiPhanMa = inject(LoiTaiPhanMaService);
+}

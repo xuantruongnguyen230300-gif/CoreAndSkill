@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # Khuôn — kiểm kê UI hiện có
 
-📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Khuôn này **chưa dùng được ở giai đoạn 1** — xem §1.
+📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Khuôn này chưa được dùng để viết bản kiểm kê nào — điều kiện dùng ở §1.
 
 > Kiểm kê là bản đếm **cái đang chạy**: có bao nhiêu màn, câu chữ đến từ đâu, tài sản thương hiệu nào được nạp, component nào đã dựng.
 >
@@ -20,7 +20,7 @@ verified: chua-doi-chieu
 
 Kiểm kê là tài liệu **hiện trạng** — vai thứ hai trong hai vai ở [`../CLAUDE.md`](../CLAUDE.md) §2. Nó chỉ có nghĩa khi có một ứng dụng đang chạy để đếm. Viết một bản kiểm kê trước khi có app thì mọi dòng của nó là bịa, và tệ hơn: nó **trông giống** một bản đếm thật.
 
-Repo đang ở giai đoạn 1. **Khuôn này để dành.** Nó có mặt ở đây để khi giai đoạn 2 tới, không ai phải nghĩ lại từ đầu.
+Repo đã có `src/FE` với tuyến chạy được (xem `docs/README.md` mục *Trạng thái repo*) — điều kiện dùng khuôn này đã đạt. Chưa có ai dùng khuôn này để viết một bản kiểm kê; đó vẫn là việc còn để làm, không phải việc đã xong.
 
 Dấu hiệu đã đến lúc dùng: có `src/FE/` với ít nhất một tuyến chạy được.
 

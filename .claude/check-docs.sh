@@ -34,9 +34,16 @@ export LC_ALL=en_US.UTF-8
 cd "$(dirname "$0")/.." || exit 2
 
 FAIL=0
+NBAD=0
+SEC=""
 BT='`'
-section() { printf '\n\033[1m== %s ==\033[0m\n' "$1"; }
-bad()     { printf '  \033[31mFAIL\033[0m  %s\n' "$1"; FAIL=1; }
+# Mỗi lỗi là ĐÚNG MỘT dòng `FAIL [§N] …`: hook Stop lọc dòng FAIL để báo lại, nên
+# một dòng nối tiếp (danh sách tệp, lý do) in riêng là mất khi báo, và không mang mã
+# mục thì người đọc không biết lỗi thuộc mục nào. Chuỗi nhiều dòng gộp bằng " · ".
+# NBAD đếm lỗi đã in — mục nào cần biết "phần này của tôi có FAIL không" thì so NBAD
+# trước và sau phần đó.
+section() { SEC="${1%% *}"; printf '\n\033[1m== %s ==\033[0m\n' "$1"; }
+bad()     { printf '  \033[31mFAIL\033[0m  %s%s\n' "${SEC:+[$SEC] }" "${1//$'\n'/ · }"; FAIL=1; NBAD=$((NBAD+1)); }
 ok()      { printf '  \033[32mOK\033[0m    %s\n' "$1"; }
 warn()    { printf '  \033[33mNOTE\033[0m  %s\n' "$1"; }
 
@@ -114,9 +121,9 @@ fi
 
 SCAN_DIRS="docs .claude"
 [ -d spec ] && SCAN_DIRS="$SCAN_DIRS spec"
-# README.md o goc repo la CUA VAO DAU TIEN cua repo va la file duy nhat git dang
-# theo doi o giai doan 1 - nhung no khong nam trong khu nao ca, nen moi link chet
-# trong do la link chet o cho de thay nhat ma khong mot muc nao nhin toi.
+# README.md o goc repo la CUA VAO DAU TIEN cua repo - nhung no khong nam trong khu
+# nao ca, nen moi link chet trong do la link chet o cho de thay nhat ma khong mot
+# muc nao nhin toi.
 # Chi them vao SCAN_DIRS (§3, §4...), KHONG them vao SCAN_FM: README.md goc
 # khong phai file docs/ nen no khong phai khai ba khoa phan loai (§12).
 [ -f README.md ] && SCAN_DIRS="$SCAN_DIRS README.md"
@@ -168,55 +175,90 @@ CODEBLOCK=" $(find $SCAN_DIRS -name '*.md' -print0 2>/dev/null | xargs -0 awk '
   inblk { print FILENAME ":" FNR }' 2>/dev/null | tr '\n' ' ')"
 
 # ================================================================ §1
-# Bảng cấm git trong CLAUDE.md §1 phải khớp permissions.deny trong settings.json.
-# §1 tự tuyên bố lệnh cấm "được cưỡng chế bằng máy" — nếu văn bản liệt kê một
-# lệnh mà deny không chặn, câu đó thành lời hứa suông.
-section "§1  Bảng cấm trong CLAUDE.md §1 phải khớp settings.json"
+# Bảng git trong CLAUDE.md §1 phải khớp settings.json (ADR-0111 quyết định 4).
+#   - hàng "Được phép" == các mục Bash(git …) của permissions.allow, HAI CHIỀU: hook
+#     on-pretool.sh cho qua đúng những mục đó, nên một mục thêm vào allow mà bảng
+#     không liệt kê là một lệnh git được mở mà không ai thấy;
+#   - lệnh không phải git ở hàng "CẤM" có trong permissions.deny;
+#   - deny không chặn lệnh mà hàng "Được phép" liệt kê (bảng thành lời hứa suông);
+#   - mỗi mục git ở allow và mỗi mục cấm lệnh ở deny đủ ba dạng Bash / rtk / PowerShell.
+section "§1  Bảng git trong CLAUDE.md §1 phải khớp settings.json"
 if [ ! -e .claude/settings.json ]; then
   bad "không thấy .claude/settings.json — không kiểm được §1"
 else
-  # Chỉ gỡ xuống dòng, KHÔNG gỡ dấu cách: chuỗi cần so khớp là "Bash(git add:"
-  # — gỡ dấu cách biến nó thành "Bash(gitadd:" và mọi lệnh đều báo sai.
+  # Chỉ gỡ xuống dòng, KHÔNG gỡ dấu cách: chuỗi cần so khớp là "Bash(git log:"
+  # — gỡ dấu cách biến nó thành "Bash(gitlog:" và mọi lệnh đều báo sai.
   SETTXT=$(tr -d '\n' < .claude/settings.json)
-  # Chỉ lấy MẢNG deny, không lấy cả file: `allow` cũng có mục dạng
-  # "Bash(git ...:*)", nên so trên cả file thì một lệnh CẤM mà chỉ nằm ở allow
-  # vẫn qua cổng. Chuỗi trong deny không chứa "]", nên cắt ở "]" đầu tiên là đủ.
+  # Tách riêng MẢNG deny và MẢNG allow — so trên cả file thì mục của mảng này che
+  # thiếu sót của mảng kia. Mục trong hai mảng không chứa "]", nên cắt ở "]" đầu.
   DENY="${SETTXT#*\"deny\"}"
   if [ "$DENY" = "$SETTXT" ]; then DENY=""; else DENY="${DENY%%]*}"; fi
-  n=0; lay=0
-  while IFS= read -r cmd; do
-    [ -z "$cmd" ] && continue
-    case "$cmd" in *' '*) continue ;; esac
-    lay=$((lay+1))
-    # Nhan CA hai dang: "Bash(git tag:*)" va "Bash(git remote add:*)". Khong
-    # duoc mien tru mot lenh cung trong script — mot ngoai le khong khai o dau
-    # ca la mot ngoai le khong ai kiem lai.
-    case "$DENY" in *"Bash(git $cmd:"*|*"Bash(git $cmd "*) continue ;; esac
-    bad "CLAUDE.md §1 cấm 'git $cmd' nhưng settings.json deny KHÔNG chặn"
+  ALLOW="${SETTXT#*\"allow\"}"
+  if [ "$ALLOW" = "$SETTXT" ]; then ALLOW=""; else ALLOW="${ALLOW%%]*}"; fi
+  # Hai hàng bảng, tìm theo chữ, không theo emoji. LC_ALL=C: trên Git Bash, `[^|]` ở
+  # locale UTF-8 không khớp emoji bốn byte (🛑) — hàng cấm biến mất mà không báo.
+  ROW_OK=$(LC_ALL=C grep -m1 -E '^\| [^|]*Được phép' .claude/CLAUDE.md)
+  ROW_NO=$(LC_ALL=C grep -m1 -E '^\| [^|]*CẤM' .claude/CLAUDE.md)
+  # Mục trong backtick của một hàng -> mảng _BT.
+  _bt_items() {
+    local r="$1"; _BT=()
+    while [ "${r#*\`}" != "$r" ]; do
+      r="${r#*\`}"
+      [ "${r#*\`}" = "$r" ] && break
+      _BT+=("${r%%\`*}")
+      r="${r#*\`}"
+    done
+  }
+  n=0; lay=0; lay1r=0; lay2=0; lay3=0
+  declare -A OKSET=()
+  _bt_items "$ROW_OK"
+  for x in "${_BT[@]}"; do
+    case "$x" in
+      'git '?*) ;;
+      *) bad "hàng được phép của CLAUDE.md §1 có '$x' — mỗi mục phải là một lệnh git"; n=$((n+1)); continue ;;
+    esac
+    lay=$((lay+1)); OKSET["$x"]=1
+    case "$ALLOW" in
+      *"\"Bash($x:*)\""*) suf=':*' ;;
+      *"\"Bash($x)\""*)   suf='' ;;
+      *) bad "CLAUDE.md §1 cho phép '$x' nhưng allow không có mục Bash($x:*) hay Bash($x)"; n=$((n+1)); continue ;;
+    esac
+    case "$ALLOW" in *"\"Bash(rtk $x$suf)\""*) ;; *) bad "allow có 'Bash($x$suf)' nhưng thiếu 'Bash(rtk $x$suf)'"; n=$((n+1)) ;; esac
+    case "$ALLOW" in *"\"PowerShell($x$suf)\""*) ;; *) bad "allow có 'Bash($x$suf)' nhưng thiếu 'PowerShell($x$suf)'"; n=$((n+1)) ;; esac
+  done
+  # Chiều ngược: mọi mục git ở allow (cả dạng rtk, PowerShell) có trong hàng được phép.
+  # Không trích được hàng nào thì bỏ qua — lỗi thật là dòng "không trích được" ở cuối.
+  rest="$ALLOW"; [ "$lay" -eq 0 ] && rest=""
+  while :; do
+    case "$rest" in *\"*\"*) ;; *) break ;; esac
+    rest="${rest#*\"}"; item="${rest%%\"*}"; rest="${rest#*\"}"
+    case "$item" in
+      'Bash(git'[\ :\)]*)      x="${item#Bash(}" ;;
+      'Bash(rtk git'[\ :\)]*)  x="${item#Bash(rtk }" ;;
+      'PowerShell(git'[\ :\)]*) x="${item#PowerShell(}" ;;
+      *) continue ;;
+    esac
+    x="${x%)}"; x="${x%:\*}"
+    lay1r=$((lay1r+1))
+    [ -n "${OKSET["$x"]+x}" ] && continue
+    bad "allow có '$item' nhưng hàng được phép của CLAUDE.md §1 không liệt kê '$x' — hook cho qua lệnh này"
     n=$((n+1))
-  done < <(grep -m1 'CẤM' .claude/CLAUDE.md | grep -oP "$BT\\K[a-z-]+(?=$BT)")
-  # Phan NON-GIT cua §1. CLAUDE.md §1 liet ke them mot loat lenh pha huy khong
-  # phai git; thieu doi chieu thi mot dong them vao van ban ma quen them vao
-  # settings.json se khong ai biet.
-  lay2=0
-  while IFS= read -r cmd; do
-    [ -z "$cmd" ] && continue
-    # Chi xet lenh NHIEU TU. Mot tu don la ten lenh git da duoc vong lap tren
-    # xet roi (vi du `remote` trong chinh cau van giai thich).
-    case "$cmd" in *' '*) ;; *) continue ;; esac
-    # Bo dang co CO: `git remote -v` chi doc, no duoc phep va khong duoc deny.
-    case "$cmd" in *' -'*) continue ;; esac
+  done
+  # Lệnh không phải git ở hàng CẤM — chỉ xét mục nhiều từ; `git` đơn là chữ trong câu.
+  _bt_items "$ROW_NO"
+  for x in "${_BT[@]}"; do
+    case "$x" in *' '*) ;; *) continue ;; esac
+    case "$x" in 'git '*) continue ;; esac
     lay2=$((lay2+1))
-    case "$DENY" in *"Bash($cmd:"*) continue ;; esac
-    bad "CLAUDE.md §1 cấm '$cmd' nhưng settings.json deny KHÔNG chặn"
+    case "$DENY" in *"\"Bash($x:*)\""*) continue ;; esac
+    bad "CLAUDE.md §1 cấm '$x' nhưng settings.json deny KHÔNG chặn"
     n=$((n+1))
-  done < <({ grep -m1 'chặn thêm' .claude/CLAUDE.md; grep -m1 'dạng ghi của' .claude/CLAUDE.md; } | grep -oP "$BT\K[a-z][a-z0-9 -]+(?=$BT)")
+  done
 
   # BA DẠNG cho mỗi mục cấm. `Bash(x:*)` so tiền tố của lệnh chạy qua công cụ
   # Bash — công cụ PowerShell và tiền tố `rtk` không khớp nó. Đã thử thật: một
-  # lệnh cấm lọt qua cả hai đường đó. Thiếu một dạng là lệnh lọt đúng đường ấy,
-  # và cổng cũ vẫn xanh vì chỉ đối chiếu dạng Bash.
-  lay3=0
+  # lệnh cấm lọt qua cả hai đường đó. Thiếu một dạng là lệnh lọt đúng đường ấy.
+  # Cùng vòng: mục deny git không được chặn lệnh mà hàng được phép liệt kê.
   rest="$DENY"
   while [ "${rest#*\"Bash(}" != "$rest" ]; do
     rest="${rest#*\"Bash(}"
@@ -227,17 +269,24 @@ else
     lay3=$((lay3+1))
     case "$DENY" in *"\"Bash(rtk $x:*)\""*) ;; *) bad "settings.json deny có 'Bash($x:*)' nhưng thiếu 'Bash(rtk $x:*)'"; n=$((n+1)) ;; esac
     case "$DENY" in *"\"PowerShell($x:*)\""*) ;; *) bad "settings.json deny có 'Bash($x:*)' nhưng thiếu 'PowerShell($x:*)'"; n=$((n+1)) ;; esac
+    case "$x" in 'git '*) ;; *) continue ;; esac
+    for a in "${!OKSET[@]}"; do
+      case "$a" in "$x"|"$x "*) bad "deny 'Bash($x:*)' chặn '$a' mà hàng được phép của CLAUDE.md §1 liệt kê"; n=$((n+1)) ;; esac
+    done
   done
 
   if [ "$lay" -eq 0 ]; then
-    bad "§1 KHÔNG trích được lệnh git nào từ bảng cấm — mục này đang không kiểm gì"
+    bad "§1 KHÔNG trích được lệnh git nào từ hàng được phép — mục này đang không kiểm gì"
+  elif [ "$lay1r" -eq 0 ]; then
+    bad "§1 KHÔNG trích được mục git nào từ permissions.allow — chiều ngược đang không kiểm gì"
   elif [ "$lay2" -eq 0 ]; then
-    bad "§1 KHÔNG trích được lệnh non-git nào từ CLAUDE.md §1 — nửa sau của mục này đang không kiểm gì"
+    bad "§1 KHÔNG trích được lệnh non-git nào từ hàng cấm — phần đối chiếu deny đang không kiểm gì"
   elif [ "$lay3" -eq 0 ]; then
     bad "§1 KHÔNG trích được mục Bash(...:*) nào từ permissions.deny — phần kiểm ba dạng đang không kiểm gì"
   elif [ "$n" -eq 0 ]; then
-    ok "mọi lệnh trong bảng cấm đều được deny chặn ($lay lệnh git, $lay2 lệnh khác); mỗi mục deny đủ ba dạng Bash / rtk / PowerShell ($lay3 mục)"
+    ok "hàng được phép khớp hai chiều allow ($lay lệnh git, $lay1r mục allow); $lay2 lệnh cấm khác có trong deny; mỗi mục deny đủ ba dạng ($lay3 mục)"
   fi
+  unset _BT OKSET
 fi
 
 # ================================================================ §2
@@ -265,8 +314,30 @@ fi
 
 # ================================================================ §3
 # Mọi link markdown nội bộ phải resolve được.
+# MIỄN TRỪ có khai báo, dùng chung cho §3 và §4 — ADR đã chấp nhận là bản ghi bất
+# biến (luật D45): khi một tệp được trích bị xoá hay dời, dòng trích của ADR gãy mà
+# không được sửa. Đích trong ADR đã chấp nhận (hay đã bị thay thế) được miễn KHI git
+# cho thấy nó từng tồn tại; đích gõ sai chưa bao giờ tồn tại vẫn đỏ. Clone nông không
+# có lịch sử để chứng minh — khi đó mục đỏ và nói rõ, không lặng lẽ cho qua.
+# Người dùng chốt: §4 ngày 2026-09-30, §3 ngày 2026-10-06 (docs/adr/nhat-ky-quyet-dinh.md).
+_SHALLOW=$(git rev-parse --is-shallow-repository 2>/dev/null)
+declare -A _ADRST
+adr_da_chap_nhan() {
+  case "$1" in docs/adr/[0-9]*.md) ;; *) return 1 ;; esac
+  if [ -z "${_ADRST["$1"]+x}" ]; then
+    local s; s=$(grep -m1 '^> \*\*Trạng thái:\*\*' "$1" 2>/dev/null)
+    case "$s" in *"Đã chấp nhận"*|*"Đã thay thế"*) _ADRST["$1"]=0 ;; *) _ADRST["$1"]=1 ;; esac
+  fi
+  return "${_ADRST["$1"]}"
+}
+# Đích từng tồn tại theo git (đường dẫn chuẩn hoá về gốc repo, bỏ "..").
+da_tung_ton_tai() {
+  local p; p=$(realpath -m --relative-to=. "$1" 2>/dev/null) || return 1
+  [ -n "$(git log -1 --format=%h -- "$p" 2>/dev/null)" ]
+}
+
 section "§3  Link markdown nội bộ phải resolve được"
-n=0; seen=0
+n=0; seen=0; n_adr3=0
 # HIỆU NĂNG: hàng nghìn link nhưng chỉ vài phần số đó là ĐÍCH KHÁC NHAU. awk tách
 # link (cùng phép cắt như bản bash cũ, LC_ALL=C vì mọi mốc cắt đều là ký tự
 # ASCII) và in mỗi đích một lần; bash chỉ `[ -e ]` các đích đó. Chỉ khi có đích
@@ -299,7 +370,7 @@ _awk3='
   $0 == ""  { next }
   !parse()  { next }
   mode == "U" { seen++; if (!(path in U)) { U[path] = 1; print "P\t" path }; next }
-  mode == "B" && (path in M) { print f "\t" ln "\t" tgt }
+  mode == "B" && (path in M) { print f "\t" ln "\t" tgt "\t" path }
   END { if (mode == "U") print "S\t" seen + 0 }
 '
 _g3=$(grep -rnoE '\]\([^)]+\)' $SCAN_DIRS --include='*.md' 2>/dev/null)
@@ -316,7 +387,15 @@ case "$seen" in ''|*[!0-9]*) seen=0 ;; esac
 if [ "${#_miss3[@]}" -gt 0 ]; then
   _L=(); _lines _L "$( { printf '%s\n' "${#_miss3[@]}"; printf '%s\n' "${_miss3[@]}"; printf '%s\n' "$_g3"; } | LC_ALL=C awk -v mode=B "$_awk3")"
   for _l in "${_L[@]}"; do
-    f="${_l%%$'\t'*}"; _r="${_l#*$'\t'}"; ln="${_r%%$'\t'*}"; tgt="${_r#*$'\t'}"
+    f="${_l%%$'\t'*}"; _r="${_l#*$'\t'}"; ln="${_r%%$'\t'*}"; _r="${_r#*$'\t'}"
+    tgt="${_r%%$'\t'*}"; _p="${_r#*$'\t'}"
+    if adr_da_chap_nhan "$f"; then
+      if [ "$_SHALLOW" = true ]; then
+        bad "$f:$ln — link chết: $tgt (clone nông: không kiểm được đích từng tồn tại — job CI cần fetch-depth: 0)"
+        n=$((n+1)); continue
+      fi
+      if da_tung_ton_tai "$_p"; then n_adr3=$((n_adr3+1)); continue; fi
+    fi
     bad "$f:$ln — link chết: $tgt"
     n=$((n+1))
   done
@@ -325,7 +404,7 @@ unset _g3
 if [ "$seen" -eq 0 ]; then
   bad "§3 không trích được link nào — mục này đang không kiểm gì"
 elif [ "$n" -eq 0 ]; then
-  ok "mọi link nội bộ resolve được ($seen link)"
+  ok "mọi link nội bộ resolve được ($seen link; $n_adr3 trong ADR đã chấp nhận trỏ tệp không còn trên đĩa nhưng từng tồn tại)"
 fi
 
 # ================================================================ §4 + §5 + §7
@@ -337,7 +416,9 @@ PATHS=$(grep -rnoP "$BT\\K(docs|\\.claude|spec)/[^$BT]*(?=$BT)" $SCAN_DIRS --inc
 _PATHS=(); _lines _PATHS "$PATHS"
 
 section "§4  Đường dẫn được trích dẫn phải tồn tại"
-n=0; seen=0
+# MIỄN TRỪ có khai báo — đường dẫn trong ADR đã chấp nhận, từng tồn tại theo git:
+# hàm adr_da_chap_nhan và lý do khai ở đầu §3 (dùng chung). Chốt 2026-09-30.
+n=0; seen=0; n_adr=0
 for hit in "${_PATHS[@]}"; do
   [ -z "$hit" ] && continue
   f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"; p="${rest#*:}"
@@ -345,8 +426,8 @@ for hit in "${_PATHS[@]}"; do
   [ -n "${HISTL["$f:$ln"]+x}" ] && continue
   # MIỄN TRỪ có khai báo: docs/00-overview/ là tài liệu LẬP KẾ HOẠCH, không phải
   # quy tắc kỹ thuật (docs/README.md dán nhãn khu này là "🗄️ kế hoạch"). Mọi
-  # đường dẫn nó nêu hoặc thuộc repo tiền nhiệm, hoặc thuộc cấu trúc giai đoạn 2
-  # chưa dựng — "chưa tồn tại" chính là nội dung nó đang nói, không phải lỗi.
+  # đường dẫn nó nêu hoặc thuộc repo tiền nhiệm, hoặc thuộc cấu trúc dự kiến lúc
+  # lập kế hoạch — "chưa tồn tại" chính là nội dung nó đang nói, không phải lỗi.
   #
   # Cái giá của miễn trừ này, nói rõ để không ai tưởng nó miễn phí: một đường dẫn
   # gõ sai trong khu kế hoạch sẽ KHÔNG bị bắt. Chấp nhận được vì khu này không
@@ -358,13 +439,20 @@ for hit in "${_PATHS[@]}"; do
   case "$p" in *:[0-9]*) p="${p%:*}" ;; esac
   seen=$((seen+1))
   exists "$p" && continue
+  if adr_da_chap_nhan "$f"; then
+    if [ "$_SHALLOW" = true ]; then
+      bad "$f:$ln — đường dẫn không tồn tại: $p (clone nông: không kiểm được đường dẫn từng tồn tại — job CI cần fetch-depth: 0)"
+      n=$((n+1)); continue
+    fi
+    if [ -n "$(git log -1 --format=%h -- "$p" 2>/dev/null)" ]; then n_adr=$((n_adr+1)); continue; fi
+  fi
   bad "$f:$ln — đường dẫn không tồn tại: $p"
   n=$((n+1))
 done
 if [ "$seen" -eq 0 ]; then
   bad "§4 không trích được đường dẫn nào — mục này đang không kiểm gì"
 elif [ "$n" -eq 0 ]; then
-  ok "mọi đường dẫn trích dẫn đều tồn tại ($seen đường dẫn)"
+  ok "mọi đường dẫn trích dẫn đều tồn tại ($seen đường dẫn; $n_adr trong ADR đã chấp nhận không còn trên đĩa nhưng từng tồn tại)"
 fi
 
 # §5 — CỐ Ý không báo lỗi cho file mới chưa commit: một cổng đo tiến độ commit
@@ -408,9 +496,9 @@ else
   case "$seen" in ''|*[!0-9]*) seen=0 ;; esac
   # §5 quét RỘNG HƠN §4, cố ý.
   #
-  # §4 chỉ nhận tiền tố docs/ .claude/ spec/ — khu BẮT BUỘC tồn tại hôm nay.
-  # Khu giai đoạn 2 (src/, scripts/, database/) chưa dựng, nên bắt "không tồn
-  # tại" ở đó là báo sai.
+  # §4 chỉ nhận tiền tố docs/ .claude/ spec/. Nó chưa xét src/, scripts/,
+  # database/ — các khu đó đã có trong git (ADR-0113), mở rộng §4 sang chúng là
+  # việc chưa làm.
   #
   # §5 thì khác: nó chỉ báo khi file THẬT SỰ TỒN TẠI và bị gitignore loại trừ
   # — không tồn tại thì bỏ qua ngay ở dòng `exists` (tức `[ -e ]`) trên. Nên mở
@@ -497,9 +585,10 @@ for hit in "${_r7[@]}"; do
   bad "$f:$ln — trích dẫn $ref nhưng file chỉ có $total dòng"
   n=$((n+1))
 done
-# 0 trích dẫn KHÔNG phải là PASS. Ở giai đoạn 1 chưa có src/ để neo nên con số
-# này hợp lệ bằng 0 — nhưng mục phải NÓI RA rằng nó không kiểm gì, thay vì im
-# lặng in OK. Một no-op im lặng là cách cổng chết mà không ai biết
+# 0 trích dẫn KHÔNG phải là PASS. Con số này hợp lệ bằng 0 — dạng file:dòng chỉ
+# dùng cho neo tới docs/, neo tới src/ là chuỗi tìm được (ADR-0046), và trích dẫn
+# trong ADR có số bị bỏ qua — nhưng mục phải NÓI RA rằng nó không kiểm gì, thay vì
+# im lặng in OK. Một no-op im lặng là cách cổng chết mà không ai biết
 # (docs/audit/2026-08-23-cong-khong-ton-tai.md).
 if [ "$n" -eq 0 ]; then
   if [ "$seen" -eq 0 ]; then
@@ -682,12 +771,13 @@ fi
 
 # ================================================================ §10
 # Chú thích trong src/ trỏ docs/ phải tồn tại.
-# GIAI ĐOẠN 1: chưa có src/. Mục này là NO-OP CÓ KHAI BÁO — nó phải NÓI RA rằng
-# nó không kiểm gì, thay vì im lặng in OK. Một no-op im lặng là cách cổng chết
-# mà không ai biết (docs/audit/2026-08-23-cong-khong-ton-tai.md).
+# Thiếu src/ là FAIL, không phải NOTE (T6; ADR-0114 quyết định 14): repo đi theo
+# đường phân phối của ADR-0016 luôn có src/, nên thiếu nó là cây hỏng — và một mục
+# không có đầu vào mà vẫn qua là cách cổng chết mà không ai biết
+# (docs/audit/2026-08-23-cong-khong-ton-tai.md).
 section "§10 Chú thích trong src/ trỏ docs/ phải tồn tại"
 if [ ! -d src ]; then
-  warn "chưa có src/ — §10 KHÔNG kiểm gì (khai báo tường minh, không phải PASS)"
+  bad "không có src/ — §10 không kiểm được gì; repo phân phối theo ADR-0016 luôn có src/ (ADR-0114 quyết định 14)"
 elif ! git rev-parse --git-dir >/dev/null 2>&1; then
   warn "không phải git repo — §10 KHÔNG kiểm gì vì không lọc được file bị gitignore (khai báo tường minh)"
 else
@@ -713,58 +803,32 @@ else
   fi
 fi
 
-# ================================================================ §11
-# Không được tuyên bố CÓ THẬT khi chưa có src/ để đối chiếu (CLAUDE.md §4).
-section "§11 Không tuyên bố hiện trạng khi chưa có src/"
-if [ -d src ]; then
-  warn "đã có src/ — §11 chỉ áp ở giai đoạn 1"
-else
-  # CANARY. Muc nay khong the dung bo dem dau vao: 0 dong khop la trang thai
-  # DUNG o giai doan 1, nen `raw -eq 0 -> bad` se do oan.
-  #
-  # Nhung dieu kien PASS cua no van la thuan phu dinh, va pattern cua no chua
-  # mot ky tu emoji — dung ca ma §0 (dong 44-46) ghi lai: mot muc la no-op im
-  # lang suot thoi gian dai vi grep khong khop duoc emoji trong pattern.
-  #
-  # Canary chung minh phep do CON SONG bang cach cho no khop mot chuoi dung
-  # san. Pattern hong thi canary hong truoc, va muc nay noi ra.
-  if ! printf '%s\n' '✅ CÓ THẬT' | grep -q '✅ CÓ THẬT'; then
-    bad "§11 canary hỏng — pattern '✅ CÓ THẬT' không khớp được cả chuỗi dựng sẵn; mục này đang không kiểm gì"
-  else
-  n=0; seen=0
-  while IFS= read -r hit; do
-    [ -z "$hit" ] && continue
-    seen=$((seen+1))
-    f="${hit%%:*}"; rest="${hit#*:}"; ln="${rest%%:*}"
-    case "$HIST_FILES" in *" $f "*) continue ;; esac
-    [ -n "${HISTL["$f:$ln"]+x}" ] && continue
-    case "$f" in docs/00-overview/*) continue ;; esac
-    bad "$f:$ln — tuyên bố 'CÓ THẬT' nhưng repo chưa có src/ để đối chiếu"
-    n=$((n+1))
-  done < <(grep -rn '✅ CÓ THẬT' docs --include='*.md' 2>/dev/null)
-  [ "$n" -eq 0 ] && ok "không tuyên bố hiện trạng nào khi chưa có src/ (canary sống, $seen dòng khớp pattern)"
-  fi
-fi
-
 # ================================================================ §12
 # Mọi file docs/ và spec/ phải khai đủ kind / scope / verified.
 # Ba khoá biến ba câu hỏi phải-đọc-mới-biết thành ba câu máy đọc được.
 section "§12 Mọi file docs/ + spec/ khai đủ kind / scope / verified"
 SCAN_FM="docs"; [ -d spec ] && SCAN_FM="docs spec"
+# Giá trị được phép — in kèm mọi thông báo, để người sửa không phải mở CLAUDE.md §9.
+K12='luat | tham-chieu | quyet-dinh | lich-su'
+S12='core | du-an'
+V12='YYYY-MM-DD | chua-doi-chieu | khong-ap-dung'
 n=0; seen=0; n_chua=0; n_khongap=0
-while IFS=$'\t' read -r f k s v st; do
+# Dấu phân cách \037 (US), KHÔNG phải tab: tab là ký tự trắng của IFS, nên `read`
+# gộp hai tab liền nhau và trường rỗng biến mất — thiếu `kind:` thành "thiếu khoá:
+# verified", còn tệp có `status:` thì mọi giá trị trượt sang trái một cột.
+while IFS=$'\037' read -r f k s v st; do
   [ -z "$f" ] && continue
   seen=$((seen+1))
   miss=""
-  [ -z "$k" ] && miss="$miss kind"
-  [ -z "$s" ] && miss="$miss scope"
-  [ -z "$v" ] && miss="$miss verified"
+  [ -z "$k" ] && miss="$miss kind ($K12);"
+  [ -z "$s" ] && miss="$miss scope ($S12);"
+  [ -z "$v" ] && miss="$miss verified ($V12);"
   if [ -n "$miss" ]; then
-    bad "$f — thiếu khoá:$miss"
+    bad "$f — thiếu khoá:${miss%;}"
     n=$((n+1)); continue
   fi
-  case "$k" in luat|tham-chieu|quyet-dinh|lich-su) ;; *) bad "$f — kind: '$k' không hợp lệ"; n=$((n+1)) ;; esac
-  case "$s" in core|du-an) ;; *) bad "$f — scope: '$s' không hợp lệ"; n=$((n+1)) ;; esac
+  case "$k" in luat|tham-chieu|quyet-dinh|lich-su) ;; *) bad "$f — kind: '$k' không hợp lệ — được phép: $K12"; n=$((n+1)) ;; esac
+  case "$s" in core|du-an) ;; *) bad "$f — scope: '$s' không hợp lệ — được phép: $S12"; n=$((n+1)) ;; esac
   case "$v" in
     chua-doi-chieu) n_chua=$((n_chua+1)) ;;
     khong-ap-dung)
@@ -781,10 +845,10 @@ while IFS=$'\t' read -r f k s v st; do
           esac ;;
       esac ;;
     20[0-9][0-9]-[01][0-9]-[0-3][0-9]) ;;
-    *) bad "$f — verified: '$v' không hợp lệ"; n=$((n+1)) ;;
+    *) bad "$f — verified: '$v' không hợp lệ — được phép: $V12"; n=$((n+1)) ;;
   esac
 done < <(find $SCAN_FM -name '*.md' -print0 2>/dev/null | xargs -0 awk '
-  function flush() { if (cur != "") print cur "\t" k "\t" s "\t" v "\t" st }
+  function flush() { if (cur != "") print cur "\037" k "\037" s "\037" v "\037" st }
   FNR==1 { flush(); cur=FILENAME; k=""; s=""; v=""; st=""; fm=($0=="---")?1:0; next }
   fm==1 && $0=="---" { fm=2; next }
   fm==1 && /^kind:/     { sub(/^kind:[ \t]*/,     ""); k=$0 }
@@ -811,7 +875,7 @@ section "§13 Trích dẫn không trỏ vào file kind: lich-su"
 # mot thay doi hop le, va cach sua nhanh nhat ma nguoi ta chon la tat muc nay di.
 DEAD=" $(grep -rl '^kind:[[:space:]]*lich-su' docs --include='*.md' 2>/dev/null | sort -u | tr '\n' ' ')"
 # CANARY: pattern cua muc nay dò frontmatter. 0 file lich-su la trang thai HOP LE
-# o giai doan 1, nen `bad` khi rong se bao oan — nhung in `ok` mau xanh thi khong
+# (repo chua co tai lieu chet nao), nen `bad` khi rong se bao oan — nhung in `ok` mau xanh thi khong
 # phan biet duoc "chua co file lich-su" voi "toi khong do duoc file nao". Canary
 # chung minh phep do con song; ket qua rong thi khai bao tuong minh bang NOTE.
 if ! printf '%s\n' 'kind: lich-su' | grep -q '^kind:[[:space:]]*lich-su'; then
@@ -893,9 +957,11 @@ fi
 
 # ================================================================ §14
 # Mọi luật trong docs/RULES.md và docs/RULES-*.md phải khai cột "ép bằng gì".
-# Một luật trả lời "bằng niềm tin" thì không phải luật — nó là gợi ý, và phải
-# nằm ở docs/DEBT.md, nhìn thấy được, chứ không trộn vào bảng luật.
-section "§14 Mọi luật trong RULES.md khai cột ép bằng gì"
+# Một luật trả lời "bằng niềm tin" thì không phải luật — nó là gợi ý. Luật chưa có
+# cổng vẫn khai ô này: ai canh hôm nay, kèm "chưa có cổng" hoặc "không ép được bằng
+# máy", và cột trạng thái mang 🕳️ (ADR-0114 quyết định 9) — nhìn thấy được ngay ở
+# bảng luật, không ở một sổ riêng.
+section "§14 Mọi luật trong RULES-*.md khai cột ép bằng gì"
 n=0; seen=0
 _L=(); _lines _L "$(grep -h '^|' docs/RULES.md docs/RULES-*.md 2>/dev/null)"
 for line in "${_L[@]}"; do
@@ -906,12 +972,12 @@ for line in "${_L[@]}"; do
   enf="${c_enf#"${c_enf%%[![:space:]]*}"}"; enf="${enf%"${enf##*[![:space:]]}"}"
   id="${c_id//[[:space:]]/}"
   case "$enf" in ''|'—'|'-'|'?')
-    bad "RULES.md — luật $id không khai cột 'ép bằng gì' (phải chuyển sang docs/DEBT.md)"
+    bad "RULES-*.md — luật $id không khai cột 'ép bằng gì' (Sửa: ghi cổng/test ép luật ở cột thứ tư; chưa có cổng thì ghi ai canh hôm nay kèm 'chưa có cổng' hoặc 'không ép được bằng máy', và cột trạng thái mang 🕳️ — docs/RULES.md)"
     n=$((n+1)) ;;
   esac
 done
 if [ "$seen" -eq 0 ]; then
-  bad "§14 không trích được luật nào từ RULES.md — mục này đang không kiểm gì"
+  bad "§14 không trích được luật nào từ RULES-*.md — mục này đang không kiểm gì"
 elif [ "$n" -eq 0 ]; then
   ok "mọi luật đều khai cột ép bằng gì ($seen luật)"
 fi
@@ -1019,8 +1085,7 @@ else
       bad "OWNERSHIP: chuỗi định danh KHÔNG xuất hiện ở đâu cả — '$sig' (chủ đề: $topic). Dòng này đang không canh gì"
       n=$((n+1))
     elif [ "$cnt" -gt 1 ]; then
-      bad "OWNERSHIP: '$topic' được định nghĩa ở $cnt file, chủ quyền thuộc $owner —"
-      while IFS= read -r h; do [ -n "$h" ] && printf '          %s\n' "$h"; done <<< "$hits"
+      bad "OWNERSHIP: '$topic' được định nghĩa ở $cnt file, chủ quyền thuộc $owner — ${hits//$'\n'/, }"
       n=$((n+1))
     elif [ "$hits" != "$owner" ]; then
       bad "OWNERSHIP: '$topic' định nghĩa ở $hits nhưng sổ khai chủ là $owner"
@@ -1155,7 +1220,8 @@ fi
 # "loc chung tu theo khoang" la mot VI DU, va vi du la thu lam spec de hieu.
 # Xem docs/audit/2026-09-12-cong-neo-vao-muc-thay-vi-vai-tro-cua-chuoi.md.
 #
-# Phan con lai cua D27 van thuoc docs/DEBT.md: `core-reviewer` va nguoi doc bat.
+# Phan con lai cua D27 la dong 🕳️ D27 o docs/RULES-DOCS.md: `core-reviewer` va
+# nguoi doc bat.
 section "§18 Từ vựng nghiệp vụ không nằm ở vị trí định danh trong Components/"
 BIZPAT='chứng từ|dự toán|kỳ kế toán|hạch toán|kho[áó] sổ|bảng lương|định khoản'
 BIZPAT="$BIZPAT"'|chung[ _]?[Tt]u|du[ _]?[Tt]oan|ky[ _]?[Kk]e[ _]?[Tt]oan'
@@ -1529,8 +1595,8 @@ section "§26 Khối core-paths thật phải đọc được"
 cp_out=$(bash .claude/hooks/core-paths.sh 2>&1)
 cp_rc=$?
 if [ "$cp_rc" -ne 0 ]; then
-  bad "core-paths.sh thoát mã $cp_rc — khối trong docs/kien-truc-core-module.md không đọc được"
-  printf '%s\n' "$cp_out" | sed 's/^/        /'
+  # Lý do của core-paths.sh đi CÙNG dòng lỗi — in riêng thì hook Stop cắt mất.
+  bad "core-paths.sh thoát mã $cp_rc — khối trong docs/kien-truc-core-module.md không đọc được: ${cp_out//$'\n'/ · }"
 elif [ -z "$cp_out" ]; then
   bad "core-paths.sh thoát 0 nhưng in ra RỖNG — không đường dẫn nào được coi là chạm Core"
 else
@@ -1542,9 +1608,9 @@ section "§27 Nhãn 📐 cấp tệp không được đứng trên một neo tr�
 # §3.2), và không cơ chế nào buộc nó được xét lại khi code về. Cơ chế đó đã giấu
 # một lỗ bảo mật thật ở docs/contracts/. Luật D42 + ADR-0048.
 #
-# Hai nửa ĐỘC LẬP. Nửa nào không thấy thư mục mã nguồn của mình thì khai NOTE rồi
-# PASS — im lặng PASS và báo đỏ hàng loạt trên cây không có mã nguồn sai như nhau
-# (cùng điều kiện (c) của D39).
+# Hai nửa ĐỘC LẬP. Nửa nào không thấy thư mục mã nguồn của mình thì FAIL (T6;
+# ADR-0114 quyết định 14): repo đi theo đường phân phối của ADR-0016 luôn có src/BE
+# và src/FE, nên thiếu một trong hai là cây hỏng, không phải "chưa tới lúc".
 #
 # 🛑 LC_ALL=C, KHÔNG dùng LC_ALL=en_US.UTF-8 của đầu file. Trên Git Bash, awk dưới
 # locale đó KHÔNG khớp được 📐 và "ĐÍCH ĐẾN": nó thoát 0 và in RỖNG. Đã đo — cả
@@ -1578,10 +1644,14 @@ d42_kebab='function kebab(s,   i, c, out) {
   return tolower(out)
 }'
 
+# Mỗi nửa chỉ in OK của nó khi CHÍNH nửa đó không in FAIL nào — một dòng OK ngay
+# dưới dòng FAIL của cùng nửa đọc như "đã xét, không sao". So NBAD trước và sau nửa.
 # ---- nửa contracts: route ở tiêu đề card ↔ action dưới Controllers/
 if [ ! -d src/BE ]; then
-  warn "không có src/BE — nửa contracts/ KHÔNG xét gì (không phải PASS)"
+  bad "không có src/BE — nửa contracts/ không xét được gì; repo phân phối theo ADR-0016 luôn có src/BE (ADR-0114 quyết định 14)"
+  d42_fail=1
 else
+  d42_nb=$NBAD
   # TẬP A — nhớ tệp nào mang 📐 trong 15 dòng đầu, rồi thu route tĩnh ở tiêu đề
   # card của chính tệp đó. Mẫu cố ý không nhận '{': route có tham số là card
   # khuôn, không phải lời khai về một endpoint cụ thể (D42).
@@ -1640,13 +1710,15 @@ else
     d42_fail=1
   done < "$d42_tmp/hit"
 
-  ok "nửa contracts/: $d42_files tệp mang nhãn đã xét, $d42_routes route thật đọc được"
+  [ "$NBAD" -eq "$d42_nb" ] && ok "nửa contracts/: $d42_files tệp mang nhãn đã xét, $d42_routes route thật đọc được"
 fi
 
 # ---- nửa Design: tên component ↔ tệp component dạng kebab dưới src/FE
 if [ ! -d src/FE ]; then
-  warn "không có src/FE — nửa Design/ KHÔNG xét gì (không phải PASS)"
+  bad "không có src/FE — nửa Design/ không xét được gì; repo phân phối theo ADR-0016 luôn có src/FE (ADR-0114 quyết định 14)"
+  d42_fail=1
 else
+  d42_nb=$NBAD
   find src/FE/src -name '*.component.ts' -not -path '*/node_modules/*' 2>/dev/null \
     | LC_ALL=C awk -F/ '{ n = $NF; sub(/\.component\.ts$/, "", n); if ($(NF-1) == n) print n "\t" $0 }' \
     | sort -u > "$d42_tmp/comp"
@@ -1691,7 +1763,7 @@ else
     d42_fail=1
   done < "$d42_tmp/spec"
 
-  ok "nửa Design/: $d42_dfiles tệp mang nhãn đã xét, $d42_pairs cặp tên khớp được"
+  [ "$NBAD" -eq "$d42_nb" ] && ok "nửa Design/: $d42_dfiles tệp mang nhãn đã xét, $d42_pairs cặp tên khớp được"
 fi
 
 rm -rf "$d42_tmp" 2>/dev/null

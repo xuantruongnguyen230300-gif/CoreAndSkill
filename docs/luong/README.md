@@ -39,7 +39,7 @@ Cụ thể:
 | Bước 1, 2, 3… ai làm, làm gì | Chữ ký kiểu, tên cột, giá trị token |
 | `code` của một lỗi, **kèm link tới card hợp đồng chủ** | HTTP status hay `ErrorType` của mã đó — card giữ ánh xạ, luồng chỉ trỏ tới |
 | *"Bước này hỏng thì thấy gì"* | Bảng đặc tả một bảng dữ liệu |
-| Chỗ hai file phải khớp nhau, và khớp ở điểm nào | Luật mới — luật vào [`../RULES.md`](../RULES.md) |
+| Chỗ hai file phải khớp nhau, và khớp ở điểm nào | Luật mới — luật vào tệp `RULES-*.md` theo phạm vi (mục lục: [`../RULES.md`](../RULES.md)) |
 | Câu hỏi chưa ai trả lời | Câu trả lời tự nghĩ ra |
 
 Lý do luật này cứng: một file luồng nhắc lại chi tiết sẽ thành **nguồn thứ hai**, và nguồn thứ hai luôn lệch ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §5). Khu này sinh ra để **đóng** loại lỗi đó, không phải để nhân nó lên.

@@ -1,10 +1,13 @@
-# .gitleaks.toml — cấu hình gitleaks cho CoreAndSkill (luật S6 ở docs/RULES.md).
+# .gitleaks.toml — cấu hình gitleaks cho CoreAndSkill (luật S6, S23 ở docs/RULES-BE.md).
 #
-# Dùng NGUYÊN bộ luật mặc định của gitleaks. File này chỉ thêm một allowlist HẸP
-# cho placeholder rõ ràng trong tài liệu, với HAI điều kiện cùng lúc (AND):
-#   1. file là .md dưới docs/ hoặc spec/  — không miễn trừ cả thư mục: một bí mật
-#      thật dán nhầm vào tài liệu vẫn bị bắt;
-#   2. CHÍNH chuỗi bị nghi là bí mật trông rõ ràng là placeholder.
+# Dùng NGUYÊN bộ luật mặc định của gitleaks, thêm hai thứ:
+#   - các rule appsettings-* bắt mật khẩu rõ trong appsettings*.json BẤT KỂ entropy (S23 vế (b), (f)) —
+#     rule mặc định tối ưu cho token entropy cao, bỏ lọt mật khẩu người chọn tay;
+#   - một allowlist HẸP cho placeholder rõ ràng trong tài liệu, với HAI điều kiện
+#     cùng lúc (AND):
+#       1. file là .md dưới docs/ hoặc spec/  — không miễn trừ cả thư mục: một bí mật
+#          thật dán nhầm vào tài liệu vẫn bị bắt;
+#       2. CHÍNH chuỗi bị nghi là bí mật trông rõ ràng là placeholder.
 #
 # Không thêm mục nào vào đây để "cho CI xanh" khi gitleaks bắt được một chuỗi
 # thật. Chuỗi thật trong lịch sử git thì phải thu hồi và thay bí mật — gỡ khỏi
@@ -16,6 +19,60 @@ title = "CoreAndSkill"
 
 [extend]
 useDefault = true
+
+# S23 — lớp gitleaks. "Giá trị dev công khai" và ranh giới của nó định nghĩa ở
+# docs/quy-uoc/repo-artifact.md §6.1. Allowlist miễn trừ THEO GIÁ TRỊ, chỉ trong
+# appsettings.Development.json — không miễn cả tệp: một mật khẩu khác dán vào cùng
+# chỗ vẫn bị bắt. Giá trị dev công khai được CHÉP vào đây: đổi nó ở
+# appsettings.Development.json mà quên đổi ở đây thì ca xanh của bước "Canary S23" trong
+# CI đỏ. database/dev/tao-db-local.sql lệch hai tệp kia thì KHÔNG gì ở đây đỏ — việc đó
+# chờ lớp ArchTest (docs/RULES-BE.md, S23).
+# Đường dẫn nhận cả `\` vì `gitleaks dir` trên Windows in đường dẫn kiểu Windows.
+
+[[rules]]
+id = "appsettings-json-password"
+description = "S23: khoá cấu hình tên kết thúc bằng Password mang chuỗi rõ trong appsettings*.json"
+path = '''(?i)(^|[\\/])appsettings[^\\/]*\.json$'''
+# Tên khoá nhận cả dạng phẳng "Core:Bootstrap:AdminPassword". Chỉ chuỗi khác rỗng — khối
+# chính sách "Password": { ... } và "" không bị bắt; giá trị số ở rule kế.
+regex = '''(?i)"[^"]*password"\s*:\s*"([^"]+)"'''
+secretGroup = 1
+keywords = ["password"]
+
+  [[rules.allowlists]]
+  description = "Mật khẩu ban đầu của hai tài khoản bootstrap — giá trị dev công khai (S23 vế (f))"
+  condition = "AND"
+  paths = ['''(^|[\\/])appsettings\.Development\.json$''']
+  regexTarget = "secret"
+  regexes = ['''^(Superadmin123|Admin12345)$''']
+
+[[rules]]
+id = "appsettings-json-password-number"
+description = "S23: khoá cấu hình tên kết thúc bằng Password mang giá trị số trong appsettings*.json"
+path = '''(?i)(^|[\\/])appsettings[^\\/]*\.json$'''
+# Cấu hình .NET đọc số thành chuỗi, nên "AdminPassword": 20260929 vẫn là một mật khẩu.
+regex = '''(?i)"[^"]*password"\s*:\s*(-?[0-9][0-9.eE+-]*)'''
+secretGroup = 1
+keywords = ["password"]
+
+[[rules]]
+id = "appsettings-connection-password"
+description = "S23: phần mật khẩu của chuỗi kết nối trong appsettings*.json"
+path = '''(?i)(^|[\\/])appsettings[^\\/]*\.json$'''
+# Ba tên Npgsql nhận cho mật khẩu: Password, Pwd, Psw. Trước tên khoá nhận cả `\n` `\r` `\t`
+# thoát trong chuỗi JSON — Npgsql bỏ khoảng trắng quanh khoá.
+regex = '''(?i)(?:^|[;"]|\\[nrt])\s*(?:password|pwd|psw)\s*=\s*([^;"]+)'''
+secretGroup = 1
+keywords = ["password", "pwd", "psw"]
+
+  [[rules.allowlists]]
+  description = "Chuỗi kết nối dev công khai — localhost, coreandskill_dev, coreandskill_app (S23 vế (b))"
+  condition = "AND"
+  paths = ['''(^|[\\/])appsettings\.Development\.json$''']
+  regexTarget = "line"
+  # Ghim NGUYÊN dòng, không ghép theo mẩu: khoá Host lặp (Npgsql lấy giá trị sau cùng), hai
+  # chuỗi kết nối trên một dòng, hay một khoá khác ConnectionStrings:Core đều không khớp.
+  regexes = ['''^\+?\s*"Core"\s*:\s*"Host=localhost;Port=5432;Database=coreandskill_dev;Username=coreandskill_app;Password=coreandskill_app"\s*,?\s*$''']
 
 [[allowlists]]
 description = "Placeholder rõ ràng trong tài liệu docs/ và spec/ — không phải bí mật"

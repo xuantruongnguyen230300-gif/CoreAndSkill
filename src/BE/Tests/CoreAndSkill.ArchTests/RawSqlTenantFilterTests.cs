@@ -188,6 +188,56 @@ public class RawSqlTenantFilterTests
         Offenders(source).ShouldBeEmpty();
     }
 
+    // DDL thuần (`ALTER TABLE ... ALTER COLUMN`) không đọc/ghi dòng nào — ADR-0119, migration đổi collation cột của bảng
+    // có tenant_id. Cùng câu mà có DML trộn vào thì cổng phải đỏ lại (hai canary dưới).
+    [Fact]
+    public void Detector_M6_Ignores_AnAlterTableOnlyStatement()
+    {
+        const string source = """
+            namespace Fake;
+
+            internal sealed class FakeService
+            {
+                public void Up(FakeMigrationBuilder migrationBuilder)
+                    => migrationBuilder.Sql("ALTER TABLE core.job ALTER COLUMN status TYPE character varying(20) COLLATE core.vi_vn;");
+            }
+            """;
+
+        Offenders(source).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Detector_M6_Catches_AnAlterTableStatementFollowedByADml()
+    {
+        const string source = """
+            namespace Fake;
+
+            internal sealed class FakeService
+            {
+                public void Up(FakeMigrationBuilder migrationBuilder)
+                    => migrationBuilder.Sql("ALTER TABLE core.job ALTER COLUMN status SET DEFAULT 'x'; UPDATE core.job SET status = 'y';");
+            }
+            """;
+
+        Offenders(source).ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public void Detector_M6_Catches_AnAlterTableThatSmugglesASelectIntoTheStatement()
+    {
+        const string source = """
+            namespace Fake;
+
+            internal sealed class FakeService
+            {
+                public void Up(FakeMigrationBuilder migrationBuilder)
+                    => migrationBuilder.Sql("ALTER TABLE core.job ALTER COLUMN status TYPE text USING (SELECT 'x' FROM core.job LIMIT 1);");
+            }
+            """;
+
+        Offenders(source).ShouldNotBeEmpty();
+    }
+
     // Chú thích nhắc câu SQL KHÔNG phải câu SQL — chỗ một phép dò quét văn bản báo oan. Roslyn coi chú thích là
     // trivia, nên chốt này ghim rằng cổng đi bằng AST chứ không bằng grep.
     [Fact]
@@ -369,7 +419,8 @@ public class RawSqlTenantFilterTests
             }
 
             var touched = RawSqlTenantScanner.TenantTablesTouched(call.Sql, tenantTables);
-            if (touched.Count == 0 || RawSqlTenantScanner.HasTenantPredicate(call.Sql))
+            if (touched.Count == 0 || RawSqlTenantScanner.IsSchemaDdlOnly(call.Sql)
+                || RawSqlTenantScanner.HasTenantPredicate(call.Sql))
                 continue;
 
             result.Add((relative, call.Symbol,

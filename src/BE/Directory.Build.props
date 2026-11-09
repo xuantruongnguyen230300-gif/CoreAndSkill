@@ -10,6 +10,9 @@
          Tắt riêng vì ResultToHttpMapper cố ý không có nhánh "_" — thiếu nhánh phải là lỗi biên dịch
          (CS8509), không phải cảnh báo im lặng. Xem docs/quy-uoc/be-api-controller.md §1.2. -->
     <NoWarn>$(NoWarn);CS8524</NoWarn>
+    <!-- Quyết định về audit NuGet (Q30, 2026-10-06, docs/adr/nhat-ky-quyet-dinh.md; quy ước docs/quy-uoc/repo-artifact.md §3.2): quét cả gói gián tiếp, chỉ báo từ mức high. -->
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>high</NuGetAuditLevel>
   </PropertyGroup>
 
 </Project>

@@ -1,4 +1,46 @@
-<p-toast
-  [showTransitionOptions]="showTransitionOptions"
-  [hideTransitionOptions]="hideTransitionOptions"
-/>
+<p-toast [autoZIndex]="false" [pt]="pt">
+  <!--
+    Template `message` THAY cả icon lẫn chữ mặc định của thư viện (nó chỉ vẽ phần đó khi không có
+    template), nên vẽ lại đủ bốn icon theo vai với đúng lớp của thư viện. Nút hành động nằm trong thân
+    thông báo, đứng TRƯỚC nút đóng của thư viện → thứ tự Tab: hành động rồi đóng (Toast.md §Accessibility).
+  -->
+  <ng-template #message let-message>
+    @switch (message.severity) {
+      @case ('success') {
+        <i class="pi pi-check-circle p-toast-message-icon" aria-hidden="true"></i>
+      }
+      @case ('error') {
+        <svg data-p-icon="times-circle" class="p-toast-message-icon" aria-hidden="true"></svg>
+      }
+      @case ('warn') {
+        <svg
+          data-p-icon="exclamation-triangle"
+          class="p-toast-message-icon"
+          aria-hidden="true"
+        ></svg>
+      }
+      @default {
+        <svg data-p-icon="info-circle" class="p-toast-message-icon" aria-hidden="true"></svg>
+      }
+    }
+    <div class="p-toast-message-text">
+      <div class="p-toast-summary">{{ message.summary }}</div>
+      <div class="p-toast-detail">{{ message.detail }}</div>
+      @if (message.data?.hanhDong; as hanhDong) {
+        <div class="toast-hanh-dong">
+          <ng-container
+            *ngTemplateOutlet="
+              nutHanhDong();
+              context: {
+                $implicit: hanhDong,
+                id: message.data.id,
+                daBam: daBam().has(message.data.id),
+                bam: bam,
+              }
+            "
+          />
+        </div>
+      }
+    </div>
+  </ng-template>
+</p-toast>

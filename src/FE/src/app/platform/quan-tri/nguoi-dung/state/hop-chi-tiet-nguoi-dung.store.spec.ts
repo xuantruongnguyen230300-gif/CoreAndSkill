@@ -42,6 +42,19 @@ function loiApi(
   return new ApiFailureError(body);
 }
 
+/**
+ * Để lại trong store ba tín hiệu dùng chung (`daGui`, `loiHop`, `xungDot`) bằng ĐƯỜNG THẬT của store —
+ * chúng chỉ đọc từ ngoài. `guiDatLai` với form rỗng bật `daGui`; `xuLyLoi` là hàm công khai của store.
+ */
+function datDauVet(store: HopChiTietNguoiDungStore): void {
+  store.guiDatLai(NGUOI_DUNG, () => undefined);
+  store.xuLyLoi(loiApi('CORE.USER.SOMETHING'), null);
+  store.xuLyLoi(loiApi('CORE.CONCURRENCY.CONFLICT'), null);
+  expect(store.daGui()).withContext('tiền điều kiện daGui').toBeTrue();
+  expect(store.loiHop()).withContext('tiền điều kiện loiHop').not.toBeNull();
+  expect(store.xungDot()).withContext('tiền điều kiện xungDot').toBeTrue();
+}
+
 const BAT_BUOC: readonly ApiFieldError[] = [
   { code: 'CORE.VALIDATION.REQUIRED', messageParams: null },
 ];
@@ -457,7 +470,8 @@ describe('HopChiTietNguoiDungStore', () => {
       service.ganVaiTro.and.returnValue(throwError(() => loiApi('CORE.USER.ROLE_NOT_FOUND')));
       store.yeuCauGanVaiTro(CO_HAI_VAI_TRO, ['a', 'b'], xong);
       expect(store.loiHop()).toBe('[loi.CORE.USER.ROLE_NOT_FOUND]');
-      store.xungDot.set(true);
+      store.xuLyLoi(loiApi('CORE.CONCURRENCY.CONFLICT'), 'gan-vai-tro');
+      expect(store.xungDot()).toBeTrue();
 
       store.yeuCauGanVaiTro(CO_HAI_VAI_TRO, ['a'], xong);
 
@@ -506,8 +520,7 @@ describe('HopChiTietNguoiDungStore', () => {
 
   describe('Khoá', () => {
     it('moXacNhanKhoa() mở hộp xác nhận và xoá dấu vết của lần trước', () => {
-      store.loiHop.set('lỗi cũ');
-      store.xungDot.set(true);
+      datDauVet(store);
 
       store.moXacNhanKhoa();
 
@@ -708,11 +721,11 @@ describe('HopChiTietNguoiDungStore', () => {
       store.moHopDatLai();
       store.formDatLai.setValue({ tempPassword: 'Tam-Pass-1' });
       store.guiDatLai(NGUOI_DUNG, xong);
-      store.loiHop.set('dấu vết');
+      store.xuLyLoi(loiApi('CORE.USER.SOMETHING'), null);
 
       store.guiDatLai(NGUOI_DUNG, xong);
 
-      expect(store.loiHop()).toBe('dấu vết');
+      expect(store.loiHop()).toBe('[loi.CORE.USER.SOMETHING]');
     });
 
     it('yeuCauGanVaiTro (không gỡ vai trò) và xacNhanGoVaiTro', () => {
@@ -744,7 +757,10 @@ describe('HopChiTietNguoiDungStore', () => {
       const co = { ...NGUOI_DUNG, roles: [{ id: 'a', name: 'A', isSystem: false }] };
       store.yeuCauGanVaiTro(co, [], xong);
       expect(store.hopXacNhanGo()).toBe(1);
-      store.dangGui.set(true);
+      // Một lần ghi KHÁC (khoá) đang bay → `dangGui` bật bằng đường thật của store.
+      service.khoa.and.returnValue(new Subject<void>());
+      store.xacNhanKhoa(NGUOI_DUNG, xong);
+      expect(store.dangGui()).toBeTrue();
 
       store.xacNhanGoVaiTro();
 
@@ -780,9 +796,7 @@ describe('HopChiTietNguoiDungStore', () => {
 
     for (const [ten, mo] of cachMo) {
       it(`${ten}() xoá lỗi/xung đột/cờ đã-gửi còn sót từ lần khoá hoặc lần mở trước`, () => {
-        store.daGui.set(true);
-        store.loiHop.set('lỗi của lần khoá trước');
-        store.xungDot.set(true);
+        datDauVet(store);
 
         mo(store);
 
@@ -796,9 +810,7 @@ describe('HopChiTietNguoiDungStore', () => {
   describe('đóng / hỏi xác nhận huỷ', () => {
     it('dong() reset toàn bộ trạng thái chung của lần mở trước', () => {
       store.moHopSua(NGUOI_DUNG);
-      store.daGui.set(true);
-      store.loiHop.set('lỗi cũ');
-      store.xungDot.set(true);
+      datDauVet(store);
 
       store.dong();
 

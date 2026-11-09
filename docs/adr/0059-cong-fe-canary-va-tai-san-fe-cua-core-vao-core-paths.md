@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0059 — Cổng FE, canary của nó, bảng dịch tầng Core và `index.html` vào khối `core-paths`
 
-> **Trạng thái:** Đã chấp nhận (2026-09-22) · Bổ sung bởi [ADR-0100](0100-host-thuoc-vung-du-an-ba-vung-so-huu-tep.md) (2026-09-25)
+> **Trạng thái:** Đã chấp nhận (2026-09-22) · Bổ sung bởi [ADR-0100](0100-host-thuoc-vung-du-an-ba-vung-so-huu-tep.md) (2026-09-25) · Bổ sung bởi [ADR-0125](0125-ca-thu-muc-styles-fe-vao-core-paths-bang-mau-du-an-cho-co-che-rieng.md) (2026-11-06)
 
 ## Bối cảnh
 

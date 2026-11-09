@@ -128,33 +128,67 @@
       "Bash(bash .claude/hooks/tests/run-tests.sh -v)",
       "Bash(bash scripts/fe-gate.sh)",
       "Bash(git status:*)",
+      "Bash(rtk git status:*)",
       "PowerShell(git status:*)",
       "Bash(git diff:*)",
+      "Bash(rtk git diff:*)",
       "PowerShell(git diff:*)",
       "Bash(git log:*)",
+      "Bash(rtk git log:*)",
       "PowerShell(git log:*)",
       "Bash(git show:*)",
+      "Bash(rtk git show:*)",
       "PowerShell(git show:*)",
       "Bash(git blame:*)",
+      "Bash(rtk git blame:*)",
       "PowerShell(git blame:*)",
       "Bash(git ls-files:*)",
+      "Bash(rtk git ls-files:*)",
       "PowerShell(git ls-files:*)",
-      "Bash(git check-ignore:*)",
-      "PowerShell(git check-ignore:*)",
       "Bash(git rev-parse:*)",
+      "Bash(rtk git rev-parse:*)",
       "PowerShell(git rev-parse:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(rtk git check-ignore:*)",
+      "PowerShell(git check-ignore:*)",
+      "Bash(git cat-file:*)",
+      "Bash(rtk git cat-file:*)",
+      "PowerShell(git cat-file:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(rtk git ls-tree:*)",
+      "PowerShell(git ls-tree:*)",
+      "Bash(git grep:*)",
+      "Bash(rtk git grep:*)",
+      "PowerShell(git grep:*)",
+      "Bash(git describe:*)",
+      "Bash(rtk git describe:*)",
+      "PowerShell(git describe:*)",
+      "Bash(git shortlog:*)",
+      "Bash(rtk git shortlog:*)",
+      "PowerShell(git shortlog:*)",
+      "Bash(git remote show:*)",
+      "Bash(rtk git remote show:*)",
+      "PowerShell(git remote show:*)",
+      "Bash(git remote -v)",
+      "Bash(rtk git remote -v)",
+      "PowerShell(git remote -v)",
+      "Bash(git remote)",
+      "Bash(rtk git remote)",
+      "PowerShell(git remote)",
       "Bash(dotnet build:*)",
       "PowerShell(dotnet build:*)",
       "Bash(dotnet test:*)",
       "PowerShell(dotnet test:*)",
-      "Bash(dotnet format:*)",
-      "PowerShell(dotnet format:*)",
+      "Bash(dotnet format --verify-no-changes:*)",
+      "PowerShell(dotnet format --verify-no-changes:*)",
       "Bash(dotnet new:*)",
       "PowerShell(dotnet new:*)",
       "Bash(dotnet sln:*)",
       "PowerShell(dotnet sln:*)",
-      "Bash(dotnet add:*)",
-      "PowerShell(dotnet add:*)",
+      "Bash(dotnet add reference:*)",
+      "PowerShell(dotnet add reference:*)",
+      "Bash(dotnet reference add:*)",
+      "PowerShell(dotnet reference add:*)",
       "Bash(dotnet restore:*)",
       "PowerShell(dotnet restore:*)",
       "Bash(npx ng new:*)",
@@ -175,7 +209,7 @@
       "PowerShell(npx prettier:*)",
       "Bash(npm run:*)",
       "Bash(npm ci:*)",
-      "Bash(npm install:*)",
+      "Bash(npm install)",
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(rg:*)",
@@ -200,15 +234,23 @@
       "PowerShell(Select-String:*)",
       "PowerShell(Test-Path:*)",
       "PowerShell(Measure-Object:*)",
-      "PowerShell(Get-Date:*)",
-      "Bash(bash .claude/hooks/on-edit.sh)",
-      "Bash(bash .claude/hooks/on-stop.sh)"
+      "PowerShell(Get-Date:*)"
     ]
   },
   "hooks": {
     "PreToolUse": [
       {
         "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/on-pretool.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
         "hooks": [
           {
             "type": "command",
@@ -233,6 +275,18 @@
     "PostToolUse": [
       {
         "matcher": "Edit|Write|NotebookEdit|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/on-edit.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",

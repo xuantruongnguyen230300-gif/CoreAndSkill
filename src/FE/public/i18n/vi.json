@@ -14,7 +14,11 @@
     },
     "loc": {
       "donViHienHanh": "Đơn vị: {{tenDonVi}}",
-      "lyDoDonVi": "Danh sách chỉ gồm dữ liệu của đơn vị bạn đang đăng nhập."
+      "lyDoDonVi": "Danh sách chỉ gồm dữ liệu của đơn vị bạn đang đăng nhập.",
+      "nutLoc": "Bộ lọc",
+      "nutLocCoDieuKien": "Bộ lọc, {{soLuong}} điều kiện đang bật",
+      "apDung": "Áp dụng",
+      "xoaHet": "Xoá hết"
     },
     "locChip": {
       "go": "Gỡ lọc {{nhan}}: {{giaTri}}"
@@ -31,10 +35,16 @@
       "loi": "Lỗi"
     },
     "chanTrang": {
-      "banQuyen": "© {{nam}} {{tenHeThong}}"
+      "banQuyen": "© {{nam}} {{tenHeThong}}",
+      "phienBan": "Phiên bản {{ma}}"
     },
     "phanTrang": {
       "khoang": "{{tu}}–{{den}} trên tổng {{tong}}"
+    },
+    "bang": {
+      "ketQua": "Đang hiện {{tu}} đến {{den}} trên tổng {{tong}}",
+      "khongCoKetQua": "Không có kết quả",
+      "khongTaiDuoc": "Không tải được danh sách."
     }
   },
   "xacThuc": {
@@ -44,7 +54,12 @@
       "maDonVi": "Mã đơn vị",
       "tenDangNhap": "Tên đăng nhập",
       "matKhau": "Mật khẩu",
-      "nutGui": "Đăng nhập"
+      "nutGui": "Đăng nhập",
+      "lienKetCheDoVanHanh": "Quản trị hệ thống",
+      "lienKetCheDoThuong": "Quay lại đăng nhập thường",
+      "moTaCheDoVanHanh": "Dành cho tài khoản vận hành hệ thống. Nhập mã đơn vị hệ thống được cấp khi cài đặt.",
+      "loiSaiThongTinVanHanh": "Mã đơn vị, tên đăng nhập hoặc mật khẩu không đúng.",
+      "loiCauHinhMaDonVi": "Trang đăng nhập đang được cấu hình sai nên chưa đăng nhập được. Hãy báo cho quản trị hệ thống."
     },
     "doiMatKhauBatBuoc": {
       "tieuDe": "Đặt mật khẩu mới",
@@ -106,7 +121,7 @@
       },
       "xacNhan": {
         "tieuDe": "Từ bỏ cờ đặc quyền?",
-        "noiDung": "Không bật lại được cờ này. Mọi phiên đăng nhập khác của tài khoản sẽ bị đăng xuất; phiên đang dùng được giữ.",
+        "noiDung": "Không bật lại được cờ này. Từ bây giờ tài khoản chỉ còn quyền đến từ vai trò — áp dụng ngay ở mọi phiên đăng nhập.",
         "nut": "Từ bỏ cờ đặc quyền"
       },
       "thongBao": {
@@ -129,9 +144,25 @@
       "tieuDe": "Không tìm thấy trang",
       "moTa": "Đường dẫn bạn mở không khớp trang nào của hệ thống.",
       "diTiep": "Về trang chủ"
+    },
+    "khongTaiDuoc": {
+      "tieuDe": "Không tải được trang",
+      "taiLai": "Tải lại trang"
     }
   },
   "khung": {
+    "theme": {
+      "nhan": "Giao diện",
+      "sang": "Sáng",
+      "toi": "Tối",
+      "theoHeThong": "Theo hệ điều hành",
+      "daChuyenSang": "Đã chuyển sang giao diện sáng",
+      "daChuyenToi": "Đã chuyển sang giao diện tối",
+      "daChuyenTheoHeThong": "Đã chuyển sang giao diện theo hệ điều hành"
+    },
+    "taiKhoan": {
+      "moMenu": "Tài khoản {{hoTen}}, đơn vị {{tenDonVi}}"
+    },
     "boQuaNoiDung": "Bỏ qua tới nội dung chính",
     "dieuHuong": {
       "nhan": "Điều hướng chính",
@@ -144,7 +175,8 @@
     "quan-tri": "Quản trị",
     "quan-tri-nguoi-dung": "Người dùng",
     "quan-tri-vai-tro": "Vai trò",
-    "quan-tri-phan-quyen": "Phân quyền"
+    "quan-tri-phan-quyen": "Phân quyền",
+    "he-thong-don-vi": "Đơn vị"
   },
   "nguoiDung": {
     "tieuDe": "Người dùng",
@@ -156,12 +188,14 @@
       "datLaiMatKhau": "Đặt lại mật khẩu",
       "khoa": "Khoá tài khoản",
       "moKhoa": "Mở khoá",
-      "ganVaiTro": "Gán vai trò"
+      "ganVaiTro": "Gán vai trò",
+      "suaDong": "Sửa người dùng {{tenDangNhap}}"
     },
     "timKiem": {
       "nhan": "Tìm theo tên đăng nhập, họ tên hoặc email"
     },
     "loc": {
+      "tieuDe": "Lọc người dùng",
       "vaiTro": "Vai trò",
       "trangThai": "Trạng thái"
     },
@@ -183,7 +217,11 @@
       "email": "Email",
       "vaiTro": "Vai trò",
       "trangThai": "Trạng thái",
-      "ngayTao": "Ngày tạo"
+      "ngayTao": "Ngày tạo",
+      "hanhDong": "Hành động"
+    },
+    "menu": {
+      "moMenu": "Hành động khác cho người dùng {{tenDangNhap}}"
     },
     "form": {
       "tieuDeTao": "Thêm người dùng",
@@ -436,32 +474,45 @@
   "loi": {
     "CORE": {
       "CLIENT": {
+        "RESOURCE_LOAD_FAILED": "Hệ thống vừa được cập nhật hoặc kết nối bị gián đoạn nên trang chưa tải xong. Tải lại trang để tiếp tục.",
         "NO_CONNECTION": "Không kết nối được tới máy chủ. Kiểm tra mạng rồi thử lại.",
         "SERVER_UNAVAILABLE": "Máy chủ tạm thời không phản hồi, vui lòng thử lại sau.",
+        "INVALID_RESPONSE": "Máy chủ trả về phản hồi không hợp lệ (mã HTTP {{maHttp}}). Vui lòng thử lại; nếu vẫn lỗi, báo quản trị viên kèm mã này.",
         "VALIDATION_REQUIRED": "Trường này là bắt buộc.",
         "VALIDATION_EMAIL": "Email chưa đúng định dạng.",
         "VALIDATION_MAXLENGTH": "Nội dung vượt quá độ dài cho phép.",
         "VALIDATION_MISMATCH": "Nội dung nhập lại không khớp.",
-        "VALIDATION_PATTERN": "Định dạng chưa đúng."
+        "VALIDATION_PATTERN": "Định dạng chưa đúng.",
+        "UNKNOWN_ERROR_CODE": "Không thực hiện được yêu cầu. Vui lòng thử lại; nếu vẫn lỗi, báo quản trị viên."
       },
       "VALIDATION": {
         "FAILED": "Dữ liệu chưa hợp lệ. Kiểm tra lại các trường được đánh dấu.",
         "REQUIRED": "Trường này là bắt buộc.",
         "MAX_LENGTH": "Vượt quá {{MaxLength}} ký tự.",
-        "MAX_ITEMS": "Tối đa {{MaxItems}} phần tử."
+        "MIN_LENGTH": "Phải có ít nhất {{MinLength}} ký tự.",
+        "MAX_ITEMS": "Tối đa {{MaxItems}} phần tử.",
+        "FORMAT": "Không đúng định dạng.",
+        "INVALID": "Giá trị không hợp lệ."
       },
       "AUTH": {
-        "INVALID_CREDENTIALS": "Mã đơn vị, tên đăng nhập hoặc mật khẩu không đúng.",
+        "INVALID_CREDENTIALS": "Tên đăng nhập hoặc mật khẩu không đúng.",
         "LOCKED_OUT": "Tài khoản đang bị khoá. Liên hệ quản trị viên của đơn vị để được mở khoá.",
         "PASSWORD_MISMATCH": "Mật khẩu hiện tại không đúng.",
         "PASSWORD_TOO_SHORT": "Mật khẩu phải từ {{MinLength}} ký tự.",
         "PASSWORD_REQUIRES_DIGIT": "Mật khẩu phải có ít nhất một chữ số.",
+        "PASSWORD_REQUIRES_LOWER": "Mật khẩu phải có ít nhất một chữ thường.",
+        "PASSWORD_REQUIRES_UPPER": "Mật khẩu phải có ít nhất một chữ hoa.",
+        "PASSWORD_REQUIRES_NON_ALPHANUMERIC": "Mật khẩu phải có ít nhất một ký tự đặc biệt.",
+        "PASSWORD_REQUIRES_UNIQUE_CHARS": "Mật khẩu phải có ít nhất {{MinUniqueChars}} ký tự khác nhau.",
+        "PASSWORD_POLICY_VIOLATION": "Mật khẩu không đạt chính sách.",
         "NEW_PASSWORD_SAME_AS_CURRENT": "Mật khẩu mới phải khác mật khẩu hiện tại.",
         "CHANGE_PASSWORD_FAILED": "Đổi mật khẩu thất bại.",
         "FORBIDDEN": "Bạn không có quyền thực hiện thao tác này.",
         "CSRF_REJECTED": "Phiên xác thực đã hết hạn. Tải lại trang rồi thử lại.",
         "ORIGIN_REJECTED": "Yêu cầu bị từ chối do nguồn gốc không hợp lệ. Vui lòng tải lại trang.",
-        "NOT_AUTHENTICATED": "Bạn cần đăng nhập để tiếp tục."
+        "NOT_AUTHENTICATED": "Bạn cần đăng nhập để tiếp tục.",
+        "PASSWORD_CHANGE_REQUIRED": "Bạn phải đổi mật khẩu trước khi tiếp tục.",
+        "PASSWORD_CHANGE_NOT_REQUIRED": "Tài khoản không ở trạng thái bắt buộc đổi mật khẩu."
       },
       "PROFILE": {
         "NO_OTHER_PERMISSION_ADMIN": "Chưa từ bỏ được: đơn vị cần ít nhất một tài khoản khác, không bị khoá, có quyền sửa phân quyền qua vai trò.",
@@ -504,12 +555,43 @@
         "ADMIN_CREATE_FAILED": "Tạo tài khoản quản trị thất bại.",
         "SEED_FAILED": "Tạo đơn vị thất bại. Kiểm tra dữ liệu rồi thử lại.",
         "NOT_FOUND": "Không tìm thấy đơn vị.",
-        "SYSTEM_IMMUTABLE": "Không thể ngưng hoạt động đơn vị hệ thống.",
+        "SYSTEM_IMMUTABLE": "Không được thay đổi trạng thái hoạt động của đơn vị hệ thống.",
         "RECOVERY_TARGET_NOT_ELIGIBLE": "Không tìm thấy tài khoản đủ điều kiện khôi phục trong đơn vị này.",
         "RECOVERY_RESET_FAILED": "Đặt mật khẩu tạm thất bại."
       },
       "RATE_LIMIT": {
-        "EXCEEDED": "Bạn thao tác quá nhanh. Vui lòng thử lại sau {{RetryAfterSeconds}} giây."
+        "EXCEEDED": "Bạn thao tác quá nhanh. Thử lại sau {{RetryAfterSeconds}} giây."
+      },
+      "EXPORT": {
+        "TOO_MANY_ROWS": "Kết quả có {{RowCount}} dòng, vượt giới hạn xuất {{MaxRows}} dòng. Hãy siết bộ lọc."
+      },
+      "FILE": {
+        "NOT_FOUND": "Không tìm thấy tệp.",
+        "TOO_LARGE": "Tệp vượt giới hạn {{MaxBytes}} byte.",
+        "TYPE_NOT_ALLOWED": "Kiểu tệp không nằm trong danh sách cho phép.",
+        "CONTENT_MISSING": "Nội dung tệp không còn trong kho lưu.",
+        "ALREADY_ATTACHED": "Tệp đã được gắn vào một bản ghi khác."
+      },
+      "IMPORT": {
+        "COLUMNS_MISMATCH": "Tệp thiếu cột bắt buộc: {{MissingColumns}}.",
+        "TOO_MANY_ROWS": "Tệp có {{RowCount}} dòng, vượt giới hạn {{MaxRows}} dòng.",
+        "DUPLICATE_ROW": "Dòng trùng khoá với bản ghi đã có hoặc với một dòng trước trong tệp.",
+        "UNKNOWN_TYPE": "Không có định nghĩa nhập nào cho loại '{{ImportType}}'.",
+        "SOURCE_UNREADABLE": "Không đọc được tệp nhập.",
+        "ROW_NOT_SAVED": "Không ghi được dòng này."
+      },
+      "JOB": {
+        "NOT_FOUND": "Không tìm thấy việc.",
+        "NO_EXECUTOR": "Không có bộ chạy nào cho loại việc '{{JobType}}'.",
+        "INTERRUPTED": "Việc bị gián đoạn vì hệ thống dừng giữa chừng. Hãy khởi tạo lại việc.",
+        "UNEXPECTED": "Việc hỏng vì một lỗi không lường trước. Báo quản trị viên."
+      },
+      "NOTIFICATION": {
+        "NOT_FOUND": "Không tìm thấy thông báo."
+      },
+      "ROUTE": {
+        "NOT_FOUND": "Không có đường dẫn này.",
+        "METHOD_NOT_ALLOWED": "Phương thức không được hỗ trợ ở đường dẫn này."
       },
       "CONCURRENCY": {
         "CONFLICT": "Người khác vừa đổi bản ghi này. Tải lại rồi nhập lại."

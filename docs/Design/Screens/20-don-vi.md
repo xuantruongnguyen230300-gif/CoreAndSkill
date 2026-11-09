@@ -12,7 +12,7 @@ Tài khoản vận hành hệ thống xem, tìm đơn vị; tạo đơn vị ([V
 
 > **Khung:** khung ứng dụng ([00-khung-ung-dung.md](./00-khung-ung-dung.md))
 > **Quyền:** cờ `isSystemOperator` qua `systemOperatorGuard` — **không** phải permission ([fe-routing-guard.md](../../quy-uoc/fe-routing-guard.md) §1, §4). Mọi endpoint mang `[RequireSystemOperator]` ([tenants.md](../../contracts/tenants.md)). Không phân quyền theo nút: vào được màn là dùng được mọi thao tác.
-> **Đường vào:** **URL gõ thẳng — không có mục nào trên `Sidebar` trỏ tới màn này**, và đó là quyết định, không phải chỗ còn sót ([00-khung-ung-dung.md](./00-khung-ung-dung.md), bảng Quyết định bố cục). Cây menu đến từ máy chủ và ba bước lọc của nó không đọc được cờ `isSystemOperator`, nên một mục trỏ vào khu hệ thống hôm nay hiện sai người dù khai cách nào. Đường vào nhìn thấy được: **đã quyết, hoãn** — v1 không dựng cơ chế nào, xét lại khi một điều kiện kích hoạt xảy ra ([ADR-0079](../../adr/0079-khu-he-thong-khong-nhan-duong-vao-nhin-thay-duoc-o-v1.md); [00-khung-ung-dung.md](./00-khung-ung-dung.md) §Cần chốt #1).
+> **Đường vào:** mục **cấp một "Đơn vị"** (icon `pi-building`) ở `Sidebar`, đứng cuối cây — **chỉ đơn vị hệ thống có mục này** (người dùng chốt 2026-10-08). Cơ chế: [ADR-0122](../../adr/0122-don-vi-he-thong-duoc-seed-mot-muc-menu-toi-he-thong-don-vi-moi-tai-khoan-cua-no-mang-co-van-hanh.md) — đơn vị hệ thống, và chỉ nó, được seed đúng một mục menu tới tuyến này; mọi tài khoản của nó mang cờ vận hành nên mục hiện đúng người. Nhãn, khoá, icon, vị trí và lý do chọn: [00-khung-ung-dung.md](./00-khung-ung-dung.md), bảng Quyết định bố cục. URL gõ thẳng vẫn vào được; `systemOperatorGuard` vẫn là chỗ chặn thật. Mã nguồn BE/FE đã có mục (đọc mã 2026-10-08) — bảng "Có thật hôm nay → sẽ thành" của [00-khung-ung-dung.md](./00-khung-ung-dung.md); bản cài đã bootstrap cần người dùng chạy script bù dữ liệu trước khi mục hiện ở `Sidebar`.
 
 ## Có thật hôm nay → sẽ thành
 
@@ -21,13 +21,14 @@ Tài khoản vận hành hệ thống xem, tìm đơn vị; tạo đơn vị ([V
 | Khoản | Có thật hôm nay | Sẽ thành |
 | --- | --- | --- |
 | Tuyến và guard | Có — `don-vi.routes.ts` chuỗi `systemOperatorGuard` trong `canActivate`; một tuyến, không tuyến con chi tiết | — |
-| Đầu trang, ô tìm | Có — `danh-sach-don-vi.page.html` chuỗi `app-page-header`, nút `variant="primary" icon="plus"`, `app-toolbar` với `variant="search"` | Biến thể mặc định của `PageHeader` và cỡ `md` của `Toolbar`: chỗ gọi không khai giá trị, mặc định của component **chưa so** |
+| Đầu trang, ô tìm | **Có** (đọc mã 2026-10-08): `danh-sach-don-vi.page.html` mở `<app-page-header` chỉ với `[title]` và `[description]`; `<app-toolbar dataTableTop variant="search" placement="attached"` đặt trong chỗ cắm đầu khung `app-data-table`, nút "Tạo đơn vị" (`variant="primary" icon="plus"`) vào slot `toolbarActions` — đúng quyết định 2026-10-08 | Cỡ `md` của `Toolbar` và biến thể mặc định của `PageHeader`: chỗ gọi không khai giá trị, mặc định của component **chưa so** |
+| Cột hành động theo hợp đồng chung (chốt 2026-10-08) | **Có** (đọc mã 2026-10-08): `danh-sach-don-vi.page.html` chuỗi `[rowActionsTemplate]="tplHanhDong"` và `[rowActionsLabel]="'donVi.cot.hanhDong' | translate"`; `danh-sach-don-vi.page.ts` ghi chú cột hành động là `rowActionsTemplate`, luôn cuối. Hợp đồng ở [DataTable.md](../Components/DataTable.md) §"Đã có → còn thiếu" | Hình thức thật chưa đo trên trình duyệt |
 | Bảng | Có — năm cột khoá `code`, `name`, `trangThai`, `createdAt`, `hanhDong` (chuỗi `columns = computed`); sắp xếp được ba cột `code`/`name`/`createdAt`; `priority` `high` ở tên, `low` ở ngày tạo; không nghe `rowClick` | Biến thể `paged` của `DataTable`: chỉ suy từ `[totalRecords]` và `[page]` ở chỗ gọi, chưa mở [DataTable.md](../Components/DataTable.md) so |
 | Menu hàng | Có — chuỗi `mucMenu(dv: DonVi)`: bốn khoá `ngung`, `bat-lai`, `khoi-phuc`, `tao-quan-tri`; `danger: true` ở mục ngưng; mục khoá lại khi `dangXuLyId` trùng hàng | — |
 | `loadingTemplate` | **Lệch có lý do** — `tplDangTai` dùng `SkeletonLoader` `variant="text"` một dòng; spec ghi `group` dạng hàng, mà `group` hiện không render ([SkeletonLoader.md](../Components/SkeletonLoader.md) §Đã có → còn thiếu) | Đổi sang `group` khi `SkeletonLoader` có khuôn hàng bảng. Không sửa spec cho khớp code |
 | Trạng thái rỗng, lỗi tải | Có — `tplRong` hai nhánh `first-use` (nút "Tạo đơn vị") và `no-results` (nhắc từ khoá, nút "Xoá bộ lọc", không mời tạo); `tplLoi` `variant="error"` nút `chung.thuLai` | — |
 | Ngưng và bật lại | Có — `app-confirm-dialog` `severity="warning"`, tiêu đề nêu tên và mã; bật lại gọi thẳng `xuLyDatTrangThai(dv, true)` không hỏi | Xem dòng `CORE.TENANT.NOT_FOUND` ngay dưới |
-| `CORE.TENANT.NOT_FOUND` — tải lại danh sách | Có — `danh-sach-don-vi.page.ts`: nhánh bật lại chuỗi `this.toast.loi(dichLoiHoacMatKetNoi` rồi `this.list.reload()`; nhánh ngưng chuỗi `if (laKhongTimThay(err)) this.list.reload()` sau khi đặt `loiXacNhanNgung`; hai hộp quản trị: page truyền `() => this.list.reload()` và `khoi-phuc-tao-quan-tri.store.ts` chuỗi `khiDonViKhongTonTai()` chạy khi mã là `CORE.TENANT.NOT_FOUND` | — |
+| `CORE.TENANT.NOT_FOUND` — tải lại danh sách | Có — `danh-sach-don-vi.page.ts`: nhánh bật lại chuỗi `const cau = dichLoiHoacMatKetNoi(err, this.translate);` (toast khi câu khác `null`, so 2026-10-04) rồi `this.list.reload()`; nhánh ngưng chuỗi `if (laKhongTimThay(err)) this.list.reload()` sau khi đặt `loiXacNhanNgung`; hai hộp quản trị: page truyền `() => this.list.reload()` và `khoi-phuc-tao-quan-tri.store.ts` chuỗi `khiDonViKhongTonTai()` chạy khi mã là `CORE.TENANT.NOT_FOUND` | — |
 | Hộp "Tạo đơn vị" | Có — `hop-tao-don-vi.component.html`: `app-dialog` `size="md"`, `[dirty]`, `[loadingBlocksClose]`, banner `danger` đầu thân, hai `<fieldset>` (`donVi.form.nhomDonVi`, `donVi.form.nhomQuanTri`), sáu ô; ô mật khẩu tạm `type="password"` không truyền `revealable` (mặc định bật), không có ô nhập lại; chuẩn hoá chữ HOA ở `(maBlurred)="taoHop.chuanHoaMa()"` (`danh-sach-don-vi.page.html`, nối từ `(focusout)="maBlurred.emit()"` của hộp) và ở đầu `gui()`; `state/tao-don-vi.store.ts` chuỗi `MA_DON_VI_PATTERN` cùng biểu thức với [tenants.md](../../contracts/tenants.md) §2 | — |
 | Ô mã — `maxlength` | Không có; `Validators.maxLength(50)` chỉ báo lỗi bằng validator | **Spec bỏ yêu cầu `maxlength`** — xem bảng Quyết định. Code giữ nguyên |
 | Hai hộp quản trị | Có — `hop-quan-tri-don-vi.component.html`: hai `app-dialog` `size="sm"`, banner `severity="info"` ở hộp khôi phục, "Gõ lại mã đơn vị" kiểm ở FE (`kiemKhopMa`, so `toLocaleUpperCase`) và **không** gửi (`khoiPhucQuanTri(dv.id, { userName`) | — |
@@ -43,29 +44,31 @@ Chưa đối chiếu: §Responsive, bảng Icon (chỉ so `ellipsis-v`, `plus`, 
 ### Sơ đồ bố cục
 
 ```text
-- Khung ứng dụng — 00-khung-ung-dung.md
-  - main — đệm --layout-page-pad (dưới $bp-md: --layout-page-pad-sm); không cuộn
-    - PageHeader biến thể default
-      - tiêu đề + mô tả
-      - Button primary "Tạo đơn vị"
-    - Toolbar biến thể search, cỡ md — không có trường lọc
-      - ô tìm → searchText (card §1: tìm trên code, name, không phân biệt hoa thường)
-    - khung DataTable biến thể paged — thân bảng là vùng cuộn duy nhất; KHÔNG phát rowClick (không có màn chi tiết)
-      - cột (theo response GET /system/tenants):
-        - Mã đơn vị — code, sortable
-        - Tên đơn vị — name, sortable, priority high
-        - Trạng thái — isActive → Badge success "Đang hoạt động" / Badge danger "Ngưng hoạt động"
-        - Ngày tạo — createdAt, sortable, priority low
-        - Hành động — IconButton ghost cỡ sm pi-ellipsis-v mở Menu anchored cỡ sm, header = tên đơn vị
-            isActive = true  → mục "Ngưng hoạt động" (danger)
-            isActive = false → mục "Bật lại hoạt động"
-            mục "Khôi phục quản trị"
-            mục "Tạo quản trị mới"
-      - emptyTemplate: EmptyState cỡ compact — biến thể theo ca (mục Trạng thái)
-      - loadingTemplate: SkeletonLoader group dạng hàng
-      - errorTemplate: EmptyState `error` cỡ compact, nút secondary "Thử lại"
-    - dải phân trang — do DataTable vẽ ở biến thể paged, màn không tự đặt Pagination (Templates/ListScreen.md vùng 6); Pagination biến thể full, cỡ md
-  - Footer
+- Khung ứng dụng — 00-khung-ung-dung.md; Sidebar có mục cấp một "Đơn vị" (chỉ đơn vị hệ thống) → tuyến này
+  - main — đệm --layout-page-pad (dưới $bp-md: --layout-page-pad-sm); màn lấp đúng chiều cao main nên
+           main không cuộn — chỉ thân bảng cuộn; màn quá thấp thì main cuộn (ListScreen.md §4)
+    - PageHeader biến thể default — tiêu đề + mô tả; KHÔNG nút
+    - khối danh sách = khung DataTable biến thể paged (DataTable.md §"Khung") — ăn toàn bộ chiều cao còn lại
+      - đầu khung: Toolbar biến thể search, cỡ md, placement="attached" — không có trường lọc nên không có nút lọc
+        - ô tìm → searchText (card §1: tìm trên code, name, không phân biệt hoa thường); trần --toolbar-search-w-max
+        - nhóm hành động: Button primary "Tạo đơn vị" — nhãn đầy đủ, đầu phải hàng
+      - vùng cuộn — th dính đỉnh; dòng đổi nền khi rê chuột; KHÔNG phát rowClick (không có màn chi tiết)
+        - cột (theo response GET /system/tenants):
+          - Mã đơn vị — code, sortable
+          - Tên đơn vị — name, sortable, priority high
+          - Trạng thái — isActive → Badge success "Đang hoạt động" / Badge danger "Ngưng hoạt động"
+          - Ngày tạo — createdAt, sortable, priority low
+          - cột hành động dùng chung (rowActionsTemplate — DataTable.md §"Cột hành động"); tên cột ẩn "Hành động"
+            - IconButton ghost cỡ sm pi-ellipsis-v ⋯ → Menu anchored cỡ sm, header = tên đơn vị
+                isActive = true  → mục "Ngưng hoạt động" (danger)
+                isActive = false → mục "Bật lại hoạt động"
+                mục "Khôi phục quản trị"
+                mục "Tạo quản trị mới"
+            - compact (dạng thẻ, < $bp-xs): cùng một nút ⋯
+        - emptyTemplate: EmptyState cỡ compact — biến thể theo ca (mục Trạng thái)
+        - loadingTemplate: SkeletonLoader group dạng hàng
+        - errorTemplate: EmptyState `error` cỡ compact, nút secondary "Thử lại"
+      - dải phân trang — do DataTable vẽ ở đáy, trong khung (Templates/ListScreen.md vùng 6); Pagination biến thể full, cỡ md
 ```
 
 Tham số URL và dây: `page`, `pageSize`, `sortBy` (`code` · `name` · `createdAt`), `sortDescending`, `searchText`. Đổi từ khoá thì về trang 1. Đơn vị hệ thống không có trong kết quả (card §1) nên không cần khoá thao tác nào cho nó.
@@ -127,7 +130,7 @@ Câu không ghi nguồn: người dùng duyệt 2026-09-15 ([Screen.md](../Templ
 | Mô tả dưới tiêu đề | Các đơn vị dùng hệ thống. Người vận hành không xem được dữ liệu bên trong đơn vị. | `donVi.moTa` |
 | Nút chính | Tạo đơn vị | `donVi.hanhDong.tao` |
 | Nhãn ô tìm (ẩn) · `<caption>` bảng (ẩn) | Tìm theo mã hoặc tên đơn vị · Danh sách đơn vị | `donVi.timKiem.nhan` · `donVi.bang.caption` |
-| Cột | Mã đơn vị · Tên đơn vị · Trạng thái · Ngày tạo · Hành động | `donVi.cot.ma` · `donVi.cot.ten` · `donVi.cot.trangThai` · `donVi.cot.ngayTao` · `donVi.cot.hanhDong` |
+| Cột — "Hành động" là tên cột hành động, ẩn thị giác | Mã đơn vị · Tên đơn vị · Trạng thái · Ngày tạo · Hành động | `donVi.cot.ma` · `donVi.cot.ten` · `donVi.cot.trangThai` · `donVi.cot.ngayTao` · `donVi.cot.hanhDong` |
 | Badge trạng thái | Đang hoạt động · Ngưng hoạt động | `donVi.trangThai.hoatDong` · `donVi.trangThai.ngung` |
 | `aria-label` nút mở menu hàng | Hành động cho đơn vị {{ten}} | `donVi.menu.moMenu` |
 | Mục menu | Ngưng hoạt động · Bật lại hoạt động · Khôi phục quản trị · Tạo quản trị mới | `donVi.menu.ngung` · `donVi.menu.batLai` · `donVi.menu.khoiPhuc` · `donVi.menu.taoQuanTri` |
@@ -221,4 +224,4 @@ Không còn.
 
 ## Điểm mở rộng cho dự án hạ nguồn
 
-Theo [ListScreen.md](../Templates/ListScreen.md) §5 và seam `CORE_SCREEN_EXT` khoá `tenants` ([fe-architecture.md](../../quy-uoc/fe-architecture.md) §2.7): màn nhận thêm **cột dạng chữ** — tiêu đề là khoá i18n, ô là chuỗi đã định dạng, không sắp xếp được — nối **sau** "Ngày tạo" và **trước** cột "Hành động", vì cột hành động luôn đứng cuối ([DataTable.md](../Components/DataTable.md) §Responsive); cột thêm không chứa liên kết hay `Badge`. Trường lọc, mục thêm vào menu hàng, nút vào `Toolbar`: **chưa có** điểm mở rộng, hoãn theo [ADR-0057](../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md). Không bớt cột nào.
+Theo [ListScreen.md](../Templates/ListScreen.md) §5 và seam `CORE_SCREEN_EXT` khoá `tenants` ([fe-architecture.md](../../quy-uoc/fe-architecture.md) §2.7): màn nhận thêm **cột dạng chữ** — tiêu đề là khoá i18n, ô là chuỗi đã định dạng, không sắp xếp được — nối **sau** "Ngày tạo" và **trước** cột hành động, vì cột hành động do `DataTable` vẽ và luôn đứng cuối ([DataTable.md](../Components/DataTable.md) §"Cột hành động"); cột thêm không chứa liên kết hay `Badge`. Trường lọc, mục thêm vào menu hàng, nút vào `Toolbar`: **chưa có** điểm mở rộng, hoãn theo [ADR-0057](../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md). Không bớt cột nào.

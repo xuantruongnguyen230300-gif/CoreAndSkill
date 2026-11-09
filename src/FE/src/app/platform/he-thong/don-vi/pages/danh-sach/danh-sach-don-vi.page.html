@@ -1,16 +1,4 @@
-<app-page-header [title]="'donVi.tieuDe' | translate" [description]="'donVi.moTa' | translate">
-  <app-button variant="primary" icon="plus" (clicked)="moHopTao()">{{
-    'donVi.hanhDong.tao' | translate
-  }}</app-button>
-</app-page-header>
-
-<app-toolbar
-  variant="search"
-  [searchValue]="list.query().searchText ?? ''"
-  [searchLabel]="'donVi.timKiem.nhan' | translate"
-  [loading]="list.state() === 'loading'"
-  (searchChanged)="list.setSearchText($event)"
-/>
+<app-page-header [title]="'donVi.tieuDe' | translate" [description]="'donVi.moTa' | translate" />
 
 <app-data-table
   [rows]="list.rows()"
@@ -29,7 +17,23 @@
   [emptyTemplate]="tplRong"
   [loadingTemplate]="tplDangTai"
   [errorTemplate]="tplLoi"
-/>
+  [rowActionsTemplate]="tplHanhDong"
+  [rowActionsLabel]="'donVi.cot.hanhDong' | translate"
+>
+  <app-toolbar
+    dataTableTop
+    variant="search"
+    placement="attached"
+    [searchValue]="list.query().searchText ?? ''"
+    [searchLabel]="'donVi.timKiem.nhan' | translate"
+    [loading]="list.state() === 'loading'"
+    (searchChanged)="list.setSearchText($event)"
+  >
+    <app-button toolbarActions variant="primary" icon="plus" (clicked)="moHopTao()">{{
+      'donVi.hanhDong.tao' | translate
+    }}</app-button>
+  </app-toolbar>
+</app-data-table>
 
 <ng-template #colMa let-dv>{{ dv.code }}</ng-template>
 <ng-template #colTen let-dv>{{ dv.name }}</ng-template>
@@ -42,15 +46,15 @@
   }
 </ng-template>
 
-<ng-template #colNgayTao let-dv>{{
-  dv.createdAt ? (dv.createdAt | date: 'short') : '—'
-}}</ng-template>
+<ng-template #colNgayTao let-dv>{{ dv.createdAt ? (dv.createdAt | date) : '—' }}</ng-template>
 
-<ng-template #colHanhDong let-dv>
+<ng-template #tplHanhDong let-dv>
   <app-icon-button
     icon="ellipsis-v"
     size="sm"
     variant="ghost"
+    haspopup="menu"
+    [expanded]="mucMoMenuId() === dv.id"
     [ariaLabel]="'donVi.menu.moMenu' | translate: { ten: dv.name }"
     (click)="onMoMenu($event, dv)"
   />
@@ -66,8 +70,9 @@
   />
 </ng-template>
 
+<!-- Số vạch = số dòng mỗi trang đang chọn (DataTable.md §Trạng thái `loading`, SkeletonLoader.md §Responsive). -->
 <ng-template #tplDangTai>
-  <app-skeleton-loader variant="text" width="full" />
+  <app-skeleton-loader variant="text" width="full" [lines]="list.query().pageSize" />
 </ng-template>
 
 <ng-template #tplLoi>

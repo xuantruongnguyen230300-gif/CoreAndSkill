@@ -40,7 +40,7 @@ namespace CoreAndSkill.ArchTests;
 //     nằm ở đầu PermissionScriptParityTests — một chỗ, không hai;
 //   • chỉ đối chiếu nguồn khoá trong assembly Core.Infrastructure, tức chỉ phủ KHOÁ CỦA CORE. Một
 //     module cấp khoá riêng thì migration của module cũng của module — cổng đối chiếu tương ứng
-//     phải đi cùng module đó, và cổng này KHÔNG thay thế được nó (nợ B9, docs/RULES.md §10). Để chỗ
+//     phải đi cùng module đó, và cổng này KHÔNG thay thế được nó (nợ B9, docs/RULES-BE.md). Để chỗ
 //     trống đó không im lặng, CorePermissionCatalogSources_MustLiveIn_CoreInfrastructure bắt ca một
 //     nguồn khoá bị đặt nhầm vào một assembly Core khác — và tầm quét của RIÊNG test ranh giới đó
 //     rộng hơn: cả sáu assembly Core, HOST kể cả (xem CoreAssemblies);
@@ -120,7 +120,7 @@ public class PermissionSeedParityTests
     // nguyên, vì host từng không có trong tập quét.
     //
     // Đây KHÔNG phải cổng cho khoá của module — khoá của module nằm ở assembly module, ngoài tầm
-    // quét của mọi test trong project này (nợ B9, docs/RULES.md §10). Đây là cổng cho ca đặt nhầm
+    // quét của mọi test trong project này (nợ B9, docs/RULES-BE.md). Đây là cổng cho ca đặt nhầm
     // chỗ TRONG Core, và ca đó — kể cả nhánh host — nằm trọn trong tầm quét hôm nay.
     [Fact]
     public void CorePermissionCatalogSources_MustLiveIn_CoreInfrastructure()

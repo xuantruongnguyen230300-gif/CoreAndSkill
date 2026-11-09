@@ -1,18 +1,15 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   TemplateRef,
   computed,
-  effect,
   inject,
-  untracked,
+  signal,
   viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { EMPTY, Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 
@@ -30,22 +27,24 @@ import {
   ToolbarChip,
   ToolbarComponent,
 } from '../../../../../shared/components/toolbar/toolbar.component';
-import { AutocompleteComponent } from '../../../../../shared/ui/autocomplete/autocomplete.component';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import {
   DataColumnDef,
   DataTableComponent,
 } from '../../../../../shared/ui/data-table/data-table.component';
 import {
-  InputComponent,
-  SegmentOption,
-} from '../../../../../shared/components/input/input.component';
+  FilterField,
+  FilterPanelComponent,
+  FilterSearchState,
+} from '../../../../../shared/components/filter-panel/filter-panel.component';
+import { SegmentOption } from '../../../../../shared/components/input/input.component';
 import { CORE_SCREEN_EXT } from '../../../../config/core-screen-ext';
 import { CotCore, kiemCotMoRong, sangCotDataTable } from '../../../../config/cot-mo-rong';
 import { VaiTroService } from '../../../vai-tro/services/vai-tro.service';
 import { TraCuuVaiTroStore } from '../../../vai-tro/state/tra-cuu-vai-tro.store';
 import { NguoiDungService } from '../../services/nguoi-dung.service';
 import { TaoNguoiDungStore } from '../../state/tao-nguoi-dung.store';
+import { HanhDongDongNguoiDungComponent } from './hanh-dong-dong-nguoi-dung.component';
 import { HopTaoNguoiDungComponent } from '../../components/hop-tao-nguoi-dung/hop-tao-nguoi-dung.component';
 import { NguoiDung } from '../../models/nguoi-dung.model';
 
@@ -66,16 +65,17 @@ interface VaiTroDangLoc {
   readonly ten: string;
 }
 
+/** Mã lỗi (users.md §3) mà khối lỗi của bảng đổi nút "Thử lại" thành "Xoá bộ lọc" (luật 10). */
+const MA_LOI_VAI_TRO_KHONG_TON_TAI = 'CORE.USER.ROLE_NOT_FOUND';
+
 /** Design/Screens/10-nguoi-dung.md. Guard: permissionGuard('core.user.read') (nguoi-dung.routes.ts). */
 @Component({
   selector: 'app-danh-sach-nguoi-dung',
   standalone: true,
   imports: [
     RouterLink,
-    ReactiveFormsModule,
     TranslatePipe,
     DatePipe,
-    AutocompleteComponent,
     BadgeComponent,
     ConfirmDialogComponent,
     EmptyStateComponent,
@@ -85,8 +85,9 @@ interface VaiTroDangLoc {
     ToolbarComponent,
     ButtonComponent,
     DataTableComponent,
+    HanhDongDongNguoiDungComponent,
     HopTaoNguoiDungComponent,
-    InputComponent,
+    FilterPanelComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ListStateStore, TaoNguoiDungStore],
@@ -94,12 +95,14 @@ interface VaiTroDangLoc {
   styleUrl: './danh-sach-nguoi-dung.page.scss',
 })
 export class DanhSachNguoiDungPage {
+  /** Template đọc qua tên này — hằng module-level ở trên không vào được binding. */
+  protected readonly MA_LOI_VAI_TRO_KHONG_TON_TAI = MA_LOI_VAI_TRO_KHONG_TON_TAI;
+
   private readonly service = inject(NguoiDungService);
   private readonly vaiTroService = inject(VaiTroService);
   protected readonly auth = inject(AuthService);
   private readonly translate = inject(TranslateService);
   private readonly toast = inject(ToastService);
-  private readonly destroyRef = inject(DestroyRef);
   /**
    * Seam CORE_SCREEN_EXT khoá 'users' (fe-architecture.md §2.7): không khai ⇒ đúng bản gốc; khoá
    * trùng ⇒ ném ngay lúc dựng màn (luật 6), không đợi `columns` tính.
@@ -197,19 +200,6 @@ export class DanhSachNguoiDungPage {
     if (!this.coQuyenXemVaiTro() && this.list.query().filters['roleId']) {
       this.list.setFilters({ roleId: null });
     }
-    this.filterTrangThai.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((v) => this.list.setFilters({ status: v === '' ? null : v }));
-    // Ô trạng thái giữ giá trị trong FormControl, không bind thẳng vào URL được: kéo nó theo URL mỗi
-    // lần URL đổi (luật 1). `emitEvent: false` — đồng bộ không được quay lại ghi URL thêm một bước.
-    effect(() => {
-      const trenUrl = this.list.query().filters['status'] ?? '';
-      untracked(() => {
-        if (this.filterTrangThai.value !== trenUrl) {
-          this.filterTrangThai.setValue(trenUrl, { emitEvent: false });
-        }
-      });
-    });
   }
 
   /**
@@ -243,28 +233,94 @@ export class DanhSachNguoiDungPage {
     this.list.setFilters({ roleId: null, status: null });
   }
 
-  // ---- Ô lọc trạng thái ----
-  protected readonly tuyChonTrangThai: readonly SegmentOption[] = [
-    { value: '', label: this.translate.instant('nguoiDung.trangThai.tatCa') },
-    { value: 'active', label: this.translate.instant('nguoiDung.trangThai.hoatDong') },
-    { value: 'locked', label: this.translate.instant('nguoiDung.trangThai.daKhoa') },
-  ];
-  protected readonly filterTrangThai = new FormControl(this.list.query().filters['status'] ?? '', {
-    nonNullable: true,
-  });
-
   /** `Record` không đánh dấu khoá vắng mặt là `undefined` trong kiểu khai báo — ép kiểu tường
    *  minh ở ĐÚNG một chỗ để giữ đường lùi `?? null` khi khoá thật sự vắng lúc chạy. */
   protected giaTriLocVaiTro(): string | null {
     return (this.list.query().filters['roleId'] as string | undefined) ?? null;
   }
 
-  // ---- Ô lọc vai trò (Autocomplete single) ----
+  // ---- Panel lọc (FilterPanel trong Drawer) ----
+  /** Nguồn sự thật của việc mở/đóng panel; nút lọc của Toolbar và `open` của panel cùng đọc nó. */
+  protected readonly locMo = signal(false);
+  protected readonly idPanelLoc = 'nguoi-dung-bang-loc';
+
   protected readonly timVaiTroLoc = new TraCuuVaiTroStore(this.vaiTroService, this.translate);
 
-  /** Chỉ ghi URL — nhãn chip tự theo `roleId` mới (`vaiTroDangLoc`), page không giữ bản thứ hai. */
-  protected onChonVaiTroLoc(gt: string | readonly string[]): void {
-    this.list.setFilters({ roleId: typeof gt === 'string' ? gt || null : null });
+  private readonly tuyChonTrangThai: readonly SegmentOption[] = [
+    { value: '', label: this.translate.instant('nguoiDung.trangThai.tatCa') },
+    { value: 'active', label: this.translate.instant('nguoiDung.trangThai.hoatDong') },
+    { value: 'locked', label: this.translate.instant('nguoiDung.trangThai.daKhoa') },
+  ];
+
+  /** Hai trường lọc; "Vai trò" CHỈ khi có `core.role.read`. Nhãn là `<label>` thật trong panel. */
+  protected readonly truongLoc = computed<readonly FilterField[]>(() => {
+    const ds: FilterField[] = [];
+    if (this.coQuyenXemVaiTro()) {
+      ds.push({
+        key: 'roleId',
+        label: this.translate.instant('nguoiDung.loc.vaiTro'),
+        kind: 'autocomplete',
+        placeholder: this.translate.instant('nguoiDung.vaiTro.goiYTim'),
+      });
+    }
+    ds.push({
+      key: 'status',
+      label: this.translate.instant('nguoiDung.loc.trangThai'),
+      kind: 'select',
+      options: this.tuyChonTrangThai,
+    });
+    return ds;
+  });
+
+  /** Điều kiện đang áp — đọc từ URL, không giữ bản thứ hai. */
+  protected readonly giaTriLoc = computed<Readonly<Record<string, unknown>>>(() => ({
+    roleId: this.roleIdDangLoc(),
+    status: this.list.query().filters['status'] ?? null,
+  }));
+
+  /** Kết quả tìm vai trò của ô lọc — nối `TraCuuVaiTroStore` vào hợp đồng `searchStates`. */
+  protected readonly trangThaiTimLoc = computed<Readonly<Record<string, FilterSearchState>>>(
+    () => ({
+      roleId: {
+        options: this.timVaiTroLoc.options(),
+        loading: this.timVaiTroLoc.loading(),
+        error: this.timVaiTroLoc.error(),
+      },
+    }),
+  );
+
+  /** Tên vai trò đang lọc — cùng nguồn với chip; chưa tra xong thì ô để trống (không hiện id thô). */
+  protected readonly nhanDaChon = computed<Readonly<Record<string, string>>>(() => {
+    const vaiTro = this.vaiTroDangLoc();
+    const nhan: Record<string, string> = {};
+    if (vaiTro && vaiTro.id === this.roleIdDangLoc()) nhan['roleId'] = vaiTro.ten;
+    return nhan;
+  });
+
+  /** Số điều kiện NGƯỜI DÙNG đặt trong panel: không đếm chip đơn vị, không đếm từ khoá ô tìm. */
+  protected readonly soDieuKienLoc = computed(
+    () => (this.roleIdDangLoc() ? 1 : 0) + (this.list.query().filters['status'] ? 1 : 0),
+  );
+
+  protected onTimTruongLoc(e: { key: string; text: string }): void {
+    if (e.key === 'roleId') {
+      this.timVaiTroLoc.timKiem(e.text);
+    }
+  }
+
+  /** Áp một lần: ghi URL; nhãn chip tự theo `roleId` mới (`vaiTroDangLoc`). Thiếu quyền thì bỏ `roleId`. */
+  protected onApDungLoc(v: Record<string, unknown>): void {
+    const roleId = v['roleId'];
+    const status = v['status'];
+    this.list.setFilters({
+      ...(this.coQuyenXemVaiTro() ? { roleId: typeof roleId === 'string' ? roleId : null } : {}),
+      status: typeof status === 'string' ? status : null,
+    });
+  }
+
+  /** Xoá hết điều kiện của panel — không đụng từ khoá ô tìm (không thuộc panel). */
+  protected onXoaHetLoc(): void {
+    this.list.setFilters({ roleId: null, status: null });
   }
 
   // ---- Cột DataTable ----

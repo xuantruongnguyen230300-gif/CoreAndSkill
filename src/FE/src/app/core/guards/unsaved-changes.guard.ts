@@ -1,5 +1,14 @@
-import { CanDeactivateFn } from '@angular/router';
 import { inject } from '@angular/core';
+import {
+  CanDeactivateFn,
+  NavigationCancel,
+  NavigationCancellationCode,
+  NavigationEnd,
+  NavigationError,
+  NavigationSkipped,
+  Router,
+} from '@angular/router';
+import { filter } from 'rxjs';
 
 import { AuthService } from '../auth/auth.service';
 import { UnsavedChangesService } from '../unsaved-changes/unsaved-changes.service';
@@ -20,18 +29,42 @@ import { UnsavedChangesService } from '../unsaved-changes/unsaved-changes.servic
 export const unsavedChangesGuard: CanDeactivateFn<unknown> = () => {
   const thayDoi = inject(UnsavedChangesService);
   const auth = inject(AuthService);
+  const router = inject(Router);
 
   if (!auth.daDangNhap()) {
     thayDoi.roiTrangChacChan();
     return true;
   }
-  if (!thayDoi.coThayDoiChuaLuu()) {
+  // Lần chạy lại của cùng một lần rời (canActivate phía sau chuyển hướng): đã hỏi rồi, không hỏi lần hai.
+  if (thayDoi.daDongYRoiLanNay() || !thayDoi.coThayDoiChuaLuu()) {
     return true;
   }
   return thayDoi.xinRoiTrang().then((roiDuoc) => {
     if (roiDuoc) {
-      // Router sẽ rời route: gỡ đăng ký để lần Router chạy lại guard này (chuyển hướng) không hỏi lại.
-      thayDoi.roiTrangChacChan();
+      // "Rời đi" mới là lời đồng ý, chưa phải việc rời: đăng ký chỉ gỡ khi điều hướng xong. Hỏng/huỷ
+      // thì giữ đăng ký (cả hai đường bảo vệ còn nguyên). Huỷ vì chuyển hướng thì Router chạy lại
+      // canDeactivate cho một điều hướng mới — giữ lời đồng ý và chờ kết cục của điều hướng đó.
+      thayDoi.danhDauDongYRoi();
+      // Router dựng màn đích (constructor của nó có thể `dangKy`) TRƯỚC khi phát `NavigationEnd`:
+      // chỉ gỡ đúng hàm của màn đang rời, không xoá đăng ký của màn đích.
+      const kiemTraManCu = thayDoi.kiemTraDangDangKy();
+      const dangNghe = router.events
+        .pipe(
+          filter(
+            (e) =>
+              e instanceof NavigationEnd ||
+              e instanceof NavigationError ||
+              e instanceof NavigationSkipped ||
+              (e instanceof NavigationCancel && e.code !== NavigationCancellationCode.Redirect),
+          ),
+        )
+        .subscribe((e) => {
+          dangNghe.unsubscribe();
+          if (e instanceof NavigationEnd && kiemTraManCu) {
+            thayDoi.huyDangKy(kiemTraManCu);
+          }
+          thayDoi.huyDongYRoi();
+        });
     }
     return roiDuoc;
   });

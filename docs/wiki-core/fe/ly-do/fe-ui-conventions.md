@@ -47,72 +47,82 @@ Cổng này quét **văn bản**, nên nó cũng bắt cả chú thích nhắc t
 ### 2.1 Luật F5
 
 ```typescript
-// shared/ui/data-table/data-table.component.ts — bọc, không phải bản sao.
-// Mẫu giữ phần quy đổi sắp xếp và phần chọn slot trạng thái; cột, cách vẽ thân bảng, phân trang lược bỏ.
-import { ChangeDetectionStrategy, Component, TemplateRef, computed, input, output } from '@angular/core';
+// shared/ui/data-table/data-table.component.ts — bọc, không phải bản sao. Trích, đối chiếu 2026-10-06:
+// giữ phần sắp xếp và phần chọn slot trạng thái; cột, thân bảng, phân trang, tên truy cập, track dòng lược bỏ.
 import { TableModule } from 'primeng/table';
 
 @Component({
   selector: 'app-data-table',
   standalone: true,
-  imports: [TableModule],
+  imports: [NgTemplateOutlet, TableModule, PaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <!-- slotHienTai() vẽ qua NgTemplateOutlet trong thân p-table, để tiêu đề cột giữ nguyên. -->
-    <p-table
-      [value]="libRows()"
-      [dataKey]="rowKey()"
-      [lazy]="true"
-      [sortField]="sortBy()"
-      [sortOrder]="sortDescending() ? -1 : 1"
-      (onSort)="emitSort($event)"
-    />
-  `,
+  templateUrl: './data-table.component.html',
+  styleUrl: './data-table.component.scss',
 })
 export class DataTableComponent<T> {
-  readonly rows = input<ReadonlyArray<T>>([]);
-  readonly rowKey = input.required<string>();
-  readonly state = input<'idle' | 'loading' | 'error' | 'empty' | 'empty-filtered'>('idle');
+  readonly rows = input<readonly T[]>([]);
+  readonly state = input<DataTableViewState>('idle');
   readonly sortBy = input<string | null>(null);
   readonly sortDescending = input(false);
 
-  /** Slot trạng thái — màn cấp nội dung; lớp bọc không import component tự dựng (luật F24).
-   *  Context của slot trống mang CA rỗng, đúng kiểu khai ở DataTable.md §API: màn chọn biến thể
-   *  EmptyState từ context, không đọc lại `state` qua một đường thứ hai. */
-  readonly emptyTemplate = input<TemplateRef<{ $implicit: 'empty' | 'empty-filtered' }> | null>(null);
+  readonly emptyTemplate = input<TemplateRef<{ $implicit: 'empty' | 'empty-filtered' }> | null>(
+    null,
+  );
   readonly loadingTemplate = input<TemplateRef<unknown> | null>(null);
   readonly errorTemplate = input<TemplateRef<unknown> | null>(null);
 
-  /** Tên trên dây. Dạng `1 | -1` của thư viện KHÔNG lọt ra khỏi file này. */
   readonly sortChange = output<{ sortBy: string; sortDescending: boolean }>();
 
-  /** Thư viện nhận mảng ghi được; bản sao nông giữ cho kiểu chỉ-đọc của API công khai không bị nới. */
-  protected readonly libRows = computed(() => [...this.rows()]);
+  protected readonly dangTai = computed(
+    () => this.state() === 'loading' && this.rows().length === 0,
+  );
+  protected readonly rong = computed(
+    () => this.state() === 'empty' || this.state() === 'empty-filtered',
+  );
 
-  /** DataTable quyết KHI NÀO hiện slot nào; màn quyết HIỆN GÌ. Đang tải mà còn dòng cũ thì giữ dòng, không slot. */
-  protected readonly slotHienTai = computed<TemplateRef<unknown> | null>(() => {
-    switch (this.state()) {
-      case 'empty':
-      case 'empty-filtered':
-        return this.emptyTemplate();
-      case 'error':
-        return this.errorTemplate();
-      case 'loading':
-        return this.rows().length === 0 ? this.loadingTemplate() : null;
-      case 'idle':
-        return null;
-    }
-  });
+  /** `error` thì thân bảng là slot lỗi BẤT KỂ `rows`: PrimeNG chỉ vẽ `#emptymessage` khi `value` rỗng. */
+  protected readonly dsHangMutable = computed(() =>
+    this.state() === 'error' ? [] : [...this.rows()],
+  );
 
-  protected emitSort(e: { field: string; order: number }): void {
-    this.sortChange.emit({ sortBy: e.field, sortDescending: e.order === -1 });
+  protected sapXep(cot: DataColumnDef<T>): void {
+    if (!cot.sortable) return;
+    const dangCungCot = this.sortBy() === cot.key;
+    const desc = dangCungCot ? !this.sortDescending() : false;
+    this.sortChange.emit({ sortBy: cot.key, sortDescending: desc });
   }
 }
 ```
 
+```html
+<!-- shared/ui/data-table/data-table.component.html — trích: chỉ nút sắp xếp và khe chọn slot -->
+<p-table [value]="dsHangMutable()" [dataKey]="rowKey()" [rowTrackBy]="khoaHang">
+  <ng-template #header>
+    <!-- cột sortable: <th scope="col" [attr.aria-sort]="ariaSort(cot)"> bọc một nút tự vẽ -->
+    <button type="button" class="data-table__nut-sap-xep" (click)="sapXep(cot)">…</button>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr>
+      <td [attr.colspan]="cotHopLe().length">
+        @if (dangTai()) {
+          <ng-container [ngTemplateOutlet]="loadingTemplate()" />
+        } @else if (state() === 'error') {
+          <ng-container [ngTemplateOutlet]="errorTemplate()" />
+        } @else if (rong()) {
+          <ng-container
+            [ngTemplateOutlet]="emptyTemplate()"
+            [ngTemplateOutletContext]="{ $implicit: state() }"
+          />
+        }
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+```
+
 - **Vì sao `DataTable` nhận khối trạng thái qua `TemplateRef`** — Lớp bọc ở `shared/ui/` không import component tự dựng, nên khối trống, khung đang tải và khối lỗi vào `DataTable` qua ba input `TemplateRef`; màn ghép chúng vào ([`fe-architecture.md`](../../../quy-uoc/fe-architecture.md) §2.8).
 
-- **Về mẫu `DataTableComponent`** — Mẫu cố ý chỉ giữ phần **quy đổi** và phần **chọn slot**, vì đó là hai việc lớp bọc tồn tại để làm. API công khai (`rows`, `state`, `sortBy`, `sortDescending`, `sortChange`, `emptyTemplate`, `loadingTemplate`, `errorTemplate`) lấy nguyên từ [`../Design/Components/DataTable.md`](../../../Design/Components/DataTable.md); tên thuộc tính và tên khe template của PrimeNG đối chiếu tài liệu chính thức của thư viện khi thi công.
+- **Về mẫu `DataTableComponent`** — Mẫu giữ phần **sắp xếp** và phần **chọn slot**, vì đó là hai việc lớp bọc tồn tại để làm. Sắp xếp đi qua nút tiêu đề tự vẽ, phát thẳng tên trên dây (`sortBy`, `sortDescending`); lớp bọc không dùng cơ chế sắp xếp của `p-table`, nên không có dạng `1 | -1` nào của thư viện phải quy đổi. Chọn slot nằm trong khe `#emptymessage`, mà PrimeNG chỉ vẽ khe đó khi `value` rỗng — vì vậy nhánh `error` đưa mảng rỗng vào `p-table` qua `dsHangMutable`, để dòng của trang trước không che slot lỗi. `DataTable` quyết **khi nào** hiện slot nào, màn quyết **hiện gì**. API công khai đầy đủ ở [`../Design/Components/DataTable.md`](../../../Design/Components/DataTable.md).
 
 ### 2.2 Allowlist — đường dẫn duy nhất được import `primeng/`
 
@@ -212,6 +222,10 @@ Bỏ bước 1 nghĩa là bảng màu thật nằm trong code còn tài liệu t
 
 - **Vì sao không `::ng-deep`** — Nó là API đã bị đánh dấu ngừng dùng và nó rò style ra ngoài phạm vi component — tức phá đúng thứ đóng gói style sinh ra để làm.
 
+- **Vì sao cho phép `ViewEncapsulation.None` có điều kiện, không cấm hẳn** — Ca có thật là `AuthCard`: khe giữa các trường của form xác thực thuộc về khung ([`../../../Design/Components/AuthCard.md`](../../../Design/Components/AuthCard.md) §Kích thước), nhưng `<form>` do trang chiếu vào qua `<ng-content>`. Cấm `None` thì khe phải thành một lớp tiện ích toàn cục mà mọi trang xác thực tự gắn vào `<form>` — khe rời khỏi component sở hữu nó, spec component phải đổi API, và một trang quên gắn lớp thì mất khe. Viết khe ở từng trang thì lặp đúng thứ spec nói là của khung. `None` giữ khe ở trong component, đổi lại style thành toàn cục; điều kiện *mọi selector cấp cao nhất mở đầu bằng selector phần tử của component* kéo phạm vi về đúng cây DOM của component, nên rò ra ngoài chỉ còn khi viết sai — và viết sai thì lệnh dò thấy. Điều kiện bám selector phần tử chứ không bám lớp gốc BEM vì selector phần tử đọc được từ `selector:` của chính component, không phụ thuộc người viết đặt tên lớp có kỷ luật hay không.
+
+- **Vì sao chưa có cổng** — Tới 2026-10-06 mới có một vi phạm thật: `AuthPage` tắt đóng gói và viết style nội tuyến trong khi style của nó chỉ chạm phần tử chủ. Cổng dựng khi vi phạm thật lặp lại ([ADR-0114](../../../adr/0114-bo-so-no-luat-ve-rules-viec-ton-sang-issues-review-khong-sinh-viec-stop-chan-review-mot-lan-go-nhanh-chua-co-src.md)); tới lúc đó lệnh dò ở file luật là thứ review chạy.
+
 ### 4.3 Lớp tiện ích
 
 - **Vì sao không dựng hệ tiện ích song song với hệ token** — Hai hệ thì mỗi màn hình sẽ dùng một hệ.
@@ -281,6 +295,10 @@ Khuôn số nhiều — hai khoá con và chọn ở template:
 ### 5.5 Ngày, giờ, số
 
 - **Quên đăng ký locale** — Quên bước đó thì pipe im lặng rơi về locale mặc định và ngày hiện ra theo khuôn của một nước khác.
+- **Tên khuôn đi theo bản Angular đang cài, không theo sản phẩm.** `'short'`, `'shortDate'` đọc khuôn từ dữ liệu CLDR đóng gói cùng `@angular/common`. Bản 21 đổi `shortDate` của `vi` từ `dd/MM/y` sang `d/M/yy`, nên mọi template viết `date: 'short'` đổi từ `03:12 10/09/2026` sang `03:12 10/9/26` cùng lúc — build xanh, không test màn nào đỏ. Khuôn của `fr` không đổi ở bản đó; lần nâng sau có thể đổi ngôn ngữ khác.
+- **Vì sao khuôn ở seam.** Người dùng chốt 2026-11-06 giữ dạng cũ: năm hai chữ số dễ đọc nhầm trên dữ liệu quản trị. Loại: chấp nhận `d/M/yy`; viết chuỗi khuôn ở template — mỗi chỗ dùng một bản sao, và khuôn không đổi theo ngôn ngữ; vá mảng dữ liệu locale trước khi đăng ký — dựa vào chỉ mục nội bộ của mảng, thứ Angular không công khai, nên nâng bản là vỡ không báo; pipe ngày tự viết — thêm mã Core cho việc `DATE_PIPE_DEFAULT_OPTIONS`, một API công khai, đã làm; `dateTimeFormat` tuỳ chọn — mục thiếu nó thì pipe im lặng về `mediumDate` (`10 thg 9, 2026`), đúng dạng hỏng của gạch đầu dòng trên.
+- **Cái giá.** `DATE_PIPE_DEFAULT_OPTIONS` tĩnh như `LOCALE_ID`: đổi ngôn ngữ lúc chạy ([`../08-i18n.md`](../08-i18n.md) §7) phải làm cả hai thành động. Seam cấp một khuôn mặc định, nên hiện chỉ ngày chưa có đường đi. Tài liệu Angular dạy `date: 'short'` — người mới sẽ "sửa lại", và vế này chưa có cổng. Mọi mục ngôn ngữ, kể cả trong spec, phải khai khuôn.
+- **Dấu hiệu quyết định sai.** Ca kiểm `shortDate` của `vi` trong `src/FE/src/app/core/config/core-i18n.spec.ts` — chuỗi `'10/9/26',` — đỏ sau một lần nâng Angular, tức CLDR quay về `dd/MM/y`: xét gỡ trường. Màn đầu tiên cần hiện chỉ ngày: phải thiết kế khuôn thứ hai.
 
 ## 6. Form — typed reactive form
 
@@ -300,16 +318,17 @@ Khuôn số nhiều — hai khoá con và chọn ở template:
 
 - **Vì sao đăng ký CVA bằng `ngControl.valueAccessor = this`, không qua `providers` với `NG_VALUE_ACCESSOR`** — Spec của các control tự dựng suy trạng thái `error` từ `invalid && touched` của control chủ, tức component phải inject `NgControl`. `NgControl` trên cùng phần tử lại tìm accessor qua `NG_VALUE_ACCESSOR`; provide token đó ở chính component là hai bên chờ nhau — Angular ném `NG0200` lúc dựng. Gán accessor trong constructor cắt vòng đó. `{ self: true }` vì thiếu nó `inject` với lên `NgControl` của form cha và control con nhận nhầm chủ; `{ optional: true }` vì `Input` và `Check` còn ca không gắn control ([`../../../Design/Components/Input.md`](../../../Design/Components/Input.md) mục *API dự kiến*). Token này không lấy dữ liệu nên F11 tha ([`../trien-khai/05-gate.md`](../trien-khai/05-gate.md) §8.8).
 
-Khuôn ví dụ đầy đủ nhắc tới ở [`fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §6.1 — **ví dụ minh hoạ**, chưa khớp tên file hay tên class thật nào trong `src/FE` hôm nay (đối chiếu 2026-09-27: không có `form-nguoi-dung.page.ts`, không có class `FormNguoiDungPage`; thực tế màn tạo người dùng dùng khuôn "hộp thoại" — `hop-tao-nguoi-dung.component.ts`, cùng tín hiệu `loiChung`/`lanGuiSai`):
+Khuôn ví dụ đầy đủ nhắc tới ở [`fe-ui-conventions.md`](../../../quy-uoc/fe-ui-conventions.md) §6.1 — **ví dụ minh hoạ**, chưa khớp tên file hay tên class thật nào trong `src/FE` hôm nay (đối chiếu 2026-09-27: không có `form-nguoi-dung.page.ts`, không có class `FormNguoiDungPage`; thực tế màn tạo người dùng dùng khuôn "hộp thoại" — `hop-tao-nguoi-dung.component.ts`, cùng tín hiệu `loiChung`/`lanGuiSai`; form và lời gọi `tao` nằm ở `tao-nguoi-dung.store.ts`, khuôn thật nên đọc). Service, phương thức và tên control của mẫu khớp code thật, đối chiếu 2026-10-06:
 
 ```typescript
 // platform/quan-tri/nguoi-dung/pages/form/form-nguoi-dung.page.ts
 import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { finalize } from 'rxjs';
 import { ApiFailureError } from '../../../../../core/http/api-result.model';
+import { cauLoiKhongPhaiApi } from '../../../../../core/http/dich-loi';
 import { ButtonComponent } from '../../../../../shared/components/button/button.component';
 import { FormRowComponent } from '../../../../../shared/components/form-row/form-row.component';
 import { InputComponent } from '../../../../../shared/components/input/input.component';
@@ -325,7 +344,7 @@ type TenTruong = 'userName' | 'fullName' | 'email' | 'tempPassword';
   selector: 'app-form-nguoi-dung',
   standalone: true,
   imports: [
-    ReactiveFormsModule, TranslateModule, FormRowComponent, InputComponent, ButtonComponent,
+    ReactiveFormsModule, TranslatePipe, FormRowComponent, InputComponent, ButtonComponent,
     NoticeBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -352,6 +371,7 @@ export class FormNguoiDungPage {
     fullName: this.fb.control('', [Validators.required, Validators.maxLength(200)]),
     email: this.fb.control('', [Validators.required, Validators.email]),
     tempPassword: this.fb.control('', [Validators.required]),
+    roleIds: this.fb.control<readonly string[]>([]),
   });
 
   constructor() {
@@ -368,7 +388,7 @@ export class FormNguoiDungPage {
     }
     this.dangGui.set(true);
     this.service
-      .them(this.form.getRawValue())
+      .tao(this.form.getRawValue())
       .pipe(finalize(() => this.dangGui.set(false)))
       .subscribe({
         next: () => void this.router.navigate(['..'], { relativeTo: this.route }),
@@ -378,7 +398,7 @@ export class FormNguoiDungPage {
 
   private xuLyLoi(err: unknown): void {
     if (!(err instanceof ApiFailureError)) {
-      this.loiChung.set(this.translate.instant('loi.CORE.CLIENT.NO_CONNECTION')); // lỗi không đến từ HTTP: không có envelope
+      this.loiChung.set(cauLoiKhongPhaiApi(this.translate)); // lỗi không đến từ HTTP: không có envelope — F45
       return;
     }
     this.loiChung.set(applyFormFailure(this.form, err, this.translate));
@@ -405,6 +425,10 @@ export class FormNguoiDungPage {
 - **Vì sao nhận nguyên `ApiFailureError`, không `err.body`** — Hàm cần `status` để nhận lớp lỗi xuyên suốt; `body` không mang nó. Truyền `err.body` là lỗi biên dịch, và lối thoát dễ nhất — bọc lại `new ApiFailureError(err.body)` — cho `status = 0`: `laLoiXuyenSuot` không nhận ra 5xx, khu lỗi hiện nó thêm một lần cạnh toast.
 - **Vì sao `\n` chứ không mảng** — Giữ chữ ký `string | null` cho mọi nơi gọi; ngắt dòng là việc của chỗ hiện (`NoticeBanner`, khu lỗi `AuthCard`), một khai báo style ở component thay vì một vòng `@for` ở từng page.
 - **Vì sao screen spec không khai câu** — Hai nơi cùng quyết câu thì lệch, và code đi theo nơi người thi công mở ra trước. Luật chọn câu là một, cho mọi form; màn chỉ khác nhau ở chỗ đặt banner.
+- **Vì sao `CORE.VALIDATION.FAILED` là ca đắt nhất của luật *mã gốc không nói thay mã con*** — Câu của nó (*"kiểm tra lại các trường được đánh dấu"*) sai khi không ô nào được đánh dấu: người dùng đi tìm một dấu không có trên màn.
+- **Vì sao màn đăng nhập tự chọn câu ở hai ca** — `CORE.AUTH.INVALID_CREDENTIALS` ở chế độ vận hành: câu của mã chỉ nói tới hai ô của chế độ thường; câu riêng đổi theo chế độ người dùng chọn, không theo nguyên nhân trượt, nên không mở đường dò. `CORE.VALIDATION.FAILED` mang khoá `TenantCode` ở chế độ thường: chế độ này không có ô mã đơn vị, nên câu của mã con nói về một ô không có trên màn; nguyên nhân là cấu hình bản cài, người dùng không sửa được.
+- **Vì sao focus đặt sau lần render kế tiếp** — `aria-invalid="true"` chỉ có trên DOM sau khi lỗi được vẽ; tìm ô sai ngay trong nhánh xử lý bấm gửi thì không thấy ô nào.
+- **Vì sao mã con chưa có khoá ra câu dự phòng chung** — Mã gốc thiếu khoá còn lùi được về câu BE gửi kèm; mã con chỉ mang `code` và `messageParams`, không câu nào để lùi. Không chặn thì ngx-translate trả lại nguyên khoá và người dùng đọc `loi.CORE.AUTH.PASSWORD_REQUIRES_LOWER` dưới ô. Thêm khoá thiếu chỉ chữa mã đã biết; mã BE thêm sau vẫn lộ ra tới khi có cổng F16, mà cổng chỉ dựng khi vi phạm lặp lại ([ADR-0114](../../../adr/0114-bo-so-no-luat-ve-rules-viec-ton-sang-issues-review-khong-sinh-viec-stop-chan-review-mot-lan-go-nhanh-chua-co-src.md)). Cái giá: câu dự phòng không nói lý do — người dùng biết ô sai nhưng không biết sai thế nào. Vì vậy câu dự phòng không thay việc thêm khoá.
 
 ### 6.3 Validate phía client hay phía server
 
@@ -428,11 +452,35 @@ export class FormNguoiDungPage {
 
 ### 6.5 `fieldErrorText` — lỗi hiện lúc nào, câu nào
 
+Lý do của bảy dòng luật, theo số dòng ở file luật:
+
+1. `FormRow` coi `null` là không lỗi.
+2. Người dùng đang gõ lần đầu, chưa rời ô.
+3. Người dùng không chọn vào ô đó — màn đặt họ vào đó. Rời đi khi chưa gõ là chưa bắt đầu điền; chuyển cửa sổ cũng làm ô mất focus nên hai ca không tách được ([`../../../Design/Components/FormRow.md`](../../../Design/Components/FormRow.md), dòng *ô màn tự đặt focus*).
+4. Ba nhánh còn lại của bảng *Lỗi hiện khi nào*: rời ô, bấm gửi, đang sửa một ô đã báo lỗi.
+5. `error` của `FormRow` là một chuỗi.
+6. Hiện hết mọi lỗi làm form nhảy. Lỗi client tính lại theo giá trị, nên sửa xong lỗi đầu là lỗi kế hiện ngay; lỗi server bị gỡ cả nhóm khi giá trị đổi ([`../09-forms-validation.md`](../09-forms-validation.md) §4.2), nên mã server kế hiện ra ở lần gửi lại nếu giá trị mới vẫn vi phạm nó.
+7. Lỗi server là câu trả lời về **chính giá trị đang nằm trong ô**. Giá trị đổi thì khoá `server` bị gỡ (cùng §4.2) và lỗi client, nếu còn, hiện ra.
+
+**Ô tự đặt focus lúc mở — vì sao chặn ở `touched`, không ở `fieldErrorText`.** Ba thứ cùng đọc `touched` của control: câu lỗi (`fieldErrorText`), viền lỗi cùng `aria-invalid` của `app-input` và `app-check` (`invalid && touched` — `input.component.ts`, `check.component.ts`, chuỗi `this.ngControl.touched === true`), và `focusOSaiDauTien`, vốn tìm ô sai qua `aria-invalid="true"`. Chỉ cho `fieldErrorText` trả `null` *kể cả khi đã `touched`* thì ô viền đỏ, trình đọc màn hình đọc "không hợp lệ", mà không có dòng lỗi nào — ba kênh báo lỗi lệch nhau. Giữ control chưa `touched` thì cả ba cùng im, cùng bật, không chỗ nào phải biết luật này.
+
+**Vì sao cờ trên phần tử, không tham số hay chỉ thị.** Ô nào nhận focus lúc mở được quyết **lúc chạy**: `Drawer` chọn ô nhập đầu trong DOM, `Dialog` cũng vậy, màn đăng nhập chọn ô trống đầu tiên theo chế độ. Một tham số của `fieldErrorText` hay một chỉ thị gắn trên ô trong template là câu trả lời thứ hai, khai tĩnh — đổi thứ tự ô, hay ô đầu đã có giá trị, là hai câu lệch nhau; quên khai thì im lặng về hành vi cũ. Cờ do chính lời đặt focus gắn thì không lệch được với chỗ focus thật. Thuộc tính trên phần tử, không một tập `WeakSet` trong module: lưới giao diện đọc được, và nó mất cùng phần tử chứ không sống qua các ca kiểm.
+
+**Bẫy:**
+
+- Gọi thẳng `focus()` lúc mở — ô không mang cờ, rời đi là báo "bắt buộc" như cũ. Không cổng nào bắt; review canh, và ca kiểm của chỗ đặt focus khẳng định cờ có mặt.
+- Để `focusOnShow` của PrimeNG đặt focus rồi gắn cờ sau: thư viện tự chọn phần tử và đặt focus trong một lần hẹn giờ riêng, dài bằng thời lượng chuyển động — đọc `primeng-dialog.mjs` của gói `primeng` bản ghim ở `src/FE/package.json` (đọc lại 2026-11-06), chuỗi `setTimeout(() => _focusableElements[0].focus()`; tệp không nằm trong git. Lớp bọc không biết lúc nào phần tử nhận focus, và phần tử thư viện chọn là câu trả lời thứ hai cho câu "ô nào".
+
 - **Khoá và tham số dịch của lỗi validator client** — Khoá lỗi `required` của Angular thành `loi.CORE.CLIENT.VALIDATION_REQUIRED`; tham số dịch là object lỗi mà validator gắn vào control — `maxlength` mang `requiredLength`. Thứ tự mảng lỗi server giữ đúng thứ tự BE trả ([`../wiki-core/fe/09-forms-validation.md`](../../../wiki-core/fe/09-forms-validation.md) §4.1).
 
 ## 7. Responsive
 
 - **Vì sao không khai điểm ngắt thành CSS custom property** — `var()` không đọc được trong điều kiện của `@media`.
+- **Vì sao trừ `0.02px`, không trừ `1px`** — bề rộng khung nhìn có thể lẻ: phóng to trình duyệt, màn tỉ lệ 125 % hay 150 % cho ra bề rộng như "điểm ngắt trừ 0,5px". Ở dải đó, truy vấn trừ `1px` không áp mà `tu-man-hinh` cũng chưa áp — không kiểu nào chạy. Trừ `0.02px` thu dải hở xuống mức không bề rộng thật nào rơi vào, cùng cách Bootstrap và Angular CDK khai ngưỡng "dưới". Viết số nguyên là trừ `1px` trá hình.
+- **Vì sao chưa dùng cú pháp dải `(width < …)`** — nó bỏ hẳn được phép trừ. Lý do loại: Safari và iOS chỉ hiểu nó từ 16.4 (Chrome, Edge từ 104, Firefox từ 63), và trình duyệt không hiểu bỏ cả truy vấn — kiểu "dưới điểm ngắt" mất im lặng. Từ 2026-11-06 không trình duyệt nào trong `src/FE/.browserslistrc` còn dưới các mốc đó (đọc: `grep -vE '^[[:space:]]*(#|$)' src/FE/.browserslistrc`), nên lý do loại không còn đúng. Luật ở §7 giữ nguyên tới khi có người quyết đổi; đổi là sửa luật F58 cùng mixin ở `_spacing.scss` và hằng ở `diem-ngat.ts`.
+- **Vì sao TypeScript nhận chuỗi truy vấn dựng sẵn, không nhận số px** — ba nơi dùng hôm nay đều chỉ cần chuỗi cho `matchMedia`. Xuất số thì mỗi nơi tự dựng truy vấn và tự chọn phép trừ: đúng cách ba tệp đã trôi thành ba kiểu. Chuỗi dựng sẵn để phép trừ nằm ở một tệp, nơi cổng F58 so được.
+- **Vì sao tệp phản chiếu nằm ở `core/theme/`** — cạnh `prime-z-index.ts`, tệp phản chiếu token cho TypeScript đã có; `core/` là tầng đáy nên `shared/` và `platform/` cùng import được. Cái giá: giá trị điểm ngắt vẫn sống ở hai nơi — cổng giữ chúng khớp, không xoá được bản thứ hai.
+- **Bẫy:** đổi `$bp-xs` ở `_spacing.scss` mà không đổi hằng TypeScript thì CSS và `matchMedia` bất đồng ở dải giữa hai giá trị. Ví dụ: CSS đã ẩn nút theme của `Topbar` nhưng `matchMedia` chưa báo "dưới điểm ngắt", nên menu tài khoản chưa có mục "Giao diện" — người dùng mất mọi đường đổi theme. Đây là ca F58 sinh ra để chặn.
 
 Ví dụ dùng mixin trong component:
 
@@ -462,9 +510,11 @@ Ví dụ dùng mixin trong component:
 
 Component Core nhận cấu hình qua những **kiểu có tên**, và cho tới nay chúng chỉ được mô tả bằng một câu văn xuôi trong cột ghi chú của bảng API. Một câu văn xuôi không phải hợp đồng: dự án thứ nhất sẽ khai nó một kiểu, dự án thứ hai khai kiểu khác, và lúc kéo bản vá Core theo [`../adr/0016-phan-phoi-core-bang-clone.md`](../../../adr/0016-phan-phoi-core-bang-clone.md) thì hai bên không hợp nhất được. Đó là **fork** — chỉ khác là nó xảy ra ở tầng kiểu chứ không ở tầng file.
 
-### Họ kiểu CỘT — một gốc, hai mở rộng
+### Họ kiểu CỘT — mỗi component bảng tự khai kiểu cột
 
-🛑 **Ba tên `TableColumn`, `GridColumn`, `ColumnDef` từng cùng tồn tại cho cùng một khái niệm.** Đó là ba định nghĩa sẽ lệch nhau, và lệch ở chỗ không ai thấy: dự án thứ nhất thêm một trường vào `GridColumn`, dự án thứ hai thêm trường cùng nghĩa khác tên vào `TableColumn`, và bản vá Core không hợp nhất được. Một gốc với hai mở rộng giữ cho phần chung thật sự chung.
+- **Vì sao không có kiểu gốc chung** — `Table` và `DataTable` khác nhau đúng ở trường quan trọng nhất là ô. Cột `Table` bắt buộc `cell`, và context của ô mang cả cột. Cột `DataTable` có đúng một trong `cell` hoặc `value`, vì cột thêm qua seam `CORE_SCREEN_EXT` không dựng được `TemplateRef` ([`../../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md`](../../../adr/0057-seam-fe-chi-mang-gia-tri-dung-duoc-o-composition-root.md)). Một gốc chung chỉ chung được bốn trường `key`, `header`, `width`, `align`, và mỗi bên phải đè lại `cell` theo một cách khác nhau. Hai component lại nằm ở hai thư mục: `Table` tự dựng ở `shared/components/`, `DataTable` bọc PrimeNG ở `shared/ui/`. Gốc chung không được nằm ở `shared/components/`, vì luật F24 cấm `shared/ui/` import tầng đó. `Table` vì thế phải phụ thuộc một tệp ngoài tầng của nó chỉ để lấy bốn trường. Đổi API của `Table` cho khớp một gốc còn chạm cả ma trận phân quyền, nơi đang dùng `Table`.
+
+- **Cái giá** — Rủi ro cũ vẫn còn đó: trường cùng nghĩa có thể trôi khác tên giữa hai kiểu, và bản vá Core khi ấy không hợp nhất được. Hôm nay chỉ một câu luật ở §9 canh nó (*trường cùng nghĩa mang cùng tên và cùng kiểu*), và người review kiểm câu đó. Dấu hiệu nên dựng lại một gốc chung: kiểu cột thứ ba ra đời, chẳng hạn của `EditableGrid`, hoặc hai kiểu cột bắt đầu có trường cùng nghĩa mà khác tên.
 
 - **`values` của `SummaryRow` nhận số thì sao** — Nhận số rồi tự định dạng là đường ngắn nhất để một bảng hiện `2,152` ở chỗ lẽ ra phải là `2.152`. Định dạng tiền tệ, phân cách nghìn và số chữ số thập phân là quyết định của nghiệp vụ.
 

@@ -26,7 +26,7 @@ Component: `src/FE/src/app/shared/components/empty-state/empty-state.component.t
 | Khe dọc | Cả ba khớp spec: icon → tiêu đề `--sp-6`, tiêu đề → mô tả `--sp-3`, mô tả → nút `--sp-6` | — |
 | Bề rộng tối đa, căn giữa | Có, `--layout-dialog-w-sm` + `margin: 0 auto` + `text-align: center` | — |
 | Màu chữ | Tiêu đề `--color-text` `--fw-semibold`; mô tả `--color-text-muted` `--fs-sm` `--lh-normal` — khớp spec | — |
-| `headingLevel` ra thẻ tiêu đề thật | Có, `@switch` dựng `<h2>`/`<h3>`/`<h4>`, mặc định `3` | — |
+| `headingLevel` ra thẻ tiêu đề thật | Có, đủ bốn cấp của §API (đọc mã 2026-10-08): `empty-state.component.ts` § `readonly headingLevel = input<1 \| 2 \| 3 \| 4>(3);`; `empty-state.component.html` § `@switch (headingLevel())` có nhánh § `@case (1)` dựng `<h1>`, rồi `<h2>`, `<h4>`, mặc định `<h3>`. Nơi duy nhất truyền `1` là khối *Không tải được phần ứng dụng*: `src/FE/src/app/app.html` § `[headingLevel]="1"`, không có `PageHeader` — đúng điều kiện ở §API. Ca `headingLevel = 1 → đúng một <h1>, không thẻ tiêu đề khác` (`empty-state.component.spec.ts`; người soạn chưa chạy test) | — |
 | Hai dạng hành động | Có: `actionRoute` khác `null` thì vẽ `<a routerLink>`, ngược lại vẽ `app-button`; `actionClicked` **chỉ** phát ở nhánh không có route | — |
 | Vòng tròn icon mang `aria-hidden` | Có | — |
 | Không có `hover`/`focus` ở mức component | Đúng — không có quy tắc nào trên `.empty-state` | — |
@@ -137,9 +137,9 @@ Ba đường kính vòng tròn là bí danh `--icon-circle-*` khai ở [`../DESI
 | Khoản | Yêu cầu |
 | --- | --- |
 | Icon | `aria-hidden="true"` — nó lặp lại thông tin đã có trong tiêu đề ([`../Icons.md`](../Icons.md) §7) |
-| Tiêu đề | Thẻ heading đúng cấp **theo vị trí trong trang**, không phải cấp cố định. Trong thân một bảng thì thường là `<h3>`; cả một trang thì `<h2>` dưới `<h1>` của `PageHeader` |
-| Xuất hiện sau khi tải xong | Vùng chứa bảng phải có `aria-live="polite"` để trình đọc màn hình biết kết quả — nếu không, người dùng bấm lọc và không nghe thấy gì |
-| Hành động | `actionRoute` khác `null` → `<a>` với `routerLink`, mượn hình thức nút theo ngoại lệ ở [`Button.md`](./Button.md) §Khi nào dùng — điều hướng đi bằng liên kết, không bằng nút. Ngược lại là [`Button.md`](./Button.md) thật. Cả hai nằm trong thứ tự Tab |
+| Tiêu đề | Thẻ heading đúng cấp **theo vị trí trong trang**, không phải cấp cố định. Trong thân một bảng thì thường là `<h3>`; cả một trang thì `<h2>` dưới `<h1>` của `PageHeader`. Cả trang không có `PageHeader` (khối toàn trang không khung) thì `<h1>` |
+| Xuất hiện sau khi tải xong | `EmptyState` không tự báo. Trong `DataTable`, ca không có kết quả do vùng báo kết quả của bảng đọc to — [`DataTable.md`](./DataTable.md) §Accessibility, "Vùng báo kết quả" |
+| Hành động | `actionRoute` khác `null` → `<a>` với `routerLink`, mang hình thức nút bằng `a[app-button]` ([`Button.md`](./Button.md) §Liên kết mang hình thức nút; hôm nay còn bản chép CSS riêng) — điều hướng đi bằng liên kết, không bằng nút. Ngược lại là [`Button.md`](./Button.md) thật. Cả hai nằm trong thứ tự Tab |
 | Tương phản | Mô tả dùng `--color-text-muted`, đạt **7.56:1** ở theme sáng và **7.08:1** ở theme tối trên `--color-surface` ([`../DESIGN.md`](../DESIGN.md) §2.2) |
 | Chữ | Tiêu đề, mô tả, nhãn nút qua i18n — [`../../RULES.md`](../../RULES.md) §7 F8 |
 
@@ -154,7 +154,7 @@ Ba đường kính vòng tròn là bí danh `--icon-circle-*` khai ở [`../DESI
 | `icon` | input | `string \| null` | `null` | `null` = dùng icon mặc định của biến thể. Khác `null` thì là **tên trần**: `inbox`, không phải `pi-inbox` — [`../Icons.md`](../Icons.md) §5 |
 | `actionLabel` | input | `string \| null` | `null` | `null` = không vẽ hành động |
 | `actionRoute` | input | `string \| null` | `null` | Khác `null` thì hành động là **liên kết** tới tuyến này, và `actionClicked` không phát. Cùng khuôn nhận tuyến qua `input()` như `breadcrumbs` của [`PageHeader.md`](./PageHeader.md) — component không tự đọc router |
-| `headingLevel` | input | `2 \| 3 \| 4` | `3` | Cấp heading, do nơi gọi quyết định theo vị trí |
+| `headingLevel` | input | `1 \| 2 \| 3 \| 4` | `3` | Cấp heading, do nơi gọi quyết định theo vị trí. `1` (thêm 2026-10-08) **chỉ** khi khối là nội dung chính của trang và trang không có `<h1>` nào khác — hôm nay chỉ có khối *Không tải được phần ứng dụng* ([`../Screens/02-trang-loi.md`](../Screens/02-trang-loi.md)), chạy không `PageHeader`. Trang đã có `PageHeader` thì `<h1>` đã có, dùng `2` trở xuống; một trang không được có hai `<h1>` |
 | `actionClicked` | output | `void` | — | |
 
 **`variant` bắt buộc là quyết định API quan trọng nhất của component này.** Nó buộc mỗi nơi gọi phải trả lời câu hỏi *"trống vì lý do gì"* — chính câu hỏi mà component tồn tại để trả lời. Một giá trị mặc định sẽ khiến câu hỏi đó không bao giờ được hỏi.

@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import {
@@ -98,7 +97,6 @@ describe('ChiTietNguoiDungPage — lỗi của hộp thoại phải HIỆN trên
       imports: [ChiTietNguoiDungPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: NguoiDungService, useValue: service },
         { provide: AuthService, useValue: auth },
@@ -131,6 +129,18 @@ describe('ChiTietNguoiDungPage — lỗi của hộp thoại phải HIỆN trên
     await fixture.whenStable();
     TestBed.tick();
     fixture.detectChanges();
+  }
+
+  /**
+   * Chờ điều kiện đúng. PrimeNG 21 thoát phần tử bằng hoạt ảnh CSS thật (lớp `p-leave-to`, gỡ khỏi
+   * DOM khi `transitionend`), không còn gỡ đồng bộ như bản 20 — nên không thể đo ngay sau `onDinh`.
+   */
+  async function choDen(dieuKien: () => boolean, toiDaMs = 2000): Promise<void> {
+    const batDau = Date.now();
+    while (!dieuKien() && Date.now() - batDau < toiDaMs) {
+      await new Promise((xong) => setTimeout(xong, 20));
+      fixture.detectChanges();
+    }
   }
 
   it('điểm xuất phát: chi tiết được tải và hộp Sửa đóng', () => {
@@ -239,6 +249,7 @@ describe('ChiTietNguoiDungPage — lỗi của hộp thoại phải HIỆN trên
     await veLai();
 
     expect(service.chiTiet).toHaveBeenCalledTimes(2);
+    await choDen(() => document.getElementById('ndsua-email') === null);
     expect(document.getElementById('ndsua-email')).toBeNull();
   });
 
@@ -290,6 +301,7 @@ describe('ChiTietNguoiDungPage — lỗi của hộp thoại phải HIỆN trên
     await veLai();
 
     expect(hopXacNhan()).toBeNull();
+    await choDen(() => document.getElementById('ndsua-email') === null);
     expect(document.getElementById('ndsua-email')).toBeNull();
   });
 
@@ -497,7 +509,6 @@ describe('ChiTietNguoiDungPage — tải chi tiết hỏng', () => {
       imports: [ChiTietNguoiDungPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: NguoiDungService, useValue: service },
         {

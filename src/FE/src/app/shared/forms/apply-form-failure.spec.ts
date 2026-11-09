@@ -71,6 +71,18 @@ describe('applyFormFailure()', () => {
     form = new FormGroup({ userName: new FormControl(''), email: new FormControl('') });
   });
 
+  it('mã lạ chưa hiện ở ô nào và thiếu bản dịch → banner mang câu dự phòng, không phải khoá thô', () => {
+    const thieuDich = {
+      instant: (khoa: string) => (khoa === 'loi.CORE.VALIDATION.INVALID' ? 'Không hợp lệ.' : khoa),
+    } as unknown as TranslateService;
+    const cau = applyFormFailure(
+      form,
+      thatBai({ KhoaLa: [{ code: 'CORE.X.MA_LA', messageParams: null }] }),
+      thieuDich,
+    );
+    expect(cau).toBe('Không hợp lệ.');
+  });
+
   describe('đường lùi — fieldErrors không mang mã nào → câu của mã gốc', () => {
     it('fieldErrors = null', () => {
       expect(applyFormFailure(form, thatBai(null), translate)).toBe(

@@ -1,34 +1,70 @@
-<header class="topbar" role="banner">
-  @if (title()) {
-    <span class="topbar__tieu-de">{{ title() }}</span>
-  }
+@let nhanTaiKhoan =
+  tenantName()
+    ? ('khung.taiKhoan.moMenu'
+      | translate: { hoTen: user()?.fullName ?? '', tenDonVi: tenantName() })
+    : (user()?.fullName ?? ('hoSo.tieuDe' | translate));
+@let nhanTheme = 'khung.theme.nhan' | translate;
 
-  <div class="topbar__tai-khoan">
-    <span class="topbar__avatar" aria-hidden="true">{{ chuCaiDau() }}</span>
+<header class="topbar" [class.topbar--da-cuon]="scrolled()" role="banner">
+  <div class="topbar__ben-phai">
+    <app-icon-button
+      class="topbar__theme"
+      variant="ghost"
+      size="md"
+      type="button"
+      [icon]="iconTheme()"
+      [ariaLabel]="'khung.theme.nhan' | translate"
+      haspopup="menu"
+      [expanded]="menuThemeMo()"
+      (click)="moMenuTheme($event)"
+    />
 
-    @if (state() !== 'error') {
-      <span class="topbar__ten-khoi">
-        <span class="topbar__ten">{{ user()?.fullName }}</span>
-        @if (tenantName()) {
-          <span class="topbar__don-vi">{{ tenantName() }}</span>
-        }
-      </span>
-    }
+    <!-- Khu tài khoản = MỘT nút: avatar + tên + tên đơn vị, mở menu nổi (Topbar.md §Accessibility). -->
+    <button
+      type="button"
+      class="topbar__tai-khoan"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="menuTaiKhoanMo()"
+      [attr.aria-label]="nhanTaiKhoan"
+      (click)="moMenuTaiKhoan($event)"
+    >
+      <span class="topbar__avatar" aria-hidden="true">{{ chuCaiDau() }}</span>
 
-    @for (muc of menuItems(); track muc.key) {
-      <button
-        type="button"
-        class="topbar__muc"
-        [class.topbar__muc--danger]="muc.danger"
-        [disabled]="muc.disabled ?? false"
-        [attr.title]="muc.disabledReason ?? null"
-        (click)="menuItemSelected.emit(muc.key)"
-      >
-        @if (muc.icon) {
-          <i class="pi pi-{{ muc.icon }}" aria-hidden="true"></i>
-        }
-        {{ muc.label }}
-      </button>
-    }
+      @if (state() !== 'error') {
+        <span class="topbar__ten-khoi" aria-hidden="true">
+          <span class="topbar__ten">{{ user()?.fullName }}</span>
+          @if (tenantName()) {
+            <span class="topbar__don-vi">{{ tenantName() }}</span>
+          }
+        </span>
+      }
+    </button>
   </div>
+
+  <app-menu
+    variant="anchored"
+    size="md"
+    [items]="duoiXs() ? mucTaiKhoanXs(nhanTheme, iconTheme(), menuItems()) : menuItems()"
+    [open]="menuTaiKhoanMo()"
+    [anchorEvent]="suKienNeoTaiKhoan()"
+    [ariaLabel]="nhanTaiKhoan"
+    (selected)="chonMucTaiKhoan($event)"
+    (openChange)="dongMenuTaiKhoan()"
+  />
+
+  <app-menu
+    variant="anchored"
+    size="md"
+    [items]="[
+      { key: 'light', label: 'khung.theme.sang' | translate, icon: 'sun' },
+      { key: 'dark', label: 'khung.theme.toi' | translate, icon: 'moon' },
+      { key: 'system', label: 'khung.theme.theoHeThong' | translate, icon: 'desktop' },
+    ]"
+    [selectedKey]="theme()"
+    [open]="menuThemeMo()"
+    [anchorEvent]="suKienNeo()"
+    [ariaLabel]="nhanTheme"
+    (selected)="chonTheme($event)"
+    (openChange)="dongMenuTheme()"
+  />
 </header>

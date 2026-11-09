@@ -63,9 +63,9 @@ Lớp nổi: bề rộng tối thiểu bằng ô, tối đa `--layout-dialog-w-s
 | Trạng thái | Xử lý | Áp dụng |
 | --- | --- | --- |
 | `default` | Ô đóng: nền `--color-surface`, viền `--color-border-strong` — bậc viền "chỗ này gõ được" theo [`../DESIGN.md`](../DESIGN.md) §2.3. Hiện **đường dẫn đầy đủ** của nút đã chọn, phần tổ tiên dùng `--color-text-muted`, nút đích dùng `--color-text` | Có |
-| `hover` | Ô đổi viền `--color-border-strong` đậm thêm; trong lớp nổi, dòng dưới con trỏ đổi nền `--color-surface-2`. **Bọc trong `@media (hover: hover)`** | Có |
-| `focus-visible` | `outline: var(--border-w-strong) solid var(--color-focus)`, `outline-offset: 2px` trên ô. Trong lớp nổi, dòng đang được bàn phím trỏ tới dùng nền `--color-brand-subtle` + chữ `--color-brand-on-subtle` | Có |
-| `active` | Lớp nổi đang mở: ô giữ vòng focus, mũi tên ở mép phải xoay 180° | Có |
+| `hover` | Ô: theo [`../DESIGN.md`](../DESIGN.md) §2.6 *Ô nhập chữ*, dòng `hover` — viền không đổi, không đậm thêm bậc nào; ô đang lỗi giữ nguyên viền lỗi. Trong lớp nổi, dòng dưới con trỏ đổi nền `--color-surface-2`. **Bọc trong `@media (hover: hover)`** | Có |
+| `focus-visible` | Ô: một đường biên theo [`../DESIGN.md`](../DESIGN.md) §2.6 *Ô nhập chữ* — `--border-w-strong` màu `--color-text`, ô lỗi giữ `--color-danger-border` và dày `--border-w-accent`; không vòng ngoài, không khoảng hở, không `--color-focus`. Trong lớp nổi, dòng đang được bàn phím trỏ tới dùng nền `--color-brand-subtle` + chữ `--color-brand-on-subtle` | Có |
+| `active` | Lớp nổi đang mở: ô giữ đường biên focus, mũi tên ở mép phải xoay 180° | Có |
 | `disabled` | Nền `--color-surface-3`, chữ `--color-text-disabled`, viền `--color-border`, con trỏ `not-allowed`. Thuộc tính `disabled` thật | Có |
 | `loading` | **Hai ca khác nhau.** *Mở lần đầu:* lớp nổi hiện `loadingTemplate` — màn ghép ba dòng [`SkeletonLoader.md`](./SkeletonLoader.md). *Xoè một nhánh chưa tải:* **nút xoè của riêng nhánh đó** đổi thành `pi-spinner`, phần còn lại của cây vẫn dùng được. Cả hai mang `aria-busy` | Có |
 | `error` | Tải cây hỏng: lớp nổi hiện `errorTemplate` — màn ghép dòng lỗi màu `--color-danger` kèm nút "Thử lại"; ô giữ nguyên giá trị đang có. Lỗi **xác thực** của trường (bắt buộc mà bỏ trống) thì viền ô đổi `--color-danger-border` dày `--border-w-strong` và dòng lỗi hiện dưới ô qua [`FormRow.md`](./FormRow.md) | Có |
@@ -78,7 +78,7 @@ Lớp nổi: bề rộng tối thiểu bằng ô, tối đa `--layout-dialog-w-s
 | Màu | `--color-surface`, `--color-surface-2`, `--color-surface-3`, `--color-text`, `--color-text-muted`, `--color-text-disabled`, `--color-border`, `--color-border-subtle`, `--color-border-strong`, `--color-brand`, `--color-brand-subtle`, `--color-brand-on-subtle`, `--color-danger`, `--color-focus`, `--color-danger-border` |
 | Chữ | `--fs-2xs`, `--fs-xs`, `--fs-sm`, `--fs-md`, `--fw-medium`, `--lh-snug` |
 | Khoảng cách | `--sp-2`, `--sp-3`, `--sp-4`, `--sp-5` |
-| Hình dạng | `--radius-sm`, `--radius-md`, `--border-w`, `--border-w-strong` |
+| Hình dạng | `--radius-sm`, `--radius-md`, `--border-w`, `--border-w-strong`, `--border-w-accent` |
 | Kích thước | `--size-control-sm`, `--size-control-md`, `--size-control-lg`, `--icon-sm`, `--icon-md`, `--tree-indent`, `--layout-dialog-w-sm` (trần bề rộng lớp nổi — mượn bậc `sm` của thang bề rộng ở [`../DESIGN.md`](../DESIGN.md) §6.1, không đẻ bậc mới), `--layout-popover-h-max` |
 | Bóng, lớp | `--shadow-3`, `--z-popover` |
 | Icon | `pi-chevron-right` / `pi-chevron-down` để xoè-thu, `pi-search` cho ô lọc, `pi-spinner` khi tải — [`../Icons.md`](../Icons.md) §5 |

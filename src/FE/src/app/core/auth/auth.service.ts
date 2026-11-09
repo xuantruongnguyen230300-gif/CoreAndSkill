@@ -1,5 +1,6 @@
 import { HttpClient, HttpContext } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   Observable,
@@ -27,6 +28,9 @@ import { NguoiDungHienTai } from './nguoi-dung-hien-tai.model';
 import { sangNguoiDungHienTai } from './phien.mapper';
 import { TabSessionBroadcastService } from './tab-session-broadcast.service';
 
+/** Tab lấy lại focus trong khoảng này kể từ lần làm mới trước thì không gọi lại `me`. */
+const KHOANG_CHAN_LAM_MOI_MS = 30_000;
+
 /**
  * Giữ CẢ người dùng hiện tại LẪN câu hỏi "có quyền không" — một service cho cùng một trạng thái
  * (quy-uoc/fe-routing-guard.md §3.3). Không tách service phiên/service quyền riêng.
@@ -41,6 +45,9 @@ export class AuthService {
   private readonly xsrf = inject(XsrfTokenStore);
   private readonly broadcast = inject(TabSessionBroadcastService);
 
+  private readonly document = inject(DOCUMENT);
+  private lanLamMoiKhiLayLaiFocus = 0;
+
   private readonly _nguoiDung = signal<NguoiDungHienTai | null>(null);
   private goiMe: Subscription | null = null;
   private canNapLaiMenu = false;
@@ -52,6 +59,16 @@ export class AuthService {
   readonly laVanHanhHeThong = computed(() => this._nguoiDung()?.isSystemOperator ?? false);
 
   private readonly tapQuyen = computed(() => new Set(this._nguoiDung()?.quyen ?? []));
+
+  constructor() {
+    // Quyền có thể đổi từ phiên khác (quản trị viên cấp thêm quyền) mà tab này không biết: tab hiện
+    // lại thì làm mới quyền + menu, chặn dồn trong KHOANG_CHAN_LAM_MOI_MS (fe-routing-guard.md §3).
+    const khiDoiHienThi = (): void => this.lamMoiKhiTabHienLai();
+    this.document.addEventListener('visibilitychange', khiDoiHienThi);
+    inject(DestroyRef).onDestroy(() =>
+      this.document.removeEventListener('visibilitychange', khiDoiHienThi),
+    );
+  }
 
   coQuyen(ma: string): boolean {
     return this.tapQuyen().has(ma);
@@ -94,7 +111,8 @@ export class AuthService {
     return this.http.post<ApiResult<PhienDto>>('/core/auth/login', payload, { context: ctx }).pipe(
       map(unwrapData),
       tap((d) => this._nguoiDung.set(sangNguoiDungHienTai(d))),
-      switchMap(() => this.xsrf.lamMoi()),
+      // Lỗi lấy token cũng rơi vào khu lỗi của màn đăng nhập: cùng cờ tắt toast với lời gọi login.
+      switchMap(() => this.xsrf.lamMoi({ boQuaToastLoi: true })),
       map(() => undefined),
     );
   }
@@ -130,6 +148,18 @@ export class AuthService {
       switchMap(() => this.xsrf.lamMoi().pipe(catchError(() => of(null)))),
       map(() => undefined),
     );
+  }
+
+  private lamMoiKhiTabHienLai(): void {
+    if (this.document.visibilityState !== 'visible' || !this.daDangNhap()) {
+      return;
+    }
+    const bayGio = Date.now();
+    if (bayGio - this.lanLamMoiKhiLayLaiFocus < KHOANG_CHAN_LAM_MOI_MS) {
+      return;
+    }
+    this.lanLamMoiKhiLayLaiFocus = bayGio;
+    this.lamMoiQuyen();
   }
 
   /** `errorInterceptor` gọi khi gặp 403 `CORE.AUTH.FORBIDDEN` (fe-api-client.md §2.2). */

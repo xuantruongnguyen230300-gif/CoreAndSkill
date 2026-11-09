@@ -15,11 +15,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Roles;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Nợ E17 (docs/DEBT.md) trên PostgreSQL thật, mỗi chiều hỏng một ca. app_user_role.role_id là ON DELETE CASCADE; cặp khoá dòng
 // core.app_role ở RoleRowLocks làm lượt xoá và lượt gán xếp hàng, và lượt sau nhận đúng mã nghiệp vụ:
 //   • Chiều 1 — lượt xoá commit trong lúc lượt gán đang chạy: gán ⇒ 422 CORE.USER.ROLE_NOT_FOUND (docs/contracts/users.md §5,
@@ -145,14 +140,14 @@ public sealed class RoleAssignDeleteRaceDatabaseTests(PostgresFixture db) : IAsy
     {
         var response = await client.PostAsJsonAsync(UsersUrl, NewUserBody(userName, email, []));
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
-        return (await ReadEnvelope(response)).Data.GetGuid();
+        return (await ReadEnvelope(response)).Data.GetProperty("id").GetGuid();
     }
 
     private static async Task<Guid> CreateRoleAsync(HttpClient client, string name)
     {
         var response = await client.PostAsJsonAsync(RolesUrl, new { name });
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
-        return (await ReadEnvelope(response)).Data.GetGuid();
+        return (await ReadEnvelope(response)).Data.GetProperty("id").GetGuid();
     }
 
     // `version` lấy từ GET chi tiết — đúng đường FE lấy token.

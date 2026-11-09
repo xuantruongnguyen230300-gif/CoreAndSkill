@@ -29,11 +29,31 @@ URL là thứ người dùng nhìn thấy, gửi cho nhau, và đánh dấu lạ
 
 —
 
-### 2.1 `app.routes.ts` chỉ khai `loadChildren`
+### 2.1 `app.routes.ts` — feature chỉ vào qua `loadChildren` / `loadComponent`
 
-**Vì sao nhánh xác thực khai TRƯỚC nhánh khung app.** Nhánh khung kết thúc bằng `'**'` — khớp mọi URL — nên đặt nhánh xác thực sau thì `/dang-nhap` rơi vào 404 sau `authGuard`, và `authGuard` lại đẩy về `/dang-nhap`: vòng lặp điều hướng. Cùng lý do, `xac-thuc.routes.ts` không khai `path: ''` hay `'**'`. Trong nhánh khung, `'**'` phải là dòng cuối: đứng trước route nào thì nuốt route đó.
+**Vì sao nhánh xác thực khai TRƯỚC nhánh khung app.** Nhánh khung kết thúc bằng `'**'` — khớp mọi URL — nên đặt nhánh xác thực sau thì `/dang-nhap` rơi vào 404 sau `authGuard`, và `authGuard` lại đẩy về `/dang-nhap`: vòng lặp điều hướng. Cùng lý do, `xac-thuc.routes.ts` không khai `'**'`. Trong nhánh khung, `'**'` phải là dòng cuối: đứng trước route nào thì nuốt route đó.
 
-**Nhánh xác thực đứng đầu nên router nạp chunk của nó ở lần điều hướng đầu tiên**, kể cả khi đích là một màn trong khung: nó phải nạp route con để biết URL có khớp không. Chunk đó chỉ chứa hai màn xác thực — đó là cái giá của việc đặt 404 trong khung.
+**Vì sao "nhánh xác thực không khai `path: ''`" chưa đủ để `/` tới được nhánh khung.** Với URL còn segment, ví dụ `/trang-chu`, nhánh xác thực khớp `''`, nạp hai route con, không con nào khớp — router coi nhánh đó là trượt và thử nhánh sau. Với URL rỗng thì không: hết segment để tiêu thụ, router coi nhánh `''` không component là khớp trọn dù cây con rỗng (`Recognizer.processSegment` của `@angular/router` trả `NoLeftoversInUrl`). Nhánh khung không được xét, guard của nó không chạy, `<router-outlet>` gốc không có gì để dựng, URL đứng ở `/` — với cả người đã đăng nhập. Không có lỗi, không cảnh báo. Ca đã gặp và cách tái hiện: [`../../../audit/2026-10-05-nhanh-path-rong-khong-component-nuot-url-goc.md`](../../../audit/2026-10-05-nhanh-path-rong-khong-component-nuot-url-goc.md).
+
+**Vì sao dòng chuyển hướng ở cấp gốc, không ở nhánh xác thực hay một guard.** Phương án đã loại:
+
+- **Đặt nhánh khung lên trước** — `'**'` của nó nuốt `/dang-nhap`, vòng lặp ở đoạn đầu mục này.
+- **Thêm `{ path: '', pathMatch: 'full', redirectTo: … }` vào `xac-thuc.routes.ts`** — feature xác thực phải biết đường của một màn thuộc khung. Đích tương đối `'trang-chu'` giải trong cấu hình con, không thấy route nào, và URL vẫn đứng ở `/`; đích tuyệt đối `'/trang-chu'` chạy được nhưng bỏ mất query của URL gốc (đo trên bản sao 2026-10-05, ca `/?a=1`).
+- **`canMatch` trên nhánh xác thực để từ chối URL rỗng** — một hàm guard chỉ để sửa thứ tự khớp; người đọc `app.routes.ts` không thấy vì sao `/` đi đâu.
+- **Khai thẳng `dang-nhap`, `doi-mat-khau-bat-buoc` ở `app.routes.ts`** — guard của feature dời lên tầng app, trái §2.2.
+- **Tiền tố cho hai màn xác thực** (`/xac-thuc/dang-nhap`) — đổi URL người dùng thấy (§1.1) và giá trị `CORE_ROUTES`.
+- **`redirectTo: () => inject(CORE_ROUTES).sauDangNhap`** — URL gốc và đích sau đăng nhập là hai khái niệm, trùng giá trị ở dự án này; buộc chúng làm một thì dự án hạ nguồn muốn tách phải sửa cả hai chỗ. Chuỗi `'trang-chu'` cũng đứng ngay trong cùng tệp, là `path` của route con.
+
+`pathMatch: 'full'` không bỏ được: ở chế độ dev, router từ chối `path: ''` kèm `redirectTo` mà không khai `pathMatch`; còn `'prefix'` thì mọi URL đều có tiền tố rỗng và đều bị chuyển.
+
+**Vì sao URL của cả khu cũng cần một dòng chuyển hướng.** `quan-tri.routes.ts` và `he-thong.routes.ts` chỉ là tầng gom `loadChildren` (§2.2), không có route `''`. Mở `/quan-tri` thì tầng gom đó khớp, không con nào khớp, URL hết segment — cùng ca `NoLeftoversInUrl` như URL gốc, chỉ thấp hơn một tầng: khung đã dựng, vùng nội dung trắng, `'**'` không được tới. Người dùng chốt hành vi ngày 2026-10-05: địa chỉ phải trỏ đúng một màn, còn lại về trang chủ — nên không phải 404, cũng không phải màn con đầu tiên.
+
+- **Dòng chuyển hướng đứng trước `loadChildren` cùng path** vì router lấy route anh em khớp đầu tiên; đặt sau thì tầng gom đã nhận URL khu trước.
+- **`pathMatch: 'full'`** vì `'prefix'` khớp cả `/quan-tri/nguoi-dung` và đẩy màn con về trang chủ.
+- **Đặt ở `app.routes.ts`, không ở `<feature>.routes.ts`** — cùng lý do đã loại phương án tương tự cho nhánh xác thực ở trên: khu quản trị không cần biết trang chủ của khung là gì.
+- **Đích tuyệt đối bỏ query của URL khu** — chấp nhận: URL của cả khu không mang trạng thái màn nào để giữ.
+
+**Nhánh xác thực đứng trước nhánh khung nên router nạp chunk của nó ở lần điều hướng đầu tiên**, kể cả khi đích là một màn trong khung: nó phải nạp route con để biết URL có khớp không. Chunk đó chỉ chứa hai màn xác thực — đó là cái giá của việc đặt 404 trong khung.
 
 - **Import tĩnh thì sao** — Một `import` tĩnh kéo cả feature vào bundle khởi động, và triệu chứng duy nhất là bundle to dần — không lỗi, không cảnh báo, không ai để ý cho tới lúc ngân sách bundle (luật F14) đỏ.
 
@@ -124,20 +144,39 @@ Vì sao, nói bằng hệ quả cụ thể: kiểm theo tên role nghĩa là m�
 
 - **Vì sao về màn 403** — Đưa về trang chủ khiến người dùng nghĩ mình bấm nhầm, thử lại, rồi lại bị đưa về — vòng lặp không có thông tin. Màn 403 nói rõ "không có quyền" và cho một đường đi tiếp.
 
-Khối import của `AuthService` ([`fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §3.3):
+Khối import của `AuthService` ([`fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §3.3) — chép nguyên văn từ tệp nguồn, đối chiếu 2026-10-06. DTO và mapper của phiên nằm cạnh service trong `core/auth/`, đúng chỗ đặt mapper của `core/` ở [`fe-api-client.md`](../../../quy-uoc/fe-api-client.md) §4.2:
 
 ```typescript
 // core/auth/auth.service.ts — phần import
-import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient, HttpContext } from '@angular/common/http';
+import { DOCUMENT } from '@angular/common';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subscription, finalize, map } from 'rxjs';
-import type { ApiResult } from '../http/api-result.model';
-import { sangNguoiDungHienTai } from '../http/nguoi-dung-hien-tai.mapper';
-import type { PhienDto } from '../http/phien.dto';
-import { unwrapData } from '../http/unwrap';
+import {
+  Observable,
+  Subscription,
+  catchError,
+  finalize,
+  map,
+  of,
+  switchMap,
+  tap,
+  throwError,
+} from 'rxjs';
+
 import { MenuStore } from '../menu/menu.store';
-import type { NguoiDungHienTai } from './nguoi-dung-hien-tai.model';
+import {
+  ApiFailureError,
+  ApiResult,
+  BO_QUA_HET_PHIEN,
+  BO_QUA_TOAST_LOI,
+} from '../http/api-result.model';
+import { unwrapData } from '../http/unwrap';
+import { XsrfTokenStore } from './xsrf-token.store';
+import { DangNhapPayload, PhienDto } from './phien.dto';
+import { NguoiDungHienTai } from './nguoi-dung-hien-tai.model';
+import { sangNguoiDungHienTai } from './phien.mapper';
+import { TabSessionBroadcastService } from './tab-session-broadcast.service';
 ```
 
 ### 3.4 Directive `appHasPermission`
@@ -247,6 +286,18 @@ Việc thứ hai là việc quan trọng nhất và ít được nghĩ tới nh�
 **Vì sao 403 không điều hướng còn 401 thì có:** 401 nghĩa là *toàn bộ phiên* không dùng được nữa — ở lại màn hình hiện tại là vô nghĩa vì mọi request sau đều hỏng. 403 nghĩa là *một thao tác cụ thể* bị từ chối; phần còn lại của màn hình vẫn dùng được, và đá người dùng đi chỗ khác sẽ làm mất dữ liệu họ đang nhập. Tập quyền vừa làm mới áp ngay cho directive ẩn nút, còn guard áp nó ở lần điều hướng kế tiếp. `PASSWORD_CHANGE_REQUIRED` là 403 nói về *cả phiên* nên có dẫn tới đổi màn — nhưng bước đổi màn thuộc guard; interceptor chỉ làm mới phiên ([`fe-routing-guard.md`](../../../quy-uoc/fe-routing-guard.md) §5.4).
 
 Vì sao không làm hộp thoại đăng nhập lại tại chỗ để giữ form: nó phải xử lý ca **người đăng nhập lại là tài khoản khác**, và một form do người A nhập bị gửi đi dưới danh tính người B là lỗi nặng hơn nhiều so với việc phải nhập lại. Giữ một đường xử lý duy nhất cho 401 cũng là thứ làm bảng trên còn đúng.
+
+### 8.1 Điều hướng hỏng vì không tải được phần mã
+
+Đọc gói `@angular/router` bản ghim ở `src/FE/package.json`, tệp `fesm2022/_router-chunk.mjs` (không nằm trong git; đọc lại 2026-11-06 — bản dựng của gói đã bỏ chú thích, chuỗi dẫn dưới đây là mã):
+
+- **Router đặt lại thanh địa chỉ trước khi ứng dụng thấy sự kiện.** Gặp `NavigationError`, `canceledNavigationResolution` mặc định `'replace'` gọi `resetUrlToCurrentUrlTree` — chuỗi `this.restoreHistory(currentTransition, true);`, gọi qua `this.stateManager.handleRouterEvent(e, currentNavigation);` — rồi mới phát sự kiện ra `Router.events`: chuỗi `this._events.next(e);` đứng sau lời gọi đó trong cùng hàm `subscribeToNavigationEvents`. Ở lần tải đầu, URL trước lần điều hướng là `/`. Vì vậy khối toàn trang phải tự trả thanh địa chỉ về URL đích: không làm thì nút "Tải lại trang", hay chính phím F5, đưa người dùng về `/` thay vì đích họ mở.
+- **Vì sao nghe `Router.events`, không `withNavigationErrorHandler`.** Hàm của `withNavigationErrorHandler` chạy **trước** bước đặt lại trên, nên trả thanh địa chỉ ở đó bị Router ghi đè ngay sau; và việc chọn nhánh vẫn cần nghe `NavigationEnd` — thành hai chỗ nghe. Nghe `Router.events` thì một service làm trọn: ghi nhận `NavigationEnd`, xử lý `NavigationError` sau khi Router đã xong việc của nó.
+- **Vì sao không `ErrorHandler` toàn cục.** Nó nhận mọi lỗi, không biết lỗi thuộc lần điều hướng nào, không có URL đích; lỗi điều hướng chỉ tới đó khi promise điều hướng bị từ chối mà không ai bắt.
+- **Vì sao không `.catch` ở từng `loadComponent` / `loadChildren`.** Mỗi tuyến một bản, và tuyến của module mới quên một lần là thủng một nhánh — không cổng nào biết.
+- **Vì sao không đọc `Router.navigated`.** Router bật nó cả ở `NavigationCancel` không phải chuyển hướng — chuỗi `e.code !== NavigationCancellationCode.Redirect && e.code !== NavigationCancellationCode.SupersededByNewNavigation` ngay trên `this.navigated = true;` — tức guard trả `false` ở lần điều hướng đầu là `navigated` đã `true` trong khi chưa màn nào hiện. Câu hỏi của spec là *đã có màn nào hiện chưa*; `NavigationEnd` trả lời đúng câu đó.
+
+**Cái giá:** nhận dạng dựa trên câu báo lỗi của trình duyệt — Chromium, Firefox, Safari mỗi nơi một câu, và không chuẩn nào ghim chúng. Trình duyệt đổi câu thì `laLoiTaiPhanMa` trả `false`, người dùng quay về hành vi cũ — thao tác không phản ứng, hoặc trang trắng — mà không gì báo. Ca kiểm của từng mẫu chỉ khẳng định mẫu đã biết, không bắt được câu mới.
 
 ## 9. Checklist thêm một màn hình mới
 

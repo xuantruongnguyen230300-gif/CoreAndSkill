@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # 16. Nền tảng chạy và chính sách nâng cấp
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/`, kể cả `package.json` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu cả tệp 2026-11-06 bằng đọc tệp và `npm view`; kết quả build, test là của lượt nâng bản lớn cùng ngày, lượt đối chiếu không chạy lại). Hạng mục có thật và hạng mục chưa: bảng ở §11, bảng *có thật hôm nay → sẽ thành* ngay dưới nó. `verified:` giữ `chua-doi-chieu` vì lý do đó.
 >
 > Hai câu hỏi mà không ai đặt ra cho tới lúc đã quá muộn để trả lời rẻ: **"app này chạy được trên trình duyệt nào"** và **"bao lâu nâng framework một lần"**. File này trả lời trước cả hai.
 >
@@ -89,6 +89,19 @@ Build xanh **không** đủ. Bốn thứ hay vỡ âm thầm, xếp theo khả n
 
 Dòng 1 đáng nhấn mạnh: nó vỡ theo kiểu **trông vẫn chạy**. Không lỗi, không cảnh báo, chỉ là một vài chỗ màu sai hoặc khoảng cách sai. Không so ảnh thì phát hiện bằng người dùng.
 
+### 4.1 Cơ chế vỡ không báo lỗi — rà trước khi tin build xanh
+
+Mỗi dòng là một cơ chế đã đổi hành vi của Core khi nâng bản lớn của framework và thư viện UI mà không lỗi build nào báo. Ví dụ ghi bản lớn mà thay đổi xuất hiện — đó là sự kiện của bản phát hành, không phải bản đang ghim (`K47`).
+
+| Cơ chế | Vì sao không báo lỗi | Chỗ bắt hôm nay |
+| --- | --- | --- |
+| Mã Core chọn phần tử bên trong component thư viện theo thuộc tính nội bộ (`data-pc-section`) | Thư viện đổi giá trị thì selector khớp không phần tử nào: không ngoại lệ, chỉ mất hành vi. Ví dụ: Menu của PrimeNG 21 đổi `data-pc-section="menuitem"` thành `"item"`, lớp vá của `app-menu` mất `menuitemradio` và `aria-checked` | Chú thích *Hỏng khi nào* cạnh selector — `src/FE/src/app/shared/ui/menu/menu.component.ts`, chuỗi `Hỏng khi nào: PrimeNG đổi`. Ca kiểm của `menu.component.spec.ts` tự dựng DOM mang sẵn giá trị thuộc tính, nên **không** bắt được lần đổi sau; lưới giao diện chưa có ca nào kiểm `menuitemradio` |
+| Trường công khai của component thư viện đổi thành signal | Mã cũ đọc trường như giá trị và nhận về một hàm. Ví dụ: `container`, `containerViewChild` của PrimeNG 21 | `tsc` chặt bắt khi kiểu được khai; qua `any` hay ép kiểu thì lọt |
+| Phần tử rời DOM bằng hoạt ảnh CSS thật thay vì gỡ đồng bộ | Phần tử còn trong DOM tới khi hoạt ảnh xong; ca kiểm đo ngay sau thao tác đóng thì đỏ. Ví dụ: lớp `p-leave-to` của PrimeNG 21 | Ca kiểm chờ điều kiện, không đo ngay — `src/FE/src/app/shared/ui/drawer/drawer.component.spec.ts`, chuỗi `Chờ điều kiện đúng.` |
+| Dữ liệu locale CLDR đóng gói cùng framework | Tên khuôn (`'short'`, `'shortDate'`) đổi kết quả theo bản cài; build, test xanh. Ví dụ: `shortDate` của `vi` thành `d/M/yy` ở Angular 21 | Khuôn ngày giờ đi qua seam `CORE_I18N` — [`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §5.5, luật F36 |
+| Sàn trình duyệt mặc định của framework | Xê dịch theo bản cài, không cảnh báo | Khai tường minh — §5 |
+| Lớp nổi neo để ở nơi gắn mặc định của thư viện | Lớp nổi vẫn dựng, vẫn hiện; hỏng chỉ lộ khi nút neo nằm trong một khung cuộn của trang và việc mở lớp nổi làm khung đó cuộn: hộp định vị lệch theo cha định vị (ô `sticky` của bảng), lời gọi focus vào hộp cuộn khung, rồi bộ nghe cuộn mà thư viện gắn lúc hiện đóng hộp. Dưới giảm chuyển động hay khi khung nhìn thấp, hộp đóng gần như ngay khi mở — trông như lỗi chuyển động. Ví dụ: PrimeNG 21 mặc định `'self'` (gói `primeng` đã cài, tệp `primeng-config.mjs`, chuỗi `overlayAppendTo = signal('self'`) — menu hàng của bảng mở xong đóng ngay, bảng gợi ý `Autocomplete` và ô số dòng `Paginator` đóng ngay. Mặc định đó không mới ở bản 21: PrimeNG 20 cũng mặc định `'self'` và gắn bộ nghe cuộn lúc hiện (đọc gói tải về ngoài repo, 2026-11-07). Lỗi được thấy lần đầu ở lần kiểm dưới cờ giảm chuyển động sau lượt nâng lên 21; thay đổi nào của bản 21 làm nó lộ ra thì chưa xác định | Luật F65 — `appendTo="body"` trên từng thẻ, ví dụ `src/FE/src/app/shared/ui/menu/menu.component.html`, chuỗi `appendTo="body"`. Thư viện đổi cách gắn hộp ở một lượt nâng sau thì hai ca Karma *lớp nổi gắn vào body* của `Menu`, `Autocomplete` đỏ; `Pagination` chỉ có ca lưới giao diện, chạy tay. Neo đầy đủ: ô *Ép bằng gì* của F65 ở [`../../RULES-FE.md`](../../RULES-FE.md) |
+
 ---
 
 ## 5. Phạm vi trình duyệt — khai TƯỜNG MINH
@@ -163,7 +176,7 @@ Theo [`../../../.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) §6, không ché
 ```bash
 grep -E '"@angular/core"|"primeng"' src/FE/package.json   # đang ở bản nào
 cd src/FE && npm outdated @angular/core primeng           # rỗng = chưa tụt
-grep -c 'browserslist' src/FE/package.json                # PASS khi ≥ 1
+grep -cvE '^[[:space:]]*(#|$)' src/FE/.browserslistrc     # số dòng khai trình duyệt; PASS khi ≥ 1
 ```
 
 ---
@@ -182,6 +195,8 @@ Dòng thứ hai là dòng hay bị bỏ qua nhất và có hậu quả rõ nhấ
 
 **Đây là lý do tệp khoá phải được commit** ([`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md)): nó là thứ duy nhất làm cho hai lần build ở hai chỗ cho ra cùng một kết quả.
 
+**Chế độ biên dịch nghiêm ngặt cũng chốt một lần, và không nới** — `strict` của TypeScript cùng các cờ `strict…` của trình biên dịch Angular trong `tsconfig.json`. Nới thì dễ; siết lại trên một codebase đã lớn là một đợt sửa chạm mọi tệp, nên gần như không ai làm.
+
 ---
 
 ## 10. Kiểm chứng
@@ -197,22 +212,28 @@ Dòng thứ hai là dòng hay bị bỏ qua nhất và có hậu quả rõ nhấ
 
 ## 11. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Đối chiếu với `src/` ngày 2026-11-06 bằng đọc tệp và `npm view`; kết quả build, test là của lượt nâng bản lớn cùng ngày: hàng ghi ✅ CÓ THẬT có neo ở cột *Ghi chú*; hàng ghi 🚧 có bảng *có thật hôm nay → sẽ thành* ngay dưới bảng. Ý nghĩa ký hiệu: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| Khai phạm vi trình duyệt tường minh | ✅ sẽ có | §5 — từ pha F0, kèm ghi chú căn cứ |
-| Tệp khoá phụ thuộc được commit, phiên bản ghim | ✅ sẽ có | §7, §9 — [`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md) |
-| Không để tụt quá một bản lớn | ✅ sẽ có | §2.1 — ba mốc bắt buộc ở §2.2 |
-| Kiểm thư viện UI trước khi nâng | ✅ sẽ có | §3 — ràng buộc thật quyết định nhịp nâng |
-| Checklist bốn mục sau mỗi lần nâng | ✅ sẽ có | §4 |
-| Ghim phiên bản môi trường build (`.nvmrc` + `engines`) | ✅ sẽ có | §9 — từ pha F0 |
-| Kế hoạch nâng bản lớn kế tiếp trước khi bản đang dùng hết hỗ trợ | ✅ sẽ có | [`../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md`](../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md) |
+| Khai phạm vi trình duyệt tường minh | ✅ CÓ THẬT 2026-11-06 | §5 — từ pha F0, kèm ghi chú căn cứ; giá trị theo sàn mặc định của bản Angular đang ghim, người dùng chốt 2026-11-06. Neo: `src/FE/.browserslistrc` (chuỗi `Khai tường minh dù giá trị bằng đúng mặc định của Angular`, chuỗi `Điều kiện siết lại: có số liệu người dùng thật`) |
+| Tệp khoá phụ thuộc được commit, phiên bản ghim | ✅ CÓ THẬT 2026-11-06 | §7, §9 — [`../../quy-uoc/repo-artifact.md`](../../quy-uoc/repo-artifact.md). Neo: `src/FE/package-lock.json` (chuỗi `"lockfileVersion"`), `git ls-files src/FE/package-lock.json` in ra tệp đó; `grep -nE '"[~^]' src/FE/package.json` chỉ in dòng của `engines` — không phụ thuộc nào dùng dải |
+| Không để tụt quá một bản lớn | ✅ CÓ THẬT 2026-11-06 | §2.1 — ba mốc ở §2.2. Lệnh §8 và `npm view @angular/core dist-tags`: bản lớn ghim ở `src/FE/package.json` (chuỗi `"@angular/core":`) kém nhãn `latest` một bậc — dưới mốc thứ ba. Mốc thứ nhất đối chiếu lịch hỗ trợ ở angular.dev, lượt này chưa đối chiếu. Số phiên bản không chép vào đây (`K47`) |
+| Kiểm thư viện UI trước khi nâng | ✅ CÓ THẬT 2026-11-06 | §3 — lần nâng bản lớn 2026-11-06 không nâng framework trước thư viện UI: `npm view primeng@<bản ghim> peerDependencies` nhận đúng bản lớn `@angular/core` đang ghim; `@ngx-translate/core` khai dải mở phía trên (`>=`), không chặn. Bản ghim đọc ở `src/FE/package.json`, chuỗi `"primeng":`, chuỗi `"@ngx-translate/core":` |
+| Checklist bốn mục sau mỗi lần nâng | 🚧 đang thi công | §4 — lần nâng 2026-11-06 có bằng chứng cho mục 2, 3, 4; mục 1 chưa. Bảng dưới |
+| Ghim phiên bản môi trường build (`.nvmrc` + `engines`) | ✅ CÓ THẬT 2026-11-06 | §9 — từ pha F0. Neo: tệp `src/FE/.nvmrc`; `src/FE/package.json` (chuỗi `"engines": {`) — bản ở `.nvmrc` nằm trong dải `engines`; CI đọc đúng tệp đó và cài theo tệp khoá — `.github/workflows/docs-gate.yml` (chuỗi `node-version-file: src/FE/.nvmrc`, chuỗi `run: npm ci`) |
+| Kế hoạch nâng bản lớn kế tiếp trước khi bản đang dùng hết hỗ trợ | ❌ chưa | Kế hoạch của lần nâng trước — quyết định 2 ở [`0028-toolchain-fe-va-ke-hoach-nang-cap.md:30`](../../adr/0028-toolchain-fe-va-ke-hoach-nang-cap.md) — đã thi công 2026-11-06. Điều kiện: lập trước khi bản đang ghim chạm một mốc ở §2.2 — đọc bằng lệnh §8 và lịch hỗ trợ ở angular.dev. Kế hoạch nâng lên 22 có một điều kiện vào: việc chuyển bộ chạy test sang Vitest đang hoãn phải xong trước — quyết định 3 ở [`0126-hoan-chuyen-vitest-sang-pr-rieng-ngay-sau-pr-nang-angular-21-muon-nhat-truoc-angular-22.md`](../../adr/0126-hoan-chuyen-vitest-sang-pr-rieng-ngay-sau-pr-nang-angular-21-muon-nhat-truoc-angular-22.md) |
 | Nâng theo lịch cố định | ❌ chưa | Điều kiện: hiện nâng theo ba mốc ở §2.2. Chuyển sang nhịp cố định khi đội đủ lớn để việc nâng có người chịu trách nhiệm |
 | Cập nhật phụ thuộc tự động | ❌ chưa | Điều kiện: CI đủ tin cậy để một PR tự động xanh có nghĩa |
 | Siết phạm vi trình duyệt | ❌ chưa | Điều kiện: có số liệu người dùng thật (§5.5) |
 | Nâng framework trước khi thư viện UI sẵn sàng | ❌ loại, không hoãn `K46` | §3 — dẫn tới ép cài cho qua rồi vỡ ở chỗ phức tạp nhất |
 | Chép số phiên bản vào tài liệu | ❌ loại, không hoãn `K47` | §8 — đọc bằng lệnh |
+
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** — hàng *Checklist bốn mục sau mỗi lần nâng* (đối chiếu 2026-11-06; kết quả chạy là của lượt nâng bản lớn cùng ngày, lượt đối chiếu không chạy lại):
+>
+> | Có thật hôm nay | Sẽ thành |
+> | --- | --- |
+> | Mục 2: `src/FE/src/app/app.config.ts` có `provideZonelessChangeDetection(),`, `grep -c 'zone.js' src/FE/package.json` in `0`, `ng test` xanh. Mục 3: `ng build` dưới ngân sách `initial` ở `src/FE/angular.json`, chuỗi `"type": "initial",`. Mục 4: `ng test` (bộ chạy ở `src/FE/angular.json`, chuỗi `"builder": "@angular/build:karma"`) và `npm run e2e` xanh. Mục 1: chỉ có lưới giao diện đo DOM theo spec `docs/Design/` và quét axe — không có bằng chứng so ảnh trước và sau đợt nâng | Mục 1 có bằng chứng so ảnh trước và sau đợt nâng — lưới không tự so, cái giá ghi ở [`0117-luoi-giao-dien-playwright-do-dom-theo-spec-design-axe-aa-api-gia-anh-chi-tham-khao.md:260`](../../adr/0117-luoi-giao-dien-playwright-do-dom-theo-spec-design-axe-aa-api-gia-anh-chi-tham-khao.md) |
 
 > Cách đọc ba ký hiệu của bảng trên — và khi nào *"FE thiếu X"* là finding: [`../README.md`](../README.md) §9.
 

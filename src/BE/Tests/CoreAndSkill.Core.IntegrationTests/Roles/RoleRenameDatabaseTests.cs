@@ -14,11 +14,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Roles;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // PUT /api/v1/core/roles/{id} qua HTTP tới PostgreSQL thật — docs/contracts/roles.md §3; token
 // docs/wiki-core/be/06-concurrency-control.md §6.3 (nguồn: core.app_role.concurrency_stamp). Phép so nằm trong câu
 // UPDATE của RoleStore — ở đây là hành vi thật của câu đó: lệch hoặc thiếu ⇒ 409 và dòng trong DB không đổi.

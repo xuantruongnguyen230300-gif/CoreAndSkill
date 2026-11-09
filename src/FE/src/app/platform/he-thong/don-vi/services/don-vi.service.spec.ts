@@ -96,7 +96,9 @@ describe('DonViService', () => {
   });
 
   it('khoiPhucQuanTri() gửi POST .../recovery-reset-password', () => {
-    service.khoiPhucQuanTri('t1', { userName: 'quantri.syt-hn', tempPassword: 'Matkhau@123' }).subscribe();
+    service
+      .khoiPhucQuanTri('t1', { userName: 'quantri.syt-hn', tempPassword: 'Matkhau@123' })
+      .subscribe();
     const req = httpMock.expectOne('/core/system/tenants/t1/recovery-reset-password');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ userName: 'quantri.syt-hn', tempPassword: 'Matkhau@123' });

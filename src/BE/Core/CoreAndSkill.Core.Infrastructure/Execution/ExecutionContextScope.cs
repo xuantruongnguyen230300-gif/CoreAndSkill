@@ -3,8 +3,8 @@ using CoreAndSkill.Core.Application.Common.Interfaces;
 namespace CoreAndSkill.Core.Infrastructure.Execution;
 
 // Hiện thực IExecutionContextScope — giữ giá trị trong AsyncLocal, Singleton (giá trị KHÔNG nằm ở
-// instance) — docs/quy-uoc/be-architecture.md §1.1, §5.2. Chỉ nơi gọi thuộc allowlist của luật A12
-// được gọi Enter (ArchTest ở B2+, khi có project module để soát).
+// instance) — docs/quy-uoc/be-architecture.md §1.1, §5.2. Nơi được gọi Enter: bảng Allowlist A12
+// ở docs/quy-uoc/be-architecture.md.
 public sealed class ExecutionContextScope : IExecutionContextScope
 {
     private static readonly AsyncLocal<ExecutionContextSnapshot?> Ambient = new();

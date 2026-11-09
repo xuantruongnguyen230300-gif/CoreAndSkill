@@ -39,7 +39,7 @@ public sealed class UsersController(ISender mediator) : ApiControllerBase
     {
         var command = new CreateUserCommand(body.UserName, body.Email, body.FullName, body.TempPassword, body.RoleIds ?? []);
         var result = await mediator.Send(command, ct);
-        var location = result.IsSuccess ? $"/{CoreRoutes.Users}/{result.Value}" : string.Empty;
+        var location = result.IsSuccess ? $"/{CoreRoutes.Users}/{result.Value.Id}" : string.Empty;
         return HandleCreated(result, location);
     }
 

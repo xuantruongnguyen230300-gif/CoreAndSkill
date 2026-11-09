@@ -52,7 +52,7 @@ B0 ──► B1 ──► B2 ──► B3 ──► B4
 | Nguyên tắc | Nghĩa cụ thể |
 | --- | --- |
 | **Mỗi pha kết thúc bằng thứ chạy được** | Không phải "một solution đầy project". Định nghĩa hoàn thành của mỗi pha là một hành vi kiểm được qua HTTP hoặc qua một lệnh |
-| **Luật có cổng cùng lúc với luật** | Luật chưa có cổng nằm ở [`../../../DEBT.md`](../../../DEBT.md), không nằm trong đầu người viết |
+| **Luật có cổng cùng lúc với luật** | Luật chưa có cổng vẫn là dòng ở bảng luật, mang `🕳️` ([`../../../RULES.md`](../../../RULES.md)), không nằm trong đầu người viết |
 | **Chỉ dựng thứ thuộc Nhóm A** | Thành phần Nhóm B ([`../01-core-components.md`](../01-core-components.md) §2) chỉ dựng khi ngưỡng chạm. Năm pha này **không** bao gồm chúng |
 | **Hợp đồng trước code** | Endpoint nào có người dùng thật thì card ở [`../../../contracts/`](../../../contracts/) phải xong trước — FE làm song song theo card đó |
 
@@ -83,7 +83,17 @@ Module mẫu **không** nằm trong repo Core: nó được dựng ở dự án 
 
 ---
 
-## 6. Đọc tiếp
+## 6. Việc ngoài năm pha
+
+Việc đã chốt nhưng không thuộc đồ thị phụ thuộc của năm pha — chen vào lúc nào cũng được, không chặn pha nào.
+
+| Việc | Xong thì có gì **chạy được** | Lượt | Quyết định |
+| --- | --- | --- | --- |
+| OpenAPI + Scalar ở Development | Chạy BE từ IDE mở trang Scalar liệt kê mọi endpoint; ở môi trường khác hai đường tài liệu ra 404 — cặp test S29 xanh; mọi action khai kiểu phản hồi, ArchTest R11 xanh | Lượt 1: gói, đăng ký, test S29, profile chạy. Lượt 2 — và 3 nếu cần: khai kiểu theo nhóm controller, ArchTest R11 ở lượt cuối | [ADR-0118](../../../adr/0118-openapi-sinh-bang-goi-cua-aspnetcore-xem-thu-bang-scalar-chi-o-development-ide-mo-trang-scalar-bo-cong-http.md) quyết định 4 |
+
+---
+
+## 7. Đọc tiếp
 
 | Câu hỏi | File |
 | --- | --- |

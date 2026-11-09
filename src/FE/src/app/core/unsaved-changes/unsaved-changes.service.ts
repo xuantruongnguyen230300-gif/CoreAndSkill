@@ -14,6 +14,7 @@ import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 export class UnsavedChangesService {
   private kiemTra: (() => boolean) | null = null;
   private dangCho: ((roiDuoc: boolean) => void) | null = null;
+  private daDongYRoi = false;
 
   /** `platform/shell/unsaved-changes-dialog` đọc để hiện/ẩn `ConfirmDialog`. */
   readonly dangHoi = signal(false);
@@ -43,6 +44,15 @@ export class UnsavedChangesService {
     if (this.kiemTra === kiemTra) {
       this.kiemTra = null;
     }
+  }
+
+  /**
+   * Hàm kiểm đang đăng ký — `unsavedChangesGuard` giữ lại lúc người dùng chọn "Rời đi" để sau
+   * `NavigationEnd` gỡ ĐÚNG đăng ký của màn đang rời (`huyDangKy` so theo danh tính), không đụng
+   * đăng ký của màn đích đã dựng xong trước khi `NavigationEnd` phát.
+   */
+  kiemTraDangDangKy(): (() => boolean) | null {
+    return this.kiemTra;
   }
 
   coThayDoiChuaLuu(): boolean {
@@ -83,18 +93,36 @@ export class UnsavedChangesService {
   }
 
   /**
-   * Việc rời màn đã chắc chắn xảy ra — chỉ `unsavedChangesGuard` gọi, ở hai ca:
+   * `unsavedChangesGuard` ghi nhận người dùng đã chọn "Rời đi" cho lần điều hướng đang chạy. Chưa gỡ
+   * đăng ký: điều hướng còn có thể hỏng (`NavigationError`, `NavigationCancel`) và khi đó lớp bảo vệ
+   * phải còn nguyên. Cờ chỉ để lần Router chạy lại canDeactivate của cùng route — khi một canActivate
+   * phía sau chuyển hướng — không hỏi lần hai.
+   */
+  danhDauDongYRoi(): void {
+    this.daDongYRoi = true;
+  }
+
+  /** Lời đồng ý đang hiệu lực cho lần điều hướng hiện tại (đọc bởi `unsavedChangesGuard`). */
+  daDongYRoiLanNay(): boolean {
+    return this.daDongYRoi;
+  }
+
+  /** Điều hướng đã đồng ý rời bị hỏng/huỷ: bỏ lời đồng ý, đăng ký giữ nguyên — lần rời sau hỏi lại. */
+  huyDongYRoi(): void {
+    this.daDongYRoi = false;
+  }
+
+  /**
+   * Việc rời màn đã chắc chắn xảy ra — chỉ `unsavedChangesGuard` gọi, ở ca:
    *
-   * - Router sắp rời route sau khi người dùng chọn "Rời đi" qua guard. Router chạy LẠI canDeactivate
-   *   của cùng route khi một canActivate phía sau chuyển hướng; gỡ đăng ký thì lần chạy lại đó không
-   *   hỏi lần hai.
-   * - Phiên đã kết thúc (401, tab khác đăng xuất, đăng xuất chủ động đã xong): màn luôn rời về đăng
+   * -Phiên đã kết thúc (401, tab khác đăng xuất, đăng xuất chủ động đã xong): màn luôn rời về đăng
    *   nhập, kể cả khi form dở (fe-routing-guard.md §8). Lượt hỏi còn treo (của một điều hướng đã bị
    *   thay, hoặc của khung ứng dụng) nhận "ở lại" và hộp đóng — không để hộp nằm lại trên màn đăng nhập.
    */
   roiTrangChacChan(): void {
     this.huy();
     this.kiemTra = null;
+    this.daDongYRoi = false;
   }
 
   /** `platform/shell/unsaved-changes-dialog` gọi khi chọn "Ở lại"/Escape/bấm ra ngoài. */

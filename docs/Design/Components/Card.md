@@ -12,7 +12,7 @@ verified: chua-doi-chieu
 
 ## Đã có → còn thiếu (F2, ADR-0037)
 
-Component: `src/FE/src/app/shared/components/card/card.component.ts`. Dùng ở `ho-so.page.html` — ba `Card` biến thể `default`, cỡ `md`.
+Component: `src/FE/src/app/shared/components/card/card.component.ts`. Đối chiếu 2026-10-06: dùng ở `ho-so.page.html` và ở ba tệp quản trị người dùng dưới `src/FE/src/app/platform/quan-tri/nguoi-dung` (tìm bằng chuỗi `<app-card`: `the-thong-tin-nguoi-dung`, `the-vai-tro-nguoi-dung`, `chi-tiet-nguoi-dung.page.html`).
 
 | Khoản | Đã có | Còn thiếu |
 | --- | --- | --- |

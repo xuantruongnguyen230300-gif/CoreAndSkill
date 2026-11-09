@@ -23,7 +23,7 @@ Từ đơn vị thứ hai trở đi, việc này **không cần quyền shell** 
 | Cần có | Ghi chú |
 | --- | --- |
 | Tài khoản mang `is_system_operator` | Đăng nhập được, tức luồng `V1` đã chạy xong |
-| Mã đơn vị chưa tồn tại | Mã là thứ người dùng gõ ở form đăng nhập; quy tắc chuẩn hoá ở [`../contracts/tenants.md`](../contracts/tenants.md) §2 |
+| Mã đơn vị chưa tồn tại | Mã là điều kiện tra cứu đơn vị lúc đăng nhập (luồng `D1` §1). FE của bản cài chỉ mang mã của **một** đơn vị nghiệp vụ, nhúng lúc build — không phải mã của đơn vị tạo ở luồng này ([`../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md`](../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md)); hệ quả ở mục *Người dùng của đơn vị mới vào bằng đường nào* (§3). Khuôn và quy tắc chuẩn hoá ở [`../contracts/tenants.md`](../contracts/tenants.md) §2 |
 | Danh mục quyền đã có trong database | Dùng chung toàn hệ, vào database bằng migration lúc áp lược đồ (luồng `V1` bước 2) |
 | Các nguồn seed đã đăng ký và qua phép kiểm lúc khởi động | Nguồn seed khai một khoá quyền lạ thì ứng dụng không khởi động — luồng này không bao giờ bắt đầu được |
 
@@ -34,11 +34,11 @@ Từ đơn vị thứ hai trở đi, việc này **không cần quyền shell** 
 | 1 | Vận hành | `POST /api/v1/core/system/tenants` kèm mã, tên, **thông tin tài khoản quản trị đầu tiên** và **mật khẩu tạm do vận hành tự gõ** | [`../contracts/tenants.md`](../contracts/tenants.md) §2 |
 | 2 | BE | Service tạo đơn vị thêm một dòng vào bảng đơn vị | [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md) · [`../database/schema-core.md`](../database/schema-core.md) §1.3 |
 | 3 | BE | Mở **ngữ cảnh thực thi của đơn vị vừa tạo**, rồi mới ghi tiếp | [`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §11.4 |
-| 4 | BE | Seed theo thứ tự: vai trò mặc định · ánh xạ vai trò→quyền · tài khoản quản trị đầu tiên · menu. Vai trò, ánh xạ và menu lấy từ **các nguồn seed đã đăng ký** (`ITenantSeedSource`); Core tự đăng ký menu của Core | [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md) · [`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §11.4 |
+| 4 | BE | Tạo tài khoản quản trị đầu tiên và seed vai trò mặc định, ánh xạ vai trò→quyền, menu — bốn thứ, và thứ tự nào giữa chúng là bắt buộc, ở §11.4 của file chủ. Vai trò, ánh xạ và menu lấy từ **các nguồn seed đã đăng ký** (`ITenantSeedSource`); Core tự đăng ký menu của Core | [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md) · [`../wiki-core/be/17-multi-tenant.md`](../wiki-core/be/17-multi-tenant.md) §11.4 |
 | 5 | BE | Tài khoản đó mang **hai** cờ: buộc đổi mật khẩu **và** cờ đặc quyền | [`../contracts/tenants.md`](../contracts/tenants.md) §2 |
 | 6 | BE | Ghi nhật ký kiểm toán **hai dòng**: một ở đơn vị hệ thống, một ở đơn vị vừa tạo | [`../contracts/tenants.md`](../contracts/tenants.md) §5 · [`../database/schema-core.md`](../database/schema-core.md) §9.4 |
 | 7 | BE | Trả về đơn vị vừa tạo — **không** trả mật khẩu trong thân phản hồi | [`../contracts/tenants.md`](../contracts/tenants.md) §2 |
-| 8 | Vận hành | Chuyển mật khẩu tạm cho quản trị đơn vị mới — ngoài hệ thống | xem §6 |
+| 8 | Vận hành | Chuyển cho quản trị đơn vị mới — ngoài hệ thống — mật khẩu tạm, mã đơn vị và đường vào | mục *Người dùng của đơn vị mới vào bằng đường nào* bên dưới · §6 |
 
 ### Vì sao bước 3 không bỏ được
 
@@ -53,6 +53,18 @@ Một đơn vị có dòng nhưng thiếu vai trò, thiếu tài khoản quản 
 Ngay sau bước 4, đơn vị mới **chưa có ai gán vai trò cho ai**. Tài khoản chỉ mang cờ buộc đổi mật khẩu thì đăng nhập được và **không làm được gì** — kể cả việc tạo vai trò đầu tiên. Đó là cùng vòng lặp con-gà-quả-trứng mà luồng `V1` giải ở mức cả hệ, nay lặp lại ở mức một đơn vị.
 
 Khi không nguồn seed nào khai vai trò, cờ này là thứ **duy nhất** cho đơn vị mới dùng được.
+
+### Người dùng của đơn vị mới vào bằng đường nào
+
+Luồng này **được phép** tạo đơn vị nghiệp vụ thứ hai trong một bản cài, kể cả khi chưa có ADR cho bản cài nhiều đơn vị — người dùng chốt 2026-10-06 ([`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md)). Không chặn, không cảnh báo.
+
+Form đăng nhập thường gửi mã đơn vị nhúng lúc build, và người dùng cuối không thấy ô mã ([ADR-0116](../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md), Quyết định 1–2). Người dùng của đơn vị tạo ở luồng này vì thế vào bằng liên kết *Quản trị hệ thống* của trang đăng nhập rồi **gõ mã đơn vị của mình** — ô mã ở chế độ vận hành nhận mã nào cũng được (QC2 của ADR đó; hai chế độ của trang: luồng `D1`).
+
+Cái giá phải chấp nhận:
+
+- Người dùng cuối của đơn vị thứ hai phải gõ mã — trái ý *người dùng cuối không gõ mã* của ADR-0116.
+- Họ đi qua một liên kết mang tên *Quản trị hệ thống* dù không phải người vận hành. Không có hướng dẫn trong phần mềm; bước 8 phải chuyển kèm mã đơn vị và đường vào, không chỉ mật khẩu tạm.
+- Khi bản cài cần phục vụ đơn vị thứ hai như người dùng thật — form không ô mã — thì viết ADR mới theo QC5 của ADR-0116, không mở rộng luồng này.
 
 ## 4. Hỏng ở đâu — và người vận hành thấy gì
 
@@ -73,8 +85,10 @@ Khi không nguồn seed nào khai vai trò, cờ này là thứ **duy nhất** c
 
 Người thao tác thuộc đơn vị hệ thống; đối tượng là một đơn vị nghiệp vụ. Bước 3 chuyển ngữ cảnh từ đơn vị này sang đơn vị kia **trong cùng một request**, bằng đường mở phạm vi đã khai cho service tạo đơn vị (luật **A12**).
 
-Hệ quả cần chú ý: sau bước 4, ngữ cảnh phải trả về đúng chỗ cũ — bước 6 còn ghi một dòng ở đơn vị hệ thống. Rò ngữ cảnh sang các bước sau của cùng request là một lỗi **không có triệu chứng ngay**.
+Hệ quả cần chú ý: phạm vi mở ở bước 3 còn mở tới hết thao tác của service, kể cả bước 6. Dòng nhật ký ở đơn vị hệ thống vẫn ghi đúng đơn vị vì bảng nhật ký **không theo phạm vi đang mở** — mỗi dòng nhận đơn vị qua tham số ([`../database/schema-core.md`](../database/schema-core.md) §1.3 *Miễn trừ thứ ba*, §9.4 điểm 4), không nhờ ngữ cảnh được trả về. Chỗ dễ hỏng thật là một bản ghi **thuộc đơn vị** — loại được interceptor tự gán đơn vị theo phạm vi đang mở — thêm vào service sau bước 4 với ý ghi cho đơn vị hệ thống: nó mang đơn vị vừa tạo, và lỗi đó **không có triệu chứng ngay**.
 
 ## 6. Câu chưa trả lời được
 
-Không còn câu riêng của luồng này. Kênh chuyển mật khẩu tạm (bước 8) là **quy trình vận hành ngoài phần mềm** ([`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md)).
+Không còn.
+
+Kênh chuyển mật khẩu tạm (bước 8) là **quy trình vận hành ngoài phần mềm** ([`../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md`](../adr/0029-dat-lai-mat-khau-ho-va-khoi-phuc-xuyen-don-vi.md)).

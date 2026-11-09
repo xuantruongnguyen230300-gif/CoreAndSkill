@@ -1,12 +1,12 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-05
 ---
 
 # 02. Envelope HTTP — hình dạng dữ liệu giữa BE và FE
 
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Chưa đối chiếu với `src/` — hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*. Mọi đoạn code dưới đây là đích phải đạt, không trích từ code đang chạy.
+> **Hiện trạng:** mọi hạng mục `✅` ở §8 đã có trong `src/` — nhãn `✅ CÓ THẬT` và neo ở từng hàng, đối chiếu 2026-11-05; hàng `❌` là cố ý chưa làm hoặc đã loại. Hai khối mã ở §5.1, §5.2 là mẫu **sai** để tránh, không trích code đang chạy. Hiện trạng repo: [`../../README.md`](../../README.md) mục *Trạng thái repo*.
 >
 > **Hợp đồng chính thức của từng endpoint nằm ở [`../../contracts/README.md`](../../contracts/README.md).** File này mô tả *hình dạng chung* và *cách FE tiêu thụ nó*. Khi hai bên lệch nhau, `contracts/` thắng và file này phải sửa.
 >
@@ -158,10 +158,10 @@ Chính file này từng vi phạm đúng luật đó: nó khai một hình dạn
 
 | Khái niệm | Đuôi tên | Sống ở | Ai được import |
 | --- | --- | --- | --- |
-| DTO — hình dạng **wire**, do BE quyết | `UserDto` | `<feature>/services/` | Chỉ `services/` và `*.spec.ts` |
-| Model — hình dạng **app**, do FE quyết | `User` | `<feature>/models/` | Mọi tầng |
+| DTO — hình dạng **wire**, do BE quyết | `UserDto` | `<feature>/models/*.dto.ts`; ở `core/` là `core/<mảng>/*.dto.ts` | Service và mapper — `services/` hoặc `core/<mảng>/`; `*.spec.ts` nằm ngoài cổng F10 |
+| Model — hình dạng **app**, do FE quyết | `User` | `<feature>/models/*.model.ts` | Mọi tầng |
 
-Luật F10 ([`../../RULES.md`](../../RULES.md)) cấm `components/` và `pages/` import DTO. Lý do: TypeScript bị xoá lúc chạy, nên khi BE đổi tên một field, **không có gì báo** — chỉ có một ô trống trên màn hình. Ép DTO đi qua một mapper trong `services/` tạo ra đúng một chỗ để lỗi đó lộ ra.
+Nơi đặt và ai được đọc DTO: luật chủ ở [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §4.1–§4.2. Luật F10 ([`../../RULES-FE.md`](../../RULES-FE.md)) cấm `components/` và `pages/` import DTO. Lý do: TypeScript bị xoá lúc chạy, nên khi BE đổi tên một field, **không có gì báo** — chỉ có một ô trống trên màn hình. Ép DTO đi qua một mapper trong `services/` tạo ra đúng một chỗ để lỗi đó lộ ra.
 
 Chi tiết mapper và quy ước gọi API: [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md).
 
@@ -182,16 +182,16 @@ Chi tiết mapper và quy ước gọi API: [`../../quy-uoc/fe-api-client.md`](.
 
 ## 8. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Hàng `✅ CÓ THẬT` đã đối chiếu với `src/` ngày 2026-11-05, neo ở cột *Ghi chú*; bảng không còn hàng nào là đích đến chưa thi công. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| Envelope `ApiResult<T>` khớp hình dạng ở file chủ | ✅ sẽ có | Kiểu khai đúng **một** chỗ: [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §1 |
-| Chuỗi interceptor đúng thứ tự | ✅ sẽ có | Pha F0 — danh sách ở [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §2 |
-| Xử lý lỗi tập trung + cờ tắt thông báo theo từng request | ✅ sẽ có | §4.4 |
-| `traceId` có mặt kể cả khi thành công | ✅ sẽ có | Phụ thuộc BE ghi `traceId` cho cả nhánh thành công |
-| Bước chuyển khoá `fieldErrors` → tên control, ở đúng một chỗ | ✅ sẽ có | §2.2 — khoá giữ PascalCase trên dây, luật ở file chủ BE |
-| Ranh giới DTO ↔ model + mapper | ✅ sẽ có | Luật F10 |
+| Envelope `ApiResult<T>` khớp hình dạng ở file chủ | ✅ CÓ THẬT (2026-11-05) | Kiểu khai đúng **một** chỗ: [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §1 — `src/FE/src/app/core/http/api-result.model.ts`, chuỗi `export type ApiResult<T>` |
+| Chuỗi interceptor đúng thứ tự | ✅ CÓ THẬT (2026-11-05) | Pha F0 — danh sách ở [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §2; `src/FE/src/app/app.config.ts`, chuỗi `withInterceptors([authInterceptor, loadingInterceptor, errorInterceptor])` |
+| Xử lý lỗi tập trung + cờ tắt thông báo theo từng request | ✅ CÓ THẬT (2026-11-05) | §4.4 — `src/FE/src/app/core/interceptors/error.interceptor.ts`, chuỗi `export const errorInterceptor`; cờ ở `src/FE/src/app/core/http/api-result.model.ts`, chuỗi `export const BO_QUA_TOAST_LOI` |
+| `traceId` có mặt kể cả khi thành công | ✅ CÓ THẬT (2026-11-05) | BE: `src/BE/Core/CoreAndSkill.Core.Web/Controllers/ApiControllerBase.cs`, chuỗi `Envelope.Success(result.Value, HttpContext.TraceIdentifier)`; FE: `ApiSuccess<T>` ở `src/FE/src/app/core/http/api-result.model.ts` mang chuỗi `readonly traceId: string` |
+| Bước chuyển khoá `fieldErrors` → tên control, ở đúng một chỗ | ✅ CÓ THẬT (2026-11-05) | §2.2 — khoá giữ PascalCase trên dây, luật ở file chủ BE; `src/FE/src/app/shared/forms/apply-field-errors.ts`, chuỗi `function tenControlTuKhoaBE` |
+| Ranh giới DTO ↔ model + mapper | ✅ CÓ THẬT (2026-11-05) | Luật F10 — `scripts/fe-gate.sh`, chuỗi `section "F10 - `; mapper ví dụ `src/FE/src/app/platform/quan-tri/nguoi-dung/services/nguoi-dung.mapper.ts`, chuỗi `export function mapNguoiDung` |
 | Tự động thử lại theo tín hiệu từ BE | ❌ chưa | Envelope **không** có trường nào nói "gọi lại được". Điều kiện: có endpoint thật sự hay timeout tạm thời, có số đo cho thấy thử lại ăn thua, và BE bổ sung tín hiệu vào hợp đồng |
 | Hàng đợi request khi ngoại tuyến | ❌ chưa | Điều kiện: có người dùng thật làm việc ở nơi mất mạng (B10 ở [`01-core-components.md`](01-core-components.md)) |
 | Bao lỗi thủ công ở từng service | ❌ loại, không hoãn `K12` | §4.1 — mỗi service tự xử lý lỗi là ba vấn đề cùng lúc |

@@ -3,7 +3,6 @@ import { provideLocationMocks } from '@angular/common/testing';
 import { inject, provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Router, provideRouter } from '@angular/router';
 import {
   TranslateLoader,
@@ -50,7 +49,7 @@ const NGUOI_DUNG: NguoiDung = {
 };
 const TRANG: PagedList<NguoiDung> = { items: [NGUOI_DUNG], page: 1, pageSize: 20, totalCount: 1 };
 
-function loiApi(code: string): ApiFailureError {
+function loiApi(code: string, status = 0): ApiFailureError {
   const body: ApiFailure = {
     success: false,
     data: null,
@@ -63,7 +62,7 @@ function loiApi(code: string): ApiFailureError {
     },
     traceId: 't',
   };
-  return new ApiFailureError(body);
+  return new ApiFailureError(body, status);
 }
 
 /** Bề mặt protected của page mà spec cần chạm. */
@@ -105,7 +104,6 @@ describe('DanhSachNguoiDungPage — hộp "Thêm người dùng" nối store v�
       imports: [DanhSachNguoiDungPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: NguoiDungService, useValue: service },
         { provide: AuthService, useValue: auth },
@@ -210,7 +208,6 @@ describe('DanhSachNguoiDungPage — seam CORE_SCREEN_EXT khoá "users"', () => {
       imports: [DanhSachNguoiDungPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: NguoiDungService, useValue: service },
         {
@@ -239,7 +236,9 @@ describe('DanhSachNguoiDungPage — seam CORE_SCREEN_EXT khoá "users"', () => {
   }
 
   function tieuDeCot(el: HTMLElement): string[] {
-    return Array.from(el.querySelectorAll('thead th')).map((th) => th.textContent?.trim() ?? '');
+    return Array.from(el.querySelectorAll('thead th:not(.data-table__o-hanh-dong)')).map(
+      (th) => th.textContent?.trim() ?? '',
+    );
   }
 
   const cotMaNv: ScreenExtColumn<NguoiDung> = {
@@ -365,7 +364,6 @@ describe('DanhSachNguoiDungPage — Back/Forward giữa hai giá trị lọc', (
       imports: [DanhSachNguoiDungPage],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         provideLocationMocks(),
         { provide: NguoiDungService, useValue: service },
@@ -411,40 +409,81 @@ describe('DanhSachNguoiDungPage — Back/Forward giữa hai giá trị lọc', (
     await onDinh();
   }
 
-  function oTrangThai(): HTMLSelectElement {
-    const o = (fixture.nativeElement as HTMLElement).querySelector<HTMLSelectElement>(
-      '.danh-sach-nguoi-dung__loc select',
-    );
-    if (!o) throw new Error('không thấy ô lọc trạng thái');
-    return o;
+  // Panel lọc là Drawer gắn vào <body>: mặt nạ chỉ gỡ khi hoạt ảnh rời kết thúc, nên fixture bị huỷ
+  // lúc panel còn mở/đang đóng sẽ để mặt nạ rò sang spec sau (chặn `elementFromPoint` của chúng).
+  afterEach(() => {
+    fixture?.destroy();
+    document.querySelectorAll('.p-drawer-mask').forEach((m) => m.remove());
+  });
+
+  const ID_PANEL = 'nguoi-dung-bang-loc';
+
+  /** Panel lọc nằm trong Drawer gắn vào <body>, không nằm dưới `fixture.nativeElement`. */
+  function trongPanel<T extends HTMLElement>(chon: string): T | null {
+    return document.body.querySelector<T>(`#${ID_PANEL} ${chon}`);
   }
 
-  async function chonTrangThai(gt: string): Promise<void> {
-    const o = oTrangThai();
-    o.value = gt;
-    o.dispatchEvent(new Event('change'));
+  async function moPanel(): Promise<void> {
+    if (document.getElementById(ID_PANEL)) return;
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLButtonElement>('.toolbar__nut-loc button')!
+      .click();
     await onDinh();
   }
 
-  /** Gõ tìm rồi chọn một mục — hai output của Autocomplete, đúng đường template của page nối vào. */
+  async function dongPanel(): Promise<void> {
+    document.body.querySelector<HTMLButtonElement>('.p-drawer-close-button button')?.click();
+    await onDinh();
+  }
+
+  async function apDungPanel(): Promise<void> {
+    document.body
+      .querySelector<HTMLButtonElement>(`button[type=submit][form="${ID_PANEL}-form"]`)!
+      .click();
+    await onDinh();
+  }
+
+  /** Giá trị ô "Trạng thái" như người dùng thấy khi mở panel; đóng panel lại sau khi đọc. */
+  async function docTrangThai(): Promise<string> {
+    await moPanel();
+    const gt = trongPanel<HTMLSelectElement>('select')?.value ?? '';
+    await dongPanel();
+    return gt;
+  }
+
+  async function chonTrangThai(gt: string): Promise<void> {
+    await moPanel();
+    const o = trongPanel<HTMLSelectElement>('select');
+    if (!o) throw new Error('không thấy ô lọc trạng thái');
+    o.value = gt;
+    o.dispatchEvent(new Event('change'));
+    await onDinh();
+    await apDungPanel();
+  }
+
+  /** Gõ tìm rồi chọn một mục trong panel — hai output của Autocomplete, rồi bấm Áp dụng. */
   async function chonVaiTro(vt: VaiTro): Promise<void> {
+    await moPanel();
     vaiTroService.timKiem.and.returnValue(
       of({ items: [vt], page: 1, pageSize: 20, totalCount: 1 }),
     );
     const o = fixture.debugElement.query(By.directive(AutocompleteComponent))
       .componentInstance as AutocompleteComponent;
     o.search.emit(vt.name);
+    await onDinh();
     o.valueChange.emit(vt.id);
     await onDinh();
+    await apDungPanel();
   }
 
-  /** Ô nhập mà PrimeNG vẽ bên trong Autocomplete — nơi người dùng đọc nhãn của vai trò đang lọc. */
-  function oLocVaiTro(): HTMLInputElement {
-    const o = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
-      'app-autocomplete input',
-    );
+  /** Ô nhập mà PrimeNG vẽ trong Autocomplete — nơi người dùng đọc nhãn của vai trò đang lọc. */
+  async function docLocVaiTro(): Promise<string> {
+    await moPanel();
+    const o = trongPanel<HTMLInputElement>('app-autocomplete input');
     if (!o) throw new Error('không thấy ô lọc vai trò');
-    return o;
+    const gt = o.value;
+    await dongPanel();
+    return gt;
   }
 
   function chuChip(): string {
@@ -491,15 +530,15 @@ describe('DanhSachNguoiDungPage — Back/Forward giữa hai giá trị lọc', (
    */
   it('vai trò: mở liên kết có sẵn roleId → ô lọc và chip cùng hiện TÊN, không hiện id thô; Back giữ tên', async () => {
     await dung('/?roleId=r-ke-toan');
-    expect(oLocVaiTro().value).toBe('Kế toán');
+    expect(await docLocVaiTro()).toBe('Kế toán');
     expect(chuChip()).toContain('Kế toán');
 
     await chonVaiTro(THU_KHO);
-    expect(oLocVaiTro().value).toBe('Thủ kho');
+    expect(await docLocVaiTro()).toBe('Thủ kho');
 
     await quayLai();
     expect(location.path()).toBe('/?roleId=r-ke-toan');
-    expect(oLocVaiTro().value).toBe('Kế toán');
+    expect(await docLocVaiTro()).toBe('Kế toán');
     expect(chuChip()).toContain('Kế toán');
   });
 
@@ -526,29 +565,29 @@ describe('DanhSachNguoiDungPage — Back/Forward giữa hai giá trị lọc', (
       .withContext('luật 5 — đổi lọc là một bước lịch sử')
       .toBe('/?status=active');
     expect(locLanTaiCuoi()['status']).toBe('active');
-    expect(oTrangThai().value).toBe('active');
+    expect(await docTrangThai()).toBe('active');
 
     await quayLai();
     expect(location.path()).toBe('/');
     expect(locLanTaiCuoi()['status']).toBeUndefined();
-    expect(oTrangThai().value).toBe('');
+    expect(await docTrangThai()).toBe('');
 
     // Đồng bộ ô chọn theo URL không được tự ghi URL lần nữa — nếu có, nhánh Forward đã bị cắt.
     await diToi();
     expect(location.path()).toBe('/?status=active');
-    expect(oTrangThai().value).toBe('active');
+    expect(await docTrangThai()).toBe('active');
   });
 
   it('trạng thái: chọn "Đã khoá", Back về "Tất cả", chọn lại "Đã khoá" → lưới lọc lại theo Đã khoá', async () => {
     await dung('/');
     await chonTrangThai('locked');
     await quayLai();
-    expect(oTrangThai().value).toBe('');
+    expect(await docTrangThai()).toBe('');
 
     await chonTrangThai('locked');
     expect(location.path()).toBe('/?status=locked');
     expect(locLanTaiCuoi()['status']).toBe('locked');
-    expect(oTrangThai().value).toBe('locked');
+    expect(await docTrangThai()).toBe('locked');
   });
 
   it('thiếu core.role.read: roleId trên URL bị gỡ khi vào; Back về URL đó → roleId vẫn KHÔNG gửi lên', async () => {
@@ -564,5 +603,93 @@ describe('DanhSachNguoiDungPage — Back/Forward giữa hai giá trị lọc', (
       .withContext('Design/Screens/10-nguoi-dung.md — thiếu quyền thì "không gửi lên"')
       .toBeFalse();
     expect(vaiTroService.chiTiet).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * fe-architecture.md §2.8 luật 10 và Design/Screens/10-nguoi-dung.md, dòng errorTemplate: nút của
+ * khối lỗi theo `list.errorCode()`, KHÔNG theo `roleId` đang gửi — đang lọc vai trò mà lỗi là mất
+ * mạng hay 5xx vẫn phải ra "Thử lại", chỉ CORE.USER.ROLE_NOT_FOUND mới ra "Xoá bộ lọc".
+ */
+describe('DanhSachNguoiDungPage — khối lỗi tải: nút theo errorCode (luật 10)', () => {
+  let fixture: ComponentFixture<DanhSachNguoiDungPage>;
+  let service: jasmine.SpyObj<NguoiDungService>;
+
+  async function dung(urlDau: string, loi: ApiFailureError): Promise<void> {
+    service = jasmine.createSpyObj<NguoiDungService>('NguoiDungService', ['danhSach']);
+    service.danhSach.and.returnValue(throwError(() => loi));
+    const vaiTroService = jasmine.createSpyObj<VaiTroService>('VaiTroService', [
+      'timKiem',
+      'chiTiet',
+    ]);
+    vaiTroService.chiTiet.and.returnValue(throwError(() => loiApi('CORE.ROLE.NOT_FOUND')));
+
+    await TestBed.configureTestingModule({
+      imports: [DanhSachNguoiDungPage],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
+        { provide: NguoiDungService, useValue: service },
+        {
+          provide: AuthService,
+          useValue: { nguoiDung: signal({ id: 'x', tenantName: 'Cty A' }), coQuyen: () => true },
+        },
+        { provide: VaiTroService, useValue: vaiTroService },
+        provideTranslateService({
+          lang: 'vi',
+          fallbackLang: 'vi',
+          loader: provideTranslateLoader(FakeTranslateLoader),
+        }),
+      ],
+    }).compileComponents();
+
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl(urlDau);
+    fixture = TestBed.createComponent(DanhSachNguoiDungPage);
+    await onDinh();
+  }
+
+  /** Cùng nhịp chờ với describe Back/Forward — popstate/điều hướng là pending task. */
+  async function onDinh(): Promise<void> {
+    await new Promise((r) => setTimeout(r));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    TestBed.tick();
+    fixture.detectChanges();
+  }
+
+  function nutHanhDong(): HTMLButtonElement {
+    const b = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      '.empty-state button.nut',
+    );
+    if (!b) throw new Error('không thấy nút hành động của khối lỗi');
+    return b;
+  }
+
+  it('đang lọc vai trò, nhận CORE.USER.ROLE_NOT_FOUND → nút "Xoá bộ lọc", bấm gỡ roleId khỏi truy vấn', async () => {
+    await dung('/?roleId=r-ke-toan', loiApi('CORE.USER.ROLE_NOT_FOUND'));
+
+    expect(nutHanhDong().textContent).toContain('chung.xoaBoLoc');
+    expect(nutHanhDong().textContent).not.toContain('chung.thuLai');
+
+    nutHanhDong().click();
+    await onDinh();
+
+    const goiCuoi = service.danhSach.calls.mostRecent().args[0];
+    expect(goiCuoi.filters?.['roleId']).toBeUndefined();
+  });
+
+  it('đang lọc vai trò, nhận lỗi mất kết nối (không envelope) → nút vẫn "Thử lại"', async () => {
+    await dung('/?roleId=r-ke-toan', new ApiFailureError(null, 0));
+
+    expect(nutHanhDong().textContent).toContain('chung.thuLai');
+    expect(nutHanhDong().textContent).not.toContain('chung.xoaBoLoc');
+  });
+
+  it('đang lọc vai trò, nhận 5xx mang mã khác ROLE_NOT_FOUND → nút vẫn "Thử lại"', async () => {
+    await dung('/?roleId=r-ke-toan', loiApi('CORE.SYSTEM.UNEXPECTED', 500));
+
+    expect(nutHanhDong().textContent).toContain('chung.thuLai');
+    expect(nutHanhDong().textContent).not.toContain('chung.xoaBoLoc');
   });
 });

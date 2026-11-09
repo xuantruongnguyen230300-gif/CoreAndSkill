@@ -49,7 +49,7 @@ Ngưỡng định lượng giữ nguyên như BE: **code chỉ được nâng l�
 | A10 | **Bảng dữ liệu server-side** | `shared/ui/data-table` (`DataTable`) | Phân trang, sắp xếp, lọc ở server là mặc định của hệ quản trị; làm sai chỗ này thì mọi màn danh sách đều chậm | [`11-grid-and-metadata.md`](11-grid-and-metadata.md) |
 | A11 | **Đa ngôn ngữ** | `core/i18n` | Không phải vì hôm nay cần hai thứ tiếng, mà vì câu chữ phải nằm ngoài template — xem §5.1 | [`08-i18n.md`](08-i18n.md) |
 | A12 | **Layout shell** | `platform/shell` | Topbar, sidebar, breadcrumb, vùng nội dung; cờ tắt shell cho màn đăng nhập | [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) |
-| A13 | **Màn quản trị Core** | `platform/*` | Danh sách đầy đủ và nguồn duy nhất của nó: [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.3. Gồm cả **hồ sơ cá nhân**, **quản trị vai trò** và **khu quản trị đơn vị** cho tài khoản vận hành ([`../../contracts/tenants.md`](../../contracts/tenants.md)), tách hẳn khỏi các màn nghiệp vụ | [`trien-khai/04-f3-man-quan-tri.md`](trien-khai/04-f3-man-quan-tri.md) |
+| A13 | **Màn quản trị Core** | `platform/*` | Danh sách đầy đủ và nguồn duy nhất của nó: [`../../quy-uoc/fe-architecture.md`](../../quy-uoc/fe-architecture.md) §2.3. Gồm cả **hồ sơ cá nhân**, **quản trị vai trò** và **khu quản trị đơn vị** cho tài khoản vận hành ([`../../contracts/tenants.md`](../../contracts/tenants.md)), tách hẳn khỏi các màn nghiệp vụ | Spec từng màn: [`../../Design/Screens/`](../../Design/Screens/) |
 | A14 | **Ranh giới tầng có máy kiểm** | cấu hình ESLint + cổng | Không có compiler ép layering như BE. ESLint là hàng rào duy nhất | [`trien-khai/05-gate.md`](trien-khai/05-gate.md) |
 | A17 | **Guard chặn rời trang khi chưa lưu** | `core/guards` | Form nghiệp vụ hành chính thường dài. Mỗi màn tự lo thì hành vi không nhất quán và màn nào quên là người dùng mất dữ liệu | [`../../quy-uoc/fe-routing-guard.md`](../../quy-uoc/fe-routing-guard.md) §4.1 |
 | A16 | **Khu thông báo trong ứng dụng** | `platform/notifications` | BE đã có endpoint ở v1 ([`../../contracts/notifications.md`](../../contracts/notifications.md)). Chuông đếm số chưa đọc, danh sách, đánh dấu đã đọc. Câu chữ dựng từ khoá và tham số, **không** nhận câu ghép sẵn từ server | [`../be/12-notifications.md`](../be/12-notifications.md) §5 |
@@ -65,7 +65,7 @@ Nhóm B khác Nhóm A ở một điểm: **thiếu chúng thì app vẫn chạy 
 
 | # | Thành phần | Ngưỡng nên làm | Chi tiết |
 | --- | --- | --- | --- |
-| B1 | **Thu lỗi runtime FE** | Khi có môi trường thật và người dùng thật báo lỗi mà không tái hiện được | [`10-observability.md`](10-observability.md) |
+| B1 | **Thu lỗi runtime FE** | Đã kéo vào v1, không chờ ngưỡng: đích nhận là BE của chính hệ thống, bản `production` gửi không chờ staging (người dùng chốt 2026-11-06) | [`10-observability.md`](10-observability.md) §4, §10 |
 | B2 | **Đo Core Web Vitals** | Khi có phàn nàn về tốc độ, hoặc khi bundle vượt ngân sách hai lần liên tiếp | [`13-performance.md`](13-performance.md) |
 | B3 | **Thư viện biểu đồ** | Khi màn đầu tiên dùng biến thể `line` của `Chart`. Component biểu đồ **thuộc Core** ([`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md)); riêng **thư viện** vẫn nạp theo yêu cầu, không vào bundle khởi động | [`12-charting.md`](12-charting.md) |
 | B4 | **Tải tệp lên** | Khi màn nghiệp vụ đầu tiên cần đính kèm. **Phía BE đã thuộc v1** ([`../../contracts/files.md`](../../contracts/files.md)), nên phần còn thiếu chỉ là component tải lên và hiển thị danh sách tệp | [`05-component-library.md`](05-component-library.md) §7 |
@@ -105,7 +105,7 @@ Nhóm B khác Nhóm A ở một điểm: **thiếu chúng thì app vẫn chạy 
 | --- | --- | --- | --- |
 | **NgRx / store chuyên dụng** (B8) | ❌ chưa | Signals đã là cơ chế reactivity gốc của Angular. Thêm một tầng store nữa nghĩa là mỗi dev phải học hai mô hình, và mỗi thay đổi state đi qua ba file thay vì một | Thoả ngưỡng khai ở [`03-state-management.md`](03-state-management.md) §3 |
 | **Thư viện biểu đồ** (B3) | ❌ chưa | Mọi biến thể của `Chart` trừ `line` vẽ bằng HTML/CSS bên trong lớp bọc `shared/ui/chart`, không cần thư viện biểu đồ nào. Cài sẵn là gánh bundle cho phần lớn dự án không chạm tới biến thể `line` | Màn đầu tiên dùng biến thể `line`, và khi đó **nạp theo yêu cầu** — [`../../adr/0019-ba-component-nang-thuoc-core.md`](../../adr/0019-ba-component-nang-thuoc-core.md) ràng buộc 1 |
-| **Sink lỗi runtime bên ngoài** (B1) | ❌ chưa | Chưa có môi trường thật, chưa có người dùng thật. Gắn sớm là gắn vào một hộp không ai mở | Có môi trường staging dùng thật, hoặc lỗi đầu tiên không tái hiện được |
+| **Dịch vụ thu lỗi bên ngoài** (B1) | ❌ loại, không hoãn `K54` | Báo cáo lỗi mang dữ liệu của cơ quan ra khỏi hệ thống, và `traceId` của FE chỉ nối được với log BE khi hai bên cùng một chỗ — [`10-observability.md`](10-observability.md) §4 | Chỉ đổi bằng ADR trích `K54` |
 | **Đo Web Vitals tự động** (B2) | ❌ chưa | Đo được thì phải có người đọc số. Chưa có ai đọc và chưa có ngưỡng để so | Có ngân sách bundle đã chốt bằng số đo thật ([`13-performance.md`](13-performance.md) §4) |
 | **Cache phía client theo thời gian sống** | ❌ chưa | Cùng lý do với quyết định hoãn Redis phía BE: chưa có số đo nào cho thấy đang chậm. Cache sai là dữ liệu cũ hiển thị như dữ liệu mới — sai kiểu khó phát hiện nhất | Có số đo cho thấy một endpoint bị gọi lặp và tốn |
 | **Angular workspace / Nx** | ❌ loại, không hoãn `K10` | Ranh giới bằng thư mục + ESLint đủ cho một app. Workspace đổi lấy ranh giới cứng hơn bằng chi phí build và thêm một lớp cấu hình phải bảo trì | [`../../adr/0007-fe-giu-cau-truc-thu-muc.md`](../../adr/0007-fe-giu-cau-truc-thu-muc.md) ghi điều kiện lật |
@@ -135,7 +135,7 @@ Bọc thư viện UI là việc rẻ khi làm trước và đắt khi làm sau. 
 
 ### 5.3 Cổng phải sinh ra cùng lúc với luật
 
-Luật không có cổng là gợi ý ([`../../DEBT.md`](../../DEBT.md)). Điều này đúng gấp đôi ở FE, vì FE không có compiler canh ranh giới.
+Luật chưa có cổng chỉ còn người canh — dòng 🕳️, cột *Ép bằng gì* ở [`../../RULES-FE.md`](../../RULES-FE.md). Điều này đúng gấp đôi ở FE, vì FE không có compiler canh ranh giới.
 
 Ở dự án tiền nhiệm, một script cổng FE **không tồn tại trên đĩa** trong khi tài liệu vẫn hướng dẫn chạy nó. Người chạy thấy `No such file or directory` ở lệnh đầu, ba lệnh sau chạy bình thường, và kết luận cổng đã xanh. Ba mục cổng không có gì canh suốt thời gian dài. Xem [`../../audit/2026-08-23-cong-khong-ton-tai.md`](../../audit/2026-08-23-cong-khong-ton-tai.md).
 
@@ -153,7 +153,7 @@ Ba dấu hiệu phình, phát hiện được bằng cách đọc:
 | Component `shared/` có thuộc tính mang nghĩa nghiệp vụ | Một badge nhận vào đúng danh sách trạng thái của một quy trình cụ thể | Đổi thành `variant` trung tính, nghĩa do nơi gọi quyết định |
 | `core/` giữ hằng số danh sách | Danh sách trạng thái đơn, danh sách vai trò | Dữ liệu thuộc DB hoặc thuộc module. Xem [`../../adr/0005-permission-based.md`](../../adr/0005-permission-based.md) |
 
-**Cơ chế chống:** mọi thay đổi chạm `core/` hoặc `shared/` phải qua agent `architect` và phải có ADR — cùng cơ chế với phía BE ([`../../kien-truc-core-module.md`](../../kien-truc-core-module.md) §4.2).
+**Cơ chế chống:** cùng cơ chế với phía BE — khi nào việc chạm `core/` hoặc `shared/` phải qua agent `architect` trước thi công, khi nào cần ADR hay dòng nhật ký: [`../../kien-truc-core-module.md`](../../kien-truc-core-module.md) §4.2, dòng *Cơ chế chống*.
 
 ---
 
@@ -198,7 +198,7 @@ Danh sách này tồn tại để module không đi tìm thứ không có, và �
 | --- | --- | --- |
 | **Base class cho component** | Kế thừa component là cách nhanh nhất để một thay đổi ở Core làm vỡ mọi màn nghiệp vụ, mà không chỗ nào trong module thay đổi cả. Angular hiện đại dùng composition (`inject()`, directive, signal) thay kế thừa | Inject service dùng chung; dùng directive cho hành vi lặp lại |
 | **Base class cho service** | Cùng lý do. Thêm nữa: một `BaseService<T>` luôn tiến hoá thành nơi chứa mọi thứ ai đó thấy "chung chung" | Gọi thẳng `HttpClient`, hoặc gọi **hàm** CRUD dùng chung ở [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §5 — composition, không kế thừa |
-| **Store toàn cục dùng chung cho mọi feature** | Một store toàn cục là "god component" ở dạng state. Feature A đọc state feature B nghĩa là hai feature không tách được nữa | Mỗi feature một store riêng, xem [`03-state-management.md`](03-state-management.md) |
+| **Store toàn cục dùng chung cho mọi feature** | Một store toàn cục là "god component" ở dạng state. Feature A đọc state feature B nghĩa là hai feature không tách được nữa | Mỗi feature giữ store của riêng nó — được nhiều store, không dùng chung một thực thể store với feature khác: [`03-state-management.md`](03-state-management.md) §4.1 quy tắc 4 |
 | **Route khai sẵn cho màn nghiệp vụ** | Core khai route nghiệp vụ nghĩa là Core biết tên nghiệp vụ — vi phạm đúng luật ở §6 | Module tự khai `*.routes.ts` và tự đăng ký lazy |
 
 > **"Không base class cho service" ≠ "không có gì dùng chung cho service".** CRUD và phân trang lặp ở mọi feature, và Core **có** cung cấp chúng — dưới dạng **hàm thuần** nhận mapper làm tham số ([`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §5), không dưới dạng lớp để kế thừa. Khác biệt không phải chuyện phong cách:

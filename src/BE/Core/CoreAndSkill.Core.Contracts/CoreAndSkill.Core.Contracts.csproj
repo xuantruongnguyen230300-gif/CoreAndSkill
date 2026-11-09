@@ -4,7 +4,8 @@
     <RootNamespace>CoreAndSkill.Core.Contracts</RootNamespace>
   </PropertyGroup>
 
-  <!-- Không tham chiếu ai (docs/kien-truc-core-module.md §2). Trống ở B0 — chưa module nào cần
-       integration event hay DTO dùng chung; nội dung đầu tiên tới cùng module đầu tiên. -->
+  <!-- Không tham chiếu ai (docs/kien-truc-core-module.md §2). Trống ở B0 — chưa có hợp đồng
+       nào giữa Core và module (ví dụ integration event Core phát). Hợp đồng giữa hai module không đặt ở đây:
+       nó ở Contracts của module phát (ADR-0101). -->
 
 </Project>

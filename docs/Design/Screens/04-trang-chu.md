@@ -19,7 +19,7 @@ Màn đầu tiên sau khi đăng nhập ([fe-routing-guard.md](../../quy-uoc/fe-
 
 | Khoản | Có thật hôm nay | Sẽ thành |
 | --- | --- | --- |
-| Tuyến | Có — `trang-chu.routes.ts`: `path: ''`, `title: 'trangChu.tieuDe'`, `loadComponent` nạp `TrangChuPage`. Chuỗi `CORE_HOME` chỉ xuất hiện trong chú thích, tuyến **chưa đọc** token | Tuyến đọc `CORE_HOME` theo [fe-architecture.md](../../quy-uoc/fe-architecture.md) §2.5 — việc của `frontend-expert`, ngoài spec này |
+| Tuyến | Có — `trang-chu.routes.ts`: `path: ''`, `title: 'trangChu.tieuDe'`, `loadComponent` nạp `TrangChuPage`. Tuyến đọc `CORE_HOME` (so 2026-10-04): chuỗi `inject(CORE_HOME, { optional: true }) ?? TRANG_CHAO_CORE` | Khớp [fe-architecture.md](../../quy-uoc/fe-architecture.md) §2.5 |
 | Trang | Có — `trang-chu.page.html`: `<h1>` mang khoá `trangChu.loiChao` với tham số `hoTen`, một `<p>` mang khoá `trangChu.tenDonVi`; đọc phiên qua `auth.nguoiDung()`. Không có `PageHeader`, không có lối tắt, không đọc menu, không có trạng thái đang tải / rỗng / lỗi | Bố cục và năm trạng thái ở dưới, sau khi các ô *Chờ duyệt:* được duyệt |
 | Khoá i18n | `vi.json`: `trangChu.tieuDe` = "Trang chủ", `trangChu.loiChao` = "Xin chào, {{hoTen}}", `trangChu.tenDonVi` = "{{tenDonVi}}" — khoá thứ ba có giá trị **chỉ là tham số**, tức một câu không có chữ nào để dịch | Theo bảng Câu chữ; khoá `trangChu.tenDonVi` bỏ nếu duyệt phương án mô tả gộp |
 | Nguồn menu để dựng lối tắt | Có sẵn để dùng lại — `menu.store.ts`: `MenuStore` lộ `items` (cây đã dựng) và `state` (`'idle' \| 'loading' \| 'error' \| 'empty'`); cùng thứ `Sidebar` đọc. Trang **chưa** đọc | Trang đọc cùng store, không gọi request riêng |
@@ -51,7 +51,6 @@ Màn đầu tiên sau khi đăng nhập ([fe-routing-guard.md](../../quy-uoc/fe-
             thẳng hàng) + khe --sp-4 + bản dịch labelKey; thứ tự: giữ nguyên thứ tự máy chủ trả,
             màn KHÔNG tự sắp — tiêu chí sắp xếp thuộc meta-menu.md §1
       - thay cả khối bằng SkeletonLoader / EmptyState theo mục Trạng thái
-  - Footer
 ```
 
 | Quyết định bố cục | Căn cứ |
@@ -84,7 +83,7 @@ Câu không ghi nguồn và không mang tiền tố *Chờ duyệt:* là câu đ
 | Tiêu đề nhóm (`heading` của `Card`) · nhãn lối tắt | Bản dịch `labelKey` của mục cha · của mục — khoá **đến từ dữ liệu** | `menu.*` | [meta-menu.md](../../contracts/meta-menu.md) §1.2 |
 | Rỗng — tiêu đề · mô tả | *Chờ duyệt:* Chưa có chức năng nào được cấp · Liên hệ quản trị viên của đơn vị để được cấp quyền. — cùng ý với `khung.dieuHuong.trong` của `Sidebar`, tách làm hai câu theo khuôn tiêu đề/mô tả của `EmptyState` | `trangChu.trong.tieuDe` · `trangChu.trong.moTa` | [EmptyState.md](../Components/EmptyState.md) §Viết câu chữ |
 | Lỗi — tiêu đề | *Chờ duyệt:* Không tải được danh sách chức năng | `trangChu.loi.taiThatBai` | cùng khuôn "Không tải được danh sách …" ở [11-vai-tro.md](./11-vai-tro.md) |
-| Lỗi — thân | Câu dịch theo mã; không có mã thì câu mất kết nối | `loi.<mã>` · `loi.CORE.CLIENT.NO_CONNECTION` | [fe-api-client.md](../../quy-uoc/fe-api-client.md) §2.2 |
+| Lỗi — thân | Câu dịch theo mã; không có envelope thì chọn theo status: `0` hoặc lỗi không đến từ HTTP (timeout) → mất kết nối; ngoài 5xx (5xx đi lớp xuyên suốt, [00-khung-ung-dung.md](./00-khung-ung-dung.md) §Trạng thái) → phản hồi không hợp lệ, kèm mã HTTP | `loi.<mã>` · `loi.CORE.CLIENT.NO_CONNECTION` · `loi.CORE.CLIENT.INVALID_RESPONSE` | [fe-api-client.md](../../quy-uoc/fe-api-client.md) §2.2 · [be-cqrs-handler.md](../../quy-uoc/be-cqrs-handler.md) §7.4 |
 | Nút thử lại | Thử lại | `chung.thuLai` | có trong `vi.json` |
 | Đọc lên khi đang tải (`aria-live`, ẩn) | Đang tải… | `chung.dangTai` | có trong `vi.json`; cùng cách [03-ho-so-ca-nhan.md](./03-ho-so-ca-nhan.md) |
 

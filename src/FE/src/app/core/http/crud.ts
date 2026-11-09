@@ -15,9 +15,10 @@ export function danhSachTrang<TDto, TModel>(
   query: PageQuery,
   map1: (dto: TDto) => TModel,
 ): Observable<PagedList<TModel>> {
-  return http
-    .get<ApiResult<PagedList<TDto>>>(duongDan, { params: toHttpParams(query) })
-    .pipe(map(unwrapData), map((trang) => ({ ...trang, items: trang.items.map(map1) })));
+  return http.get<ApiResult<PagedList<TDto>>>(duongDan, { params: toHttpParams(query) }).pipe(
+    map(unwrapData),
+    map((trang) => ({ ...trang, items: trang.items.map(map1) })),
+  );
 }
 
 export function theoId<TDto, TModel>(

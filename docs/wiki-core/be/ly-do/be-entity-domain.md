@@ -9,7 +9,9 @@ verified: chua-doi-chieu
 > File này giữ **lý do, bẫy, ví dụ dài** của [`../../../quy-uoc/be-entity-domain.md`](../../../quy-uoc/be-entity-domain.md);
 > luật ở đó. Số mục ở đây **trùng số §** của file luật; mục không có gì dời thì ghi "—".
 >
-> 📐 **ĐÍCH ĐẾN — CHƯA THI CÔNG.** Mọi khối code là khuôn cho `src/BE` sẽ xây ở giai đoạn 2.
+> Nhãn trạng thái đặt **tại từng khối**, không cho cả tệp: khối nào chỉ là khuôn minh hoạ thì nói ngay ở
+> khối đó; khối còn lại tả mã trong `src/BE` nhưng chưa đối chiếu từng khối (`verified: chua-doi-chieu`) —
+> so với tệp nguồn trước khi dựa vào.
 
 ---
 
@@ -46,8 +48,9 @@ ngoài entity. Nếu để `protected`/`private`, interceptor buộc phải dùn
 cả hai đều phức tạp hơn nhiều so với cái chúng bảo vệ, và reflection ở đường ghi nóng là thứ ta đang cố
 loại khỏi codebase này.
 
-Năm field kể trên nằm ở lớp cơ sở nên nằm ngoài phạm vi detector của luật
-`BaseEntity_Descendants_MustNotHave_PublicSetter` — đó chính là cách phân biệt được viết thành cổng.
+Năm field kể trên nằm ở lớp cơ sở nên nằm ngoài phạm vi detector của luật E1
+`BaseEntity_Descendants_MustNotHave_PublicSetter` (📐 chưa có ArchTest — [`RULES-BE.md`](../../../RULES-BE.md)) —
+đó là cách phân biệt sẽ được viết thành cổng.
 
 ### 1.3 `AuditInterceptor` ghi gì ở mỗi trạng thái
 

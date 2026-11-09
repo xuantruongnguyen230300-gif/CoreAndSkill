@@ -1,3 +1,4 @@
+using CoreAndSkill.Core.Application.Common;
 using CoreAndSkill.Core.Application.Tenants;
 using CoreAndSkill.Core.Application.Users;
 using Shouldly;
@@ -70,6 +71,18 @@ public class TenantValidatorsTests
             .IsValid.ShouldBeFalse();
 
     [Fact]
+    public void RecoveryResetTenantAdminPasswordCommandValidator_UserNameOver256_IsMaxLength()
+        => new RecoveryResetTenantAdminPasswordCommandValidator()
+            .Validate(new RecoveryResetTenantAdminPasswordCommand(Guid.NewGuid(), new string('a', 257), "Temp@12345"))
+            .Errors.ShouldHaveSingleItem().ErrorCode.ShouldBe(CommonErrors.MaxLength.Code);
+
+    [Fact]
+    public void RecoveryResetTenantAdminPasswordCommandValidator_UserNameAt256_IsValid()
+        => new RecoveryResetTenantAdminPasswordCommandValidator()
+            .Validate(new RecoveryResetTenantAdminPasswordCommand(Guid.NewGuid(), new string('a', 256), "Temp@12345"))
+            .IsValid.ShouldBeTrue();
+
+    [Fact]
     public void RecoveryResetTenantAdminPasswordCommandValidator_EmptyTempPassword_IsInvalid()
         => new RecoveryResetTenantAdminPasswordCommandValidator()
             .Validate(new RecoveryResetTenantAdminPasswordCommand(Guid.NewGuid(), "quantri", ""))
@@ -114,6 +127,14 @@ public class TenantValidatorsTests
         => new CreateTenantAdminCommandValidator()
             .Validate(new CreateTenantAdminCommand(Guid.NewGuid(), "quantri2", "khong-hop-le", "Trần Thị Bình", "Temp@12345"))
             .IsValid.ShouldBeFalse();
+
+    [Fact]
+    public void CreateTenantAdminCommandValidator_EmailOver256_IsInvalid_OnEmail()
+        => new CreateTenantAdminCommandValidator()
+            .Validate(new CreateTenantAdminCommand(Guid.NewGuid(), "quantri2", "a@" + string.Join('.', Enumerable.Repeat(new string('b', 60), 5)) + ".vn", "Trần Thị Bình", "Temp@12345"))
+            .Errors.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+                e => e.PropertyName.ShouldBe(nameof(CreateTenantAdminCommand.Email)),
+                e => e.ErrorCode.ShouldBe(CommonErrors.MaxLength.Code));
 
     [Fact]
     public void GetTenantsListQueryValidator_Defaults_IsValid()

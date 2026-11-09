@@ -1,16 +1,18 @@
 ---
 kind: luat
 scope: core
-verified: chua-doi-chieu
+verified: 2026-11-05
 ---
 
 # 09. Form và kiểm tra dữ liệu
 
-> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §4.1 và §4.3**; phần còn lại, gồm §4.2 và §7, chưa ai đối chiếu):
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu trọn tệp 2026-11-05). Hàng đã có code ở §10 mang neo ngay trong ô; phần chưa về:
 >
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
-> | `src/FE/src/app/shared/forms/apply-field-errors.ts` — `applyFieldErrors` gộp `errors` sẵn có, `markAsTouched`, trả về danh sách khoá không khớp; `tenControlTuKhoaBE` đổi PascalCase → camelCase một chỗ; `isDevMode` ghi log khi có khoá không khớp | — |
+> | §4.1, §4.3: `src/FE/src/app/shared/forms/apply-field-errors.ts` — `applyFieldErrors` gộp `errors` sẵn có, `markAsTouched`, trả về danh sách khoá không khớp; `tenControlTuKhoaBE` đổi PascalCase → camelCase một chỗ; `isDevMode` ghi log khi có khoá không khớp; mỗi mã con dịch qua `cauMaCon` ở `field-errors-text.ts` cùng thư mục | — |
+> | §4.2: không mã nào trong `src/FE/src/app` tự xoá khoá `server` — nó mất vì Angular tính lại `errors` từ validator mỗi lần giá trị đổi; chưa ca kiểm nào chứng minh hành vi này | Ca kiểm *Xoá lỗi server* ở §8 |
+> | §4.4: `tenControlTuKhoaBE` (`apply-field-errors.ts`) chỉ hạ chữ đầu mỗi đoạn dấu chấm, chưa đổi `[i]` sang dạng dấu chấm; chưa form nào dưới `src/FE/src/app` dùng `FormArray` | Đổi khi form đầu tiên có mảng |
 >
 > Hình dạng `fieldErrors` từ BE: [`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §2.1 · kiểu phía FE: [`../../quy-uoc/fe-api-client.md`](../../quy-uoc/fe-api-client.md) §1. Luật validation phía BE: [`../../quy-uoc/be-cqrs-handler.md`](../../quy-uoc/be-cqrs-handler.md).
 
@@ -97,10 +99,21 @@ export function applyFieldErrors(
     // Khoá BE là tên property của DTO (PascalCase). Bước chuyển sang tên
     // control nằm Ở ĐÂY, không rải ra từng màn.
     const control = form.get(tenControlTuKhoaBE(khoaBE));
-    if (!control) { khongKhop.push(khoaBE); continue; }   // KHÔNG nuốt im lặng — xem §4.3
-    const cau = loi.map((l) => translate.instant(`loi.${l.code}`, l.messageParams ?? {}));
+    // Khoá lạ, hoặc khoá khớp mà danh sách rỗng: KHÔNG nuốt im lặng — xem §4.3.
+    if (!control || loi.length === 0) {
+      khongKhop.push(khoaBE);
+      continue;
+    }
+    // Một hàm dịch một mã con; thiếu khoá thì câu dự phòng chung, không chuỗi khoá thô.
+    const cau = loi.map((l) => cauMaCon(translate, l));
     control.setErrors({ ...(control.errors ?? {}), server: cau });
     control.markAsTouched();
+  }
+  if (khongKhop.length > 0 && isDevMode()) {
+    console.warn(
+      '[applyFieldErrors] Khoá fieldErrors không khớp control nào, hoặc mang danh sách rỗng:',
+      khongKhop,
+    );
   }
   return khongKhop;
 }
@@ -112,7 +125,7 @@ Chi tiết bắt buộc:
 | --- | --- |
 | Giữ **thứ tự** mã như BE trả — không sắp xếp, không lọc trùng | Ô chỉ hiện câu của mã đầu tiên ([`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.5). Đổi thứ tự là đổi lỗi người dùng thấy |
 | Chuyển khoá BE → tên control, **trong hàm này** | Khoá trên dây giữ PascalCase ([`../../quy-uoc/be-api-controller.md`](../../quy-uoc/be-api-controller.md) §2.3), tên control là camelCase. Tra thẳng thì không khớp ô nào và **không có gì báo** |
-| **Dịch từng `code`**, không gắn thẳng giá trị vào control | Giá trị là mảng object `{code, messageParams}`. Bind thẳng cho ra `[object Object]`; ép về chuỗi thì vứt mất mã và lỗi từng ô không dịch được |
+| **Dịch từng `code` qua `cauMaCon`**, không gắn thẳng giá trị vào control | Giá trị là mảng object `{code, messageParams}`. Bind thẳng cho ra `[object Object]`; ép về chuỗi thì vứt mất mã và lỗi từng ô không dịch được. Mã chưa có khoá ra câu dự phòng chung ([`../../quy-uoc/fe-ui-conventions.md`](../../quy-uoc/fe-ui-conventions.md) §6.2) |
 | Gộp vào `errors` sẵn có, không ghi đè | Ghi đè xoá mất lỗi client đang hiển thị trên cùng ô |
 | `markAsTouched()` | Phần lớn cách hiển thị lỗi chỉ hiện khi control đã "chạm tới". Không gọi thì lỗi có mà không hiện |
 | Trả về danh sách khoá không khớp | Đây là điểm phát hiện lệch hợp đồng — xem §4.3 |
@@ -227,15 +240,15 @@ Ba dòng đầu là ba dòng đáng viết nhất — chúng bắt đúng nhữn
 
 ## 10. §Áp dụng — Core này có gì, cố ý thiếu gì
 
-> 📐 Bảng dưới là **đích đến của giai đoạn 2**, không phải hiện trạng. Ý nghĩa ba ký hiệu trạng thái: [`../README.md`](../README.md) §9.
+> Đối chiếu `src/FE` ngày 2026-11-05: hàng `✅ CÓ THẬT` mang neo ngay trong ô; hàng `🚧` có dòng ở bảng đầu tệp; hàng `❌` chưa có trong code. Ý nghĩa các ký hiệu: [`../README.md`](../README.md) §9.
 
 | Hạng mục | Trạng thái | Ghi chú |
 | --- | --- | --- |
-| Typed reactive form, không nhận `null` mặc định | ✅ sẽ có | §2 |
-| Hạ tầng bind `fieldErrors` ở `shared/forms/`, trả về khoá không khớp | ✅ sẽ có | §4.1, §4.3 — một hiện thực, không có bản sao trong page |
-| Xoá lỗi server khi người dùng gõ lại | ✅ sẽ có | §4.2 |
-| Cảnh báo rời trang — cả hai đường | ✅ sẽ có | §7 |
-| Chống bấm Lưu nhiều lần | ✅ sẽ có | §5 |
+| Typed reactive form, không nhận `null` mặc định | ✅ CÓ THẬT (đối chiếu 2026-11-05) — mọi màn và store dựng form inject `NonNullableFormBuilder`, ví dụ `src/FE/src/app/platform/xac-thuc/pages/dang-nhap/dang-nhap.page.ts`; lệnh `grep -rn 'inject(FormBuilder)' src/FE/src/app` rỗng | §2 |
+| Hạ tầng bind `fieldErrors` ở `shared/forms/`, trả về khoá không khớp | ✅ CÓ THẬT (đối chiếu 2026-11-05) — `src/FE/src/app/shared/forms/apply-field-errors.ts`, chuỗi `export function applyFieldErrors(`; page gọi qua `src/FE/src/app/shared/forms/apply-form-failure.ts`, chuỗi `const khongKhop = applyFieldErrors(form, fieldErrors, translate);` | §4.1, §4.3 — một hiện thực, không có bản sao trong page |
+| Xoá lỗi server khi người dùng gõ lại | 🚧 bảng đầu tệp | §4.2 |
+| Cảnh báo rời trang — cả hai đường | ✅ CÓ THẬT (đối chiếu 2026-11-05) — điều hướng trong app: `src/FE/src/app/core/guards/unsaved-changes.guard.ts`, chuỗi `export const unsavedChangesGuard: CanDeactivateFn<unknown>`; đóng tab: `src/FE/src/app/core/unsaved-changes/unsaved-changes.service.ts`, chuỗi `window.addEventListener('beforeunload', nghe);` | §7 |
+| Chống bấm Lưu nhiều lần | ✅ CÓ THẬT (đối chiếu 2026-11-05) — nút gốc tắt khi `loading`: `src/FE/src/app/shared/components/button/button.component.ts`, chuỗi `protected onClick(): void {`; màn truyền cờ đang gửi, ví dụ `src/FE/src/app/platform/ho-so/pages/ho-so/ho-so.page.html`, chuỗi `[loading]="dangLuuThongTin()"` | §5 |
 | Form động từ metadata | ❌ chưa | Điều kiện: thoả **cả hai** ngưỡng ở §6 — [`../be/03-metadata-driven-design.md`](../be/03-metadata-driven-design.md) |
 | Tự lưu nháp | ❌ chưa | Điều kiện: có form dài thật mà mất dữ liệu gây hậu quả |
 | Form nhiều bước | ❌ chưa | Điều kiện: có quy trình nghiệp vụ thật cần chia bước |

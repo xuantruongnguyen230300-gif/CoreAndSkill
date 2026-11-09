@@ -136,7 +136,7 @@ Tệp khoá dịch **sinh ra bằng lệnh**, không chép tay. Người dịch 
 1. Mã có trong catalog mà thiếu bản dịch → cổng báo.
 2. Bản dịch có khoá không tồn tại trong catalog → cổng báo (khoá chết).
 
-Không có bước sinh này, hai danh sách sẽ lệch — không phải nếu, mà là khi nào.
+Không có bước sinh này, hai danh sách sẽ lệch — không phải nếu, mà là khi nào. Bước sinh đang hoãn kèm điều kiện kích hoạt ở §7.
 
 ---
 
@@ -224,7 +224,7 @@ Gộp hai câu thành một bảng duy nhất buộc **mỗi** biểu mẫu ché
 
 ### 6.3 Sắp xếp chuỗi tiếng Việt
 
-Sắp xếp chuỗi theo thứ tự byte cho kết quả sai với tiếng Việt — chữ có dấu bị xếp sau toàn bộ chữ không dấu. Sắp xếp phải theo quy tắc đối chiếu của ngôn ngữ, khai ở tầng DB. Đây là một quyết định về lược đồ, nên phải chốt **trước** khi có dữ liệu thật: xem [`../../database/schema-core.md`](../../database/schema-core.md).
+Sắp xếp chuỗi theo thứ tự byte cho kết quả sai với tiếng Việt — chữ có dấu bị xếp sau toàn bộ chữ không dấu. Sắp xếp phải theo quy tắc đối chiếu của ngôn ngữ, khai ở tầng DB. Đây là một quyết định về lược đồ, nên phải chốt **trước** khi có dữ liệu thật: đã chốt và có trong code, script ở [`../../database/schema-core.md`](../../database/schema-core.md) §3.9 — trạng thái áp lên database ghi ở đó.
 
 ---
 
@@ -238,12 +238,12 @@ Sắp xếp chuỗi theo thứ tự byte cho kết quả sai với tiếng Việ
 | Khuôn mã và tính duy nhất | ✅ sẽ có | R3 |
 | Ánh xạ loại lỗi → HTTP tại một chỗ, không reflection | ✅ sẽ có | R4, R5 |
 | Câu dự phòng cho log và client ngoài | ✅ sẽ có | Không phải nguồn hiển thị chính |
-| Tệp khoá dịch **sinh từ catalog** | ✅ sẽ có | Kèm cổng báo khoá thiếu và khoá chết |
+| **Tệp khoá dịch sinh từ catalog** | ❌ chưa | Kèm cổng báo khoá thiếu và khoá chết. Tới lúc đó tệp dịch FE viết tay, khoá thiếu do luật F16 ở [`../../RULES-FE.md`](../../RULES-FE.md) canh. Kích hoạt: module đầu tiên mang catalog mã lỗi riêng, hoặc một mã BE thiếu khoá dịch lại lên màn sau khi các khoá đang thiếu đã được thêm |
 | Lỗi theo từng ô nhập, mỗi ô là một **danh sách** | ✅ sẽ có | §5.2 |
 | Không nối danh sách mã vào một chỗ giữ | 📐 **luật** | §5.3 |
 | Chuyển mã của thư viện sang mã catalog, lọc tham số theo danh sách cho phép | ✅ sẽ có | §5.4 |
 | Thời điểm lưu UTC; ngày thuần không có múi giờ | ✅ sẽ có | §6.2 |
 | Tiền: kiểu thập phân + mã tiền tệ | ✅ sẽ có | |
-| Quy tắc đối chiếu tiếng Việt ở tầng DB | ✅ sẽ có | Chốt trước khi có dữ liệu thật |
+| Quy tắc đối chiếu tiếng Việt ở tầng DB | ✅ có trong code và script (đối chiếu 2026-10-06) — **mới áp lên container test** | Collation ICU `core.vi_vn` cho cột tên, tìm không dấu qua `unaccent` — [`../../database/schema-core.md`](../../database/schema-core.md) §3.9 (neo, trạng thái), [`../../adr/0119-cot-ten-dung-collation-icu-core-vi-vn-tim-khong-dau-qua-unaccent-is-deleted-co-default-false.md`](../../adr/0119-cot-ten-dung-collation-icu-core-vi-vn-tim-khong-dau-qua-unaccent-is-deleted-co-default-false.md). Đo trên PostgreSQL thật ở máy (`dotnet test` 2026-11-03, Docker `postgres:18`), ca sắp và ca tìm chỉ trên `core.tenant`; CI chưa chạy với bản này |
 | **Đa ngôn ngữ thật (từ hai ngôn ngữ trở lên)** | ❌ chưa ở v1 | Nhưng **mọi ràng buộc ở trên vẫn áp ngay từ đầu**. Chúng gần như miễn phí lúc này và rất đắt khi thêm sau |
 | **Chọn ngôn ngữ theo header của request** | ❌ chưa | BE không ghép câu nên không cần. Ngoại lệ là email — lấy ngôn ngữ từ hồ sơ người nhận, xem [`12-notifications.md`](12-notifications.md) |

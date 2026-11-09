@@ -14,11 +14,13 @@ verified: chua-doi-chieu
 
 ## 1. Ai bắt đầu, ở đâu
 
-Bất kỳ người dùng nào, từ **form đăng nhập**. Form có **ba** ô: mã đơn vị · tên đăng nhập · mật khẩu.
+Bất kỳ người dùng nào, từ **form đăng nhập**. Form mặc định có **hai** ô: tên đăng nhập · mật khẩu.
 
-Ô mã đơn vị nằm **cùng cấp** với hai ô kia — nó điền **trước** khi xác thực. Đây **không** phải màn chọn đơn vị sau khi xác thực; hướng đó đã bị loại và khoá (`K01`).
+Mã đơn vị vẫn đi trong request (bước 2), nhưng người dùng không gõ: FE lấy nó từ cấu hình của bản cài — khoá nhúng lúc build, bằng mã đơn vị nghiệp vụ đặt lúc cài (luồng `V1` bước 6). Mã là điều kiện tra cứu **trước** khi xác thực. Đây **không** phải màn chọn đơn vị sau khi xác thực; hướng đó đã bị loại và khoá (`K01`).
 
-Tài khoản vận hành hệ thống cũng đi đúng form này: nó gõ **mã của đơn vị hệ thống** — mã do người vận hành đặt qua cấu hình lúc cài đặt (luồng `V1` bước 3, [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)). Hệ vẫn nhận ra đơn vị hệ thống bằng cột `is_system`, không bằng mã.
+Tài khoản vận hành hệ thống đi cùng trang này qua liên kết **"Quản trị hệ thống"** dưới form. Liên kết chuyển trang sang chế độ vận hành — ghi trên URL bằng tham số truy vấn — và hiện thêm ô mã đơn vị; người vận hành gõ tay **mã của đơn vị hệ thống**, mã đặt qua cấu hình lúc cài đặt (luồng `V1` bước 3, [`../adr/0023-dich-vu-tao-don-vi-dung-chung.md`](../adr/0023-dich-vu-tao-don-vi-dung-chung.md)). Mã này không nằm trong cấu hình FE. Hệ vẫn nhận ra đơn vị hệ thống bằng cột `is_system`, không bằng mã.
+
+> 📖 Vì sao mã đơn vị lấy từ cấu hình bản cài, và các phương án đã loại: [`../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md`](../adr/0116-ma-don-vi-nghiep-vu-lay-tu-cau-hinh-ban-cai-form-hai-o-van-hanh-qua-lien-ket-rieng.md)
 
 ## 2. Điều kiện trước
 
@@ -33,7 +35,7 @@ Tài khoản vận hành hệ thống cũng đi đúng form này: nó gõ **mã 
 | # | Ai làm | Hệ thống làm gì | Chi tiết ở |
 | --- | --- | --- | --- |
 | 1 | FE | Lấy token chống giả mạo, gắn vào header `X-XSRF-TOKEN` | [`../contracts/auth.md`](../contracts/auth.md) §2 |
-| 2 | FE | `POST /api/v1/core/auth/login` với `(tenantCode, userName, password)` | [`../contracts/auth.md`](../contracts/auth.md) §3 |
+| 2 | FE | `POST /api/v1/core/auth/login` với `(tenantCode, userName, password)` — `tenantCode` lấy từ cấu hình bản cài, hoặc từ ô mã đơn vị ở chế độ vận hành (§1) | [`../contracts/auth.md`](../contracts/auth.md) §3 |
 | 3 | BE | Tra đơn vị theo mã | [`../wiki-core/be/02-identity-auth.md`](../wiki-core/be/02-identity-auth.md) §6.2 |
 | 4 | BE | 🛑 **Nạp `TenantId` vừa tra được vào ngữ cảnh của request này** | cùng trên — **bước dễ bỏ sót nhất**, xem §4 |
 | 5 | BE | Gọi `UserManager`: kiểm mật khẩu **trước**, kiểm khoá tài khoản **sau** — sai mật khẩu thì dừng ở đó, kể cả khi tài khoản đang bị khoá; rồi đọc cờ buộc đổi mật khẩu | [`../contracts/auth.md`](../contracts/auth.md) §3 · [`../wiki-core/be/02-identity-auth.md`](../wiki-core/be/02-identity-auth.md) §4 |
@@ -56,11 +58,13 @@ Token chống giả mạo gắn với **danh tính tại lúc phát**. Token l�
 
 | Ca | Mã lỗi | Người dùng thấy |
 | --- | --- | --- |
-| Thiếu ô bất kỳ | `CORE.VALIDATION.FAILED` | Lỗi ngay tại ô đang thiếu |
-| Sai mã đơn vị · đơn vị đã ngưng · sai tên đăng nhập · sai mật khẩu — **kể cả khi tài khoản đang bị khoá** | `CORE.AUTH.INVALID_CREDENTIALS` | **Cùng một câu cho cả bốn ca** — cố ý. Phân biệt được bốn ca này là cho kẻ tấn công biết tài khoản nào có thật |
+| Thiếu ô bất kỳ trên màn | `CORE.VALIDATION.FAILED` | Lỗi ngay tại ô đang thiếu |
+| **Mã đơn vị trong cấu hình FE rỗng hoặc vượt trần độ dài** ([`../contracts/auth.md`](../contracts/auth.md) §3) — chế độ thường | `CORE.VALIDATION.FAILED` | Lỗi ở mức form với câu báo trang đang cấu hình sai, không gắn vào ô nào — chế độ thường không có ô mã đơn vị. Cách hiện: [`../Design/Screens/01-dang-nhap.md`](../Design/Screens/01-dang-nhap.md), mục *Đăng nhập → Trạng thái*, nhánh *kiểm tra dữ liệu*. Mã sai khuôn mà không vượt trần thì đi hàng *lệch mã* bên dưới. Sửa bằng build lại FE với đúng mã — luồng `V1` bước 6 |
+| Sai mã đơn vị · đơn vị đã ngưng · sai tên đăng nhập · sai mật khẩu — **kể cả khi tài khoản đang bị khoá** | `CORE.AUTH.INVALID_CREDENTIALS` | **Cùng một câu cho cả bốn ca** — cố ý. Phân biệt được bốn ca này là cho kẻ tấn công biết tài khoản nào có thật. Câu đổi theo chế độ thường hay chế độ vận hành, nhưng trong mỗi chế độ vẫn là một câu: [`../Design/Screens/01-dang-nhap.md`](../Design/Screens/01-dang-nhap.md), mục *Đăng nhập → Trạng thái*, nhánh *lỗi* |
 | Mật khẩu **đúng**, tài khoản đang bị khoá | `CORE.AUTH.LOCKED_OUT` | Câu riêng, vì người dùng thật cần biết để đi tìm quản trị. Lý do ở [`../contracts/auth.md`](../contracts/auth.md) §3; hai đường khoá ở luồng `D5` |
 | Thiếu hoặc sai token chống giả mạo | `CORE.AUTH.CSRF_REJECTED` | |
 | Gõ sai quá nhiều lần | `CORE.RATE_LIMIT.EXCEEDED` kèm `Retry-After` | **Khác** `CORE.AUTH.LOCKED_OUT`: mã này là hạn mức theo nhịp gọi và tự hết sau `Retry-After`; `LOCKED_OUT` là tài khoản bị khoá — luồng `D5` |
+| **Mã đơn vị trong cấu hình FE lệch mã đơn vị nghiệp vụ trong database** | `CORE.AUTH.INVALID_CREDENTIALS` | 🛑 **Mọi** người dùng của bản cài nhận câu *sai thông tin đăng nhập* với mật khẩu đúng. Tài khoản vận hành vẫn vào được qua liên kết. Sửa bằng build lại FE với đúng mã — luồng `V1` bước 6 |
 | **Bước 4 bị bỏ** | không có mã lỗi nào | 🛑 Mật khẩu đúng mà báo sai thông tin đăng nhập. Không log lỗi, không exception — người dùng và người trực đều đi tìm bug ở chỗ khác |
 | **Bước 7 bị bỏ** | không có mã lỗi riêng | 🛑 Đăng nhập thành công, rồi **request ghi đầu tiên** bị `CORE.AUTH.CSRF_REJECTED` trong khi người dùng thao tác hoàn toàn bình thường. Triệu chứng không gợi ra nguyên nhân |
 

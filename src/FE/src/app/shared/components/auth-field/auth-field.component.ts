@@ -1,6 +1,17 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  computed,
+  inject,
+  input,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { ControlValueAccessor, NgControl } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
+
+import { datFocusLucMo, roiOLaCham } from '../../forms/focus-luc-mo';
 
 let dem = 0;
 
@@ -66,6 +77,12 @@ export class AuthFieldComponent implements ControlValueAccessor {
 
   /** Trang xác thực gọi để đặt focus ban đầu vào ô nhập đầu tiên còn trống (AuthCard.md §Trạng thái). */
   focus(): void {
+    const o = this.oNhap()?.nativeElement;
+    if (o) datFocusLucMo(o);
+  }
+
+  /** Trả focus vì lý do khác lúc mở màn (sau lỗi máy chủ, ô sai đầu tiên): `focus()` thường, KHÔNG gắn cờ (§6.5). */
+  focusLai(): void {
     this.oNhap()?.nativeElement.focus();
   }
 
@@ -78,8 +95,11 @@ export class AuthFieldComponent implements ControlValueAccessor {
     this.onChange(gt);
   }
 
-  protected chamVao(): void {
-    this.onTouched();
+  /** Rời ô: ô tự đặt focus lúc mở mà chưa sửa thì không làm control `touched` (§6.5). */
+  protected chamVao(event: Event): void {
+    if (roiOLaCham(event.target, this.ngControl?.control ?? null)) {
+      this.onTouched();
+    }
   }
 
   protected toggleHienMatKhau(): void {

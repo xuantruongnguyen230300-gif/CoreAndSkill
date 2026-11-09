@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0028 — FE dựng trên Angular 20.3 / PrimeNG 20 / ngx-translate 18, nâng lên 21 trước khi 20 hết hỗ trợ; toolchain chốt ở F0 theo bảng tương thích chính thức
 
-> **Trạng thái:** Đã chấp nhận (2026-09-14)
+> **Trạng thái:** Đã chấp nhận (2026-09-14) · Bổ sung bởi [ADR-0117](0117-luoi-giao-dien-playwright-do-dom-theo-spec-design-axe-aa-api-gia-anh-chi-tham-khao.md) (2026-10-06) · Tạm hoãn một phần bởi [ADR-0126](0126-hoan-chuyen-vitest-sang-pr-rieng-ngay-sau-pr-nang-angular-21-muon-nhat-truoc-angular-22.md) (2026-11-06)
 
 ## Bối cảnh
 

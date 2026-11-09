@@ -8,6 +8,9 @@ using CoreAndSkill.Core.Application.Outbox;
 using CoreAndSkill.Core.Domain.Common;
 using CoreAndSkill.Core.Domain.Jobs;
 using CoreAndSkill.Core.UnitTests.Support;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Shouldly;
 using Xunit;
@@ -24,13 +27,67 @@ public class JobHandlersTests
     private static OutboxEnvelope RawEnvelope(string eventType, string payload)
         => new(Guid.NewGuid(), Guid.NewGuid(), eventType, payload, Now, null, null, null);
 
+    // Dựng bên nhận qua ActivatorUtilities để test này không phụ thuộc chữ ký hàm dựng: scheduler truyền thẳng, mọi tham số
+    // còn lại (logger) lấy từ container. Hàm dựng chỉ nhận scheduler thì logger bị bỏ qua; nhận thêm logger thì dùng nó.
+    private static JobQueuedOutboxHandler NewQueuedHandler(IBackgroundJobScheduler scheduler, ILogger<JobQueuedOutboxHandler>? logger = null)
+    {
+        var services = new ServiceCollection()
+            .AddSingleton(logger ?? NullLogger<JobQueuedOutboxHandler>.Instance)
+            .BuildServiceProvider();
+
+        return ActivatorUtilities.CreateInstance<JobQueuedOutboxHandler>(services, scheduler);
+    }
+
+    // Ghi lại GIÁ TRỊ từng trường của dòng log có cấu trúc (không so chuỗi thông điệp), bỏ khoá `{OriginalFormat}`.
+    private sealed class FieldRecordingLogger<T> : ILogger<T>
+    {
+        public List<(LogLevel Level, IReadOnlyList<KeyValuePair<string, object?>> Fields)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            var fields = (state as IReadOnlyList<KeyValuePair<string, object?>> ?? [])
+                .Where(pair => pair.Key != "{OriginalFormat}")
+                .ToList();
+            Entries.Add((logLevel, fields));
+        }
+    }
+
     // ---- JobQueuedOutboxHandler ---------------------------------------------------------------
+
+    // B33 (quyết định 2026-10-04, hướng d): mã JobId của core.job và mã hàng đợi do scheduler trả về là HAI mã khác nhau; chỗ
+    // duy nhất giữ cả hai là nơi đưa việc vào hàng đợi, nên nó phải ghi một dòng nối chúng — không thì không truy được
+    // dòng log "Job nền … lỗi" của hàng đợi về việc trong core.job.
+    [Fact]
+    public async Task Queued_LogsTheJobId_AndTheQueueItemId_ReturnedByTheScheduler()
+    {
+        var scheduler = Substitute.For<IBackgroundJobScheduler>();
+        scheduler.EnqueueAsync<JobRunner>(default!, default).ReturnsForAnyArgs("q-7f3a");
+        var logger = new FieldRecordingLogger<JobQueuedOutboxHandler>();
+        var jobId = Guid.NewGuid();
+        var envelope = Envelope(JobQueuedEvent.TypeKey, new JobQueuedEvent(jobId, "x.import", "_tmp/abc"));
+
+        var result = await NewQueuedHandler(scheduler, logger).HandleAsync(envelope, default);
+
+        result.IsSuccess.ShouldBeTrue();
+        var line = logger.Entries.ShouldHaveSingleItem("đúng một dòng nối JobId với QueueItemId");
+        line.Level.ShouldBe(LogLevel.Information);
+        var fields = line.Fields.ToDictionary(pair => pair.Key, pair => pair.Value);
+        fields.ShouldContainKey("JobId");
+        fields["JobId"].ShouldBeOfType<Guid>().ShouldBe(jobId);
+        fields.ShouldContainKey("QueueItemId");
+        fields["QueueItemId"].ShouldBe("q-7f3a");
+    }
 
     [Fact]
     public async Task Queued_EnqueuesTheRunner_ThroughTheSeam_WithJobIdAndInput()
     {
         var scheduler = Substitute.For<IBackgroundJobScheduler>();
-        var handler = new JobQueuedOutboxHandler(scheduler);
+        var handler = NewQueuedHandler(scheduler);
         var jobId = Guid.NewGuid();
         var envelope = Envelope(JobQueuedEvent.TypeKey, new JobQueuedEvent(jobId, "x.import", "_tmp/abc"));
 
@@ -58,7 +115,7 @@ public class JobHandlersTests
     {
         var scheduler = Substitute.For<IBackgroundJobScheduler>();
 
-        var result = await new JobQueuedOutboxHandler(scheduler).HandleAsync(RawEnvelope(JobQueuedEvent.TypeKey, payload), default);
+        var result = await NewQueuedHandler(scheduler).HandleAsync(RawEnvelope(JobQueuedEvent.TypeKey, payload), default);
 
         result.IsFailure.ShouldBeTrue();
         result.Error!.Code.ShouldBe(OutboxHandlingErrors.PayloadInvalid.Code);

@@ -1,44 +1,7 @@
 <app-page-header
   [title]="'nguoiDung.tieuDe' | translate"
   [description]="'nguoiDung.moTa' | translate"
->
-  <app-button
-    *appHasPermission="'core.user.write'"
-    variant="primary"
-    icon="plus"
-    (clicked)="tao.moHop()"
-    >{{ 'nguoiDung.hanhDong.them' | translate }}</app-button
-  >
-</app-page-header>
-
-<app-toolbar
-  variant="full"
-  [searchValue]="list.query().searchText ?? ''"
-  [searchLabel]="'nguoiDung.timKiem.nhan' | translate"
-  [readonlyChips]="readonlyChips()"
-  [chips]="chips()"
-  [clearAllLabel]="'chung.xoaBoLoc' | translate"
-  [loading]="list.state() === 'loading'"
-  (searchChanged)="list.setSearchText($event)"
-  (chipRemoved)="onChipRemoved($event)"
-  (filtersCleared)="onFiltersCleared()"
->
-  <div toolbarFilters class="danh-sach-nguoi-dung__loc">
-    @if (coQuyenXemVaiTro()) {
-      <app-autocomplete
-        [options]="timVaiTroLoc.options()"
-        [value]="giaTriLocVaiTro()"
-        variant="single"
-        [loading]="timVaiTroLoc.loading()"
-        [placeholder]="'nguoiDung.vaiTro.goiYTim' | translate"
-        [errorTemplate]="timVaiTroLoc.error() ? tplLoiTimVaiTro : null"
-        (search)="timVaiTroLoc.timKiem($event)"
-        (valueChange)="onChonVaiTroLoc($event)"
-      />
-    }
-    <app-input type="select" [options]="tuyChonTrangThai" [formControl]="filterTrangThai" />
-  </div>
-</app-toolbar>
+/>
 
 <app-data-table
   [rows]="list.rows()"
@@ -57,10 +20,65 @@
   [emptyTemplate]="tplRong"
   [loadingTemplate]="tplDangTai"
   [errorTemplate]="tplLoi"
+  [rowActionsTemplate]="hanhDongDong.mauHanhDong()"
+  [rowActionsLabel]="'nguoiDung.cot.hanhDong' | translate"
+>
+  <div dataTableTop>
+    <app-toolbar
+      variant="full"
+      placement="attached"
+      [searchValue]="list.query().searchText ?? ''"
+      [searchLabel]="'nguoiDung.timKiem.nhan' | translate"
+      [filterLabel]="'chung.loc.nutLoc' | translate"
+      [filterAriaLabel]="
+        soDieuKienLoc() > 0
+          ? ('chung.loc.nutLocCoDieuKien' | translate: { soLuong: soDieuKienLoc() })
+          : null
+      "
+      [activeFilterCount]="soDieuKienLoc()"
+      [filterPanelOpen]="locMo()"
+      [filterPanelId]="idPanelLoc"
+      [readonlyChips]="readonlyChips()"
+      [chips]="chips()"
+      [clearAllLabel]="'chung.xoaBoLoc' | translate"
+      [loading]="list.state() === 'loading'"
+      (searchChanged)="list.setSearchText($event)"
+      (filterPanelToggled)="locMo.set($event)"
+      (chipRemoved)="onChipRemoved($event)"
+      (filtersCleared)="onFiltersCleared()"
+    >
+      <app-button
+        toolbarActions
+        *appHasPermission="'core.user.write'"
+        variant="primary"
+        icon="plus"
+        (clicked)="tao.moHop()"
+        >{{ 'nguoiDung.hanhDong.them' | translate }}</app-button
+      >
+    </app-toolbar>
+  </div>
+</app-data-table>
+
+<app-filter-panel
+  [open]="locMo()"
+  [title]="'nguoiDung.loc.tieuDe' | translate"
+  [panelId]="idPanelLoc"
+  [fields]="truongLoc()"
+  [value]="giaTriLoc()"
+  [searchStates]="trangThaiTimLoc()"
+  [selectedLabels]="nhanDaChon()"
+  (fieldSearch)="onTimTruongLoc($event)"
+  (applied)="onApDungLoc($event)"
+  (cleared)="onXoaHetLoc()"
+  (closed)="locMo.set(false)"
 />
 
+<app-hanh-dong-dong-nguoi-dung #hanhDongDong (daGhi)="list.reload()" />
+
 <ng-template #colTen let-nd
-  ><a [routerLink]="[nd.id]">{{ nd.userName }}</a></ng-template
+  ><a class="danh-sach-nguoi-dung__lien-ket" [routerLink]="[nd.id]">{{
+    nd.userName
+  }}</a></ng-template
 >
 <ng-template #colHoTen let-nd>{{ nd.fullName }}</ng-template>
 <ng-template #colEmail let-nd>{{ nd.email ?? '—' }}</ng-template>
@@ -80,22 +98,18 @@
     <app-badge variant="success">{{ 'nguoiDung.trangThai.hoatDong' | translate }}</app-badge>
   }
 </ng-template>
-<ng-template #colNgayTao let-nd>{{
-  nd.createdAt ? (nd.createdAt | date: 'short') : '—'
-}}</ng-template>
+<ng-template #colNgayTao let-nd>{{ nd.createdAt ? (nd.createdAt | date) : '—' }}</ng-template>
 
-<ng-template #tplLoiTimVaiTro>
-  <p class="danh-sach-nguoi-dung__loi-tim">{{ timVaiTroLoc.error() }}</p>
-</ng-template>
-
+<!-- Số vạch = số dòng mỗi trang đang chọn (DataTable.md §Trạng thái `loading`, SkeletonLoader.md §Responsive). -->
 <ng-template #tplDangTai>
-  <app-skeleton-loader variant="text" width="full" />
+  <app-skeleton-loader variant="text" width="full" [lines]="list.query().pageSize" />
 </ng-template>
 
 <ng-template #tplLoi>
-  @if (roleIdDangLoc()) {
-    <!-- ListStateStore không giữ mã lỗi (fe-architecture.md §2.8) — roleId ĐÃ GỬI LÊN là dấu hiệu
-         suy luận CORE.USER.ROLE_NOT_FOUND (users.md §3); toast của interceptor đã mang câu cụ thể. -->
+  @if (list.errorCode() === MA_LOI_VAI_TRO_KHONG_TON_TAI) {
+    <!-- ListStateStore giữ mã lỗi của lần tải cuối (fe-architecture.md §2.8 luật 10); màn chọn
+         hành động theo MÃ, không đoán theo tham số đã gửi. Câu cụ thể vẫn chỉ ở toast của
+         interceptor. -->
     <app-empty-state
       variant="error"
       size="compact"

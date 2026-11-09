@@ -7,7 +7,7 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Persistence;
 
-// Luật B8 — docs/RULES.md §10, docs/quy-uoc/be-cqrs-handler.md §4, docs/adr/0025-luu-du-lieu-module-mot-transaction.md:
+// Luật B8 — docs/RULES-BE.md, docs/quy-uoc/be-cqrs-handler.md §4, docs/adr/0025-luu-du-lieu-module-mot-transaction.md:
 // mọi `DbContext` đăng ký trong container phải có mặt trong tập mà `IUnitOfWork` điều phối. Khuôn đăng ký là HAI dòng —
 // `AddDbContext<TContext>()` rồi `AddScoped<DbContext>(sp => sp.GetRequiredService<TContext>())`; quên dòng thứ hai thì
 // dữ liệu của module ghi NGOÀI transaction chung, hoặc không được lưu, và nhánh thành công vẫn xanh. Hỏng im lặng.

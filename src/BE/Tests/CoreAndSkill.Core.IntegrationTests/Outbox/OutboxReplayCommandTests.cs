@@ -11,7 +11,7 @@ namespace CoreAndSkill.Core.IntegrationTests.Outbox;
 
 // `core outbox-replay` — docs/database/script-runbook.md §10. Phần kiểm ĐẦU VÀO của lệnh: sai cú pháp thì không ghi
 // dòng nào và thoát mã 1. Phần đặt `dead` về `pending` và ghi kiểm toán là OutboxReplayService — chỉ được chứng minh ở
-// mức logic domain (OutboxMessageTests) và ở mức SQL bởi OutboxDatabaseTests (RequiresDocker, chưa chạy).
+// mức logic domain (OutboxMessageTests) và ở mức SQL bởi OutboxDatabaseTests (RequiresDocker).
 //
 // Environment.ExitCode và Console.Error là trạng thái TOÀN CỤC của tiến trình — lớp này khoá chúng trong một
 // collection riêng và luôn trả về nguyên trạng, nếu không tiến trình test thoát với mã 1.

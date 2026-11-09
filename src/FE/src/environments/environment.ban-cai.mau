@@ -1,0 +1,15 @@
+// MẪU tệp môi trường của một bản cài (ADR-0116 QC4, luật F54). KHÔNG mang đuôi `.ts` — `ng build`
+// biên dịch mọi `src/**/*.ts`, một mẫu `.ts` để trống sẽ làm hỏng mọi build.
+//
+// Cách dùng: chép tệp này thành `environment.ban-cai.ts` cùng thư mục (tệp đó nằm ngoài git),
+// thay hai giá trị dưới, rồi `npx ng build`. Thiếu tệp thì build production hỏng.
+//   - apiBaseUrl: origin API thật của bản cài, kèm `/api/v1`.
+//   - tenantCode: mã đơn vị nghiệp vụ trong database, tức giá trị `Core:Bootstrap:FirstTenantCode`
+//     đã dùng lúc cài. Để rỗng là lỗi biên dịch. Mã đơn vị HỆ THỐNG không bao giờ ghi vào đây.
+import { khaiBaoMoiTruong } from '../app/core/config/khai-bao-moi-truong';
+
+export const environment = khaiBaoMoiTruong({
+  production: true,
+  apiBaseUrl: 'https://THAY-BANG-ORIGIN-API/api/v1',
+  tenantCode: 'THAY-BANG-MA-DON-VI',
+});

@@ -9,6 +9,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- ADR-0118: chỉ Core.Web tham chiếu; đăng ký và map chỉ khi IsDevelopment(). -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CoreAndSkill.Core.Domain\CoreAndSkill.Core.Domain.csproj" />
     <ProjectReference Include="..\CoreAndSkill.Core.Application\CoreAndSkill.Core.Application.csproj" />
     <ProjectReference Include="..\CoreAndSkill.Core.Infrastructure\CoreAndSkill.Core.Infrastructure.csproj" />

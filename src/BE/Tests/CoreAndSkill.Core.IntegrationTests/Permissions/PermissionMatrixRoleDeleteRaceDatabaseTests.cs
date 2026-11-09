@@ -14,11 +14,6 @@ using Xunit;
 
 namespace CoreAndSkill.Core.IntegrationTests.Permissions;
 
-// CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết, nên các test dưới đây CHƯA
-// TỪNG được thực thi một lần nào: chúng biên dịch được, chỉ vậy thôi. Đừng đọc sự tồn tại của chúng
-// là bằng chứng chúng xanh. CI là nơi chạy chúng lần ĐẦU TIÊN.
-// Gỡ khối chú thích này ngay khi có người chạy thật và thấy kết quả.
-//
 // Nợ E17 áp cho ma trận quyền (docs/DEBT.md), trên PostgreSQL thật. role_permission.role_id là ON DELETE CASCADE; PUT ma trận
 // khoá dòng mọi vai trò của đơn vị (RoleRowLocks.LockAllForMatrixWriteAsync) trước mọi câu đọc, nên lượt xoá vai trò commit
 // trong lúc lượt ghi ma trận chờ khoá thì lượt ghi thấy trạng thái SAU lần xoá và trả đúng mã của docs/contracts/permissions.md
@@ -144,7 +139,7 @@ public sealed class PermissionMatrixRoleDeleteRaceDatabaseTests(PostgresFixture 
     {
         var response = await client.PostAsJsonAsync(RolesUrl, new { name });
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
-        return (await ReadEnvelope(response)).Data.GetGuid();
+        return (await ReadEnvelope(response)).Data.GetProperty("id").GetGuid();
     }
 
     // Đọc THẲNG qua Npgsql, kể cả dòng đã xoá mềm — độc lập với bộ lọc của chính code đang test.

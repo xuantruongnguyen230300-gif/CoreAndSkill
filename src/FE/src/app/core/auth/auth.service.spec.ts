@@ -16,6 +16,7 @@ import { provideCoreI18n } from '../config/core-i18n';
 import { AuthService } from './auth.service';
 import { XsrfTokenStore } from './xsrf-token.store';
 import { MenuStore } from '../menu/menu.store';
+import { ToastService } from '../toast/toast.service';
 import { errorInterceptor } from '../interceptors/error.interceptor';
 import { CORE_ROUTES } from '../config/core-routes';
 import { PhienDto } from './phien.dto';
@@ -60,7 +61,14 @@ describe('AuthService', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         provideCoreI18n({
-          languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+          languages: [
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+          ],
           defaultLanguage: 'vi',
           sources: ['/i18n/'],
         }),
@@ -171,6 +179,39 @@ describe('AuthService', () => {
       expect(service.daDangNhap()).toBeTrue();
       expect(xsrf.token()).toBe('token-moi');
     });
+
+    // F43 — màn đăng nhập tự hiện lỗi ở khu lỗi của mình: request nối tiếp trong cùng luồng cũng tắt toast.
+    it('lời gọi lấy token XSRF trong dangNhap() mang cờ BO_QUA_TOAST_LOI', () => {
+      const lamMoi = spyOn(xsrf, 'lamMoi').and.callThrough();
+      service.dangNhap({ tenantCode: 'SO-GD', userName: 'an.nv', password: '***' }).subscribe();
+      httpMock
+        .expectOne('/core/auth/login')
+        .flush({ success: true, data: PHIEN_DTO, error: null, traceId: 't-login' });
+
+      expect(lamMoi).toHaveBeenCalledOnceWith({ boQuaToastLoi: true });
+      httpMock.expectOne('/core/antiforgery/token').flush({
+        success: true,
+        data: { token: 'token-moi' },
+        error: null,
+        traceId: 't-xsrf',
+      });
+    });
+
+    it('mất mạng ở bước lấy token → lỗi về màn, KHÔNG toast', () => {
+      const toast = spyOn(TestBed.inject(ToastService), 'loi');
+      let loi: unknown = null;
+      service
+        .dangNhap({ tenantCode: 'SO-GD', userName: 'an.nv', password: '***' })
+        .subscribe({ error: (e: unknown) => (loi = e) });
+      httpMock
+        .expectOne('/core/auth/login')
+        .flush({ success: true, data: PHIEN_DTO, error: null, traceId: 't-login' });
+
+      httpMock.expectOne('/core/antiforgery/token').error(new ProgressEvent('error'));
+
+      expect(loi).not.toBeNull();
+      expect(toast).not.toHaveBeenCalled();
+    });
   });
 
   describe('dangXuat()', () => {
@@ -279,6 +320,44 @@ describe('AuthService', () => {
       expect(service.coQuyen('core.user.read')).toBeTrue();
       expect(service.coQuyen('core.user.write')).toBeFalse();
       expect(thuLaiMenuSpy).toHaveBeenCalledWith('u-1');
+    });
+  });
+
+  describe('tab lấy lại focus', () => {
+    function hienTab(): void {
+      spyOnProperty(document, 'visibilityState', 'get').and.returnValue('visible');
+      document.dispatchEvent(new Event('visibilitychange'));
+    }
+
+    it('đã đăng nhập → làm mới quyền + menu; lần hiện lại trong khoảng ngắn không gọi lại', () => {
+      jasmine.clock().install();
+      jasmine.clock().mockDate(new Date(2026, 9, 6, 8, 0, 0));
+      try {
+        xacLapPhienGia(service);
+        const thuLaiMenuSpy = spyOn(menu, 'thuLai');
+        hienTab();
+        httpMock
+          .expectOne('/core/auth/me')
+          .flush({ success: true, data: PHIEN_DTO, error: null, traceId: 't1' });
+        expect(thuLaiMenuSpy).toHaveBeenCalledWith('u-1');
+
+        jasmine.clock().tick(5_000);
+        document.dispatchEvent(new Event('visibilitychange'));
+        httpMock.expectNone('/core/auth/me');
+
+        jasmine.clock().tick(31_000);
+        document.dispatchEvent(new Event('visibilitychange'));
+        httpMock
+          .expectOne('/core/auth/me')
+          .flush({ success: true, data: PHIEN_DTO, error: null, traceId: 't2' });
+      } finally {
+        jasmine.clock().uninstall();
+      }
+    });
+
+    it('chưa đăng nhập → không gọi me', () => {
+      hienTab();
+      httpMock.expectNone('/core/auth/me');
     });
   });
 

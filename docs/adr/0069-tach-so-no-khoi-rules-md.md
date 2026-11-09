@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0069 — Sổ nợ tách khỏi `RULES.md` thành `DEBT.md`; tiêu đề §10 ở lại làm bản chuyển hướng, và file mới vào mục *Tra cứu* chứ không vào *Bộ luật*
 
-> **Trạng thái:** Đã chấp nhận (2026-09-23) · Bổ sung [`0043-lenh-do-cho-phai-lat-doi-sang-nhan-dich-den.md`](0043-lenh-do-cho-phai-lat-doi-sang-nhan-dich-den.md)
+> **Trạng thái:** Đã chấp nhận (2026-09-23) · Bổ sung [`0043-lenh-do-cho-phai-lat-doi-sang-nhan-dich-den.md`](0043-lenh-do-cho-phai-lat-doi-sang-nhan-dich-den.md) · Sửa một phần bởi [ADR-0114](0114-bo-so-no-luat-ve-rules-viec-ton-sang-issues-review-khong-sinh-viec-stop-chan-review-mot-lan-go-nhanh-chua-co-src.md) (2026-10-05)
 
 ## Bối cảnh
 

@@ -62,10 +62,59 @@ describe('AuthFieldComponent — icon dẫn theo biến thể', () => {
     });
   }
 
+  it('variant=password: ô chừa đệm phải cho nút hiện/ẩn, variant khác thì không', () => {
+    fixture.componentRef.setInput('variant', 'password');
+    fixture.detectChanges();
+    const oNhap = (fixture.nativeElement as HTMLElement).querySelector(
+      '.auth-field__input',
+    ) as HTMLInputElement;
+    const nut = (fixture.nativeElement as HTMLElement).querySelector(
+      '.auth-field__nut-hien-an',
+    ) as HTMLElement;
+    const duongNhap = oNhap.getBoundingClientRect();
+    const duongNut = nut.getBoundingClientRect();
+    const demPhai = Number.parseFloat(getComputedStyle(oNhap).paddingRight);
+    expect(demPhai).toBeGreaterThanOrEqual(duongNhap.right - duongNut.left);
+
+    fixture.componentRef.setInput('variant', 'identifier');
+    fixture.detectChanges();
+    expect(oNhap.classList).not.toContain('auth-field__input--co-nut');
+  });
+
+  it('khi control disabled (đang gửi) → nút hiện/ẩn cũng disabled và bấm không đổi kiểu ô', () => {
+    fixture.componentRef.setInput('variant', 'password');
+    fixture.detectChanges();
+    fixture.componentInstance.setDisabledState(true);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const nut = root.querySelector('.auth-field__nut-hien-an') as HTMLButtonElement;
+    const oNhap = root.querySelector('.auth-field__input') as HTMLInputElement;
+    expect(nut.disabled).toBeTrue();
+    nut.click();
+    fixture.detectChanges();
+    expect(oNhap.type).toBe('password');
+  });
+
   it('variant=code không có icon dẫn — không vẽ thẻ <i> nào', () => {
     fixture.componentRef.setInput('variant', 'code');
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).querySelector('.auth-field__icon')).toBeNull();
+  });
+
+  // AuthField.md "Cỡ nút hiện/ẩn": cỡ lấy từ `--size-control-sm`, không số trần trong SCSS.
+  it('nút hiện/ẩn có cỡ đúng token --size-control-sm', () => {
+    fixture.componentRef.setInput('variant', 'password');
+    fixture.detectChanges();
+    const nut = (fixture.nativeElement as HTMLElement).querySelector(
+      '.auth-field__nut-hien-an',
+    ) as HTMLElement;
+    const token = Number.parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--size-control-sm'),
+    );
+    expect(token).toBeGreaterThan(0);
+    const r = nut.getBoundingClientRect();
+    expect(r.width).toBe(token);
+    expect(r.height).toBe(token);
   });
 });

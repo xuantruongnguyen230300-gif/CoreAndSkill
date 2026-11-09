@@ -48,7 +48,7 @@ Không mang dấu hiệu nào ở trên là **quyết định nhỏ**: một dò
 | Quy ước đặt tên, thứ tự tham số, kiểu định dạng | [`../quy-uoc/`](../quy-uoc/) |
 | Chọn một thư viện tương đương với thư viện khác, đổi lại trong một buổi | Không cần ghi |
 | Kể lại một sự cố đã xảy ra | [`../audit/`](../audit/) |
-| Một luật cần được ép bằng cổng | [`../RULES.md`](../RULES.md) — và ADR chỉ giải thích vì sao có luật đó |
+| Một luật cần được ép bằng cổng | Tệp `RULES-*.md` theo phạm vi — mục lục ở [`../RULES.md`](../RULES.md); chưa có cổng thì vẫn ở đó, mang `🕳️`. ADR chỉ giải thích vì sao có luật đó |
 | Kế hoạch, lộ trình | [`../wiki-core/be/trien-khai/00-lo-trinh-tong-the.md`](../wiki-core/be/trien-khai/00-lo-trinh-tong-the.md) · [`../wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md`](../wiki-core/fe/trien-khai/00-lo-trinh-tong-the.md) |
 
 **Phép thử nhanh:** nếu sáu tháng nữa không ai hỏi *"vì sao hồi đó lại làm thế?"* thì đó không phải ADR.
@@ -61,7 +61,7 @@ Không mang dấu hiệu nào ở trên là **quyết định nhỏ**: một dò
 | **Quyết định** | Chọn gì, ở dạng câu khẳng định ngắn | Viết lửng lơ kiểu "nên cân nhắc" — ADR không có "nên" |
 | **Phương án đã cân nhắc và vì sao loại** | Từng phương án: được gì, mất gì, **vì sao loại** | Dựng bù nhìn: mô tả phương án bị loại yếu đi để phương án đã chọn thắng dễ |
 | **Hệ quả** | Cả **tích cực lẫn tiêu cực**. Cái giá phải trả là gì | Chỉ liệt kê lợi ích |
-| **Trạng thái** | `Đã chấp nhận (YYYY-MM-DD)` · `Đã thay thế bởi ADR-NNNN (YYYY-MM-DD)` · `Đã loại bỏ (YYYY-MM-DD)`. Khi một ADR sau chỉ đổi **một phần** hoặc **thêm vào**: `Đã chấp nhận (YYYY-MM-DD) · Sửa một phần bởi ADR-NNNN (YYYY-MM-DD)` · `Đã chấp nhận (YYYY-MM-DD) · Bổ sung bởi ADR-NNNN (YYYY-MM-DD)` — xem §5.1 | Để trống, hoặc không kèm ngày |
+| **Trạng thái** | `Đã chấp nhận (YYYY-MM-DD)` · `Đã thay thế bởi ADR-NNNN (YYYY-MM-DD)` · `Đã loại bỏ (YYYY-MM-DD)`. Khi một ADR sau chỉ đổi **một phần**, **thêm vào** hoặc **hoãn**: `Đã chấp nhận (YYYY-MM-DD) · Sửa một phần bởi ADR-NNNN (YYYY-MM-DD)` · `Đã chấp nhận (YYYY-MM-DD) · Bổ sung bởi ADR-NNNN (YYYY-MM-DD)` · `Đã chấp nhận (YYYY-MM-DD) · Tạm hoãn bởi ADR-NNNN (YYYY-MM-DD)` — xem §5.1 | Để trống, hoặc không kèm ngày |
 
 Ba khoá frontmatter theo [`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §9: `kind: quyet-dinh` · `scope: core` · `verified: chua-doi-chieu`.
 
@@ -80,8 +80,9 @@ NNNN-slug-tieng-viet-khong-dau.md
 
 ```bash
 ls docs/adr/[0-9]*.md | tail -1        # ADR mới nhất → số tiếp theo
-grep -l 'Đã thay thế bởi' docs/adr/*.md # các quyết định đã bị lật
-grep -l 'Sửa một phần bởi\|Bổ sung bởi' docs/adr/*.md # các quyết định còn hiệu lực nhưng đã có ADR sau chạm vào
+grep -l '^> \*\*Trạng thái:\*\*.*Đã thay thế bởi' docs/adr/[0-9]*.md # các quyết định đã bị lật
+grep -l '^> \*\*Trạng thái:\*\*.*\(Sửa một phần bởi\|Bổ sung bởi\)' docs/adr/[0-9]*.md # các quyết định chưa bị thay thế nhưng đã có ADR sau chạm vào
+grep -H '^> \*\*Trạng thái:\*\*' docs/adr/[0-9]*.md | sed 's/^\([^:]*\):.*Hết hoãn/\1:/' | grep 'Tạm hoãn' | cut -d: -f1 # các quyết định chưa bị bác nhưng đang ngừng áp dụng, toàn bộ hoặc một phần — bỏ phần dòng tới đoạn Hết hoãn cuối rồi mới tìm Tạm hoãn
 ```
 
 Slug tốt: `0005-permission-based`. Slug tệ: `0005-phan-quyen` — nó nói chủ đề, không nói quyết định, nên không phân biệt được với một ADR khác cũng về phân quyền.
@@ -94,7 +95,7 @@ Quy trình đúng, ba bước:
 
 1. Viết **ADR mới** với số tiếp theo. Mục "Bối cảnh" của nó nói rõ: quyết định nào đang bị lật, và **cái gì đã đổi** khiến lập luận cũ không còn đúng.
 2. Ở ADR cũ, sửa **duy nhất dòng Trạng thái** thành `Đã thay thế bởi ADR-NNNN (YYYY-MM-DD)`, kèm một dòng link. Không đụng vào phần nội dung.
-3. Cập nhật bảng mục lục ở file này.
+3. Cập nhật bảng mục lục ở [`muc-luc.md`](muc-luc.md).
 
 **Vì sao nghiêm khắc thế:** ADR là bản ghi lịch sử. Sửa nội dung nó là **xoá mất lý do người ta từng nghĩ thế** — và mất luôn khả năng học từ chỗ lập luận cũ hỏng. Một ADR bị lật vẫn còn giá trị: nó cho biết phương án nào đã thử, thất bại ở đâu, và điều kiện nào đã đổi. Sửa đè lên thì lần sau có người lại đề xuất đúng phương án đó, và không còn gì để đối chiếu.
 
@@ -102,18 +103,26 @@ Hệ quả cần chấp nhận: đọc khu này phải đọc theo **trạng th�
 
 ### 5.1 Khi ADR mới không lật trọn ADR cũ
 
-Không phải quyết định mới nào cũng xoá hiệu lực của quyết định cũ. Ba quan hệ, ba dòng trạng thái:
+Không phải quyết định mới nào cũng xoá hiệu lực của quyết định cũ. Bốn quan hệ:
 
 | Quan hệ | Nghĩa | Dòng trạng thái của ADR cũ |
 | --- | --- | --- |
 | **Thay thế** | Không phần nào của ADR cũ còn hiệu lực | `Đã thay thế bởi ADR-NNNN (YYYY-MM-DD)` |
 | **Sửa một phần** | Một phần ADR cũ hết hiệu lực; phần còn lại vẫn đúng | `Đã chấp nhận (ngày cũ) · Sửa một phần bởi ADR-NNNN (YYYY-MM-DD)` |
 | **Bổ sung** | ADR cũ vẫn đúng nguyên vẹn; ADR mới thêm vào nó | `Đã chấp nhận (ngày cũ) · Bổ sung bởi ADR-NNNN (YYYY-MM-DD)` |
+| **Tạm hoãn** | Quyết định chưa bị bác nhưng ngừng áp dụng, cho tới khi một ADR mới hơn lật phần hoãn. Hôm nay không phần nào áp dụng — hoặc, dạng *một phần*, chỉ phần ADR mới nêu tên còn áp dụng | `Đã chấp nhận (ngày cũ) · Tạm hoãn bởi ADR-NNNN (YYYY-MM-DD)` · dạng một phần: `… · Tạm hoãn một phần bởi ADR-NNNN (YYYY-MM-DD)` |
 
-Thủ tục vẫn là ba bước ở trên, với hai điều kiện cho hai quan hệ sau:
+**Ghép quan hệ.** Mỗi quan hệ một đoạn `· … bởi ADR-NNNN (…)`, nối vào cuối dòng theo thứ tự thời gian; không gộp hai quan hệ vào một cụm, để mỗi cụm còn tìm được bằng `grep`. Một ADR mới vừa làm hết hiệu lực một phần, vừa hoãn phần khác thì ghi hai đoạn cùng số, `Sửa một phần` trước:
 
-1. **ADR mới nói rõ phần nào của ADR cũ còn hiệu lực.** Người đọc ADR cũ không có cách nào khác để biết.
-2. **ADR cũ chỉ đổi dòng trạng thái, kèm một dòng link.** Nội dung giữ nguyên — kể cả đoạn đã hết hiệu lực.
+- `… · Sửa một phần bởi ADR-NNNN (…) · Tạm hoãn bởi ADR-NNNN (…)` — hôm nay không phần nào áp dụng.
+- `… · Sửa một phần bởi ADR-NNNN (…) · Tạm hoãn một phần bởi ADR-NNNN (…)` — còn phần áp dụng.
+
+**Hết hoãn.** Khi một ADR mới lật phần hoãn, dòng trạng thái của ADR cũ thêm đoạn `· Hết hoãn bởi ADR-NNNN (YYYY-MM-DD)` vào cuối; các đoạn trước giữ nguyên. ADR mới chỉ lật một phần của phần hoãn thì ghi hai đoạn cùng số, `Hết hoãn` trước: `… · Hết hoãn bởi ADR-NNNN (…) · Tạm hoãn một phần bởi ADR-NNNN (…)` — phần còn hoãn do ADR mới nêu tên. ADR cũ còn đang hoãn khi sau đoạn `Hết hoãn` cuối vẫn có một đoạn `Tạm hoãn`; lệnh ở §4 đọc theo đúng quy tắc đó.
+
+Thủ tục vẫn là ba bước ở trên, với hai điều kiện cho ba quan hệ sau:
+
+1. **ADR mới nói rõ phần nào của ADR cũ còn hiệu lực** — với *Tạm hoãn*, cả phần nào hoãn. Người đọc ADR cũ không có cách nào khác để biết.
+2. **ADR cũ chỉ đổi dòng trạng thái, kèm một dòng link.** Nội dung giữ nguyên — kể cả đoạn đã hết hiệu lực hay đang hoãn.
 
 Ngày trong ngoặc sau `ADR-NNNN` là ngày chấp nhận của **ADR mới**.
 
@@ -164,27 +173,27 @@ tiền nhiệm thì kể bằng văn xuôi, không trích dẫn dạng đường
 
 Ba lỗi hay gặp khi điền khuôn này:
 
-1. **Mục "Phương án đã cân nhắc" chỉ có một phương án.** Nếu thật sự không có phương án nào khác, đây không phải quyết định — nó là ràng buộc, và ràng buộc thì ghi ở [`../RULES.md`](../RULES.md).
+1. **Mục "Phương án đã cân nhắc" chỉ có một phương án.** Nếu thật sự không có phương án nào khác, đây không phải quyết định — nó là ràng buộc, và ràng buộc thì ghi ở tệp `RULES-*.md` theo phạm vi, mang `🕳️` khi chưa có cổng — mục lục ở [`../RULES.md`](../RULES.md).
 2. **Mục "Hệ quả tiêu cực" viết dưới dạng lợi ích trá hình** ("hơi tốn công lúc đầu nhưng về sau rất đáng"). Hệ quả tiêu cực phải là thứ ta thật sự mất và không lấy lại được bằng nỗ lực.
 3. **Chép nội dung của một file `quy-uoc/` vào ADR.** ADR nói *vì sao*, `quy-uoc/` nói *làm thế nào*. Chép sang là tạo bản sao thứ hai — và bản sao thứ hai không bao giờ được sửa cùng lúc với bản gốc.
 
 ## 8. Quan hệ giữa ADR và luật có cổng
 
-Một ADR **không tự nó ép được gì**. Nó chỉ giải thích. Phần ép nằm ở [`../RULES.md`](../RULES.md), cột *"Ép bằng gì"*.
+Một ADR **không tự nó ép được gì**. Nó chỉ giải thích. Phần ép nằm ở các tệp `RULES-*.md`, cột *"Ép bằng gì"* — mục lục ở [`../RULES.md`](../RULES.md).
 
-| Vai | ADR | `RULES.md` |
+| Vai | ADR | `RULES-*.md` |
 | --- | --- | --- |
 | Trả lời | *Vì sao chọn thế này* | *Vi phạm thì cái gì bắt được* |
 | Thay đổi khi | Bối cảnh đổi → viết ADR mới | Có cổng mới, hoặc luật đổi mức |
 | Đọc bởi | Người muốn lật quyết định | Cổng, và người viết code |
 
-Nguyên tắc kèm theo: **mỗi khi một ADR sinh ra một luật, luật đó phải xuất hiện ở `RULES.md` kèm cột "Ép bằng gì".** Nếu chưa có cổng nào ép được, luật đó thuộc danh sách nợ ở §10 của file đó — nhìn thấy được, không lờ đi. Một quyết định kiến trúc không có cổng nào canh sẽ trôi trong vài tháng, và không ai biết lúc nào nó bắt đầu trôi.
+Nguyên tắc kèm theo: **mỗi khi một ADR sinh ra một luật, luật đó phải xuất hiện ở một tệp `RULES-*.md` kèm cột "Ép bằng gì".** Nếu chưa có cổng nào ép được, dòng đó mang `🕳️` và ô *Ép bằng gì* nêu ai canh hôm nay — nhìn thấy được, không lờ đi. Một quyết định kiến trúc không có cổng nào canh sẽ trôi trong vài tháng, và không ai biết lúc nào nó bắt đầu trôi.
 
 ## 9. Liên quan
 
 | Đọc gì | Khi nào |
 | --- | --- |
 | [`../wiki-core/be/08-adr-practice.md`](../wiki-core/be/08-adr-practice.md) | Muốn hiểu thực hành ADR như một chuẩn chung, không riêng repo này |
-| [`../RULES.md`](../RULES.md) | Muốn biết một quyết định ở đây được **ép bằng cổng nào** |
+| [`../RULES.md`](../RULES.md) — mục lục tới các tệp `RULES-*.md` | Muốn biết một quyết định ở đây được **ép bằng cổng nào** |
 | [`../audit/`](../audit/) | Muốn biết một quyết định ở đây được sinh ra từ **sự cố nào** |
 | [`../kien-truc-core-module.md`](../kien-truc-core-module.md) | Muốn thấy hình dạng cuối cùng mà các quyết định này hợp thành |

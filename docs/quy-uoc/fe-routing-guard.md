@@ -6,13 +6,14 @@ verified: chua-doi-chieu
 
 # Route và Guard — điều hướng, phân quyền, trạng thái trên URL
 
-> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §3.5 và §4**; 2026-09-25 thêm `lamMoiQuyen`/`lamMoiPhien`/`donPhien` của §3.3; 2026-09-27 thêm §2.1/§2.2 (tên export `routes`, tầng route con của `nguoi-dung.routes.ts`); phần còn lại chưa ai đối chiếu):
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §3.5 và §4**; 2026-09-25 thêm `lamMoiQuyen`/`lamMoiPhien`/`donPhien` của §3.3; 2026-09-27 thêm §2.1/§2.2 (tên export `routes`, tầng route con của `nguoi-dung.routes.ts`); 2026-10-05 thêm §2.1 URL gốc và URL của cả khu; 2026-10-06 thêm §1 hai trang lỗi; 2026-10-08 thêm §8.1 — khối ngay dưới mục đó; phần còn lại chưa ai đối chiếu):
 >
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
 > | `src/FE/src/app/core/guards/system-operator.guard.ts` — `laVanHanhHeThong()`; `src/FE/src/app/app.routes.ts` — `canActivate: [authGuard, mustChangePasswordGuard]`; `src/FE/src/app/core/auth/auth.service.ts` — `lamMoiPhien(tuyChon: { readonly napLaiMenu?: boolean } = {})`, và `ho-so.page.ts` gọi `lamMoiPhien({ napLaiMenu: true })` | — |
 > | §2.1/§2.2 (đối chiếu 2026-09-27): `src/FE/src/app/app.routes.ts` — `export const routes: Routes = [`; `src/FE/src/app/platform/quan-tri/quan-tri.routes.ts` — `loadChildren: () => import('./nguoi-dung/nguoi-dung.routes')`; `src/FE/src/app/platform/quan-tri/nguoi-dung/nguoi-dung.routes.ts` — `canActivate: [permissionGuard('core.user.read')]` | — |
-> | 🚧 §1 hai trang lỗi (chốt 2026-09-25): `app.routes.ts` có `import('./platform/loi/khong-co-quyen.page')` và `import('./platform/loi/khong-tim-thay.page')` | Đường trong mẫu §1 — page dời vào `loi/pages/` ([`fe-architecture.md`](fe-architecture.md) §2.3) |
+> | §1 hai trang lỗi (đối chiếu 2026-10-06): `src/FE/src/app/app.routes.ts` có `import('./platform/loi/pages/khong-co-quyen/khong-co-quyen.page')` và `import('./platform/loi/pages/khong-tim-thay/khong-tim-thay.page')`, khớp mẫu §2.1 ([`fe-architecture.md`](fe-architecture.md) §2.3) | — |
+> | §2.1 URL gốc và URL của cả khu (đối chiếu 2026-10-05): `src/FE/src/app/app.routes.ts` — `// URL gốc: phần tử ĐẦU, trước nhánh xác thực` ngay trên `{ path: '', pathMatch: 'full', redirectTo: 'trang-chu' }`, phần tử đầu của `routes`; `{ path: 'quan-tri', pathMatch: 'full', redirectTo: '/trang-chu' }` và `{ path: 'he-thong', pathMatch: 'full', redirectTo: '/trang-chu' }` đứng trước `loadChildren` cùng path; `src/FE/src/app/app.routes.spec.ts` — `describe('app.routes — điều hướng URL gốc và URL của cả khu'` xanh ngày đó, chạy lại bằng `npx ng test --include=src/app/app.routes.spec.ts --watch=false` — PASS khi không ca nào đỏ ([`../audit/2026-10-05-nhanh-path-rong-khong-component-nuot-url-goc.md`](../audit/2026-10-05-nhanh-path-rong-khong-component-nuot-url-goc.md)) | — |
 >
 > Phân quyền phía FE **chỉ để dựng giao diện đúng**; bảo vệ thật nằm ở BE ([`be-api-controller.md`](be-api-controller.md)). Guard bị vượt qua chỉ được dẫn tới màn hình rỗng và 403 từ server — không bao giờ tới dữ liệu.
 
@@ -21,18 +22,18 @@ verified: chua-doi-chieu
 ## 1. Bản đồ route
 
 ```
-/                          → chuyển hướng theo trạng thái phiên
+/                          → /trang-chu (§2.1), rồi authGuard của nhánh khung quyết theo phiên
 /dang-nhap                 → không có khung app (noShell)
 /doi-mat-khau-bat-buoc     → noShell, authGuard + mustChangePasswordGuard — chỉ vào được khi BE yêu cầu
 │
 └── (trong khung app platform/shell, sau authGuard)
     /trang-chu
     /ho-so
-    /quan-tri
+    /quan-tri               → /trang-chu khi không kèm màn con (§2.1)
     │   ├── nguoi-dung          permission: 'core.user.read'
     │   ├── vai-tro             permission: 'core.role.read'
     │   └── phan-quyen          permission: 'core.permission.read'
-    /he-thong
+    /he-thong               → /trang-chu khi không kèm màn con (§2.1)
     │   └── don-vi              systemOperatorGuard — cờ isSystemOperator, không phải permission
     /<ten-module>/...           route nghiệp vụ, lazy theo module
     /khong-co-quyen             403 — trong khung app
@@ -40,6 +41,8 @@ verified: chua-doi-chieu
 ```
 
 Khu `/he-thong` (quản trị đơn vị của tài khoản vận hành) gác bằng **cờ**, không bằng ma trận quyền — thứ tự guard ở §4, hợp đồng ở [`../contracts/tenants.md`](../contracts/tenants.md).
+
+**Tham số truy vấn của `/dang-nhap`:** `cheDo=van-hanh` bật chế độ vận hành của màn đăng nhập (ADR-0116 QC2); không tham số là chế độ thường. Liên kết chuyển chế độ chỉ đổi tham số này, `returnUrl` giữ nguyên.
 
 **Trang 403 và 404 nằm TRONG khung app.** Chưa đăng nhập thì `authGuard` của nhánh khung đưa về màn đăng nhập kèm `returnUrl` — kể cả khi URL gõ sai.
 
@@ -66,11 +69,13 @@ Khu `/he-thong` (quản trị đơn vị của tài khoản vận hành) gác b�
 
 ## 2. Lazy-load theo tầng
 
-### 2.1 `app.routes.ts` chỉ khai `loadChildren`
+### 2.1 `app.routes.ts` — feature chỉ vào qua `loadChildren` / `loadComponent`
 
 ```typescript
 // app.routes.ts — tên export thật là `routes`, không phải `APP_ROUTES`
 export const routes: Routes = [
+  // URL gốc: phần tử ĐẦU, trước nhánh xác thực — docs/audit/2026-10-05-nhanh-path-rong-khong-component-nuot-url-goc.md
+  { path: '', pathMatch: 'full', redirectTo: 'trang-chu' },
   // Nhánh xác thực khai TRƯỚC nhánh khung app; xac-thuc.routes.ts KHÔNG khai path '' hay '**'.
   {
     path: '',
@@ -83,12 +88,18 @@ export const routes: Routes = [
     runGuardsAndResolvers: 'always',
     loadComponent: () => import('./platform/shell/shell.component').then((m) => m.ShellComponent),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'trang-chu' },
       {
         path: 'trang-chu',
         loadChildren: () => import('./platform/trang-chu/trang-chu.routes').then((m) => m.TRANG_CHU_ROUTES),
       },
-      // 'quan-tri', 'he-thong': cùng khuôn loadChildren — ly-do §2.1
+      {
+        path: 'ho-so',
+        loadChildren: () => import('./platform/ho-so/ho-so.routes').then((m) => m.HO_SO_ROUTES),
+      },
+      // URL của CẢ khu → /trang-chu; khai TRƯỚC loadChildren cùng path — §2.1, ly-do §2.1
+      { path: 'quan-tri', pathMatch: 'full', redirectTo: '/trang-chu' },
+      { path: 'he-thong', pathMatch: 'full', redirectTo: '/trang-chu' },
+      // loadChildren của 'quan-tri', 'he-thong': cùng khuôn 'trang-chu' — ly-do §2.1
       // Route nghiệp vụ — mỗi module một dòng, không import component trực tiếp.
       // Thêm module mới còn phải thêm tên vào BUSINESS_MODULES: fe-architecture.md §4.4.
 
@@ -99,6 +110,12 @@ export const routes: Routes = [
   },
 ];
 ```
+
+**URL gốc chuyển hướng ở phần tử đầu tiên của `routes`, không ở `children` của nhánh khung.** Nhánh xác thực là route `path: ''` không component: router nhận nó là khớp với URL `/` dù không route con nào khớp, nên mọi thứ đứng sau nó không được xét cho URL đó. Chưa đăng nhập thì `/` thành `/dang-nhap?returnUrl=%2Ftrang-chu` — `authGuard` (§3.2) nhận `/trang-chu`; đã đăng nhập thì `/trang-chu`. Hành vi này canh bằng `src/FE/src/app/app.routes.spec.ts`, chạy trên `routes` thật.
+
+**URL của cả một khu chuyển về `/trang-chu`; chỉ URL trỏ đúng một màn mới mở màn đó** (người dùng chốt 2026-10-05). Khu nào mà `<feature>.routes.ts` không khai route `''` — hôm nay là `quan-tri` và `he-thong` — có một dòng `{ path: '<khu>', pathMatch: 'full', redirectTo: '/trang-chu' }` đứng **trước** `loadChildren` cùng path. Thiếu dòng đó, hoặc đặt nó sau `loadChildren`, thì URL của khu dừng ở route `loadChildren` không component với cây con rỗng: khung dựng, vùng nội dung trắng. `pathMatch: 'full'` giữ cho URL màn con, như `/quan-tri/nguoi-dung`, đi tiếp vào `loadChildren`. Đích tuyệt đối nên query của URL khu bị bỏ. Thêm khu mới vào khung thì xét cùng câu hỏi: `<feature>.routes.ts` có route `''` không, không có thì thêm dòng chuyển hướng và ca vào spec trên.
+
+Các dòng chuyển hướng không thuộc tầm F20: luật đó cấm import tĩnh từ `./platform/` hay `./modules/`, và `redirectTo` không import gì.
 
 **`app.routes.ts` không được import component của feature trực tiếp.**
 
@@ -158,7 +175,7 @@ grep -n '<title>' src/FE/src/index.html
 
 ### 2.3 Route con và `noShell`
 
-Hai màn xác thực không có khung app; chúng nằm ở nhánh route **đầu tiên** của `app.routes.ts` (§2.1), không bọc trong component khung.
+Hai màn xác thực không có khung app; chúng nằm ở nhánh route **đầu tiên** của `app.routes.ts`, ngay sau dòng chuyển hướng URL gốc (§2.1), không bọc trong component khung.
 
 **Không khung app KHÔNG có nghĩa là không guard.** Hai màn ở nhánh này gác khác nhau (§1):
 
@@ -241,12 +258,17 @@ export function permissionGuard(...quyenCanCo: string[]): CanActivateFn {
 
 ```typescript
 // core/auth/auth.service.ts — phần liên quan; khối import ở ly-do §3.3
+/** Tab lấy lại focus trong khoảng này kể từ lần làm mới trước thì không gọi lại `me`. */
+const KHOANG_CHAN_LAM_MOI_MS = 30_000;
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   /** MenuStore KHÔNG inject AuthService — vòng DI (NG0200). */
   private readonly menu = inject(MenuStore);
+  private readonly document = inject(DOCUMENT);
+  private lanLamMoiKhiLayLaiFocus = 0;
   private readonly _nguoiDung = signal<NguoiDungHienTai | null>(null);
   private goiMe: Subscription | null = null;
   private canNapLaiMenu = false;
@@ -259,8 +281,29 @@ export class AuthService {
 
   private readonly tapQuyen = computed(() => new Set(this._nguoiDung()?.quyen ?? []));
 
+  constructor() {
+    // Quyền có thể đổi từ phiên khác mà tab này không biết: tab hiện lại thì làm mới quyền + menu.
+    const khiDoiHienThi = (): void => this.lamMoiKhiTabHienLai();
+    this.document.addEventListener('visibilitychange', khiDoiHienThi);
+    inject(DestroyRef).onDestroy(() =>
+      this.document.removeEventListener('visibilitychange', khiDoiHienThi),
+    );
+  }
+
   coQuyen(ma: string): boolean {
     return this.tapQuyen().has(ma);
+  }
+
+  private lamMoiKhiTabHienLai(): void {
+    if (this.document.visibilityState !== 'visible' || !this.daDangNhap()) {
+      return;
+    }
+    const bayGio = Date.now();
+    if (bayGio - this.lanLamMoiKhiLayLaiFocus < KHOANG_CHAN_LAM_MOI_MS) {
+      return;
+    }
+    this.lanLamMoiKhiLayLaiFocus = bayGio;
+    this.lamMoiQuyen();
   }
 
   /** errorInterceptor gọi khi gặp 403 FORBIDDEN (fe-api-client.md §2.2). */
@@ -325,6 +368,16 @@ export class AuthService {
 
 **`lamMoiQuyen()` và `lamMoiPhien({ napLaiMenu: true })` nạp lại menu trong cùng bước với tập quyền.** Cờ `canNapLaiMenu` sống qua lời gọi bị huỷ.
 
+**Tập quyền làm mới ở ba lúc, không chờ người dùng tải lại trang** (người dùng chốt 2026-10-06, [`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md)):
+
+| Lúc | Gọi gì |
+| --- | --- |
+| Gặp 403 `CORE.AUTH.FORBIDDEN` | `errorInterceptor` gọi `lamMoiQuyen()` ([`fe-api-client.md`](fe-api-client.md) §2.2) |
+| Tab hiện lại — `visibilitychange` sang `visible` — khi đã đăng nhập | `lamMoiQuyen()`. Chặn dồn: lần làm mới trước **do tab hiện lại** cách chưa tới `KHOANG_CHAN_LAM_MOI_MS` (30 giây) thì bỏ qua; 403 hay lần lưu không dời mốc này |
+| Màn ma trận phân quyền lưu thành công | `lamMoiPhien({ napLaiMenu: true })` — người lưu có thể vừa đổi quyền của chính mình |
+
+Không có kênh đẩy: quyền đổi từ phiên khác trong lúc tab đang hiện chỉ tới tab này ở lần tab hiện lại kế tiếp hoặc ở 403 kế tiếp.
+
 **Dùng `Set` chứ không `Array.includes`.**
 
 **Chuyển hướng tới màn 403 chứ không tới trang chủ.**
@@ -345,7 +398,7 @@ Chuỗi truyền vào phải là khoá **có thật** trong danh mục quyền (
 
 **Ẩn nút KHÔNG phải là phân quyền.** Bảo vệ thật ở BE, và guard phía FE cũng chỉ là lớp trải nghiệm.
 
-**Không được dùng directive này để giấu dữ liệu nhạy cảm đã tải về** — trường không được phép xem thì BE không gửi.
+**Không được dùng directive này để giấu dữ liệu nhạy cảm đã tải về** — trường không được phép xem thì BE không gửi. Luật F60 ([`../RULES.md`](../RULES.md) §7).
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §3.4
 
@@ -427,6 +480,7 @@ Một guard **dùng chung ở Core**; màn chỉ khai *"tôi đang có thay đ�
 | Sau khi lưu thành công phải **xoá cờ thay đổi** | Quên bước này thì lưu xong vẫn bị hỏi, và người dùng học được rằng hộp thoại này vô nghĩa |
 | Câu hỏi nói rõ **mất gì**, không hỏi chung chung | *"Rời trang? Thay đổi chưa lưu sẽ mất"* — không phải *"Bạn có chắc không?"* |
 | Áp cho cả điều hướng trong app lẫn đóng tab | Hai đường khác nhau về kỹ thuật; thiếu một đường là thủng một nửa |
+| Lớp bảo vệ — hỏi khi điều hướng, chặn khi đóng tab — còn nguyên cho tới khi màn **thật sự rời**: đăng ký của màn chỉ gỡ khi điều hướng xong (`NavigationEnd`). Chọn "Rời đi" chỉ là lời đồng ý; điều hướng hỏng (`NavigationError`) hay bị huỷ (`NavigationCancel`) thì màn còn đó, lớp bảo vệ còn đó. Router chạy lại `canDeactivate` vì một `canActivate` phía sau chuyển hướng thì **không** hỏi lần hai. Ép bằng spec của guard chạy Router thật: `src/FE/src/app/core/guards/unsaved-changes.guard.spec.ts`, khối `describe('unsavedChangesGuard — đăng ký chỉ gỡ khi điều hướng xong (Router thật)'` | Gỡ ngay lúc bấm "Rời đi" thì một chunk tải hỏng hay một guard phía sau trả `false` để người dùng ở lại màn với dữ liệu dở, mà cả hai đường bảo vệ đã mất — lần rời kế tiếp mất dữ liệu không một lời hỏi |
 
 #### Khoá i18n của hộp hỏi
 
@@ -591,6 +645,35 @@ Ranh giới dứt khoát:
 Cảnh báo sớm trước khi hết phiên: v1 **chưa có** — [`../wiki-core/fe/07-auth-identity.md`](../wiki-core/fe/07-auth-identity.md) §7.5.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §8
+
+### 8.1 Điều hướng hỏng vì không tải được phần mã — định nghĩa gốc
+
+Lần điều hướng của Router hỏng vì không tải được phần mã của tuyến (`loadComponent`, `loadChildren`) thì FE báo theo [`../Design/Screens/02-trang-loi.md`](../Design/Screens/02-trang-loi.md): chưa màn nào hiện trong lần tải trang → mục *Không tải được phần ứng dụng*; đã có màn → mục *Điều hướng hỏng khi đã có màn đang hiện*. Hình thức, câu chữ, khoá dịch ở đó; mã phía client `CORE.CLIENT.RESOURCE_LOAD_FAILED` ở [`be-cqrs-handler.md`](be-cqrs-handler.md) §7.4.
+
+| Luật | Chi tiết |
+| --- | --- |
+| Một chỗ bắt | Một service của `core/` — `core/navigation/loi-tai-phan-ma.ts` — nghe `Router.events` từ lúc khởi động (`app.config.ts` khởi tạo nó). Nó giữ cả hai việc: ghi nhận `NavigationEnd` đầu tiên, và xử lý `NavigationError`. Không bắt ở `withNavigationErrorHandler`, ở `ErrorHandler` toàn cục, hay bằng `.catch` ở từng `loadComponent` / `loadChildren` |
+| Một hàm nhận dạng | `laLoiTaiPhanMa(loi: unknown): boolean`, hàm thuần cùng tệp, đọc `error` của `NavigationError`; mẫu câu báo lỗi của từng trình duyệt nằm trong hàm, mỗi mẫu một ca kiểm. Trả `false` → không làm gì, Router xử lý như hôm nay — lỗi do guard hay resolver ném không phải ca này |
+| Chọn nhánh theo một câu hỏi | *Lần tải trang này đã có `NavigationEnd` nào chưa?* Chưa → khối toàn trang; có → toast. Không đọc `Router.navigated` |
+| Khối toàn trang | Thành phần gốc — `app.html` — vẽ khối thay cho `<router-outlet />`; không tuyến, không `RedirectCommand`. Khối cùng mọi thứ nó dùng nằm trong phần tải lúc khởi động. Thanh địa chỉ trả về URL của lần điều hướng hỏng (`NavigationError.url`, qua `Location.replaceState`), vì Router đã đặt lại nó về URL trước lần điều hướng — ở lần tải đầu là `/` |
+| Toast | `ToastService`, vai `danger`, `sticky`, nút "Tải lại trang"; màn đang hiện giữ nguyên, thanh địa chỉ để Router đặt lại về URL của màn đó |
+| Nút "Tải lại trang", cả hai nhánh | `location.reload()` — tải lại toàn trang tại thanh địa chỉ; không điều hướng trong ứng dụng |
+| Không nuốt sự kiện | Service chỉ nghe; `NavigationError` vẫn tới mọi nơi đang nghe — lớp bảo vệ dữ liệu dở (§4.1) vẫn thấy lần điều hướng hỏng |
+
+Không phủ: lỗi tải gói khởi động — ứng dụng chưa chạy thì không code nào của nó báo được, trang vẫn trắng; `import()` động ngoài Router — không đi qua đường này. Dò chỗ chưa phủ, PASS khi không in gì:
+
+```bash
+grep -rn 'import(' src/FE/src/app --include='*.ts' | grep -v -e '\.spec\.ts:' -e '\.routes\.ts:'
+```
+
+> ✅ **CÓ THẬT** (đối chiếu 2026-10-08; chốt 2026-10-08, dòng cùng ngày ở [`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md)):
+>
+> - Một chỗ bắt, một hàm nhận dạng: `src/FE/src/app/core/navigation/loi-tai-phan-ma.ts` có `export function laLoiTaiPhanMa(loi: unknown): boolean {` và `export class LoiTaiPhanMaService {`; service chọn nhánh bằng cờ `daCoManHien`, đặt khi gặp `e instanceof NavigationEnd`, và gọi `this.location.replaceState(urlDich);` ở nhánh khối toàn trang. `src/FE/src/app/app.config.ts` khởi tạo nó trong `provideAppInitializer`, chuỗi `inject(LoiTaiPhanMaService);`.
+> - Khối toàn trang: `src/FE/src/app/app.html` có `@if (loiTaiPhanMa.khoiToanTrang()) {` — nhánh `@else` mới là `<router-outlet />`; `src/FE/src/app/app.ts` import tĩnh `EmptyStateComponent`, nên khối nằm trong phần tải lúc khởi động.
+> - Toast: `src/FE/src/app/core/toast/toast.service.ts` có `export interface ToastHanhDong {` và `loi(summary: string, traceId: string | null = null, hanhDong: ToastHanhDong | null = null): void {`; nút của cả hai nhánh gọi `taiLaiTrang()`, chuỗi `this.doc.defaultView?.location.reload();`.
+> - Spec chạy Router thật: `src/FE/src/app/core/navigation/loi-tai-phan-ma.spec.ts` có `describe('LoiTaiPhanMaService — Router thật'`, các ca `phần mã hỏng TRƯỚC NavigationEnd đầu → khối toàn trang, thanh địa chỉ giữ URL đích`, `lỗi KHÁC (guard ném) ở lần điều hướng đầu → không khối, không toast`, `không nuốt sự kiện — NavigationError vẫn tới nơi khác đang nghe`; mỗi mẫu câu trình duyệt một ca trong `describe('laLoiTaiPhanMa — mỗi mẫu câu lỗi của trình duyệt một ca'`.
+
+> 📖 Lý do, bẫy, ví dụ mở rộng: [`fe-routing-guard.md`](../wiki-core/fe/ly-do/fe-routing-guard.md) §8.1
 
 ---
 

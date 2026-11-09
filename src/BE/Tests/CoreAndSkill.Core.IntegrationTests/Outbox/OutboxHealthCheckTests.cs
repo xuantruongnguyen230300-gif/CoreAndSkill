@@ -7,7 +7,7 @@ namespace CoreAndSkill.Core.IntegrationTests.Outbox;
 
 // docs/wiki-core/be/12-notifications.md §2.5: dòng `dead` hoặc dòng `pending` quá cũ ⇒ /health/ready trả Degraded.
 // Đây là phần QUYẾT ĐỊNH (thuần, không cần DB). Phần ĐO — câu SQL đếm dead/pending — chỉ được chứng minh bởi
-// OutboxDatabaseTests (RequiresDocker), chưa chạy ở môi trường không có Docker.
+// OutboxDatabaseTests (RequiresDocker, cần Docker daemon).
 public class OutboxHealthCheckTests
 {
     private static readonly TimeSpan Threshold = TimeSpan.FromMinutes(15);

@@ -26,12 +26,13 @@ import {
   BO_QUA_TOAST_LOI,
   CO_TAC_DUNG_PHU,
 } from '../http/api-result.model';
+import { dichLoi } from '../http/dich-loi';
 import { ToastService } from '../toast/toast.service';
 
 /**
- * Bản dịch cố định cho test — CHỈ chứa hai khoá phía client mà interceptor tự tra (mất kết nối, 5xx
- * không envelope — be-cqrs-handler.md §7.4). Mọi mã lỗi khác KHÔNG có khoá, để bài kiểm chứng đúng
- * cơ chế đường lùi `dichLoi()`.
+ * Bản dịch cố định cho test — CHỈ chứa ba khoá phía client mà interceptor/`dichLoi` tự tra (mất kết
+ * nối, 5xx không envelope, phản hồi không hợp lệ — be-cqrs-handler.md §7.4). Mọi mã lỗi khác KHÔNG
+ * có khoá, để bài kiểm chứng đúng cơ chế đường lùi `dichLoi()`.
  */
 class FakeTranslateLoader extends TranslateLoader {
   getTranslation(): Observable<TranslationObject> {
@@ -41,6 +42,7 @@ class FakeTranslateLoader extends TranslateLoader {
           CLIENT: {
             NO_CONNECTION: 'Không kết nối được tới máy chủ.',
             SERVER_UNAVAILABLE: 'Máy chủ tạm thời không phản hồi.',
+            INVALID_RESPONSE: 'Phản hồi không hợp lệ (mã {{maHttp}}).',
           },
         },
       },
@@ -64,7 +66,14 @@ describe('errorInterceptor', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         provideCoreI18n({
-          languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+          languages: [
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+          ],
           defaultLanguage: 'vi',
           sources: ['/i18n/'],
         }),
@@ -147,6 +156,25 @@ describe('errorInterceptor', () => {
     });
 
     httpMock.expectOne('/thu-loi').error(new ProgressEvent('network error'), { status: 0 });
+  });
+
+  // F45: status ngoài 0 và ngoài 5xx, không envelope → CORE.CLIENT.INVALID_RESPONSE, câu kèm status.
+  it('413 (không envelope) → toast câu INVALID_RESPONSE mang đúng mã HTTP, không phải câu mất kết nối', (done) => {
+    const loiSpy = spyOn(toast, 'loi').and.callThrough();
+
+    http.get('/thu-loi').subscribe({
+      error: (err: unknown) => {
+        expect(err).toBeInstanceOf(ApiFailureError);
+        expect((err as ApiFailureError).body).toBeNull();
+        expect((err as ApiFailureError).status).toBe(413);
+        expect(loiSpy).toHaveBeenCalledWith('Phản hồi không hợp lệ (mã 413).', null);
+        done();
+      },
+    });
+
+    httpMock
+      .expectOne('/thu-loi')
+      .flush('<html>Payload Too Large</html>', { status: 413, statusText: 'Payload Too Large' });
   });
 
   it('401 → gọi SessionExpiryHandler.handle() đúng một lần, KHÔNG toast', (done) => {
@@ -878,7 +906,14 @@ describe('errorInterceptor — câu thật trong vi.json cho 5xx không envelope
         provideHttpClientTesting(),
         provideRouter([]),
         provideCoreI18n({
-          languages: [{ code: 'vi', nativeName: 'Tiếng Việt', localeData: localeVi }],
+          languages: [
+            {
+              code: 'vi',
+              nativeName: 'Tiếng Việt',
+              dateTimeFormat: 'HH:mm dd/MM/y',
+              localeData: localeVi,
+            },
+          ],
           defaultLanguage: 'vi',
           sources: ['/i18n/'],
         }),
@@ -917,5 +952,89 @@ describe('errorInterceptor — câu thật trong vi.json cho 5xx không envelope
       null,
     );
     httpMock.verify();
+  });
+
+  // fe-api-client.md §2.2, be-cqrs-handler.md §7.4 (F45): status ngoài 5xx và khác 0, không envelope
+  // → CORE.CLIENT.INVALID_RESPONSE, câu mang đúng mã HTTP để người hỗ trợ biết tầng nào đã trả lời.
+  it('413 (proxy chặn thân quá lớn) → toast đúng câu đã khai cho CORE.CLIENT.INVALID_RESPONSE, kèm mã HTTP', async () => {
+    await firstValueFrom(TestBed.inject(TranslateService).use('vi'));
+    const http = TestBed.inject(HttpClient);
+    const httpMock = TestBed.inject(HttpTestingController);
+    const loiSpy = spyOn(TestBed.inject(ToastService), 'loi');
+
+    http.get('/thu-loi').subscribe({ error: () => undefined });
+    httpMock
+      .expectOne('/thu-loi')
+      .flush('<html>Payload Too Large</html>', { status: 413, statusText: 'Payload Too Large' });
+
+    expect(loiSpy).toHaveBeenCalledOnceWith(
+      'Máy chủ trả về phản hồi không hợp lệ (mã HTTP 413). Vui lòng thử lại; nếu vẫn lỗi, báo quản trị viên kèm mã này.',
+      null,
+    );
+    httpMock.verify();
+  });
+
+  it('404 dạng HTML (đường dẫn không tới được app) → CORE.CLIENT.INVALID_RESPONSE, KHÔNG phải câu mất kết nối', async () => {
+    await firstValueFrom(TestBed.inject(TranslateService).use('vi'));
+    const http = TestBed.inject(HttpClient);
+    const httpMock = TestBed.inject(HttpTestingController);
+    const loiSpy = spyOn(TestBed.inject(ToastService), 'loi');
+
+    http.get('/thu-loi').subscribe({ error: () => undefined });
+    httpMock
+      .expectOne('/thu-loi')
+      .flush('<html>Not Found</html>', { status: 404, statusText: 'Not Found' });
+
+    expect(loiSpy).toHaveBeenCalledOnceWith(
+      'Máy chủ trả về phản hồi không hợp lệ (mã HTTP 404). Vui lòng thử lại; nếu vẫn lỗi, báo quản trị viên kèm mã này.',
+      null,
+    );
+    httpMock.verify();
+  });
+
+  function loiEnvelope(code: string, message: string): ApiFailure {
+    return {
+      success: false,
+      data: null,
+      error: { code, type: 'X', message, messageParams: null, fieldErrors: null },
+      traceId: 'trace-la',
+    };
+  }
+
+  // 08-i18n.md §5.4 bậc 3: mã lạ + message rỗng → câu dự phòng chung, KHÔNG phải chuỗi rỗng.
+  it('500 mã lạ + message rỗng → toast mang câu dự phòng, không rỗng', async () => {
+    await firstValueFrom(TestBed.inject(TranslateService).use('vi'));
+    const http = TestBed.inject(HttpClient);
+    const httpMock = TestBed.inject(HttpTestingController);
+    const loiSpy = spyOn(TestBed.inject(ToastService), 'loi');
+
+    http.get('/thu-loi').subscribe({ error: () => undefined });
+    httpMock
+      .expectOne('/thu-loi')
+      .flush(loiEnvelope('CORE.MA.LA_HOAN_TOAN', ''), { status: 500, statusText: 'Error' });
+
+    const [cau, traceId] = loiSpy.calls.mostRecent().args;
+    expect(cau.trim()).not.toBe('');
+    expect(cau).toContain('Không thực hiện được yêu cầu');
+    expect(traceId).toBe('trace-la');
+    httpMock.verify();
+  });
+
+  it('422 mã lạ + message chỉ khoảng trắng → dichLoi trả câu dự phòng', async () => {
+    const translate = TestBed.inject(TranslateService);
+    await firstValueFrom(translate.use('vi'));
+    const cau = dichLoi(translate, loiEnvelope('CORE.MA.LA_HOAN_TOAN', '   '), 422);
+    expect(cau.trim()).not.toBe('');
+    expect(cau).toContain('Không thực hiện được yêu cầu');
+  });
+
+  // Design/Screens/01-dang-nhap.md ~:149 — câu 429 đúng spec, tham số khớp messageParams của BE.
+  it('429 → câu đúng spec, thế {{RetryAfterSeconds}}', async () => {
+    const translate = TestBed.inject(TranslateService);
+    await firstValueFrom(translate.use('vi'));
+    const body = loiEnvelope('CORE.RATE_LIMIT.EXCEEDED', 'x');
+    expect(dichLoi(translate, body, 429, { RetryAfterSeconds: '12' })).toBe(
+      'Bạn thao tác quá nhanh. Thử lại sau 12 giây.',
+    );
   });
 });

@@ -66,8 +66,8 @@ Bước 2 đặt trước bước 3 có chủ đích: nếu để sau, bộ Arch
 - [ ] Xoá một giá trị cấu hình bắt buộc → app **không khởi động**, thông báo nói rõ thiếu khoá nào.
 - [ ] `/health/live` và `/health/ready` trả khác nhau khi chưa nối được database.
 - [ ] Mỗi detector của ArchTest có một meta-test đi kèm.
-- [ ] Gỡ `ManagePackageVersionsCentrally=true` khỏi `Directory.Packages.props` → test canh thuộc tính đó đỏ; trả lại → xanh. Phần hở của luật A14 ở [`../../../DEBT.md`](../../../DEBT.md).
-- [ ] Endpoint thử ném một exception ngoài dự kiến → 500 mang envelope có `code`, không lộ stack trace; gỡ `UseExceptionHandler()` hoặc lời đăng ký `IExceptionHandler` → test đó đỏ. Phần hở của luật A9 ở [`../../../DEBT.md`](../../../DEBT.md).
+- [ ] Gỡ `ManagePackageVersionsCentrally=true` khỏi `Directory.Packages.props` → test canh thuộc tính đó đỏ; trả lại → xanh. Cổng và phần chưa phủ của luật A14: dòng A14 ở [`../../../RULES-BE.md`](../../../RULES-BE.md).
+- [ ] Endpoint thử ném một exception ngoài dự kiến → 500 mang envelope có `code`, không lộ stack trace; gỡ `UseExceptionHandler()` hoặc lời đăng ký `IExceptionHandler` → test đó đỏ. Cổng và phần chưa phủ của luật A15: dòng A15 ở [`../../../RULES-BE.md`](../../../RULES-BE.md).
 - [ ] Endpoint thử (mang `[AllowAnonymous]`) có tên trong `AnonymousEndpointAllowlist`; ArchTest
   `EveryAllowAnonymous_IsOn_TheAllowlist` (luật S4) đỏ khi gỡ nó khỏi allowlist, xanh khi thêm lại.
 - [ ] `bash .claude/check-docs.sh` xanh.

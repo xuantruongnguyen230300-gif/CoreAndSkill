@@ -13,7 +13,7 @@ $bp-md: 900px;
 $bp-lg: 1200px;
 $bp-xl: 1600px;
 
-/// Mixin duy nhất cho responsive theo hướng mobile-first — component `@use 'spacing' as s;`
+/// Mixin responsive theo hướng mobile-first (mặc định) — component `@use 'spacing' as s;`
 /// rồi `@include s.tu-man-hinh(s.$bp-md) { … }` (fe-ui-conventions.md §7).
 @mixin tu-man-hinh($nguong) {
   @media (min-width: $nguong) {
@@ -21,72 +21,104 @@ $bp-xl: 1600px;
   }
 }
 
-:root {
-  // ==================================================== Khoảng cách — DESIGN.md §4. Bội số 4px.
-  --sp-0: 0;
-  --sp-1: 0.125rem;
-  --sp-2: 0.25rem;
-  --sp-3: 0.375rem;
-  --sp-4: 0.5rem;
-  --sp-5: 0.75rem;
-  --sp-6: 1rem;
-  --sp-7: 1.25rem;
-  --sp-8: 1.5rem;
-  --sp-9: 2rem;
-  --sp-10: 2.5rem;
-  --sp-11: 3rem;
-  --sp-12: 4rem;
+/// Phép trừ biên duy nhất của SCSS: dưới điểm ngắt là `max-width` trừ `0.02px`, không trừ `1px`
+/// (fe-ui-conventions.md §7.1, luật F58). Dùng để gỡ hành vi chỉ có ở màn rộng.
+@mixin duoi-man-hinh($nguong) {
+  @media (max-width: $nguong - 0.02px) {
+    @content;
+  }
+}
 
-  // ==================================================== Kích thước khung — DESIGN.md §6.1
-  --layout-sidebar-w: 240px;
-  --layout-sidebar-w-collapsed: 64px;
-  --layout-topbar-h: 56px;
-  --layout-container-max: 1440px;
-  --layout-page-pad: var(--sp-8);
-  --layout-page-pad-sm: var(--sp-5);
-  --layout-dialog-w-sm: 420px;
-  --layout-dialog-w-md: 640px;
-  --layout-dialog-w-lg: 880px;
-  // Bí danh của thang Dialog — KHÔNG mang giá trị riêng (DESIGN.md §6.1).
-  --layout-auth-w: var(--layout-dialog-w-sm);
-  --layout-auth-w-wide: var(--layout-dialog-w-md);
-  --layout-form-w: var(--layout-dialog-w-md);
-  --layout-drawer-w-sm: var(--layout-dialog-w-sm);
-  --layout-drawer-w-md: var(--layout-dialog-w-md);
-  --layout-drawer-w-lg: var(--layout-dialog-w-lg);
-  --layout-toast-w: var(--layout-dialog-w-sm);
-  // Hai trần dưới đây CỐ Ý KHÔNG là bí danh — trùng số với sidebar/dialog nhưng khác lý do đổi.
-  --layout-tooltip-w-max: 240px;
-  --layout-popover-h-max: 420px;
-  --tree-indent: 20px;
+/// Host của màn danh sách (ListScreen.md §4): một cột dọc lấp đúng chiều cao `main`. `main` phải là
+/// vùng chứa flex dọc có chiều cao xác định; cơ sở `0px` (không `0%`) để chiều cao nội dung của bảng
+/// không góp vào cỡ tối thiểu của màn — cỡ tối thiểu là sàn vùng cuộn (`--data-table-scroll-h-min`).
+@mixin man-danh-sach {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0px;
+  // Bật sàn vùng cuộn của DataTable (DataTable.md §"Khung"): chỉ trang cấp chiều cao mới có sàn.
+  --data-table-scroll-h-floor: var(--data-table-scroll-h-min);
+}
 
-  // ==================================================== Chiều cao control — DESIGN.md §6.2
-  --size-control-sm: 28px;
-  --size-control-md: 34px;
-  --size-control-lg: 42px;
+/// Khai MỘT LẦN toàn bộ custom property của tệp này lên `:root` — CHỈ `styles.scss` gọi.
+/// Khối `:root` KHÔNG để ở cấp module: Sass phát CSS của mọi module `@use` vào từng tệp đích, nên
+/// mỗi style component `@use 'spacing'` sẽ mang một bản sao cả khối (≈1,8 kB) và vượt ngân sách
+/// `anyComponentStyle`. Đặt trong mixin thì `@use` chỉ kéo biến/mixin, không kéo CSS.
+@mixin khai-bien-toan-cuc {
+  :root {
+    // ==================================================== Khoảng cách — DESIGN.md §4. Bội số 4px.
+    --sp-0: 0;
+    --sp-1: 0.125rem;
+    --sp-2: 0.25rem;
+    --sp-3: 0.375rem;
+    --sp-4: 0.5rem;
+    --sp-5: 0.75rem;
+    --sp-6: 1rem;
+    --sp-7: 1.25rem;
+    --sp-8: 1.5rem;
+    --sp-9: 2rem;
+    --sp-10: 2.5rem;
+    --sp-11: 3rem;
+    --sp-12: 4rem;
 
-  // ==================================================== Cỡ icon — DESIGN.md §6.2
-  --icon-sm: 14px;
-  --icon-md: 16px;
-  --icon-lg: 20px;
-  --icon-xl: 24px;
-  // Bí danh mượn ba bậc liền nhau của --sp-* — không phải giá trị riêng.
-  --icon-circle-sm: var(--sp-10);
-  --icon-circle-md: var(--sp-11);
-  --icon-circle-lg: var(--sp-12);
+    // ==================================================== Kích thước khung — DESIGN.md §6.1
+    --layout-sidebar-w: 240px;
+    --layout-sidebar-w-collapsed: 64px;
+    --layout-topbar-h: 56px;
+    --layout-page-pad: var(--sp-8);
+    --layout-page-pad-sm: var(--sp-5);
+    --layout-dialog-w-sm: 420px;
+    --layout-dialog-w-md: 640px;
+    --layout-dialog-w-lg: 880px;
+    // Bí danh của thang Dialog — KHÔNG mang giá trị riêng (DESIGN.md §6.1).
+    --layout-auth-w: var(--layout-dialog-w-sm);
+    --layout-auth-w-wide: var(--layout-dialog-w-md);
+    --layout-form-w: var(--layout-dialog-w-md);
+    --layout-drawer-w-sm: var(--layout-dialog-w-sm);
+    --layout-drawer-w-md: var(--layout-dialog-w-md);
+    --layout-drawer-w-lg: var(--layout-dialog-w-lg);
+    --layout-toast-w: var(--layout-dialog-w-sm);
+    // Hai trần dưới đây CỐ Ý KHÔNG là bí danh — trùng số với sidebar/dialog nhưng khác lý do đổi.
+    --layout-tooltip-w-max: 240px;
+    --layout-popover-h-max: 420px;
+    --tree-indent: 20px;
 
-  // ==================================================== Token tầng 3 theo component — DESIGN.md §6.5
-  --chart-h-sm: 120px;
-  --chart-h-md: 200px;
-  --chart-h-lg: 320px;
-  --file-upload-dropzone-h: 140px;
-  --progress-bar-h-sm: 4px;
-  --progress-bar-h-md: 8px;
-  --progress-bar-h-lg: 14px;
-  --stepper-dot: 24px;
-  --stepper-line-w: 2px;
-  // Bí danh sang Stepper — cùng ngôn ngữ tiến trình, đổi cùng nhau (DESIGN.md §6.5).
-  --timeline-dot: var(--stepper-dot);
-  --timeline-dot-sm: 16px;
-  --timeline-line-w: var(--stepper-line-w);
+    // ==================================================== Chiều cao control — DESIGN.md §6.2
+    --size-control-sm: 28px;
+    --size-control-md: 34px;
+    --size-control-lg: 42px;
+
+    // ==================================================== Cỡ icon — DESIGN.md §6.2
+    --icon-sm: 14px;
+    --icon-md: 16px;
+    --icon-lg: 20px;
+    --icon-xl: 24px;
+    // Bí danh mượn ba bậc liền nhau của --sp-* — không phải giá trị riêng.
+    --icon-circle-sm: var(--sp-10);
+    --icon-circle-md: var(--sp-11);
+    --icon-circle-lg: var(--sp-12);
+
+    // ==================================================== Token tầng 3 theo component — DESIGN.md §6.5
+    // Đệm ô nhập của AuthField / Input — chừa chỗ icon dẫn và nút hiện/ẩn (DESIGN.md §6.5).
+    --auth-field-pad-icon: calc(var(--sp-5) + var(--icon-md) + var(--sp-4));
+    --auth-field-pad-reveal: calc(var(--sp-4) + var(--size-control-sm) + var(--sp-4));
+    --input-pad-reveal: var(--auth-field-pad-reveal);
+    --chart-h-sm: 120px;
+    --chart-h-md: 200px;
+    --chart-h-lg: 320px;
+    // Sàn của vùng cuộn khối danh sách khi lấp chiều cao còn lại của `main` (DESIGN.md §6.5).
+    --data-table-scroll-h-min: 280px;
+    --file-upload-dropzone-h: 140px;
+    --progress-bar-h-sm: 4px;
+    --progress-bar-h-md: 8px;
+    --progress-bar-h-lg: 14px;
+    --stepper-dot: 24px;
+    --stepper-line-w: 2px;
+    // Bí danh sang Stepper — cùng ngôn ngữ tiến trình, đổi cùng nhau (DESIGN.md §6.5).
+    --timeline-dot: var(--stepper-dot);
+    --timeline-dot-sm: 16px;
+    --timeline-line-w: var(--stepper-line-w);
+    // Trần bề rộng ô tìm của Toolbar từ $bp-md trở lên (DESIGN.md §6.5).
+    --toolbar-search-w-max: 360px;
+  }
 }

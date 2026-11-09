@@ -2,26 +2,38 @@
 # Linux, Docker Compose, bí mật qua biến môi trường do Compose cấp từ tệp .env NGOÀI repo (không
 # commit — .gitignore đã loại). Xem .env.example để biết khoá cần đặt.
 #
+# HTTPS kết thúc ở service `caddy` (ADR-0120): hai tên miền con API_DOMAIN và FE_DOMAIN phải trỏ DNS về máy chủ
+# TRƯỚC lần khởi động đầu, nếu không Caddy xin chứng chỉ thất bại liên tục và có thể chạm giới hạn của Let's Encrypt.
+#
 # CHƯA CHẠY THỬ TRONG MÔI TRƯỜNG NÀY — không có Docker daemon lúc viết (ghi trong báo cáo B3).
 #
 # KHÔNG tự áp schema, KHÔNG tự bootstrap — hai việc đó CHẠY TAY theo
 # docs/database/script-runbook.md §3.3 (ADR-0009 "áp schema chạy tay"). File này chỉ dựng runtime:
 # database + API. Sau khi hai container lên, chạy TAY:
-#   1. psql theo §3.2/§3.3 bước 2-3 của script-runbook.md (áp database/scripts/core/*.sql, cấp quyền)
-#   2. docker compose run --rm api dotnet CoreAndSkill.Api.dll core bootstrap
+#   1. bước 1-3 của script-runbook.md §3.3 (tạo tài khoản, áp database/scripts/core/*.sql, cấp quyền) bằng
+#      `docker compose exec db psql -U postgres ...` — thư mục database/scripts gắn chỉ-đọc ở /scripts trong `db`
+#   2. docker compose run --rm api core bootstrap
+#      (image đã có ENTRYPOINT ["dotnet", "CoreAndSkill.Api.dll"] — chỉ truyền tham số lệnh; script-runbook.md §3.3)
 
 services:
   db:
     image: postgres:18
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-coreandskill}
-      POSTGRES_USER: ${POSTGRES_OWNER_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD}
+      # ADR-0120 QC4 (docs/adr/0120-https-ket-thuc-o-caddy-trong-compose-header-chia-doi-postgres-quan-tri-cum-rieng-quet-bundle-fe-khi-dung-ban-cai.md):
+      # tài khoản quản trị CỤM là `postgres`, riêng. coreandskill_owner (NOSUPERUSER) và coreandskill_app do runbook
+      # §3.3 bước 1 tạo. KHÔNG đặt POSTGRES_DB: database rỗng cũng do bước 1 tạo (chủ là coreandskill_owner).
+      # POSTGRES_USER/PASSWORD chỉ có tác dụng khi volume còn rỗng.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
     volumes:
       - coreandskill-db-data:/var/lib/postgresql/data
+      # Script schema gắn CHỈ-ĐỌC để chạy bước 1-3 của runbook bằng `docker compose exec db psql` (ADR-0120 QC4).
+      - ./database/scripts:/scripts:ro
+    networks:
+      - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_OWNER_USER} -d ${POSTGRES_DB:-coreandskill}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,8 +48,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "8080:8080"
+    # KHÔNG publish cổng ra host — chỉ Caddy (mạng edge) chạm được API (ADR-0120 quyết định 1).
+    networks:
+      - edge
+      - internal
     volumes:
       # Kho tệp tải lên / tệp xuất tạm — SAO LƯU CÙNG DB và phục hồi về CÙNG mốc thời gian
       # (docs/wiki-core/be/14-file-storage.md §8): phục hồi lệch mốc sinh ra tệp mồ côi và bản ghi mất tệp.
@@ -53,8 +67,11 @@ services:
       Core__Auth__SessionMinutes: ${CORE_AUTH_SESSION_MINUTES:-30}
       Core__Auth__SessionAbsoluteHours: ${CORE_AUTH_SESSION_ABSOLUTE_HOURS:-12}
       Core__Auth__AllowedOrigins__0: ${CORE_AUTH_ALLOWED_ORIGIN}
-      # Core:File:RootPath — BẮT BUỘC, không có giá trị mặc định (thiếu thì tiến trình không khởi động —
-      # docs/wiki-core/be/14-file-storage.md §2). Trùng đường dẫn thư mục tạo trong Dockerfile và gắn volume bên
+      # Proxy tin cậy (ADR-0120 QC2): đúng dải của mạng `edge` bên dưới — chỉ Caddy và `api` nằm trong đó. Không phải
+      # bí mật nên khai ở đây. Dải đụng mạng máy chủ khách thì đổi CẢ `ipam` của `edge` LẪN khoá này.
+      Core__Network__KnownNetworks__0: 172.28.0.0/24
+      # Core:File:RootPath — BẮT BUỘC khi dùng bản lưu đĩa của Core (bản cài này dùng nó), không có giá trị mặc
+      # định (thiếu thì tiến trình không khởi động — docs/wiki-core/be/14-file-storage.md §2, ADR-0107). Trùng đường dẫn thư mục tạo trong Dockerfile và gắn volume bên
       # dưới; đổi một nơi thì đổi cả ba. Không phải bí mật nên không đi qua .env.
       Core__File__RootPath: /var/lib/coreandskill/files
       # Core:Bootstrap:* — CHỈ cần lúc chạy lệnh `core bootstrap` (không ValidateOnStart —
@@ -71,6 +88,44 @@ services:
       Core__Bootstrap__AdminPassword: ${CORE_BOOTSTRAP_ADMIN_PASSWORD}
       Core__Bootstrap__AdminEmail: ${CORE_BOOTSTRAP_ADMIN_EMAIL}
 
+  # Kết thúc HTTPS, chuyển hướng HTTP sang HTTPS, tự cấp/gia hạn chứng chỉ, chuyển tiếp tới `api` (ADR-0120 QC1).
+  # Cấu hình ở ./Caddyfile. Bản cài trong mạng nội bộ không có tên miền công khai: nạp chứng chỉ của khách bằng
+  # chỉ thị `tls` ở Caddyfile và gắn hai tệp chứng chỉ (NGOÀI repo) vào container.
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+      FE_DOMAIN: ${FE_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Tệp tĩnh FE (Caddyfile, khối {$FE_DOMAIN}): thư mục máy chủ chứa artifact build FE, NGOÀI git. Triển khai chép
+      # đè vào đó, không xoá tệp băm bản trước (docs/wiki-core/fe/17-phuc-vu-va-trien-khai.md §3.3, §8).
+      - ${FE_WWW_DIR:-./fe-www}:/srv/fe:ro
+      # Chứng chỉ và khoá tài khoản ACME — MẤT volume thì xin lại, Let's Encrypt giới hạn số lần cấp mỗi tuần.
+      - coreandskill-caddy-data:/data
+      - coreandskill-caddy-config:/config
+    networks:
+      - edge
+
+networks:
+  # Dải cố định, chỉ Caddy và `api` (ADR-0120 QC2). Khớp Core__Network__KnownNetworks__0 ở service `api`.
+  edge:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+  # `api` và `db`; `db` không nằm trong `edge`.
+  internal:
+
 volumes:
+  coreandskill-caddy-data:
+  coreandskill-caddy-config:
   coreandskill-db-data:
   coreandskill-files:

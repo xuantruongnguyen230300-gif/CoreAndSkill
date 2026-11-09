@@ -8,6 +8,7 @@ using CoreAndSkill.Core.Infrastructure.Outbox;
 using CoreAndSkill.Core.Infrastructure.Persistence;
 using CoreAndSkill.Core.IntegrationTests.Support;
 using CoreAndSkill.Tests.Shared;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -195,6 +196,245 @@ public sealed class OutboxDispatchFailureTests : IDisposable
         _script.Calls.ShouldBe(1, "nhịp không được phát lại dòng đó ngay trong nhịp");
     }
 
+    // ---- 3. Phân loại lỗi dùng CHUNG cho bên nhận và pha lưu/commit (B30, quyết định 2026-10-04) ----------------------------
+    //
+    // Một phân loại: PostgresException.IsTransient của Npgsql, cộng 57014 (statement_timeout) coi là tạm thời. Tạm thời thì lùi
+    // dần tới trần số lần rồi mới `dead`; không tạm thời (vd. 23514) thì `dead` ngay.
+
+    [Fact]
+    public async Task AHandlerThrowingANonTransientPostgresError_23514_EndsDeadAtOnce_AndTheRowQueuedBehindIsStillDone()
+    {
+        var poison = Pending(ScriptedHandler.Pg23514);
+        var valid = Pending(ScriptedHandler.Ok);
+        var (loop, _) = Loop();
+
+        await Within(loop.RunOnceAsync(CancellationToken.None));
+
+        var dead = _host.Table.Get(poison);
+        dead.Status.ShouldBe(OutboxStatus.Dead, "23514 (vi phạm CHECK) — thử lại y như cũ sẽ bị từ chối y như cũ");
+        dead.AttemptCount.ShouldBe(1);
+        dead.NextAttemptAt.ShouldBeNull();
+        dead.LastError.ShouldNotBeNull().ShouldContain(PostgresErrorCodes.CheckViolation, Case.Sensitive);
+        _host.Table.Get(valid).Status.ShouldBe(OutboxStatus.Done);
+        _script.Calls.ShouldBe(2, "dòng chết ngay không được phát lại trong nhịp");
+    }
+
+    [Fact]
+    public async Task AHandlerThrowingAStatementTimeout_57014_StaysPending_WithABackoff()
+    {
+        var id = Pending(ScriptedHandler.Pg57014);
+        var before = _host.Clock.GetUtcNow();
+        var (loop, _) = Loop();
+
+        await Within(loop.RunOnceAsync(CancellationToken.None));
+
+        var row = _host.Table.Get(id);
+        row.Status.ShouldBe(OutboxStatus.Pending, "57014 là hết thời hạn chờ của câu lệnh — tạm thời theo quyết định 2026-10-04");
+        row.AttemptCount.ShouldBe(1);
+        row.NextAttemptAt.ShouldNotBeNull().ShouldBeGreaterThan(before, "lùi dần, không thử lại ngay");
+        _script.Calls.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task AHandlerThrowingATransientNpgsqlError_40001_StaysPending_WithABackoff()
+    {
+        var id = Pending(ScriptedHandler.Pg40001);
+        var before = _host.Clock.GetUtcNow();
+        var (loop, _) = Loop();
+
+        await Within(loop.RunOnceAsync(CancellationToken.None));
+
+        var row = _host.Table.Get(id);
+        row.Status.ShouldBe(OutboxStatus.Pending);
+        row.AttemptCount.ShouldBe(1);
+        row.NextAttemptAt.ShouldNotBeNull().ShouldBeGreaterThan(before);
+    }
+
+    // Lỗi tạm thời của bên nhận lặp mãi thì dòng chết đúng sau MaxAttempts lần, không sớm hơn.
+    [Fact]
+    public async Task AHandlerThrowing57014EveryTime_EndsDeadOnlyAfterMaxAttempts()
+    {
+        var id = Pending(ScriptedHandler.Pg57014);
+        var (loop, _) = Loop();
+
+        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+        {
+            _host.Table.Get(id).Status.ShouldBe(OutboxStatus.Pending, $"trước lần thử thứ {attempt}");
+            _host.Clock.Advance(TimeSpan.FromHours(1));
+            await Within(loop.RunOnceAsync(CancellationToken.None));
+        }
+
+        var last = _host.Table.Get(id);
+        last.Status.ShouldBe(OutboxStatus.Dead);
+        last.AttemptCount.ShouldBe(MaxAttempts);
+    }
+
+    // Pha lưu/commit cùng phân loại: 57014 ở commit cũng là tạm thời. Hôm nay StoreFailure xếp nó `dead` ngay vì Npgsql không
+    // coi 57014 là tạm thời.
+    [Fact]
+    public async Task AStatementTimeout_57014_AtCommit_IsTransient_StaysPending_WithOneAttempt()
+    {
+        var failing = Pending(ScriptedHandler.Ok);
+        _host.Table.FailCommitsWriting(
+            failing,
+            when: row => row.Status == OutboxStatus.Done,
+            failure: () => ScriptedHandler.PostgresError(PostgresErrorCodes.QueryCanceled));
+        var (loop, _) = Loop();
+
+        await Within(loop.RunOnceAsync(CancellationToken.None));
+
+        var row = _host.Table.Get(failing);
+        row.Status.ShouldBe(OutboxStatus.Pending);
+        row.AttemptCount.ShouldBe(1);
+        row.NextAttemptAt.ShouldNotBeNull();
+    }
+
+    // Chiều ngược lại: lỗi không tạm thời ở commit vẫn `dead` ngay (đã đúng hôm nay — ca giữ cho hai nhánh không lệch nhau
+    // khi một trong hai được viết lại).
+    [Fact]
+    public async Task ACheckViolation_23514_AtCommit_EndsDeadAtOnce()
+    {
+        var failing = Pending(ScriptedHandler.Ok);
+        _host.Table.FailCommitsWriting(
+            failing,
+            when: row => row.Status == OutboxStatus.Done,
+            failure: () => ScriptedHandler.PostgresError(PostgresErrorCodes.CheckViolation));
+        var (loop, _) = Loop();
+
+        await Within(loop.RunOnceAsync(CancellationToken.None));
+
+        var row = _host.Table.Get(failing);
+        row.Status.ShouldBe(OutboxStatus.Dead);
+        row.AttemptCount.ShouldBe(1);
+    }
+
+    // Ghim lý do của ngoại lệ 57014: Npgsql KHÔNG coi nó là tạm thời — nên phân loại chung phải cộng thêm nó. Nâng Npgsql mà
+    // dòng này đổi thì ngoại lệ không còn cần thiết: ca này đỏ để người nâng bỏ phần cộng thêm.
+    [Fact]
+    public void Pin_NpgsqlDoesNotTreat57014AsTransient_WhichIsWhyTheOutboxClassificationAddsIt()
+    {
+        ScriptedHandler.PostgresError(PostgresErrorCodes.QueryCanceled).IsTransient.ShouldBeFalse();
+        ScriptedHandler.PostgresError(PostgresErrorCodes.CheckViolation).IsTransient.ShouldBeFalse("đối chứng cho ca 23514");
+        ScriptedHandler.PostgresError(PostgresErrorCodes.SerializationFailure).IsTransient.ShouldBeTrue("đối chứng cho ca 40001");
+    }
+
+    // ---- 3b. Ngoại lệ bọc: phân loại theo PostgresException TRONG CHUỖI LỖI, không theo kiểu ngoài cùng ---------------------
+    //
+    // Hình dạng EF Core để lại là DbUpdateException bọc PostgresException. Phân loại phải đi xuống InnerException tìm nó.
+
+    [Fact]
+    public async Task AHandlerThrowingDbUpdateExceptionWrapping23514_EndsDeadAtOnce_AndLastErrorCarriesTheServerAnswer()
+    {
+        var poison = Pending(ScriptedHandler.WrappedCheck);
+        var valid = Pending(ScriptedHandler.Ok);
+        var (loop, _) = Loop();
+
+        await Within(loop.RunOnceAsync(CancellationToken.None));
+
+        var dead = _host.Table.Get(poison);
+        dead.Status.ShouldBe(OutboxStatus.Dead, "PostgresException 23514 trong DbUpdateException — thử lại y như cũ sẽ bị từ chối y như cũ");
+        dead.AttemptCount.ShouldBe(1);
+        dead.NextAttemptAt.ShouldBeNull();
+        dead.LastError.ShouldNotBeNull().ShouldContain(PostgresErrorCodes.CheckViolation, Case.Sensitive);
+        _host.Table.Get(valid).Status.ShouldBe(OutboxStatus.Done);
+    }
+
+    [Fact]
+    public async Task AHandlerThrowingDbUpdateExceptionWrapping57014_StaysPending_WithABackoff()
+    {
+        var id = Pending(ScriptedHandler.WrappedQueryCancel);
+        var before = _host.Clock.GetUtcNow();
+        var (loop, _) = Loop();
+
+        await Within(loop.RunOnceAsync(CancellationToken.None));
+
+        var row = _host.Table.Get(id);
+        row.Status.ShouldBe(OutboxStatus.Pending, "57014 trong DbUpdateException vẫn là hết thời hạn chờ — tạm thời");
+        row.AttemptCount.ShouldBe(1);
+        row.NextAttemptAt.ShouldNotBeNull().ShouldBeGreaterThan(before);
+    }
+
+    // AggregateException mà PostgresException là ngoại lệ ĐẦU TIÊN (đúng InnerException): nằm trong chuỗi lỗi nên được nhận ra.
+    [Fact]
+    public async Task AHandlerThrowingAnAggregateExceptionWhoseInnerIsANonTransientPostgresError_EndsDeadAtOnce()
+    {
+        var id = Pending(ScriptedHandler.AggregateSingle);
+        var (loop, _) = Loop();
+
+        await Within(loop.RunOnceAsync(CancellationToken.None));
+
+        var row = _host.Table.Get(id);
+        row.Status.ShouldBe(OutboxStatus.Dead);
+        row.AttemptCount.ShouldBe(1);
+    }
+
+    // GHI KẾT QUẢ THỰC TẾ: AggregateException(IOException, PostgresException 23514). Phân loại đi theo InnerException (chỉ ngoại lệ
+    // ĐẦU của AggregateException), KHÔNG đi InnerExceptions — nên PostgresException ở vị trí thứ hai không được thấy và dòng bị
+    // coi là TẠM THỜI (lùi dần tới MaxAttempts rồi mới `dead`). Khớp đúng câu chữ quyết định "phân loại theo PostgresException
+    // trong CHUỖI LỖI" (chuỗi = InnerException), nhưng một AggregateException nhiều nhánh có thể giấu một lần từ chối vĩnh viễn
+    // sau một nhánh tạm thời. Ca này GHIM hành vi hôm nay; nếu người quyết định muốn đi cả InnerExceptions, đổi kỳ vọng ở đây.
+    [Fact]
+    public async Task AHandlerThrowingAnAggregateExceptionWithThePostgresErrorOnlyInTheSecondBranch_IsTreatedAsTransient_Pinned()
+    {
+        var id = Pending(ScriptedHandler.AggregateMixed);
+        var (loop, _) = Loop();
+
+        await Within(loop.RunOnceAsync(CancellationToken.None));
+
+        var row = _host.Table.Get(id);
+        row.Status.ShouldBe(OutboxStatus.Pending);
+        row.AttemptCount.ShouldBe(1);
+    }
+
+    // ---- 4. Dòng bị phiên khác giữ khoá không được đếm là đã xử lý (B31) -----------------------------------------------
+    //
+    // `FOR UPDATE SKIP LOCKED` không lấy được khoá thì dòng đó KHÔNG được tính vào kết quả của DispatchBatchAsync (0 nghĩa là
+    // không còn gì để xử lý lúc này), nếu không vòng `while (… > 0)` của nhịp quay liên tục tới khi phiên kia nhả khoá.
+    // Bản PostgreSQL thật của kịch bản: OutboxDatabaseTests (RequiresDocker).
+
+    [Fact]
+    public async Task WhenAnotherSessionHoldsTheOnlyDueRow_DispatchBatchReturnsZero_AndDoesNotCallTheHandler()
+    {
+        var id = Pending(ScriptedHandler.Ok);
+        _host.Table.LockedByOthers.Add(id);
+
+        var processed = await Dispatcher().DispatchBatchAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
+
+        processed.ShouldBe(0, "dòng bị bỏ qua vì khoá không phải dòng đã xử lý");
+        _script.Calls.ShouldBe(0);
+        _host.Table.Get(id).Status.ShouldBe(OutboxStatus.Pending);
+    }
+
+    [Fact]
+    public async Task WithOneLockedRowAndOneFreeRow_DispatchBatchCountsOnlyTheRowItProcessed()
+    {
+        var locked = Pending(ScriptedHandler.Ok);
+        var free = Pending(ScriptedHandler.Ok);
+        _host.Table.LockedByOthers.Add(locked);
+
+        var processed = await Dispatcher().DispatchBatchAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
+
+        processed.ShouldBe(1);
+        _host.Table.Get(free).Status.ShouldBe(OutboxStatus.Done);
+        _host.Table.Get(locked).Status.ShouldBe(OutboxStatus.Pending);
+    }
+
+    // Giới hạn thời gian để ĐỎ thay vì treo: nhịp quay vòng chạy tới khi token này huỷ (rồi ném OperationCanceledException).
+    [Fact]
+    public async Task ATick_WhileAnotherSessionStillHoldsTheOnlyDueRow_EndsWithoutRevisitingTheRow()
+    {
+        var id = Pending(ScriptedHandler.Ok);
+        _host.Table.LockedByOthers.Add(id);
+        var (loop, _) = Loop();
+        using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+        var failure = await Record.ExceptionAsync(() => loop.RunOnceAsync(limit.Token));
+
+        failure.ShouldBeNull("nhịp phải kết thúc trong lúc khoá còn giữ, không quay vòng tới khi hết giờ");
+        limit.IsCancellationRequested.ShouldBeFalse("nhịp chỉ kết thúc vì hết giờ — nó đang quay vòng");
+        _host.Table.LockAttempts.ShouldBe(1, "một nhịp thử khoá dòng bị giữ đúng một lần");
+    }
+
     internal sealed class CollectingLogger<T> : ILogger<T>
     {
         public List<(LogLevel Level, string Message)> Entries { get; } = [];
@@ -215,6 +455,16 @@ public sealed class OutboxDispatchFailureTests : IDisposable
         public const string TimeOut = "timeout";
         public const string Stop = "stop";
         public const string UnknownRecipient = "unknown-recipient";
+        public const string Pg23514 = "pg-23514";
+        public const string Pg57014 = "pg-57014";
+        public const string Pg40001 = "pg-40001";
+        public const string WrappedCheck = "dbupdate-check";
+        public const string WrappedQueryCancel = "dbupdate-cancel";
+        public const string AggregateSingle = "aggregate-single";
+        public const string AggregateMixed = "aggregate-mixed";
+
+        public static PostgresException PostgresError(string sqlState)
+            => new($"lỗi giả {sqlState}", "ERROR", "ERROR", sqlState);
 
         public int Calls { get; private set; }
 
@@ -233,6 +483,29 @@ public sealed class OutboxDispatchFailureTests : IDisposable
                 Stopping!.Cancel();
                 throw new OperationCanceledException(Stopping.Token);
             }
+
+            if (envelope.PayloadJson.Contains(Pg23514, StringComparison.Ordinal))
+                throw PostgresError(PostgresErrorCodes.CheckViolation);
+
+            if (envelope.PayloadJson.Contains(Pg57014, StringComparison.Ordinal))
+                throw PostgresError(PostgresErrorCodes.QueryCanceled);
+
+            if (envelope.PayloadJson.Contains(Pg40001, StringComparison.Ordinal))
+                throw PostgresError(PostgresErrorCodes.SerializationFailure);
+
+            // Hình dạng thật EF Core để lại: PostgresException nằm TRONG DbUpdateException (InnerException).
+            if (envelope.PayloadJson.Contains(WrappedCheck, StringComparison.Ordinal))
+                throw new DbUpdateException("lớp bọc EF", PostgresError(PostgresErrorCodes.CheckViolation));
+
+            if (envelope.PayloadJson.Contains(WrappedQueryCancel, StringComparison.Ordinal))
+                throw new DbUpdateException("lớp bọc EF", PostgresError(PostgresErrorCodes.QueryCanceled));
+
+            // `new AggregateException(x)` đặt InnerException = x (ngoại lệ ĐẦU TIÊN), các ngoại lệ còn lại chỉ ở InnerExceptions.
+            if (envelope.PayloadJson.Contains(AggregateSingle, StringComparison.Ordinal))
+                throw new AggregateException(PostgresError(PostgresErrorCodes.CheckViolation));
+
+            if (envelope.PayloadJson.Contains(AggregateMixed, StringComparison.Ordinal))
+                throw new AggregateException(new IOException("mất gói"), PostgresError(PostgresErrorCodes.CheckViolation));
 
             if (envelope.PayloadJson.Contains(UnknownRecipient, StringComparison.Ordinal))
             {

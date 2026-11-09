@@ -16,7 +16,7 @@ namespace CoreAndSkill.Core.IntegrationTests.Persistence;
 //
 // Không cần Docker: SqlRecorder chặn lệnh đọc đầu tiên và ghi lại câu SQL kèm giá trị tham số. ĐIỂM MÙ: đây chỉ chứng minh
 // mẫu truyền xuống đã được thoát và câu SQL khai ESCAPE — hành vi khớp trên PostgreSQL thật là việc của
-// PersistenceResilienceDatabaseTests (RequiresDocker, chưa chạy).
+// PersistenceResilienceDatabaseTests (RequiresDocker).
 public sealed class SearchTextLikeEscapingTests
 {
     public static TheoryData<string> Searches => new() { "users", "roles", "tenants" };

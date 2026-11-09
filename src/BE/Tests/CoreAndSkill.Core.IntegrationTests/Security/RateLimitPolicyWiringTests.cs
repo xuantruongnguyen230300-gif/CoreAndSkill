@@ -8,6 +8,7 @@ using System.Threading.RateLimiting;
 using CoreAndSkill.Core.IntegrationTests.Support;
 using CoreAndSkill.Core.Web.Http;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +54,29 @@ public sealed class RateLimitPolicyWiringTests
         envelope.Error.MessageParams.ShouldNotBeNull()["RetryAfterSeconds"].ShouldBe(retryAfter);
     }
 
+    // Giá trị cấu hình được tôn trọng: Core:RateLimit:LoginPermitLimit=2 thì lần thứ ba bị chặn (không phải lần thứ sáu
+    // của mặc định 5) — chống ngưỡng bị đóng cứng trong code mà khoá cấu hình chỉ nằm trên giấy.
+    [Fact]
+    public async Task Login_ConfiguredPermitLimit_IsHonoured_ThirdAttemptReturns429()
+    {
+        await using var host = new InMemoryCoreHost(new Dictionary<string, string?> { ["Core:RateLimit:LoginPermitLimit"] = "2" });
+        using var client = AnonymousClientWithCsrf(host);
+
+        for (var attempt = 1; attempt <= 2; attempt++)
+        {
+            var allowed = await PostEmptyLoginAsync(client);
+            allowed.StatusCode.ShouldBe(HttpStatusCode.BadRequest, $"lần thử {attempt} phải tới được validator");
+        }
+
+        var rejected = await PostEmptyLoginAsync(client);
+        var envelope = JsonSerializer.Deserialize<ApiEnvelope<JsonElement>>(await rejected.Content.ReadAsStringAsync(), Json)!;
+
+        rejected.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        var retryAfter = rejected.Headers.GetValues("Retry-After").ShouldHaveSingleItem();
+        envelope.Error!.Code.ShouldBe("CORE.RATE_LIMIT.EXCEEDED");
+        envelope.Error.MessageParams.ShouldNotBeNull()["RetryAfterSeconds"].ShouldBe(retryAfter);
+    }
+
     // Chiều ngược: MỌI policy khai trong AddRateLimiter đều có ít nhất một endpoint dùng nó. Chiều xuôi
     // (endpoint trỏ tới policy không khai) framework tự ném lúc chạy — chiều này thì không ai báo.
     [Fact]
@@ -87,6 +111,115 @@ public sealed class RateLimitPolicyWiringTests
         options.AddPolicy<string, ProbePolicy>("theo-kieu");
 
         RateLimiterPolicyNames.Read(options).ShouldBe(["theo-ham", "theo-kieu"], ignoreOrder: true);
+    }
+
+    // ---- Nợ B26 — docs/DEBT.md, docs/quy-uoc/be-architecture.md §3.1 ràng buộc 5, be-api-controller.md
+    // §6.1 hàng 2, docs/contracts/auth.md §10. UseRateLimiter phải đứng NGAY SAU UseCors, TRƯỚC
+    // UseAuthentication — nên giới hạn nền đếm cả request bị 401/403 ở ba lớp chặn phía sau nó. Bốn test
+    // dưới đây, mỗi test một host RIÊNG (bộ đếm sống theo host — cùng lý do host riêng ở test đăng nhập
+    // phía trên). Ngưỡng 200/phút (GlobalPermitLimit, CoreWebServiceCollectionExtensions.cs) nên vòng lặp
+    // chạy tối đa 201 lần, dừng ngay khi gặp 429 — cùng khuôn SecurityPipelineTests.GlobalRateLimit_Exceeds…
+
+    // UseRateLimiter đứng ngay sau UseCors, trước UseAuthentication: 401 phát ra ở xác thực/UseAuthorization, SAU
+    // khi request đã qua UseRateLimiter — bộ đếm thấy mọi lượt, vòng lặp gặp 429 trong tối đa 201 lần; nếu
+    // UseRateLimiter đứng sau lớp chặn, bộ đếm không thấy lượt 401, không có 429 và test đỏ. Đó là canary của B26.
+    [Fact]
+    public async Task GlobalRateLimit_CountsUnauthenticated401_ThenReturns429()
+    {
+        using var factory = new CoreWebApplicationFactory();
+        using var client = factory.CreateHttpsClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        HttpResponseMessage? last = null;
+        for (var attempt = 1; attempt <= 201; attempt++)
+        {
+            last = await client.GetAsync("/api/v1/core/users");
+            if (last.StatusCode == HttpStatusCode.TooManyRequests)
+                break;
+
+            last.StatusCode.ShouldBe(HttpStatusCode.Unauthorized, $"lượt {attempt} chưa có phiên nào, phải là 401");
+        }
+
+        last!.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests,
+            "giới hạn nền phải đếm cả request bị 401 ở xác thực — be-architecture.md §3.1 ràng buộc 5");
+        var body = await last.Content.ReadFromJsonAsync<ApiEnvelope<JsonElement>>(Json);
+        body!.Error!.Code.ShouldBe("CORE.RATE_LIMIT.EXCEEDED");
+    }
+
+    // 403 CSRF_REJECTED phát ra ở AntiforgeryValidationMiddleware, SAU UseRateLimiter nên bộ đếm thấy lượt này;
+    // UseRateLimiter đứng sau middleware đó thì không đếm được và test đỏ.
+    [Fact]
+    public async Task GlobalRateLimit_CountsCsrfRejected403_ThenReturns429()
+    {
+        await using var host = new InMemoryCoreHost();
+        using var client = host.CreateClient(userId: Guid.NewGuid(), withCsrf: false);
+
+        HttpResponseMessage? last = null;
+        for (var attempt = 1; attempt <= 201; attempt++)
+        {
+            last = await client.PostAsJsonAsync("/api/v1/core/users",
+                new { userName = "x", email = "x@vd.vn", fullName = "X", tempPassword = "x", roleIds = Array.Empty<Guid>() });
+            if (last.StatusCode == HttpStatusCode.TooManyRequests)
+                break;
+
+            var envelope = await last.Content.ReadFromJsonAsync<ApiEnvelope<JsonElement>>(Json);
+            last.StatusCode.ShouldBe(HttpStatusCode.Forbidden, $"lượt {attempt} thiếu token CSRF, phải bị chặn trước khi chạm quyền");
+            envelope!.Error!.Code.ShouldBe("CORE.AUTH.CSRF_REJECTED");
+        }
+
+        last!.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests,
+            "giới hạn nền phải đếm cả request bị 403 CSRF_REJECTED — be-architecture.md §3.1 ràng buộc 5");
+        var body = await last.Content.ReadFromJsonAsync<ApiEnvelope<JsonElement>>(Json);
+        body!.Error!.Code.ShouldBe("CORE.RATE_LIMIT.EXCEEDED");
+    }
+
+    // 403 PASSWORD_CHANGE_REQUIRED phát ra ở PasswordChangeRequiredMiddleware, SAU UseRateLimiter nên bộ đếm thấy
+    // lượt này; UseRateLimiter đứng sau middleware đó thì test đỏ. Endpoint ngoài bốn đường allowlist của contracts/auth.md §1.2.
+    [Fact]
+    public async Task GlobalRateLimit_CountsPasswordChangeRequired403_ThenReturns429()
+    {
+        await using var host = new InMemoryCoreHost();
+        using var client = host.CreateClient(userId: Guid.NewGuid(), withCsrf: false);
+        client.DefaultRequestHeaders.Add("X-Test-MustChangePassword", "true");
+
+        HttpResponseMessage? last = null;
+        for (var attempt = 1; attempt <= 201; attempt++)
+        {
+            last = await client.GetAsync("/api/v1/core/users");
+            if (last.StatusCode == HttpStatusCode.TooManyRequests)
+                break;
+
+            var envelope = await last.Content.ReadFromJsonAsync<ApiEnvelope<JsonElement>>(Json);
+            last.StatusCode.ShouldBe(HttpStatusCode.Forbidden, $"lượt {attempt} mang cờ buộc đổi mật khẩu, endpoint ngoài allowlist §1.2");
+            envelope!.Error!.Code.ShouldBe("CORE.AUTH.PASSWORD_CHANGE_REQUIRED");
+        }
+
+        last!.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests,
+            "giới hạn nền phải đếm cả request bị 403 PASSWORD_CHANGE_REQUIRED — be-architecture.md §3.1 ràng buộc 5");
+        var body = await last.Content.ReadFromJsonAsync<ApiEnvelope<JsonElement>>(Json);
+        body!.Error!.Code.ShouldBe("CORE.RATE_LIMIT.EXCEEDED");
+    }
+
+    // Hệ quả (a) phải giữ dù đổi vị trí: 429 vẫn đứng SAU UseCors nên vẫn mang header CORS cho nguồn trong
+    // allowlist — contracts/auth.md §10, be-architecture.md §3.1 ràng buộc 5(a). KHÔNG phải canary — có
+    // thể đã xanh trên code hôm nay, vì UseCors đứng trước UseRateLimiter ở CẢ hai vị trí.
+    [Fact]
+    public async Task GlobalRateLimit_Rejection_CarriesCorsHeaders_ForAnAllowedOrigin()
+    {
+        using var factory = new CoreWebApplicationFactory();
+        using var client = factory.CreateHttpsClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        HttpResponseMessage? last = null;
+        for (var attempt = 1; attempt <= 201; attempt++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/core/diagnostics/probe");
+            request.Headers.Add("Origin", CoreWebApplicationFactory.TestAllowedOrigin);
+            last = await client.SendAsync(request);
+            if (last.StatusCode == HttpStatusCode.TooManyRequests)
+                break;
+        }
+
+        last!.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
+        last.Headers.GetValues("Access-Control-Allow-Origin").ShouldContain(CoreWebApplicationFactory.TestAllowedOrigin);
     }
 
     private static Task<HttpResponseMessage> PostEmptyLoginAsync(HttpClient client)

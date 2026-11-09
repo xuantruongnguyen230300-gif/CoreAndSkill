@@ -18,4 +18,19 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- appsettings.Development.json mang giá trị dev công khai (docs/adr/0110) — không chép vào
+         gói publish, chỉ dùng khi chạy `dotnet build`/`dotnet run` ở máy dev (docs/RULES-BE.md, S23 vế (e)). -->
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
+  <!-- Bộ sinh XML-comment của Microsoft.AspNetCore.OpenApi (ADR-0118) tự đẩy kiểu vào assembly host — trái luật A7 (host
+         chỉ chứa Program). Host không gọi AddOpenApi nên bộ sinh không có việc ở đây; gỡ khỏi lượt biên dịch của host. -->
+
+  <Target Name="RemoveOpenApiSourceGeneratorFromHost" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)" Condition="'%(Filename)' == 'Microsoft.AspNetCore.OpenApi.SourceGenerators'" />
+    </ItemGroup>
+  </Target>
+
 </Project>

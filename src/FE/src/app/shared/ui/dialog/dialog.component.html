@@ -4,16 +4,16 @@
   [closable]="closable()"
   [dismissableMask]="maskDongDuoc()"
   [closeOnEscape]="!khoaDong()"
-  [focusOnShow]="true"
+  [focusOnShow]="false"
   [focusTrap]="true"
   [blockScroll]="true"
   [draggable]="false"
   [resizable]="false"
-  [transitionOptions]="transitionOptions"
   [styleClass]="'app-dialog ' + bienTheKhoRong()"
   [attr.aria-busy]="loading() ? 'true' : null"
   [closeAriaLabel]="'chung.dong' | translate"
   (visibleChange)="onVisibleChange($event)"
+  (onShow)="khiHien()"
 >
   <ng-template #header>
     <div class="app-dialog__dau">

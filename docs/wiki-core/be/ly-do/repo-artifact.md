@@ -86,7 +86,7 @@ Cám dỗ là loại trừ hẳn mọi file cấu hình cho an toàn. Đừng: n
 
 Vì sao mẫu loại trừ chừa đúng `appsettings.Development.json`: để việc tạo file môi trường khác **không thể** commit nhầm.
 
-**Vì sao `appsettings.Development.json` vào repo.** `ValidateOnStart` bật ở mọi môi trường ([`be-architecture.md`](../../../quy-uoc/be-architecture.md) §4.3): máy vừa clone về phải khởi động được với phần không bí mật đã có sẵn, và chỉ tự đặt phần bí mật. Bí mật ở dạng rõ không bao giờ nằm trong tệp này. Mật khẩu của DB dev chung được nằm đó **chỉ** ở dạng mã hoá, vì lý do ở §6.4 bên dưới.
+**Vì sao `appsettings.Development.json` vào repo.** `ValidateOnStart` bật ở mọi môi trường ([`be-architecture.md`](../../../quy-uoc/be-architecture.md) §4.3): máy vừa clone về phải khởi động được với database cục bộ mà không đặt thêm gì. Vì thế tệp mang cả giá trị dev công khai — mật khẩu có dạng bí mật nhưng chỉ mở một database cục bộ dựng từ script công khai. Vì sao chấp nhận, cái giá, và ranh giới đọc bằng máy của chúng: [`adr/0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md`](../../../adr/0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md). Bí mật thật không bao giờ nằm trong tệp này.
 
 ### 6.3 Máy mới clone về cần tạo gì
 
@@ -98,13 +98,15 @@ Bí mật của máy dev nằm ở kho secret của công cụ phát triển, t�
 
 ### 6.4 Giá trị cấu hình mã hoá
 
+Cơ chế này **hoãn cùng DB dev chung** ([`adr/0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md`](../../../adr/0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md)). Lý do dưới đây là lý do cho lúc nó hoạt động; câu *"mọi bản rõ trong mọi `appsettings*.json` đều đỏ"* chỉ đúng khi đó — hôm nay `appsettings.Development.json` mang giá trị dev công khai ở dạng rõ.
+
 Quyết định, sáu câu hỏi và các phương án đã loại: [`adr/0097-mat-khau-db-dev-chung-vao-git-ma-hoa-aes-gcm-khoa-ngoai-repo.md`](../../../adr/0097-mat-khau-db-dev-chung-vao-git-ma-hoa-aes-gcm-khoa-ngoai-repo.md), sửa một phần bởi [`adr/0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md`](../../../adr/0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md). Ba điều người đọc tệp luật hay hỏi:
 
 **Vì sao khoá `dev` nằm cạnh bản mã, và như vậy thì mã hoá để làm gì.** Bản mã AES-GCM chỉ an toàn đúng bằng khoá của nó; khoá nằm trong repo thì ai đọc được repo cũng giải được. Nhóm chọn vậy để dev clone về là chạy được, không qua bước ngoài git nào. Cái mã hoá còn mua được là: mật khẩu không hiện ra khi lướt tệp, và cổng phân biệt được *giá trị đúng dạng* với *bản rõ dán nhầm* bằng hình dạng chứ không bằng đường dẫn — nên mọi bản rõ trong mọi `appsettings*.json` đều đỏ. An ninh thật của DB dev nằm ở chỗ khác: chỉ trong mạng nội bộ, không dữ liệu thật, tài khoản quyền hạn chế (luật S25). Khoá mang mã khác `dev` vẫn không bao giờ vào repo — đó là chỗ mã hoá bảo vệ thật.
 
 **Vì sao không giải được thì dừng, không bỏ qua.** Dự án tham khảo mà ADR-0097 học theo bỏ qua lặng lẽ khi thiếu khoá: chuỗi mã hoá thành mật khẩu, và triệu chứng là lỗi xác thực database ở một chỗ không liên quan. Dừng lúc khởi động, nêu tên khoá, là cùng lý lẽ với mọi cấu hình khác ở [`be-architecture.md`](../../../quy-uoc/be-architecture.md) §4.
 
-**Vì sao cổng phải có trước giá trị đầu tiên.** Sau quyết định này, chuỗi kết nối nằm trong một tệp dev sửa thường xuyên, nên xác suất dán nhầm bản rõ tăng lên. Mà gitleaks mặc định không chắc bắt được mật khẩu người chọn tay (nợ S12). Bí mật đã vào lịch sử git thì gỡ khỏi nhánh không gỡ được khỏi lịch sử, chỉ có đổi mật khẩu.
+**Vì sao cổng phải có trước giá trị đầu tiên.** Sau quyết định này, chuỗi kết nối nằm trong một tệp dev sửa thường xuyên, nên xác suất dán nhầm bản rõ tăng lên. Mà gitleaks mặc định không chắc bắt được mật khẩu người chọn tay — chỗ hở của cổng S6, ô *Ép bằng gì* của S6 ở [`RULES-BE.md`](../../../RULES-BE.md). Bí mật đã vào lịch sử git thì gỡ khỏi nhánh không gỡ được khỏi lịch sử, chỉ có đổi mật khẩu.
 
 ## 7. File sinh tự động
 

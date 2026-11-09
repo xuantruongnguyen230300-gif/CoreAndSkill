@@ -1,6 +1,11 @@
+@use 'spacing' as s;
+
+// Mọi mục là con TRỰC TIẾP của `.toolbar` (flex, xuống dòng): thứ tự DOM = thứ tự Tab (ô tìm → nút
+// lọc → chip → nhóm hành động, Toolbar.md §Trạng thái `focus-visible`); vị trí nhìn thấy do `order`.
 .toolbar {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--sp-4);
   padding: var(--sp-5);
   background: var(--color-surface);
@@ -12,21 +17,28 @@
     padding: var(--sp-4);
     gap: var(--sp-3);
   }
-}
 
-.toolbar__hang {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-4);
+  // Gắn vào khung `DataTable`: đường bao và vạch ngăn do khung vẽ (Toolbar.md §"Cách đặt").
+  &--attached {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
 
 .toolbar__tim {
+  order: 0;
   position: relative;
-  flex: 1 1 240px;
-  min-width: 200px;
+  // Dưới $bp-md ô tìm trải hết hàng của nó, bỏ trần (Toolbar.md §Responsive).
+  flex: 1 1 100%;
   display: flex;
   align-items: center;
+
+  @include s.tu-man-hinh(s.$bp-md) {
+    flex: 1 1 240px;
+    min-width: 200px;
+    max-width: var(--toolbar-search-w-max);
+  }
 }
 
 .toolbar__tim-icon {
@@ -36,7 +48,11 @@
   font-size: var(--icon-sm);
 }
 
+// Ô tìm là ô nhập chữ: một đường biên (DESIGN.md §2.6 *Ô nhập chữ*) — phần dày thêm vẽ vào trong
+// bằng bóng `inset`, hộp ô không đổi. Không vòng ngoài, không `--color-focus`.
 .toolbar__tim-input {
+  --toolbar-vien-them: 0px;
+
   width: 100%;
   height: var(--size-control-md);
   padding: 0 var(--sp-4) 0 calc(var(--sp-4) * 2 + var(--icon-sm));
@@ -44,12 +60,30 @@
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);
+  box-shadow: inset 0 0 0 var(--toolbar-vien-them) var(--color-text);
+  font-family: var(--font-sans);
   font-size: var(--fs-sm);
 
   &:focus-visible {
-    outline: var(--border-w-strong) solid var(--color-focus);
-    outline-offset: 2px;
+    outline: none;
+    border-color: var(--color-text);
+    --toolbar-vien-them: calc(var(--border-w-strong) - var(--border-w));
   }
+
+  // Trình duyệt tự điền: giữ nền `--color-surface` và chữ `--color-text`; đường biên ghép chung
+  // một khai báo `box-shadow` (Chrome khai nền tự điền `!important`).
+  &:-webkit-autofill {
+    box-shadow:
+      inset 0 0 0 var(--toolbar-vien-them) var(--color-text),
+      inset 0 0 0 100vmax var(--color-surface);
+    -webkit-text-fill-color: var(--color-text);
+    caret-color: var(--color-text);
+    filter: none; // Firefox tô ô tự điền bằng `filter` trong stylesheet trình duyệt
+  }
+}
+
+.toolbar--sm .toolbar__tim-input {
+  height: var(--size-control-sm);
 }
 
 .toolbar__tim-loading {
@@ -58,21 +92,41 @@
   color: var(--color-text-muted);
 }
 
-.toolbar__khu-loc {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-4);
+.toolbar__nut-loc {
+  order: 1;
 }
 
 .toolbar__hanh-dong {
+  order: 2;
   margin-left: auto;
   display: flex;
   gap: var(--sp-3);
+
+  // Nhóm trống (màn không đặt nút) không chiếm chỗ.
+  &:empty {
+    display: none;
+  }
+
+  @include s.duoi-man-hinh(s.$bp-xs) {
+    flex: 1 1 100%;
+
+    > * {
+      flex: 1 1 auto;
+    }
+  }
 }
 
 .toolbar__chips {
+  order: 3;
+  flex: 1 1 100%;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-2);
+
+  // Dưới $bp-md chip cuộn ngang trong một dải riêng thay vì xuống nhiều dòng.
+  @include s.duoi-man-hinh(s.$bp-md) {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
 }

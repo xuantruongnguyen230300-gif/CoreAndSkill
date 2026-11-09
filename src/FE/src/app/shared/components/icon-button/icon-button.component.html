@@ -10,6 +10,8 @@
   [attr.aria-label]="ariaLabel()"
   [attr.aria-pressed]="pressed() === null ? null : pressed()"
   [attr.aria-busy]="loading() ? 'true' : null"
+  [attr.aria-haspopup]="haspopup()"
+  [attr.aria-expanded]="expanded() === null ? null : expanded()"
   (click)="onClick()"
 >
   <i class="pi" [class]="loading() ? 'pi-spinner pi-spin' : 'pi-' + icon()" aria-hidden="true"></i>
