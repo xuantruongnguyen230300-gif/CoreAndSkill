@@ -2,7 +2,9 @@
 # scripts/dev-config-check.sh — cổng Q41: cụm giá trị cấu hình dev của BE và FE phải khớp nhau và khớp giá trị ĐÃ GHIM.
 # Ba cặp:
 #   1. cổng API : launchSettings.json `applicationUrl` <-> environment.development.ts `apiBaseUrl` (ghim 7100)
-#   2. origin FE: angular.json serve (ssl, cổng) <-> appsettings.Development.json `Core:Auth:AllowedOrigins` (ghim 4200)
+#   2. origin FE: angular.json serve (ssl bật, cổng mặc định, cấu hình development không ghi đè) <-> hằng ghim (4200).
+#                 Phía BE không đối chiếu: ở Development BE nhận mọi cổng https://localhost (ADR-0129;
+#                 docs/quy-uoc/be-api-controller.md §7.3) nên không còn danh sách để khớp.
 #   3. tenant   : environment.development.ts `tenantCode` <-> appsettings.Development.json `Core:Bootstrap:FirstTenantCode`
 # Đổi một chỗ mà không đổi chỗ kia, hay đổi cổng khỏi giá trị ghim, đều đỏ — thông điệp nêu tệp + giá trị lệch.
 # Đổi cổng có chủ ý: sửa PIN_* dưới đây CÙNG LÚC với các tệp nguồn.
@@ -70,13 +72,6 @@ if [ "$SERVE_PORT" = "$PIN_FE_PORT" ]; then ok "angular.json serve dùng cổng 
 else bad "$(rel "$ANGULAR"): serve.port = $SERVE_PORT, ghim là $PIN_FE_PORT"; fi
 if printf '%s' "$SERVE" | grep -q '"ssl"[[:space:]]*:[[:space:]]*true'; then ok "angular.json serve bật ssl (origin là https)"
 else bad "$(rel "$ANGULAR"): serve không có \"ssl\": true — origin FE không còn là $PIN_FE_ORIGIN"; fi
-
-ORIGINS="$(gop "$APPSET" | sed -n 's/.*"AllowedOrigins"[[:space:]]*:[[:space:]]*\[\([^]]*\)\].*/\1/p')"
-[ -n "$ORIGINS" ] || bad "$(rel "$APPSET"): không đọc được Core:Auth:AllowedOrigins"
-case ",$(printf '%s' "$ORIGINS" | tr -d ' "')," in
-  *",$PIN_FE_ORIGIN,"*) ok "AllowedOrigins chứa $PIN_FE_ORIGIN" ;;
-  *) bad "$(rel "$APPSET"): AllowedOrigins [$ORIGINS] không chứa '$PIN_FE_ORIGIN' (origin của dev-server, $(rel "$ANGULAR"))" ;;
-esac
 
 # ---------------------------------------------------------------- 3. tenant dev
 FE_TENANT="$(sed -n "s/.*tenantCode:[[:space:]]*'\([^']*\)'.*/\1/p" "$ENVDEV" | head -n1)"

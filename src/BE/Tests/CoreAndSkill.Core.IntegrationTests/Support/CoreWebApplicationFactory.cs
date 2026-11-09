@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -27,7 +28,8 @@ internal sealed class CoreWebApplicationFactory(
     IReadOnlyDictionary<string, string?>? configOverrides = null,
     Action<IServiceCollection>? configureServices = null,
     string environment = "Production",
-    bool keepProductionRetryStrategy = false)
+    bool keepProductionRetryStrategy = false,
+    bool ignoreUserSecrets = false)
     : WebApplicationFactory<Program>
 {
     // Chuỗi hợp lệ về cú pháp nhưng trỏ tới cổng không ai lắng nghe — buộc timeout nhanh thay vì
@@ -68,7 +70,21 @@ internal sealed class CoreWebApplicationFactory(
         if (!merged.Keys.Any(key => key.StartsWith(AllowedOriginsKey, StringComparison.OrdinalIgnoreCase)))
             merged[AllowedOriginsKey + ":0"] = TestAllowedOrigin;
 
-        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(merged));
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            // Host Development nạp kho user-secrets của MÁY chạy test (CreateBuilder làm việc đó khi môi trường là Development).
+            // Test mà kết quả phụ thuộc danh sách origin cần một danh sách không do máy nào thêm vào: bỏ nguồn đó đi.
+            if (ignoreUserSecrets)
+            {
+                foreach (var source in config.Sources.OfType<JsonConfigurationSource>()
+                             .Where(s => string.Equals(s.Path, "secrets.json", StringComparison.OrdinalIgnoreCase)).ToList())
+                {
+                    config.Sources.Remove(source);
+                }
+            }
+
+            config.AddInMemoryCollection(merged);
+        });
 
         if (IsUnreachableMode(merged))
         {

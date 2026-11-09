@@ -60,7 +60,7 @@ printf '\n== canary dev-config-check — bản chép ở thư mục tạm ==\n'
 
 # Cặp đỏ: mọi ca "do" bên dưới — cùng bản chép, khác đúng một chỗ.
 dung
-ca "bản chép nguyên vẹn -> PASS, có in dòng OK của cả ba cặp" xanh "dev-config-check.sh PASS" "apiBaseUrl của FE dev" "AllowedOrigins chứa" "tenantCode FE dev" "!FAIL"
+ca "bản chép nguyên vẹn -> PASS, có in dòng OK của cả ba cặp" xanh "dev-config-check.sh PASS" "apiBaseUrl của FE dev" "angular.json serve bật ssl" "tenantCode FE dev" "!FAIL"
 
 # ---------------------------------------------------------------- cặp 1: cổng API
 # Cặp xanh: ca "nguyên vẹn" ở đầu.
@@ -75,10 +75,10 @@ dung; sua "$P_LAUNCH" 's#"https://localhost:7100"#"https://localhost:7100;http:/
 ca "applicationUrl thêm http://localhost:5100 mà vẫn chứa 7100 -> PASS (FE chỉ cần origin nằm trong danh sách)" xanh "dev-config-check.sh PASS"
 
 # ---------------------------------------------------------------- cặp 2: origin FE
-dung; sua "$P_APPSET" 's#"https://localhost:4200", ##'
-ca "AllowedOrigins bỏ https://localhost:4200 -> FAIL, nêu appsettings.Development.json" do "appsettings.Development.json" "không chứa 'https://localhost:4200'"
-dung; sua "$P_APPSET" 's#https://localhost:4200#http://localhost:4200#'
-ca "AllowedOrigins còn http://localhost:4200 (sai scheme) -> FAIL" do "không chứa 'https://localhost:4200'"
+# ADR-0129: BE dev nhận mọi cổng https://localhost, cổng không đối chiếu AllowedOrigins nữa — ca xanh này canh
+# cho cổng không bị thêm lại phép đó (danh sách thiếu mục 4200 hay còn mục http:// đều không làm đỏ).
+dung; sua "$P_APPSET" 's#"https://localhost:4200", ##'; sua "$P_APPSET" 's#https://localhost:7100#http://localhost:7100#'
+ca "AllowedOrigins không còn mục 4200 và còn mục http:// -> PASS (cổng không đọc AllowedOrigins)" xanh "dev-config-check.sh PASS" "!AllowedOrigins"
 dung; sua "$P_ANGULAR" 's#"ssl": true,#"ssl": true, "port": 4400,#'
 ca "angular.json serve thêm port 4400 -> FAIL, nêu angular.json + 4400" do "angular.json" "serve.port = 4400"
 dung; sua "$P_ANGULAR" 's#"ssl": true,#"ssl": false,#'

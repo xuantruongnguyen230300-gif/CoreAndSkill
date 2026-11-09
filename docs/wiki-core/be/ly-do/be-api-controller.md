@@ -569,14 +569,14 @@ Hai lớp mang hai mã vì FE xử lý khác nhau: lấy token mới rồi gửi
 không chữa được `ORIGIN_REJECTED`. Ca *`Origin` lạ nhưng token hợp lệ vẫn 403 `ORIGIN_REJECTED`* là phép thử
 chứng minh lớp 1 đang chạy.
 
-Khối `AntiforgeryValidationMiddleware` đầy đủ — năm bước ở file luật, viết ra:
+Khối `AntiforgeryValidationMiddleware` đầy đủ — năm bước ở file luật, viết ra, không chép nguyên văn. Tham số và lời gọi lớp 1 theo [ADR-0129](../../../adr/0129-development-nhan-moi-cong-https-localhost-mot-ham-origin-chung-cho-cors-va-lop-1-go-kiem-cong-prestart.md) — ✅ CÓ THẬT (đối chiếu 2026-11-09): `src/BE/Core/CoreAndSkill.Core.Web/Security/AntiforgeryValidationMiddleware.cs`, chuỗi `IAntiforgery antiforgery, OriginAllowlist originAllowlist)` và `!originAllowlist.IsAllowed(origin)`:
 
 ```csharp
 // Core.Web/Security/AntiforgeryValidationMiddleware.cs
 internal sealed class AntiforgeryValidationMiddleware(
     RequestDelegate next,
     IAntiforgery antiforgery,
-    IOptions<CoreAuthOptions> authOptions)
+    OriginAllowlist originAllowlist)   // quy tắc origin chung — cùng hàm với CORS (§7.3)
 {
     public async Task InvokeAsync(HttpContext http)
     {
@@ -601,8 +601,7 @@ internal sealed class AntiforgeryValidationMiddleware(
         }
 
         var origin = http.Request.Headers.Origin.ToString();
-        if (origin.Length > 0 &&
-            !authOptions.Value.AllowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+        if (origin.Length > 0 && !originAllowlist.IsAllowed(origin))
         {
             await SecurityEnvelopeWriter.WriteEnvelopeAsync(http, SecurityErrors.OriginRejected);   // lớp 1
             return;
@@ -656,23 +655,49 @@ request ghi, vì cả hai cùng ra 403. Cái giá chỉ rơi vào người gỡ 
 
 ### 7.3 CORS
 
-Khối policy đầy đủ ([`be-api-controller.md`](../../../quy-uoc/be-api-controller.md) §7.3):
+Khối policy đầy đủ ([`be-api-controller.md`](../../../quy-uoc/be-api-controller.md) §7.3), theo ADR-0129 — ✅ CÓ THẬT (đối chiếu 2026-11-09): `src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreWebServiceCollectionExtensions.cs`, chuỗi `.SetIsOriginAllowed(originAllowlist.IsAllowed)`; `grep -rn '\.WithOrigins(' src/BE --include=*.cs` không ra dòng nào:
 
 ```csharp
-services.AddCors(options => options.AddPolicy(CorsPolicyNames.Default, policy =>
-{
-    policy.WithOrigins(authOptions.AllowedOrigins)
-          .AllowAnyHeader()
-          .AllowAnyMethod()
-          .AllowCredentials()                         // bắt buộc để cookie đi qua
-          .WithExposedHeaders("Retry-After", "Content-Disposition");
-}));
+services.AddCors();
+services.AddOptions<CorsOptions>()
+    .Configure<OriginAllowlist>((corsOptions, originAllowlist) =>
+        corsOptions.AddPolicy(CorsPolicyNames.Default, policy => policy
+            .SetIsOriginAllowed(originAllowlist.IsAllowed)   // quy tắc chung — KHÔNG kèm WithOrigins
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()                           // bắt buộc để cookie đi qua
+            .WithExposedHeaders("Retry-After", "Content-Disposition")));
 ```
+
+**Vì sao một hàm cho hai lớp.** CORS quyết trang nào *đọc* được phản hồi — kể cả thân của
+`GET /api/v1/core/antiforgery/token`, tức token của lớp 2; lớp 1 quyết trang nào *ghi* được. Hai đoạn mã
+cùng đọc một danh sách vẫn lệch được: `WithOrigins` chuẩn hoá mục rồi so phân biệt hoa thường theo mã nguồn
+ASP.NET Core, còn vòng lặp của middleware so không phân biệt. Một hàm thì lệch không còn chỗ để xảy ra.
+`SetIsOriginAllowed` **thay** phép so mặc định đọc danh sách của `WithOrigins`; khai cả hai là để lại một
+danh sách không ai đọc, và người sửa danh sách đó tưởng mình đang đổi CORS.
+
+**Vì sao nhánh máy dev chỉ `https` và đúng host `localhost`.** Cookie không phân biệt cổng, nên trang ở
+`https://localhost:<n>` cùng site với API ở `https://localhost:7100` — đăng nhập được. Ba ca còn lại của chữ
+*loopback* thì không:
+
+| Origin | Vì sao không đăng nhập được | Nhận thì mất gì |
+| --- | --- | --- |
+| `http://localhost:<n>` | Khác scheme với API nên khác site (§7.1) — cookie `Lax` không đi | Máy chủ cục bộ chạy `http` là loại hay gặp nhất trên máy dev — công cụ, container |
+| `https://127.0.0.1:<n>`, `https://[::1]:<n>` | Khác site với API ở `localhost` — trình duyệt bỏ cookie `Lax` mà phản hồi đăng nhập đặt | CORS cho qua, đăng nhập trả thành công, request sau ra 401 — lỗi không nêu nguyên nhân |
+| `https://loopback:<n>`, `https://x.localhost:<n>` | Như hàng trên | Như hàng trên |
+
+`Uri.IsLoopback` trả `true` cho tên `loopback`, cả dải `127.0.0.0/8` và `[::1]`, nên hàm so `Uri.Host` với
+chữ `localhost` thay vì dùng nó. `https://localhost.evil.example` có host `localhost.evil.example` — phép so
+nguyên chữ loại nó; phép so tiền tố thì không.
 
 - FE và API khác nguồn ([`../../../adr/0015-fe-va-api-khac-nguon.md`](../../../adr/0015-fe-va-api-khac-nguon.md)),
   nên header không nằm trong `WithExposedHeaders` vẫn tới trình duyệt mà mã FE đọc ra `null` — `Retry-After`
   của 429 và `Content-Disposition` của endpoint trả tệp là hai header FE cần đọc. Lỗi này **không có thông
-  báo**: FE nhận đúng tệp, chỉ không biết tên. `WithOrigins` lấy từ `IOptions` để không hardcode.
+  báo**: FE nhận đúng tệp, chỉ không biết tên. Danh sách lấy từ `IOptions` để không hardcode.
+- Một mục allowlist sai dạng — `/` cuối, có path, ghi cổng mặc định `:443` — không bao giờ khớp header `Origin`
+  thật. CORS và lớp 1 antiforgery khi đó từ chối mà **không lỗi nào nêu nguyên nhân**: trình duyệt chỉ thấy
+  preflight `OPTIONS` 204 rồi không gửi lệnh ghi; client không qua preflight nhận 403
+  `CORE.AUTH.ORIGIN_REJECTED`. Vì vậy dạng của từng mục được kiểm lúc khởi động, không đợi lần đăng nhập đầu.
 - CORS là cơ chế của **trình duyệt**: nó không bảo vệ được trước một client không phải trình duyệt.
 - `AllowAnyOrigin()` cùng `AllowCredentials()` gây lỗi lúc chạy — nhưng đó không phải hàng rào để
   trông vào.

@@ -66,7 +66,9 @@ services:
       Core__Auth__AntiforgeryCookieName: ${CORE_AUTH_ANTIFORGERY_COOKIE_NAME:-coreandskill.antiforgery}
       Core__Auth__SessionMinutes: ${CORE_AUTH_SESSION_MINUTES:-30}
       Core__Auth__SessionAbsoluteHours: ${CORE_AUTH_SESSION_ABSOLUTE_HOURS:-12}
-      Core__Auth__AllowedOrigins__0: ${CORE_AUTH_ALLOWED_ORIGIN}
+      # Origin FE mà BE cho phép (CORS + kiểm Origin của antiforgery) DỰNG TỪ CHÍNH FE_DOMAIN — một bản cài một origin FE
+      # (ADR-0116), nên không có biến thứ hai để người cài gõ lệch. Caddy phục vụ FE ở https://$FE_DOMAIN (cổng 443).
+      Core__Auth__AllowedOrigins__0: "https://${FE_DOMAIN:?Thiếu FE_DOMAIN trong tệp .env - đặt tên miền FE không kèm https:// và không có dấu / cuối, ví dụ app.congty.vn}"
       # Proxy tin cậy (ADR-0120 QC2): đúng dải của mạng `edge` bên dưới — chỉ Caddy và `api` nằm trong đó. Không phải
       # bí mật nên khai ở đây. Dải đụng mạng máy chủ khách thì đổi CẢ `ipam` của `edge` LẪN khoá này.
       Core__Network__KnownNetworks__0: 172.28.0.0/24

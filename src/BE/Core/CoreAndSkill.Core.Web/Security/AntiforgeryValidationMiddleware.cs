@@ -1,8 +1,6 @@
-using CoreAndSkill.Core.Application.Configuration;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 
 namespace CoreAndSkill.Core.Web.Security;
 
@@ -11,7 +9,7 @@ namespace CoreAndSkill.Core.Web.Security;
 // docs/adr/0062-endpoint-xuat-kiem-token-chong-gia-mao-nhu-lenh-ghi.md
 // Vị trí trong pipeline: SAU UseAuthentication, TRƯỚC UseAuthorization (docs/quy-uoc/be-architecture.md §3.1).
 internal sealed class AntiforgeryValidationMiddleware(
-    RequestDelegate next, IAntiforgery antiforgery, IOptions<CoreAuthOptions> authOptions)
+    RequestDelegate next, IAntiforgery antiforgery, OriginAllowlist originAllowlist)
 {
     private static readonly HashSet<string> SafeMethods = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -43,7 +41,7 @@ internal sealed class AntiforgeryValidationMiddleware(
 
         // 3 — lớp 1: Origin ngoài allowlist.
         var origin = context.Request.Headers.Origin.ToString();
-        if (!string.IsNullOrEmpty(origin) && !IsAllowedOrigin(origin))
+        if (!string.IsNullOrEmpty(origin) && !originAllowlist.IsAllowed(origin))
         {
             await SecurityEnvelopeWriter.WriteEnvelopeAsync(context, SecurityErrors.OriginRejected);
             return;
@@ -73,16 +71,5 @@ internal sealed class AntiforgeryValidationMiddleware(
         {
             return false;
         }
-    }
-
-    private bool IsAllowedOrigin(string origin)
-    {
-        foreach (var allowed in authOptions.Value.AllowedOrigins)
-        {
-            if (string.Equals(allowed, origin, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
-        return false;
     }
 }

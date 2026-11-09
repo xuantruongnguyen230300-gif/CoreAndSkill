@@ -133,16 +133,18 @@ public static class CoreWebServiceCollectionExtensions
 
         services.AddAuthorization();
 
-        // AllowedOrigins đọc TRỄ qua IOptions<CoreAuthOptions> — CÙNG khuôn với cấu hình cookie bên
-        // dưới, không BuildServiceProvider() giữa chừng (be-api-controller.md §7.3).
+        // Quy tắc origin chung (be-api-controller.md §7.3, ADR-0129): CORS và lớp 1 của AntiforgeryValidationMiddleware gọi
+        // CÙNG OriginAllowlist.IsAllowed. SetIsOriginAllowed thay hẳn phép so của WithOrigins — KHÔNG khai WithOrigins kèm
+        // theo, và KHÔNG BAO GIỜ SetIsOriginAllowed(_ => true). Danh sách đọc TRỄ qua IOptions trong OriginAllowlist.
         //
         // WithExposedHeaders: header nào FE phải ĐỌC ĐƯỢC từ script. Retry-After của 429 (§6.5); Content-Disposition để FE
         // lấy tên tệp khi tải bản xuất dạng blob qua HttpClient (ADR-0062 quyết định 4) — không khai thì trình duyệt giấu.
+        services.AddSingleton<OriginAllowlist>();
         services.AddCors();
         services.AddOptions<CorsOptions>()
-            .Configure<IOptions<CoreAuthOptions>>((corsOptions, authOptions) =>
+            .Configure<OriginAllowlist>((corsOptions, originAllowlist) =>
                 corsOptions.AddPolicy(CorsPolicyNames.Default, policy => policy
-                    .WithOrigins(authOptions.Value.AllowedOrigins)
+                    .SetIsOriginAllowed(originAllowlist.IsAllowed)
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials() // bắt buộc để cookie đi qua

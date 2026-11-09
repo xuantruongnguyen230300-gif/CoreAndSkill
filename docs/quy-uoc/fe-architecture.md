@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # Kiến trúc Frontend — bốn tầng và hàng rào giữ chúng
 
-> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §2.8 và §3**; 2026-10-06 thêm §2.3 `platform/loi/`; 2026-10-08 thêm dòng `navigation/` của §2.1; 2026-11-04 thêm câu hoãn trường lọc của §2.7; 2026-11-07 dòng provider hoạt ảnh của §2.6; phần còn lại chưa ai đối chiếu):
+> 🚧 **ĐÃ CHỐT — ĐANG THI CÔNG** (đối chiếu 2026-09-21, **chỉ §2.8 và §3**; 2026-10-06 thêm §2.3 `platform/loi/`; 2026-10-08 thêm dòng `navigation/` của §2.1; 2026-11-04 thêm câu hoãn trường lọc của §2.7; 2026-11-07 dòng provider hoạt ảnh của §2.6; 2026-11-09 thư mục `scripts/` của §1.1; phần còn lại chưa ai đối chiếu):
 >
 > | Có thật hôm nay | Sẽ thành |
 > | --- | --- |
@@ -16,6 +16,7 @@ verified: chua-doi-chieu
 > | §1.1, §2.5 giá trị của bản cài (đối chiếu 2026-10-06): `src/FE/src/app/core/config/khai-bao-moi-truong.ts` có `export function khaiBaoMoiTruong<const T extends string>(`; `src/FE/src/app/core/config/tenant-code.ts` có `export const TENANT_CODE = new InjectionToken<string>('TENANT_CODE');`; `src/FE/src/app/app.config.ts` có `{ provide: TENANT_CODE, useValue: environment.tenantCode },` | — |
 > | §2.3 `platform/loi/` (đối chiếu 2026-10-06): hai page nằm ở `src/FE/src/app/platform/loi/pages/khong-co-quyen/khong-co-quyen.page.ts` và `src/FE/src/app/platform/loi/pages/khong-tim-thay/khong-tim-thay.page.ts`; `src/FE/src/app/app.routes.ts` có `import('./platform/loi/pages/khong-co-quyen/khong-co-quyen.page')` | — |
 > | §2.5 khuôn `core-i18n.ts`, phần khuôn ngày giờ — ✅ **CÓ THẬT** (đối chiếu 2026-11-09): mã khớp khuôn §2.5 — `src/FE/src/app/core/config/core-i18n.ts`, chuỗi `{ provide: DATE_PIPE_DEFAULT_OPTIONS, useValue: { dateFormat: macDinh.dateTimeFormat } },`; `src/FE/src/app/app.config.ts`, chuỗi `dateTimeFormat: 'HH:mm dd/MM/y',` | — |
+> | §1.1 không có thư mục `scripts/` — khớp đĩa (đối chiếu 2026-11-09): thư mục `src/FE/scripts/` không còn; `src/FE/package.json` có `"start": "ng serve"`, không còn khoá `prestart` — [ADR-0129](../adr/0129-development-nhan-moi-cong-https-localhost-mot-ham-origin-chung-cho-cors-va-lop-1-go-kiem-cong-prestart.md) quyết định 4. Công cụ máy dev đầu tiên của FE về sau: lý do đặt chỗ ở dòng *Sinh từ lỗi thật trên máy dev* ngày 2026-11-09 của [`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md), điểm (4) | — |
 > | §2.1 dòng `navigation/` (đối chiếu 2026-10-08): `src/FE/src/app/core/navigation/loi-tai-phan-ma.ts` có `@Injectable({ providedIn: 'root' })` ngay trên `export class LoiTaiPhanMaService {`, không import gì từ `shared/`, `platform/`, `modules/` | — |
 >
 > Lý do đằng sau ranh giới Core ↔ Module (chung cho cả BE lẫn FE): [`../kien-truc-core-module.md`](../kien-truc-core-module.md).
@@ -74,8 +75,7 @@ src/FE/
 └── tsconfig*.json
 ```
 
-Không tạo thư mục thứ năm ở cấp `src/FE/` khi chưa trả lời được: *"thứ này cần lúc build hay lúc chạy?"*
-
+Không tạo thư mục mới ở cấp `src/FE/` khi chưa trả lời được: *"thứ này cần lúc build hay lúc chạy?"*
 | | `src/environments/*.ts` | `public/*.json` |
 | --- | --- | --- |
 | Giá trị chốt lúc | **build** | **runtime**, fetch lúc khởi động |

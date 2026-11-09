@@ -99,6 +99,45 @@ public class ConfigurationFailFastTests
         CollectMessages(exception).ShouldContain(m => m.Contains("AllowedOrigins", StringComparison.Ordinal));
     }
 
+    // Origin sai dạng không làm hỏng gì lúc chạy — CORS và kiểm Origin của antiforgery lặng lẽ không khớp, người dùng thấy 403
+    // CORE.AUTH.ORIGIN_REJECTED ở lệnh ghi. Nên khởi động phải dừng và nêu tên khoá.
+    [Theory]
+    [InlineData("https://app.example.com/")] // '/' cuối — lỗi gõ hay gặp nhất
+    [InlineData("https://app.example.com/app")] // có path
+    [InlineData("https://app.example.com?x=1")] // có query
+    [InlineData("app.example.com")] // thiếu scheme
+    [InlineData("localhost:4200")] // thiếu scheme (Uri đọc 'localhost' thành scheme)
+    [InlineData("ftp://app.example.com")] // scheme lạ
+    [InlineData("https://app.example.com:443")] // cổng mặc định — trình duyệt không gửi
+    [InlineData("https://user@app.example.com")] // có userinfo
+    [InlineData("  ")] // rỗng
+    public void MalformedAllowedOrigin_PreventsStartup_AndNamesTheKey(string origin)
+    {
+        using var factory = new CoreWebApplicationFactory(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:Core"] = CoreWebApplicationFactory.UnreachableConnectionString,
+            [CoreWebApplicationFactory.AllowedOriginsKey + ":0"] = origin,
+        });
+
+        var exception = Should.Throw<Exception>(() => factory.CreateClient());
+
+        CollectMessages(exception).ShouldContain(m => m.Contains("Core:Auth:AllowedOrigins", StringComparison.Ordinal));
+    }
+
+    // Đối chứng: origin đúng dạng (có cổng khác mặc định, có nhiều phần tử) khởi động bình thường.
+    [Fact]
+    public void WellFormedAllowedOrigins_StartNormally()
+    {
+        using var factory = new CoreWebApplicationFactory(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:Core"] = CoreWebApplicationFactory.UnreachableConnectionString,
+            [CoreWebApplicationFactory.AllowedOriginsKey + ":0"] = "https://app.example.com",
+            [CoreWebApplicationFactory.AllowedOriginsKey + ":1"] = "https://app.example.com:8443",
+        });
+
+        Should.NotThrow(() => factory.CreateClient().Dispose());
+    }
+
     // Đối chứng: môi trường Development đọc origin từ appsettings.Development.json và khởi động được — giá trị đã CHUYỂN chỗ,
     // không mất. Máy dev vẫn chạy mà không phải khai gì thêm (repo-artifact.md §6.3).
     [Fact]

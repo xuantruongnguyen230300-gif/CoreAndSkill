@@ -164,7 +164,7 @@ Khuôn đúng: **file mặc định vào repo với cấu trúc đầy đủ và
 | Giá trị riêng thay giá trị dev công khai — **tuỳ chọn** | kho secret của công cụ phát triển (`user-secrets`) | tự đặt; tên khoá của lệnh bootstrap: [`../database/script-runbook.md`](../database/script-runbook.md) §3.3 |
 | Thư viện của FE | thư mục FE | lệnh cài, đọc từ lockfile |
 | Chứng chỉ HTTPS phát triển được máy tin cậy, và bản xuất cho máy chủ dev của FE | kho chứng chỉ của máy cá nhân; tệp xuất nằm ở thư mục `.cert/` trong `src/FE/` — thư mục bị `.gitignore` loại trừ, không bao giờ commit (lệnh kiểm 5 ở §10) | Lệnh và khai báo trong `angular.json`: [`../wiki-core/fe/17-phuc-vu-va-trien-khai.md`](../wiki-core/fe/17-phuc-vu-va-trien-khai.md) §4.2 |
-| Origin của FE trong allowlist CORS của API — **đủ scheme và cổng** | có sẵn trong `appsettings.Development.json` — chỉ kiểm lại cho khớp | Cụm phải khớp và lệnh kiểm: [`chay-may-dev.md`](chay-may-dev.md) §5 |
+| Origin của FE được API nhận — `https://localhost`, cổng nào cũng được | không phải khai: ở Development API nhận mọi cổng `https://localhost` ([`be-api-controller.md`](be-api-controller.md) §7.3, [ADR-0129](../adr/0129-development-nhan-moi-cong-https-localhost-mot-ham-origin-chung-cho-cors-va-lop-1-go-kiem-cong-prestart.md)). ✅ CÓ THẬT (đối chiếu 2026-11-09): `src/BE/Core/CoreAndSkill.Core.Web/Security/OriginAllowlist.cs`, chuỗi `isDevelopment && IsDevelopmentLocalhostOrigin(origin)` | Cụm phải khớp và lệnh kiểm: [`chay-may-dev.md`](chay-may-dev.md) §5 |
 
 Máy dev cũng chạy HTTPS — [`../adr/0015-fe-va-api-khac-nguon.md`](../adr/0015-fe-va-api-khac-nguon.md).
 
@@ -370,7 +370,7 @@ Mục này định nghĩa *"pull request"* mà [`../adr/0011-ci-github-actions.m
 | **Không viết lại lịch sử của nhánh đã đẩy lên** | Người khác đã kéo về rồi |
 | **Tag phát hành Core đánh trên nhánh chính**, sau khi cổng xanh | §15 |
 
-Luật A25 ([`../RULES.md`](../RULES.md) §3) phủ mọi hàng in đậm của bảng.
+Luật A25 ([`../RULES.md`](../RULES.md) §3) phủ mọi hàng in đậm của bảng. Vế nào đang tạm dừng, khi nào áp lại: ô *Ép bằng gì* của hàng A25 ở [`../RULES-BE.md`](../RULES-BE.md).
 
 > 🛑 **Mọi lệnh git ghi ở đây là của người dùng**, không phải của agent ([`../../.claude/CLAUDE.md`](../../.claude/CLAUDE.md) §1). Agent dừng lại và nói rõ cần chạy lệnh gì.
 

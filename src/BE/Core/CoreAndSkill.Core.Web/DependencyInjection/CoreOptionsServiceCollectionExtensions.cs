@@ -1,4 +1,5 @@
 using CoreAndSkill.Core.Application.Configuration;
+using CoreAndSkill.Core.Web.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,6 +27,13 @@ public static class CoreOptionsServiceCollectionExtensions
                 $"{CoreAuthOptions.SectionName}:{nameof(CoreAuthOptions.CookieName)} và " +
                 $"{CoreAuthOptions.SectionName}:{nameof(CoreAuthOptions.AntiforgeryCookieName)} không được trùng nhau " +
                 "(không phân biệt hoa thường) — docs/quy-uoc/be-api-controller.md §7.5.")
+            // Origin sai dạng không làm tiến trình hỏng — nó làm CORS và kiểm Origin của antiforgery lặng lẽ không khớp, và
+            // người dùng chỉ thấy 403 CORE.AUTH.ORIGIN_REJECTED ở lệnh ghi. Nên chặn ngay lúc khởi động, nêu tên khoá.
+            .Validate(
+                options => options.AllowedOrigins is null || options.AllowedOrigins.All(OriginAllowlist.IsWellFormedOrigin),
+                $"{CoreAuthOptions.SectionName}:{nameof(CoreAuthOptions.AllowedOrigins)} chỉ nhận origin dạng " +
+                "'https://host' hoặc 'https://host:cổng' (scheme http/https; không '/' cuối, không path, không query, " +
+                "không cổng mặc định 80/443 vì trình duyệt không gửi cổng đó trong header Origin).")
             .ValidateOnStart();
 
         // Luật S9 — Core:Identity:Password chỉ được khai ở appsettings.json (không theo môi trường).

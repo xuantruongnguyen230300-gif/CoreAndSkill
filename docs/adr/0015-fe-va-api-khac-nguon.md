@@ -6,7 +6,7 @@ verified: chua-doi-chieu
 
 # ADR-0015 — FE và API phục vụ ở HAI origin khác nhau
 
-> **Trạng thái:** Đã chấp nhận (2026-09-10)
+> **Trạng thái:** Đã chấp nhận (2026-09-10) · Bổ sung bởi [ADR-0129](0129-development-nhan-moi-cong-https-localhost-mot-ham-origin-chung-cho-cors-va-lop-1-go-kiem-cong-prestart.md) (2026-11-09)
 
 ## Bối cảnh
 

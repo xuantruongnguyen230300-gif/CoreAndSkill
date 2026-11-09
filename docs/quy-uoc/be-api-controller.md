@@ -21,6 +21,7 @@ verified: chua-doi-chieu
 > | ✅ **Khoá cấu hình rate limit ở §6.1 khớp code** — neo ngay dưới khoá (đối chiếu 2026-10-06) | — |
 > | ✅ **Bảng *dùng gì thay phép so tên* ở §4.5 khớp code** — neo ở cột *Có thật ở* (đối chiếu 2026-11-05) | — |
 > | ✅ **Lượt 1 của OpenAPI ở §8.2 và ngoại lệ tiền tố thứ hai ở §8.1 khớp code** — neo ở §8.2 (đối chiếu 2026-10-06) | Luật R11 — khai `[ProducesResponseType]` theo từng nhóm controller, ArchTest ở lượt khai cuối ([ADR-0118](../adr/0118-openapi-sinh-bang-goi-cua-aspnetcore-xem-thu-bang-scalar-chi-o-development-ide-mo-trang-scalar-bo-cong-http.md) quyết định 4) |
+> | ✅ **Quy tắc origin chung ở §7.3 và lớp 1 ở §7.2 khớp code** ([ADR-0129](../adr/0129-development-nhan-moi-cong-https-localhost-mot-ham-origin-chung-cho-cors-va-lop-1-go-kiem-cong-prestart.md)) — hàm chung: `src/BE/Core/CoreAndSkill.Core.Web/Security/OriginAllowlist.cs`, chuỗi `public static bool IsAllowed(string? origin, IEnumerable<string>? allowedOrigins, bool isDevelopment)`; CORS: `src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreWebServiceCollectionExtensions.cs`, chuỗi `.SetIsOriginAllowed(originAllowlist.IsAllowed)`, không còn lời gọi `.WithOrigins(`; lớp 1: `src/BE/Core/CoreAndSkill.Core.Web/Security/AntiforgeryValidationMiddleware.cs`, chuỗi `!originAllowlist.IsAllowed(origin)`. Test: `OriginAllowlistTests.cs`, `OriginAllowlistHostTests.cs` dưới `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/Security/` xanh (đối chiếu 2026-11-09) | — |
 > | Các mục còn lại chưa ai mở code ra so, nên `verified:` giữ `chua-doi-chieu` | Từng mục lật riêng lẻ khi có người đối chiếu |
 >
 > Đây là file chủ của mọi mốc `— định nghĩa gốc` bên dưới ([`../OWNERSHIP.md`](../OWNERSHIP.md) §3). File khác
@@ -504,11 +505,11 @@ FE và API ở **hai origin khác nhau nhưng cùng tên miền gốc**
 
 ### 7.2 Hai lớp
 
-Cả hai lớp nằm trong **một** middleware, `AntiforgeryValidationMiddleware` (§2.4; vị trí: [`be-architecture.md`](be-architecture.md) §3.1; `Core.Web/Security/`, `internal sealed`, nhận `IAntiforgery` + `IOptions<CoreAuthOptions>`).
+Cả hai lớp nằm trong **một** middleware, `AntiforgeryValidationMiddleware` (§2.4; vị trí: [`be-architecture.md`](be-architecture.md) §3.1; `Core.Web/Security/`, `internal sealed`, nhận `IAntiforgery` + `OriginAllowlist`, kiểu giữ quy tắc origin chung của §7.3).
 
 | Lớp | Cơ chế | Từ chối bằng | Chặn gì |
 | --- | --- | --- | --- |
-| 1 | Request ghi có header `Origin` không nằm trong allowlist — cùng allowlist với CORS (§7.3) | 403 `CORE.AUTH.ORIGIN_REJECTED` | Request từ site lạ do trình duyệt phát sinh, vì trình duyệt luôn gắn `Origin` cho request cross-origin và **script không sửa được** header đó |
+| 1 | Request ghi có header `Origin` mà quy tắc origin chung (§7.3) không nhận — cùng hàm với CORS | 403 `CORE.AUTH.ORIGIN_REJECTED` | Request từ site lạ do trình duyệt phát sinh, vì trình duyệt luôn gắn `Origin` cho request cross-origin và **script không sửa được** header đó |
 | 2 | Token antiforgery — mọi `POST`/`PUT`/`PATCH`/`DELETE`, cộng `GET` mang dấu ở bảng dưới, phải mang header `X-XSRF-TOKEN` khớp | 403 `CORE.AUTH.CSRF_REJECTED` | Ca lớp 1 bỏ lọt (request không có `Origin` — kể cả điều hướng cấp cao nhất xuyên site — hoặc allowlist bị cấu hình rộng) |
 
 Hai lớp độc lập: request với `Origin` lạ nhưng token hợp lệ vẫn phải bị **403 `CORE.AUTH.ORIGIN_REJECTED`** — luật S30 ([`../RULES.md`](../RULES.md) §6). Cách FE xử lý từng mã: [`../contracts/auth.md`](../contracts/auth.md) §11.
@@ -519,7 +520,7 @@ Thứ tự trong `InvokeAsync`:
 
 1. `GET` / `HEAD` / `OPTIONS` / `TRACE` ⇒ `next` — **trừ** action mang dấu ngoại lệ ở bảng dưới (chỉ kiểm method ghi — bẫy thứ ba ở §7.5).
 2. Endpoint có `IAuthorizeData`, không `IAllowAnonymous`, và `User` chưa xác thực ⇒ `next` (401 ở `UseAuthorization`).
-3. Header `Origin` có mặt và không nằm trong `AllowedOrigins` (so `OrdinalIgnoreCase`) ⇒
+3. Header `Origin` có mặt và quy tắc origin chung (§7.3) không nhận ⇒
    `SecurityEnvelopeWriter.WriteEnvelopeAsync(http, SecurityErrors.OriginRejected)` — lớp 1.
 4. Token không hợp lệ ⇒ `WriteEnvelopeAsync(http, SecurityErrors.CsrfRejected)` — lớp 2. Kiểm bằng `ValidateRequestAsync` trong `try/catch`, **không** `IsRequestValidAsync`: hàm sau trả `true` cho mọi method an toàn (ly-do §7.2).
 5. `next`.
@@ -542,15 +543,32 @@ không gõ tay.
 
 ### 7.3 CORS
 
-Một policy `CorsPolicyNames.Default`: `WithOrigins` + `AllowAnyHeader` + `AllowAnyMethod` + `AllowCredentials` + `WithExposedHeaders` — khối đầy đủ ở ly-do §7.3.
+Một policy `CorsPolicyNames.Default`: `SetIsOriginAllowed` + `AllowAnyHeader` + `AllowAnyMethod` + `AllowCredentials` + `WithExposedHeaders`, không `WithOrigins` — khối đầy đủ ở ly-do §7.3.
 
-- Allowlist đọc qua `IOptions<CoreAuthOptions>` — fail-fast lúc khởi động ([`be-architecture.md`](be-architecture.md) §4).
+**Quy tắc origin chung — định nghĩa gốc.** Chữ *allowlist origin* ở mọi tệp khác nghĩa là quy tắc này. Khớp code — bảng đầu tệp. Một origin được nhận khi:
+
+| Nhánh | Áp ở | Nhận origin |
+| --- | --- | --- |
+| (a) Danh sách | Mọi môi trường | Khớp một mục của `Core:Auth:AllowedOrigins`, so không phân biệt hoa thường |
+| (b) Máy dev | Chỉ khi `IHostEnvironment.IsDevelopment()` | Đúng dạng header `Origin` (mục dưới), scheme `https`, host đúng chữ `localhost`, cổng bất kỳ |
+
+- CORS — qua `SetIsOriginAllowed` — và lớp 1 (§7.2) gọi **một** hàm, `IsAllowed` của `OriginAllowlist` (`internal sealed`, `Core.Web/Security/`, singleton). Không chỗ nào khác đọc `AllowedOrigins` để quyết một origin; phép kiểm dạng mục lúc khởi động dùng định nghĩa *đúng dạng* của cùng kiểu đó.
+- Nhánh (b) không nhận `http://localhost`, `127.0.0.1`, `[::1]`, `loopback`, `*.localhost`: hàm so `Host` với chữ `localhost`, không dùng `Uri.IsLoopback` — vì sao: ly-do §7.3.
+- Cái giá của nhánh (b): ở Development, mọi trang `https://localhost:<cổng>` trên máy dev dùng được phiên dev — [ADR-0129](../adr/0129-development-nhan-moi-cong-https-localhost-mot-ham-origin-chung-cho-cors-va-lop-1-go-kiem-cong-prestart.md), mục *Tiêu cực*.
+
+Danh sách của nhánh (a):
+
+- Đọc qua `IOptions<CoreAuthOptions>` — fail-fast lúc khởi động ([`be-architecture.md`](be-architecture.md) §4), ở mọi môi trường kể cả Development.
+- **Mỗi mục đúng dạng header `Origin` mà trình duyệt gửi**: `scheme://host` hoặc `scheme://host:cổng`, scheme `http`/`https`; không path, không `/` cuối, không query, không userinfo, không cổng mặc định của chính scheme (`https://host:443`) — trình duyệt không gửi cổng đó. Sai dạng ⇒ không khởi động, thông báo nêu `Core:Auth:AllowedOrigins` — vì sao: ly-do §7.3. ✅ CÓ THẬT (đối chiếu 2026-11-09): định nghĩa *đúng dạng* ở `src/BE/Core/CoreAndSkill.Core.Web/Security/OriginAllowlist.cs`, chuỗi `internal static bool IsWellFormedOrigin(`; phép kiểm lúc khởi động gọi nó ở `src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreOptionsServiceCollectionExtensions.cs`, chuỗi `options.AllowedOrigins.All(OriginAllowlist.IsWellFormedOrigin)`; test `MalformedAllowedOrigin_PreventsStartup_AndNamesTheKey`, `WellFormedAllowedOrigins_StartNormally` ở `src/BE/Tests/CoreAndSkill.Core.IntegrationTests/ConfigurationFailFastTests.cs`.
+
+Policy:
+
 - `AllowCredentials()` là bắt buộc để cookie đi qua.
 - Header phản hồi FE cần đọc phải nằm trong `WithExposedHeaders` — hai header: `Retry-After` của 429 (§6.5), `Content-Disposition` của endpoint trả tệp. Thiếu thì FE đọc ra `null`, không lỗi.
 - **Không bao giờ** `AllowAnyOrigin()` một khi đã có auth thật.
 
 > 🛑 **Không bao giờ dùng CORS thay cho phân quyền.** Không "sửa" lỗi CORS bằng cách phản hồi lại đúng
-> `Origin` mà client gửi lên.
+> `Origin` mà client gửi lên: `SetIsOriginAllowed` chỉ nhận hàm của quy tắc chung, không bao giờ một hàm luôn trả `true`.
 
 > 📖 Lý do, bẫy, ví dụ mở rộng: [`be-api-controller.md`](../wiki-core/be/ly-do/be-api-controller.md) §7.3
 

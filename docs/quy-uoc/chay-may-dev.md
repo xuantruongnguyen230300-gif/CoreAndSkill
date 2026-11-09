@@ -13,6 +13,7 @@ verified: 2026-10-06
 > | Lệnh, khoá cấu hình, đường dẫn ở §1–§4 khớp tệp nguồn (neo tại chỗ) | Một lần chạy trọn §2 trên một máy Windows sạch bằng Git Bash — **chưa ai chạy**; phần database chung điều kiện với [`../database/script-runbook.md`](../database/script-runbook.md) §6 |
 > | Cổng của cụm ở §5 có thật: `scripts/dev-config-check.sh` và canary `scripts/tests/dev-config-check.test.sh`, chạy tay xanh 2026-10-06 | Job CI `dev-config` trong `.github/workflows/docs-gate.yml` chạy lần đầu — **chưa chạy**: thay đổi chưa push |
 > | BE tự chuyển console sang UTF-8: `src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreConsoleEncoding.cs`, chuỗi `UseUtf8OnWindowsConsole` — chưa qua review Core | Qua review; chạy thử trong PowerShell — **chưa ai chạy** |
+> | **§2 bước 10–11, §4 và §5 khớp mã sau [ADR-0129](../adr/0129-development-nhan-moi-cong-https-localhost-mot-ham-origin-chung-cho-cors-va-lop-1-go-kiem-cong-prestart.md)** — đối chiếu 2026-11-09 bằng đọc tệp và test: `npm start` không còn bước kiểm cổng — `src/FE/package.json`, chuỗi `"start": "ng serve"`, không còn khoá `prestart`, thư mục `src/FE/scripts/` không còn; BE dev nhận mọi `https://localhost:<cổng>` — `src/BE/Core/CoreAndSkill.Core.Web/Security/OriginAllowlist.cs`, chuỗi `isDevelopment && IsDevelopmentLocalhostOrigin(origin)`, test `CorsAndLayerOne_GiveTheSameVerdict_ForTheSameOrigin` xanh; cổng T14 không đọc `AllowedOrigins` — `grep -c AllowedOrigins scripts/dev-config-check.sh` ra 0, cổng và canary chạy tay xanh | Một lần chạy FE ở cổng khác 4200 trên trình duyệt thật và đăng nhập được — **chưa ai chạy** |
 > | Hai script Git Bash bọc các bước của §2: `scripts/dev/chuan-bi-may-dev.sh` (không chạm database — chế độ `--kiem-tra` chạy xanh trên một máy dev 2026-10-06) và `scripts/dev/ap-db-dev.sh` (người dùng chạy — đầu tệp chuỗi `NGƯỜI DÙNG CHẠY`; chỉ qua `bash -n`) | `ap-db-dev.sh` chạy trọn một lần trên database cục bộ — **chưa ai chạy** |
 >
 > **Tệp này làm chủ hai thứ:** thứ tự các bước từ clone tới đăng nhập (§2), và cụm cổng/origin phải khớp (§5). Bước nào có tệp chủ thì chỉ trỏ sang đó, không chép lệnh.
@@ -50,8 +51,8 @@ Chạy từ gốc repo, trong Git Bash; lệnh `dotnet` chạy trong `src/BE` (d
 | 7 | Chứng chỉ HTTPS dev — một lần mỗi máy, làm lúc nào cũng được trước bước 10 | [`../wiki-core/fe/17-phuc-vu-va-trien-khai.md`](../wiki-core/fe/17-phuc-vu-va-trien-khai.md) §4.2 | Thư mục chứng chỉ của FE — thư mục `.gitignore` loại, khối `serve` của `angular.json` đọc — có hai tệp PEM |
 | 8 | Chạy BE: `(cd src/BE && dotnet run --project CoreAndSkill.Api)` — giữ cửa sổ này mở | §5 cặp 1 | `https://localhost:7100/scalar` mở ra trang tài liệu API |
 | 9 | `cd src/FE && npm ci` — lần đầu, và mỗi khi `package-lock.json` đổi | — | Không lỗi |
-| 10 | `npm start` trong `src/FE`, ở cửa sổ thứ hai | §5 cặp 2 | Log báo phục vụ ở `https://localhost:4200` |
-| 11 | Mở `https://localhost:4200` — chưa đăng nhập thì về `/dang-nhap` — rồi đăng nhập | §3 | Vào màn đổi mật khẩu bắt buộc |
+| 10 | `npm start` trong `src/FE`, ở cửa sổ thứ hai. Cổng 4200 bận thì CLI hỏi có dùng cổng khác không — chọn có được | §5 cặp 2 | Log báo phục vụ ở `https://localhost:<cổng>` — mặc định 4200 |
+| 11 | Mở đúng địa chỉ log của bước 10 in ra — chưa đăng nhập thì về `/dang-nhap` — rồi đăng nhập | §3 | Vào màn đổi mật khẩu bắt buộc |
 
 **Hai script bọc các bước trên.** `bash scripts/dev/chuan-bi-may-dev.sh --kiem-tra` chỉ đọc và in điều kiện cần (§1), bước 5, 7, 9 và cụm §5; bỏ `--kiem-tra` thì nó làm phần còn thiếu của bước 5, 7, 9 — không chạm database. `bash scripts/dev/ap-db-dev.sh` làm bước 2–3 rồi so checksum, **người dùng chạy**, chỉ cho Postgres trên chính máy; bước 4 vẫn dán khối của runbook §3.6 — script in lệnh, không chép khối đó.
 
@@ -96,7 +97,7 @@ Neo: `src/FE/src/app/platform/xac-thuc/pages/dang-nhap/dang-nhap.page.ts`, chu�
 | BE dừng ngay khi khởi động, log `KHOI DONG BI TU CHOI — database thieu migration` | Chưa áp đủ script schema | Bước 3; database đang có dữ liệu: runbook §3.4 |
 | BE dừng, log `KHOI DONG BI TU CHOI — khong ket noi duoc database` | Postgres chưa chạy, database chưa tạo, hay chưa có role `coreandskill_app` | Bước 1, 2 |
 | BE dừng, lỗi `Core:File:RootPath trỏ tới thư mục không tồn tại` | Thiếu thư mục kho tệp | Bước 5 |
-| Trình duyệt báo lỗi CORS, hay lệnh ghi trả 403 `CORE.AUTH.ORIGIN_REJECTED` | Origin của trang FE không có trong `Core:Auth:AllowedOrigins`: `ng serve` chạy cổng khác — cổng 4200 bận thì CLI đề nghị cổng khác —, hoặc trang mở bằng `http://` | Giải phóng cổng 4200 rồi `npm start` lại; mở đúng `https://localhost:4200`; §5 |
+| Trình duyệt báo lỗi CORS khi đăng nhập — tab Network chỉ thấy `OPTIONS` trả 204, `POST` không đi —, hay lệnh ghi trả 403 `CORE.AUTH.ORIGIN_REJECTED` | Origin của trang FE không được BE nhận. Ở Development BE nhận mọi `https://localhost:<cổng>` cùng các mục của `Core:Auth:AllowedOrigins` — quy tắc ở [`be-api-controller.md`](be-api-controller.md) §7.3. Thường gặp: trang mở bằng `http://`, hay bằng `127.0.0.1`, tên máy thay vì `localhost`; hoặc BE không chạy ở môi trường Development | Mở đúng địa chỉ log của `ng serve` in ra; BE chạy bằng hồ sơ của `launchSettings.json` (bước 8) |
 | FE báo không kết nối được máy chủ; tab Network thấy request tới cổng 7100 hỏng | BE chưa chạy; BE nghe cổng khác (`--urls` hay `ASPNETCORE_URLS` đè `launchSettings.json`); hoặc trình duyệt chưa tin chứng chỉ dev | Mở thẳng `https://localhost:7100/scalar` trên cùng trình duyệt; bước 7, 8; §5 |
 | Áp script báo `khong dong duoc vai … (chu schema core) - DUNG` | Kết nối bằng tài khoản không đóng được vai chủ schema `core` — thường `coreandskill_app`. Script mang khối tự chặn dừng trước khi tạo gì | Đổi sang kết nối `coreandskill_owner`, hay `postgres` khi mọi script còn thiếu mang khối — runbook §3.1, *Tài khoản chạy script* |
 | Script đầu tiên dừng ở câu đầu (`START TRANSACTION`) với lỗi cú pháp, có thể kèm ký tự lạ trước chữ đầu | BOM UTF-8 ở đầu tệp script | Cảnh báo BOM ở runbook §3.3 bước 2 |
@@ -108,17 +109,24 @@ Neo: `src/FE/src/app/platform/xac-thuc/pages/dang-nhap/dang-nhap.page.ts`, chu�
 
 ## 5. Cụm cổng và origin của máy dev — định nghĩa gốc
 
-Bốn tệp, hai cặp. Đổi một chỗ thì đổi chỗ kia của cặp trong **cùng một thay đổi**.
+Hai tệp cho cặp 1, một tệp cho origin FE. Đổi một chỗ của cặp 1 thì đổi chỗ kia trong **cùng một thay đổi**.
 
-| Cặp | Tệp, chuỗi neo | Phải khớp | Lệch thì |
+| Mục | Tệp, chuỗi neo | Phải khớp | Lệch thì |
 | --- | --- | --- | --- |
 | 1. Cổng API | `src/BE/CoreAndSkill.Api/Properties/launchSettings.json`, chuỗi `"applicationUrl": "https://localhost:7100"` | `src/FE/src/environments/environment.development.ts`, chuỗi `apiBaseUrl: 'https://localhost:7100/api/v1'` | FE gọi vào cổng không ai nghe — lỗi kết nối |
-| 2. Origin FE | `src/FE/angular.json`, khối `serve`: chuỗi `"ssl": true`, không khai `port` nên máy chủ dev dùng cổng mặc định 4200 | `src/BE/CoreAndSkill.Api/appsettings.Development.json`, chuỗi `"AllowedOrigins": ["https://localhost:4200"` | CORS chặn; lệnh ghi trả 403 `CORE.AUTH.ORIGIN_REJECTED` |
+| 2. Origin FE | `src/FE/angular.json`, khối `serve`: chuỗi `"ssl": true`, không khai `port` nên máy chủ dev dùng cổng mặc định 4200 | Hằng ghim của cổng T14. **Không** phải khớp `Core:Auth:AllowedOrigins`: ở Development BE nhận mọi `https://localhost:<cổng>` — [`be-api-controller.md`](be-api-controller.md) §7.3 | `ssl` tắt thì origin thành `http`, BE không nhận — CORS chặn, lệnh ghi trả 403 `CORE.AUTH.ORIGIN_REJECTED` |
 
 - `ng serve` dùng `environment.development.ts`: khối `development` của `angular.json` thay `environment.ts` bằng tệp đó. `environment.ts` chỉ là placeholder cho `ng test`, `ng lint` — đổi cổng ở đó không có tác dụng ([`fe-architecture.md`](fe-architecture.md) §1.1, bảng *Các tệp môi trường*).
-- `AllowedOrigins` còn mang origin của chính API, cho trang Scalar — dòng 2026-10-06 về allowlist origin máy dev ở [`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md).
+- `AllowedOrigins` của `appsettings.Development.json` vẫn mang hai mục, `https://localhost:4200` và origin của chính API cho trang Scalar (dòng 2026-10-06 về allowlist origin máy dev ở [`../adr/nhat-ky-quyet-dinh.md`](../adr/nhat-ky-quyet-dinh.md)). Ở Development cả hai thừa, nhưng khoá bắt buộc ít nhất một mục ở mọi môi trường ([`be-architecture.md`](be-architecture.md) §4.1) — đừng gỡ cho gọn.
 - Mã đơn vị dev — `tenantCode` của FE với `Core:Bootstrap:FirstTenantCode` — **không** thuộc cụm này. Chủ của nó: đoạn *Cùng giá trị ở FE*, runbook §3.3 bước 4. Cổng dưới canh luôn cặp đó.
 
-**Đổi cổng có chủ ý:** đổi cả hai chỗ của cặp, và hằng `PIN_*` ở đầu `scripts/dev-config-check.sh`, trong cùng một thay đổi.
+**Đổi cổng có chủ ý:** cổng API — đổi cả hai chỗ của cặp 1 và hằng `PIN_API_PORT` ở đầu `scripts/dev-config-check.sh`; cổng mặc định của FE — đổi `angular.json` và hằng `PIN_FE_PORT`, BE không phải đổi gì. Cùng một thay đổi.
 
-**Kiểm:** `bash scripts/dev-config-check.sh` — thoát 0 là khớp. Luật **T14** ở [`../RULES-CHUNG.md`](../RULES-CHUNG.md). Cổng chỉ đọc tệp, nên **không** bắt được cổng mà `ng serve` thật sự chọn lúc chạy khi 4200 bận — chỉ log của `npm start` cho biết.
+**Kiểm:** `bash scripts/dev-config-check.sh` — thoát 0 là khớp. Luật **T14** ở [`../RULES-CHUNG.md`](../RULES-CHUNG.md). Cổng chỉ đọc tệp, nên **không** thấy cổng mà `ng serve` thật sự nghe lúc chạy — không cần thấy: BE dev nhận cổng nào cũng được.
+
+**Chạy cổng khác** — khi cổng 4200 phải để cho việc khác. Một trong hai, BE không phải đổi gì, cổng T14 vẫn xanh:
+
+- `npm start` khi 4200 đang bận, rồi trả lời có khi CLI hỏi dùng cổng khác — CLI tự chọn cổng.
+- `npm start -- --port <n>` trong `src/FE` — chọn cổng.
+
+Cái giá của việc BE dev nhận mọi cổng: trang khác chạy trên `https://localhost` của máy dùng được phiên dev — [ADR-0129](../adr/0129-development-nhan-moi-cong-https-localhost-mot-ham-origin-chung-cho-cors-va-lop-1-go-kiem-cong-prestart.md), mục *Tiêu cực*.

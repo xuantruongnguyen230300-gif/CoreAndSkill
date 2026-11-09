@@ -321,6 +321,7 @@ Job nền của Core resolve cleaner qua `IServiceScopeFactory`, mỗi cleaner m
 | Cấu hình rate limit | Theo IP. Hạn mức theo tài khoản đăng nhập **không** nằm ở đây mà trong handler đăng nhập — [`be-api-controller.md`](be-api-controller.md) §6 |
 | `HttpContextCurrentUser` · `HttpContextTenantContext` | Implementation của `ICurrentUser` và của `ITenantContext` — hai chỗ **duy nhất** đọc `HttpContext` để lấy danh tính và đơn vị. Cả hai đọc `IExecutionContextScope.Current` **trước**, `HttpContext` **sau** (§1.1) |
 | `AntiforgeryValidationMiddleware` | Chống CSRF hai lớp cho mọi method ghi — kiểm `Origin` theo allowlist, rồi kiểm token; tự dựng envelope 403, xem [`be-api-controller.md`](be-api-controller.md) §7.2 |
+| `OriginAllowlist` — quy tắc origin chung | Một hàm quyết origin được nhận, CORS và lớp 1 cùng gọi — [`be-api-controller.md`](be-api-controller.md) §7.3, [ADR-0129](../adr/0129-development-nhan-moi-cong-https-localhost-mot-ham-origin-chung-cho-cors-va-lop-1-go-kiem-cong-prestart.md). ✅ CÓ THẬT (đối chiếu 2026-11-09): `src/BE/Core/CoreAndSkill.Core.Web/Security/OriginAllowlist.cs`, chuỗi `internal sealed class OriginAllowlist` |
 | `PasswordChangeRequiredMiddleware` | Chặn tài khoản đang ở trạng thái bắt buộc đổi mật khẩu, trừ allowlist ở [`../contracts/auth.md`](../contracts/auth.md) §1.2. Chặn ở BE, không để FE điều hướng |
 | `ModelBindingProblemFactory` | Thay `InvalidModelStateResponseFactory` mặc định để lỗi model binding cũng ra đúng envelope |
 | Controller của Core | Auth, người dùng, vai trò, permission, menu động — những màn hình mọi sản phẩm đều cần |
@@ -530,11 +531,15 @@ services.AddOptions<CoreAuthOptions>()
         options => options.CookieName is null || options.AntiforgeryCookieName is null
                    || !string.Equals(options.CookieName, options.AntiforgeryCookieName, StringComparison.OrdinalIgnoreCase),
         "…")   // hai tên cookie không được trùng — be-api-controller.md §7.5
+    .Validate(
+        options => options.AllowedOrigins is null || options.AllowedOrigins.All(OriginAllowlist.IsWellFormedOrigin),
+        "…")   // mỗi origin đúng dạng header Origin — định nghĩa của quy tắc origin chung, be-api-controller.md §7.3
     .ValidateOnStart();
 ```
 
-✅ CÓ THẬT (đối chiếu 2026-10-06): `src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreOptionsServiceCollectionExtensions.cs`
-(chuỗi `services.AddOptions<CoreAuthOptions>()`).
+✅ CÓ THẬT (đối chiếu 2026-11-09): `src/BE/Core/CoreAndSkill.Core.Web/DependencyInjection/CoreOptionsServiceCollectionExtensions.cs`
+(chuỗi `services.AddOptions<CoreAuthOptions>()`, `options.AllowedOrigins.All(OriginAllowlist.IsWellFormedOrigin)`); hàm kiểm dạng ở
+`src/BE/Core/CoreAndSkill.Core.Web/Security/OriginAllowlist.cs`, chuỗi `internal static bool IsWellFormedOrigin(`.
 
 ### 4.2 Vì sao `?? []` là một cái bẫy, không phải một mặc định lịch sự
 

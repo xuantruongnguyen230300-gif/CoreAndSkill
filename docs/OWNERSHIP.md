@@ -147,12 +147,13 @@ Gắn mốc mà quên đăng ký → cổng đỏ, kèm `file:dòng`. Đăng ký
 | Tập khoá cấu hình của phép kiểm migration lúc khởi động, tiền tố `Core:SchemaCheck:` | `docs/database/script-runbook.md` | `Khoá cấu hình của phép kiểm khởi động — định nghĩa gốc` |
 | Dạng giá trị cấu hình mã hoá `enc:v1:`, chỗ được phép, khoá giải mã tiền tố `Core:ConfigEncryption:`, khoá mang mã `dev` ([ADR-0097](adr/0097-mat-khau-db-dev-chung-vao-git-ma-hoa-aes-gcm-khoa-ngoai-repo.md), [ADR-0098](adr/0098-giai-ma-o-buoc-dung-options-mot-db-dev-chung-khoa-dev-trong-git.md)) | `docs/quy-uoc/repo-artifact.md` | `Giá trị cấu hình mã hoá — định nghĩa gốc` |
 | Giá trị dev công khai trong `appsettings.Development.json` và `database/dev/tao-db-local.sql` — các nhóm và ranh giới của chúng, ngoại lệ bản rõ của S6 ([ADR-0110](adr/0110-db-cuc-bo-moi-dev-gia-tri-dev-cong-khai-trong-git-hoan-db-chung.md)) | `docs/quy-uoc/repo-artifact.md` | `Giá trị dev công khai — định nghĩa gốc` |
-| Cụm cổng API ↔ `apiBaseUrl` và origin máy chủ dev FE ↔ `Core:Auth:AllowedOrigins` của máy dev — hai cặp phải đổi cùng nhau (luật T14) | `docs/quy-uoc/chay-may-dev.md` | `Cụm cổng và origin của máy dev — định nghĩa gốc` |
+| Cụm cổng API ↔ `apiBaseUrl` và origin mặc định của máy chủ dev FE (ghim) — luật T14 | `docs/quy-uoc/chay-may-dev.md` | `Cụm cổng và origin của máy dev — định nghĩa gốc` |
 | Khởi động app và thiết lập phiên phía FE | `docs/quy-uoc/fe-routing-guard.md` | `khởi động và thiết lập phiên — định nghĩa gốc` |
 | Bắt lỗi tải phần mã của tuyến — chỗ nghe, hàm nhận dạng, phép chọn nhánh | `docs/quy-uoc/fe-routing-guard.md` | `Điều hướng hỏng vì không tải được phần mã — định nghĩa gốc` |
 | Áp theme trước paint và nạp font | `docs/quy-uoc/fe-ui-conventions.md` | `Theme trước paint và font — định nghĩa gốc` |
 | Seam dựng principal, tên claim và các kiểu của phiên (`ISessionPrincipalFactory`, `CoreClaimTypes`, `LoginOutcome`, `SessionDto`) | `docs/quy-uoc/be-api-controller.md` | `Seam dựng principal và kiểu của phiên — định nghĩa gốc` |
 | Catalog mã lỗi mà hạ tầng HTTP ở `Core.Web` phát, và helper ghi envelope của chúng (`SecurityErrors`, `SecurityEnvelopeWriter`) | `docs/quy-uoc/be-api-controller.md` | `Catalog mã của hạ tầng HTTP — định nghĩa gốc` |
+| Quy tắc quyết một origin được nhận — chung cho CORS và lớp 1 chống giả mạo, gồm nhánh chỉ ở Development (luật S30) | `docs/quy-uoc/be-api-controller.md` | `Quy tắc origin chung — định nghĩa gốc` |
 | Giới hạn kích thước upload và khoá cấu hình `Core:File:MaxUploadMb` | `docs/wiki-core/be/14-file-storage.md` | `Kích thước và giới hạn — định nghĩa gốc` |
 | Khoá cấu hình proxy tin cậy, tiền tố `Core:Network:` | `docs/wiki-core/be/18-trien-khai-va-van-hanh.md` | `Khoá cấu hình proxy tin cậy — định nghĩa gốc` |
 | Khoá cấu hình ngưỡng rate limit theo IP, tiền tố `Core:RateLimit:` — tên khoá, miền, mặc định ở lớp `CoreRateLimitOptions` | `docs/quy-uoc/be-api-controller.md` | `Khoá cấu hình rate limit — định nghĩa gốc` |
